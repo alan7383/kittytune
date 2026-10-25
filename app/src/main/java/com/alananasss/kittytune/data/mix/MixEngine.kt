@@ -66,7 +66,19 @@ object MixEngine {
 
         /** One genre or tag, as SoundCloud spells it. */
         data class InGenre(val genre: String) : Recipe
+
+        /** Custom mix with multiple artists and/or multiple genres. */
+        data class Custom(
+            val artists: List<ArtistSeed> = emptyList(),
+            val genres: List<String> = emptyList()
+        ) : Recipe
     }
+
+    data class ArtistSeed(
+        val artistId: Long? = null,
+        val artistName: String,
+        val avatarUrl: String? = null
+    )
 
     sealed interface Result {
         data class Mixed(val tracks: List<Track>, val describedBy: String) : Result
@@ -169,6 +181,27 @@ object MixEngine {
         // the unplayable and the two-per-artist cap have taken their share. The search endpoint honours a
         // larger limit, so a genre mix asks for one rather than coming back a third full.
         is Recipe.InGenre -> listOf(Seed.OfGenre(recipe.genre, 1f, wide = true))
+
+        is Recipe.Custom -> {
+            buildList {
+                val knownArtistIds = artistIds()
+                recipe.artists.forEach { art ->
+                    val id = art.artistId
+                        ?: knownArtistIds[art.artistName.trim().lowercase()]
+                        ?: resolveArtistId(art.artistName)
+                    if (id != null) {
+                        add(Seed.OfArtist(id, art.artistName, 1f))
+                    }
+                }
+                val wideGenre = recipe.artists.isEmpty() && recipe.genres.size <= 1
+                recipe.genres.forEach { genre ->
+                    add(Seed.OfGenre(genre, 1f, wide = wideGenre))
+                }
+                if (recipe.artists.isEmpty() && recipe.genres.isEmpty()) {
+                    addAll(seedsFor(Recipe.MyTaste, taste))
+                }
+            }
+        }
 
         Recipe.MyTaste -> {
             if (taste.isEmpty) emptyList() else buildList {
@@ -403,6 +436,16 @@ object MixEngine {
     private fun describe(recipe: Recipe, seeds: List<Seed>): String = when (recipe) {
         is Recipe.LikeArtist -> recipe.artistName
         is Recipe.InGenre -> recipe.genre
+        is Recipe.Custom -> {
+            val parts = mutableListOf<String>()
+            if (recipe.artists.isNotEmpty()) {
+                parts.add(recipe.artists.joinToString(", ") { it.artistName })
+            }
+            if (recipe.genres.isNotEmpty()) {
+                parts.add(recipe.genres.joinToString(", "))
+            }
+            if (parts.isNotEmpty()) parts.joinToString(" • ") else "Custom mix"
+        }
         Recipe.MyTaste -> seeds.filterIsInstance<Seed.OfArtist>()
             .take(2)
             .joinToString(", ") { it.name }

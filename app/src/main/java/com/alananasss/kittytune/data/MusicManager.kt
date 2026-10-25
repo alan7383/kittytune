@@ -7,7 +7,10 @@
 package com.alananasss.kittytune.data
 
 import android.content.Context
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.net.Uri
+import android.os.Looper
 import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -206,6 +209,7 @@ object MusicManager {
         fadingPlayer = null
         liveTransitions = 0
         isCrossfadingOut = false
+        updateRainPlayback()
         releasePrebuffered()
     }
 
@@ -279,6 +283,52 @@ object MusicManager {
     /** Retrieve the DRM license token for a track (if any) */
     fun getDrmToken(trackId: Long): String? {
         return drmTokenCache[trackId]
+    }
+
+    private var audioManager: AudioManager? = null
+    private var audioFocusRequest: AudioFocusRequest? = null
+    private var pausedForTransientFocusLoss = false
+
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                try {
+                    player.pause()
+                    fadingPlayer?.pause()
+                } catch (_: Exception) {}
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                try {
+                    if (player.isPlaying || fadingPlayer?.isPlaying == true) {
+                        pausedForTransientFocusLoss = true
+                        player.pause()
+                        fadingPlayer?.pause()
+                    }
+                } catch (_: Exception) {}
+            }
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                if (pausedForTransientFocusLoss) {
+                    pausedForTransientFocusLoss = false
+                    try {
+                        player.play()
+                        fadingPlayer?.play()
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+    }
+
+    fun requestAudioFocus(): Boolean {
+        val am = audioManager ?: return true
+        val req = audioFocusRequest ?: return true
+        val res = am.requestAudioFocus(req)
+        return res == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+    }
+
+    fun abandonAudioFocus() {
+        val am = audioManager ?: return
+        val req = audioFocusRequest ?: return
+        am.abandonAudioFocusRequest(req)
     }
 
     private val _contextFlow = MutableStateFlow<PlaybackContext?>(null)
@@ -593,6 +643,19 @@ object MusicManager {
             }
         }
 
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        this.audioManager = am
+        this.audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+            .setAudioAttributes(
+                android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build()
+            )
+            .setOnAudioFocusChangeListener(audioFocusChangeListener)
+            .setAcceptsDelayedFocusGain(true)
+            .build()
+
         val cache = com.alananasss.kittytune.data.local.ExoCacheManager.getCache(context)
         val cacheDataSourceFactory = androidx.media3.datasource.cache.CacheDataSource.Factory()
             .setCache(cache)
@@ -613,7 +676,7 @@ object MusicManager {
                             val duckProc = automixDuckProcessors.getOrNull(index) ?: com.alananasss.kittytune.audio.automix.AutomixDuckAudioProcessor()
                             val stemProc = djStemProcessors.getOrNull(index) ?: com.alananasss.kittytune.audio.automix.DjStemAudioProcessor()
                             return DefaultAudioSink.Builder(context)
-                                .setAudioProcessors(arrayOf(hapticProc, duckProc, stemProc, aiDetectionProcessors[index], equalizerProcessors[index], vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index], subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index], phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index], tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index], emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index], reverseEchoProcessors[index], fxProcessors[index], reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], normalizerProcessors[index], vinylLoFiProcessors[index], gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index], vintageMp3Processors[index]))
+                                .setAudioProcessors(arrayOf(aiDetectionProcessors[index], hapticProc, duckProc, stemProc, equalizerProcessors[index], vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index], subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index], phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index], tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index], emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index], reverseEchoProcessors[index], stadiumProcessors[index], cassetteWalkmanProcessors[index], asmrVocalProcessors[index], nightDriveProcessors[index], fxProcessors[index], reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], normalizerProcessors[index], vinylLoFiProcessors[index], gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index], vintageMp3Processors[index]))
                                 .setEnableFloatOutput(enableFloatOutput)
                                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                                 .build()
@@ -625,7 +688,7 @@ object MusicManager {
                         .setUsage(C.USAGE_MEDIA)
                         .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                         .build(),
-                    /* handleAudioFocus = */ true
+                    /* handleAudioFocus = */ false
                 )
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
@@ -645,6 +708,7 @@ object MusicManager {
             if (isActivePlayer && !isPlaying && !isCrossfadingOut) {
                 appContext?.let { com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(it).stopAllHaptics() }
             }
+            updateRainPlayback()
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -653,6 +717,12 @@ object MusicManager {
             if (isActivePlayer && (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) && !isCrossfadingOut) {
                 appContext?.let { com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(it).stopAllHaptics() }
             }
+            updateRainPlayback()
+        }
+
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            super.onPlayWhenReadyChanged(playWhenReady, reason)
+            updateRainPlayback()
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -665,8 +735,10 @@ object MusicManager {
             appContext?.let { com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(it).stopAllHaptics() }
             // Reset AI detection state for the new track
             aiDetectionProcessors.forEach { it.resetForNewTrack() }
-            AiDetectionManager.resetResult()
-            if (mediaItem == null) return
+            if (mediaItem == null) {
+                AiDetectionManager.resetResult()
+                return
+            }
 
             if (isCrossfadingOut && fadingPlayer != null) {
                 if (player.currentMediaItem != mediaItem) {
@@ -698,6 +770,9 @@ object MusicManager {
                     source = source
                 )
             }
+
+            val resolvedUri = mediaItem.localConfiguration?.uri?.toString()
+            AiDetectionManager.onTrackChanged(trackId, currentTrack, appContext, resolvedUri)
 
             currentTrack?.let { track ->
                 scope.launch {
@@ -735,6 +810,10 @@ object MusicManager {
             pb.player.stop()
             pb.player.clearMediaItems()
         } catch (_: Exception) {}
+    }
+
+    fun notifySeek(positionMs: Long) {
+        aiDetectionProcessors.forEach { it.notifySeek(positionMs) }
     }
 
     fun prebufferTransition(
@@ -860,7 +939,9 @@ object MusicManager {
             prebuffered = null
             // Reset AI detection state for the adopted new track
             aiDetectionProcessors.forEach { it.resetForNewTrack() }
-            AiDetectionManager.resetResult()
+            val resolvedUri = newPlayer.currentMediaItem?.localConfiguration?.uri?.toString()
+                ?: mediaItem.localConfiguration?.uri?.toString()
+            AiDetectionManager.onTrackChanged(targetTrackId, currentTrack ?: preloadedTrack, appContext, resolvedUri)
             val djDrivesStartPosition = djFlowActive && (djPhaseOffsetMs != 0L || effectiveTempoRatio != 1.0f)
             if (djFlowActive && effectiveTempoRatio != 1.0f) {
                 val adjSpeed = (basePlaybackParams.speed * effectiveTempoRatio).coerceIn(0.85f, 1.15f)
@@ -875,7 +956,7 @@ object MusicManager {
         } else {
             isAdopted = false
             releasePrebuffered()
-            newPlayer.playWhenReady = false
+            newPlayer.playWhenReady = true
             newPlayer.setMediaItem(mediaItem, synchronizedStartMs)
             val base = try { newPlayer.playbackParameters } catch (_: Exception) { PlaybackParameters.DEFAULT }
             basePlaybackParams = base
@@ -903,6 +984,8 @@ object MusicManager {
             setPlayerStemLevels(newPlayerIndex, vocal = 1.0f, drum = 1.0f, bass = 0.0f)
         }
 
+        requestAudioFocus()
+        newPlayer.playWhenReady = true
         newPlayer.play()
 
         if (effectivePlan != null) {
@@ -917,12 +1000,15 @@ object MusicManager {
                 if (isCrossfadingOut && fadingPlayer != null) {
                     try {
                         if (isPlaying) {
-                            fadingPlayer?.play()
-                        } else if (!newPlayer.playWhenReady || newPlayer.playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE) {
+                            if (fadingPlayer?.isPlaying == false && fadingPlayer?.playbackState == Player.STATE_READY) {
+                                fadingPlayer?.play()
+                            }
+                        } else if (!newPlayer.playWhenReady) {
                             fadingPlayer?.pause()
                         }
                     } catch (_: Exception) {}
                 }
+                updateRainPlayback()
             }
         }
         newPlayer.addListener(playStateSyncListener)
@@ -1019,12 +1105,16 @@ object MusicManager {
                 }
 
                 val transitionDuration = effectivePlan?.overlapMs ?: crossfadeDurationMs
-                var remainingMs = oldPlayer.duration - oldPlayer.currentPosition
-                if (remainingMs < 0) remainingMs = 0
+                val oldDuration = oldPlayer.duration.takeIf { it > 0L && it != C.TIME_UNSET }
+                    ?: lastPlayer?.let { it.duration.takeIf { d -> d > 0L && d != C.TIME_UNSET } }
+                    ?: currentTrack?.actualDurationMs
+                    ?: 0L
+                val oldPos = oldPlayer.currentPosition.coerceAtLeast(0L)
+                val remainingMs = if (oldDuration > 0L) (oldDuration - oldPos).coerceAtLeast(0L) else transitionDuration
 
                 val actualCrossfadeMs = if (oldPlayer.isPlaying && remainingMs > 0 && remainingMs < transitionDuration) {
                     remainingMs
-                } else if (!oldPlayer.isPlaying || remainingMs == 0L) {
+                } else if (!oldPlayer.isPlaying || (oldDuration > 0L && remainingMs == 0L)) {
                     0L
                 } else {
                     transitionDuration
@@ -1032,6 +1122,10 @@ object MusicManager {
 
                 if (actualCrossfadeMs <= 0L) {
                     newPlayer.volume = targetVolume
+                    if (playWhenReadyRequested || newPlayer.playWhenReady) {
+                        newPlayer.playWhenReady = true
+                        newPlayer.play()
+                    }
                     oldPlayer.playWhenReady = false
                     oldPlayer.stop()
                     oldPlayer.clearMediaItems()
@@ -1216,6 +1310,10 @@ object MusicManager {
                 try {
                     if (stillOwnsTransition) {
                         newPlayer.volume = targetVolume
+                        if (playWhenReadyRequested || newPlayer.playWhenReady) {
+                            newPlayer.playWhenReady = true
+                            newPlayer.play()
+                        }
                         oldPlayer.volume = 0f
                         oldPlayer.playWhenReady = false
                         oldPlayer.stop()
@@ -1476,6 +1574,26 @@ object MusicManager {
         rainPlayer?.setEnabled(state.isRainEnabled)
         rainPlayer?.setVolume(state.rainVolume)
         rainPlayer?.setAmbientType(state.ambientType)
+        updateRainPlayback()
+    }
+
+    fun updateRainPlayback() {
+        val action = {
+            val isMusicPlaying = try {
+                val p1 = _player1
+                val p2 = _player2
+                val fp = fadingPlayer
+                (p1?.isPlaying == true) || (p2?.isPlaying == true) || (fp?.isPlaying == true)
+            } catch (_: Exception) {
+                false
+            }
+            rainPlayer?.setMusicPlaying(isMusicPlaying)
+        }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            action()
+        } else {
+            scope.launch { action() }
+        }
     }
 
     fun applyEqualizer(state: EqualizerState) {

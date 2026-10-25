@@ -28,6 +28,9 @@ import com.alananasss.kittytune.audio.TrimSegment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.ui.res.stringResource
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 
 /**
  * Trimming the track that is playing, by ear (issue #33).
@@ -83,13 +86,13 @@ fun TrackTrimDialog(viewModel: PlayerViewModel) {
                     ).forEach { (picked, label) ->
                         if (mode == picked) {
                             Button(
-                                onClick = { mode = picked },
+                                onClick = hapticAction(HapticKind.UI) { mode = picked },
                                 shapes = ButtonDefaults.shapes(),
                                 modifier = Modifier.weight(1f),
                             ) { Text(label, maxLines = 1) }
                         } else {
                             FilledTonalButton(
-                                onClick = { mode = picked },
+                                onClick = hapticAction(HapticKind.UI) { mode = picked },
                                 shapes = ButtonDefaults.shapes(),
                                 modifier = Modifier.weight(1f),
                             ) { Text(label, maxLines = 1) }
@@ -134,7 +137,7 @@ fun TrackTrimDialog(viewModel: PlayerViewModel) {
                 }
 
                 FilledTonalButton(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         // Opens at the playhead and runs to the end, which is the shape you want when you
                         // have just heard the part start: press once, keep listening, then mark the end.
                         val end = if (duration > position) duration else position + 1_000L
@@ -158,7 +161,7 @@ fun TrackTrimDialog(viewModel: PlayerViewModel) {
             }
         },
         confirmButton = {
-            TextButton(onClick = {
+            TextButton(onClick = hapticAction(HapticKind.UI) {
                 viewModel.saveCurrentTrim(draft)
                 viewModel.showTrimDialog = false
             }) { Text(stringResource(R.string.btn_save)) }
@@ -166,13 +169,13 @@ fun TrackTrimDialog(viewModel: PlayerViewModel) {
         dismissButton = {
             Row {
                 if (!viewModel.currentTrim.isEmpty) {
-                    TextButton(onClick = {
+                    TextButton(onClick = hapticAction(HapticKind.UI) {
                         viewModel.clearCurrentTrim()
                         segments = emptyList()
                         viewModel.showTrimDialog = false
                     }) { Text(stringResource(R.string.trim_clear)) }
                 }
-                TextButton(onClick = { viewModel.showTrimDialog = false }) { Text(stringResource(R.string.btn_cancel)) }
+                TextButton(onClick = hapticAction(HapticKind.UI) { viewModel.showTrimDialog = false }) { Text(stringResource(R.string.btn_cancel)) }
             }
         },
     )

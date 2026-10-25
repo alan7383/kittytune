@@ -16,7 +16,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -28,10 +27,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.audio.ai.AiDetectionManager
 import com.alananasss.kittytune.data.BlockManager
@@ -68,20 +70,36 @@ fun AiDetectionBadge(
 ) {
     val context = LocalContext.current
     val prefs = remember(context) { PlayerPreferences(context) }
-    val showBadge = prefs.aiShowBadge
+    var showBadge by remember { mutableStateOf(prefs.aiShowBadge) }
+    var showHumanBadge by remember { mutableStateOf(prefs.aiShowHumanBadge) }
+    var threshold by remember { mutableFloatStateOf(prefs.aiScoreThreshold) }
+
+    DisposableEffect(context) {
+        val sp = context.getSharedPreferences("player_prefs", android.content.Context.MODE_PRIVATE)
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            when (key) {
+                PlayerPreferences.KEY_AI_SHOW_BADGE -> showBadge = prefs.aiShowBadge
+                PlayerPreferences.KEY_AI_SHOW_HUMAN_BADGE -> showHumanBadge = prefs.aiShowHumanBadge
+                PlayerPreferences.KEY_AI_SCORE_THRESHOLD -> threshold = prefs.aiScoreThreshold
+            }
+        }
+        sp.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { sp.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
     if (!showBadge || result == null || result.status == AiDetectionManager.Status.IDLE) {
         return
     }
 
     val view = LocalView.current
-    val threshold = prefs.aiScoreThreshold
     val score = if (result.score.isNaN()) 0f else result.score.coerceIn(0f, 1f)
     val pct = (score * 100).roundToInt().coerceIn(0, 100)
-    val isAi = score >= threshold
+    val isAi = result.isAi || (score >= threshold)
+    val isAnalyzing = result.status == AiDetectionManager.Status.ANALYZING
 
     val shouldDisplay = when (result.status) {
         AiDetectionManager.Status.ANALYZING -> true
-        AiDetectionManager.Status.DONE -> isAi || prefs.aiShowHumanBadge
+        AiDetectionManager.Status.DONE -> isAi || showHumanBadge
         AiDetectionManager.Status.ERROR -> false
         AiDetectionManager.Status.IDLE -> false
     }
@@ -92,126 +110,98 @@ fun AiDetectionBadge(
         exit = fadeOut(tween(200)) + scaleOut(targetScale = 0.85f),
         modifier = modifier
     ) {
-        val (bgAlpha, borderAlpha, containerColor, iconColor, labelColor) = when {
-            result.status == AiDetectionManager.Status.ANALYZING -> {
-                BadgeColors(
-                    bgAlpha = 0.10f,
-                    borderAlpha = 0.22f,
-                    containerColor = textColor,
-                    iconColor = textColor.copy(alpha = 0.85f),
-                    labelColor = textColor.copy(alpha = 0.85f)
-                )
+        val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+        val (containerColor, contentColor) = when {
+            isAnalyzing -> {
+                MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurfaceVariant
             }
             isAi -> {
-                val errorColor = MaterialTheme.colorScheme.error
-                BadgeColors(
-                    bgAlpha = 0.16f,
-                    borderAlpha = 0.40f,
-                    containerColor = errorColor,
-                    iconColor = errorColor,
-                    labelColor = errorColor
-                )
+                MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
             }
             else -> {
-                val safeColor = Color(0xFF4CAF50)
-                BadgeColors(
-                    bgAlpha = 0.12f,
-                    borderAlpha = 0.30f,
-                    containerColor = safeColor,
-                    iconColor = safeColor,
-                    labelColor = safeColor
-                )
+                if (isDark) {
+                    Color(0xFF1E3A24) to Color(0xFF81C784)
+                } else {
+                    Color(0xFFE8F5E9) to Color(0xFF1B5E20)
+                }
             }
         }
 
-        val shape = RoundedCornerShape(12.dp)
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier
-                .clip(shape)
-                .background(containerColor.copy(alpha = bgAlpha))
-                .border(width = 1.dp, color = containerColor.copy(alpha = borderAlpha), shape = shape)
-                .clickable {
-                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                    onClick()
+        CompositionLocalProvider(LocalContentColor provides contentColor) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(containerColor)
+                    .clickable {
+                        view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                        onClick()
+                    }
+                    .padding(horizontal = 7.dp, vertical = 2.dp)
+            ) {
+                if (isAnalyzing) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "AiBadgePulse")
+                    val pulseAlpha by infiniteTransition.animateFloat(
+                        initialValue = 0.4f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(750, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "AiBadgePulseAlpha"
+                    )
+                    Icon(
+                        imageVector = Icons.Rounded.AutoAwesome,
+                        contentDescription = stringResource(R.string.ai_badge_scanning),
+                        tint = contentColor.copy(alpha = pulseAlpha),
+                        modifier = Modifier.size(11.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.ai_badge_scanning),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.2.sp
+                        ),
+                        color = contentColor.copy(alpha = pulseAlpha),
+                        maxLines = 1
+                    )
+                } else if (isAi) {
+                    Icon(
+                        imageVector = Icons.Rounded.SmartToy,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.ai_badge_ai_tag, pct),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.2.sp
+                        ),
+                        maxLines = 1
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Rounded.VerifiedUser,
+                        contentDescription = null,
+                        modifier = Modifier.size(11.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.ai_badge_human_tag, 100 - pct),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.2.sp
+                        ),
+                        maxLines = 1
+                    )
                 }
-                .padding(horizontal = 7.dp, vertical = 3.dp)
-        ) {
-            if (result.status == AiDetectionManager.Status.ANALYZING) {
-                val infiniteTransition = rememberInfiniteTransition(label = "AiBadgePulse")
-                val pulseAlpha by infiniteTransition.animateFloat(
-                    initialValue = 0.35f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(650, easing = LinearEasing),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "AiBadgePulseAlpha"
-                )
-                Icon(
-                    imageVector = Icons.Rounded.AutoAwesome,
-                    contentDescription = stringResource(R.string.ai_badge_scanning),
-                    tint = iconColor.copy(alpha = pulseAlpha),
-                    modifier = Modifier.size(11.dp)
-                )
-                Text(
-                    text = stringResource(R.string.ai_badge_scanning),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.4.sp
-                    ),
-                    color = labelColor.copy(alpha = pulseAlpha),
-                    maxLines = 1
-                )
-            } else if (isAi) {
-                Icon(
-                    imageVector = Icons.Rounded.SmartToy,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.size(12.dp)
-                )
-                Text(
-                    text = stringResource(R.string.ai_badge_ai_tag, pct),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.4.sp
-                    ),
-                    color = labelColor,
-                    maxLines = 1
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Rounded.VerifiedUser,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.size(11.dp)
-                )
-                Text(
-                    text = stringResource(R.string.ai_badge_human_tag, 100 - pct),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.3.sp
-                    ),
-                    color = labelColor,
-                    maxLines = 1
-                )
             }
         }
     }
 }
-
-private data class BadgeColors(
-    val bgAlpha: Float,
-    val borderAlpha: Float,
-    val containerColor: Color,
-    val iconColor: Color,
-    val labelColor: Color
-)
 
 /**
  * Detailed bottom sheet opened when clicking the AI detection badge.
@@ -233,14 +223,14 @@ fun AiDetectionBottomSheet(
     val score = if (rawScore.isNaN()) 0f else rawScore.coerceIn(0f, 1f)
     val pct = (score * 100).roundToInt().coerceIn(0, 100)
     val threshold = prefs.aiScoreThreshold
-    val isAi = score >= threshold
+    val isAi = (aiResult?.isAi == true) || (score >= threshold)
     val isAnalyzing = aiResult?.status == AiDetectionManager.Status.ANALYZING
 
-    val isTrackBlocked = remember(track.id) { BlockManager.isTrackBlocked(track.id) }
+    val blockedTracks by BlockManager.blockedTrackIdsFlow.collectAsState()
+    val blockedArtists by BlockManager.blockedArtistIdsFlow.collectAsState()
+    val isTrackBlocked = track.id in blockedTracks
     val artistId = track.user?.id
-    val isArtistBlocked = remember(artistId) {
-        artistId?.let { BlockManager.isArtistBlocked(it) } ?: false
-    }
+    val isArtistBlocked = artistId != null && artistId in blockedArtists
 
     KittyModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -256,33 +246,79 @@ fun AiDetectionBottomSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // ─── Header ─────────────────────────────────────────────────────────
-            val iconTint by animateColorAsState(
+            val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+            val (dialogBadgeContainer, dialogBadgeContent) = when {
+                isAnalyzing -> {
+                    MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                isAi -> {
+                    MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+                }
+                else -> {
+                    if (isDark) {
+                        Color(0xFF1E3A24) to Color(0xFF81C784)
+                    } else {
+                        Color(0xFFE8F5E9) to Color(0xFF1B5E20)
+                    }
+                }
+            }
+
+            val scoreAccentColor by animateColorAsState(
                 targetValue = when {
                     isAnalyzing -> MaterialTheme.colorScheme.primary
                     isAi -> MaterialTheme.colorScheme.error
-                    else -> Color(0xFF4CAF50)
+                    else -> if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32)
                 },
-                label = "AiSheetIconTint"
+                label = "AiSheetScoreAccent"
             )
 
             Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(iconTint.copy(alpha = 0.15f))
-                    .border(1.dp, iconTint.copy(alpha = 0.35f), CircleShape),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.size(68.dp),
+                contentAlignment = Alignment.BottomEnd
             ) {
-                Icon(
-                    imageVector = when {
-                        isAnalyzing -> Icons.Rounded.AutoAwesome
-                        isAi -> Icons.Rounded.SmartToy
-                        else -> Icons.Rounded.VerifiedUser
-                    },
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(34.dp)
-                )
+                Surface(
+                    modifier = Modifier.size(68.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    val artwork = track.fullResArtwork.ifBlank { track.artworkUrl.orEmpty() }
+                    if (artwork.isNotBlank()) {
+                        AsyncImage(
+                            model = artwork,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Rounded.SmartToy,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                }
+                Surface(
+                    modifier = Modifier.size(24.dp),
+                    shape = CircleShape,
+                    color = dialogBadgeContainer,
+                    contentColor = dialogBadgeContent,
+                    shadowElevation = 2.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = when {
+                                isAnalyzing -> Icons.Rounded.AutoAwesome
+                                isAi -> Icons.Rounded.SmartToy
+                                else -> Icons.Rounded.VerifiedUser
+                            },
+                            contentDescription = null,
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+                }
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -336,27 +372,43 @@ fun AiDetectionBottomSheet(
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 32.sp
                                 ),
-                                color = iconTint
+                                color = scoreAccentColor
                             )
                         }
 
-                        // Status Chip
+                        // Status Chip (Pure Material 3 tonal capsule - no harsh border)
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = iconTint.copy(alpha = 0.14f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, iconTint.copy(alpha = 0.35f))
+                            shape = CircleShape,
+                            color = dialogBadgeContainer,
+                            contentColor = dialogBadgeContent
                         ) {
-                            Text(
-                                text = when {
-                                    isAnalyzing -> stringResource(R.string.ai_badge_scanning)
-                                    score >= 0.85f -> "AI High Confidence"
-                                    score >= threshold -> "AI Detected"
-                                    else -> "Human Audio"
-                                },
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = iconTint,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = when {
+                                        isAnalyzing -> Icons.Rounded.AutoAwesome
+                                        isAi -> Icons.Rounded.SmartToy
+                                        else -> Icons.Rounded.VerifiedUser
+                                    },
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = when {
+                                        isAnalyzing -> stringResource(R.string.ai_badge_scanning)
+                                        score >= 0.85f -> stringResource(R.string.ai_chip_high_confidence)
+                                        isAi -> stringResource(R.string.ai_chip_ai_detected)
+                                        else -> stringResource(R.string.ai_chip_human_audio)
+                                    },
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.2.sp
+                                    )
+                                )
+                            }
                         }
                     }
 
@@ -371,8 +423,8 @@ fun AiDetectionBottomSheet(
                         Canvas(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(14.dp)
-                                .clip(RoundedCornerShape(7.dp))
+                                .height(12.dp)
+                                .clip(CircleShape)
                         ) {
                             val trackBrush = Brush.horizontalGradient(
                                 colors = listOf(
@@ -387,7 +439,7 @@ fun AiDetectionBottomSheet(
                             drawRoundRect(
                                 brush = trackBrush,
                                 size = size,
-                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height / 2)
+                                cornerRadius = CornerRadius(size.height / 2)
                             )
 
                             // Threshold marker line
@@ -424,7 +476,7 @@ fun AiDetectionBottomSheet(
                             )
                             Text(
                                 text = stringResource(R.string.ai_sheet_meter_threshold, (threshold * 100).toInt()),
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
@@ -440,7 +492,7 @@ fun AiDetectionBottomSheet(
                         text = when {
                             isAnalyzing -> stringResource(R.string.ai_sheet_confidence_analyzing)
                             score >= 0.85f -> stringResource(R.string.ai_sheet_confidence_high_ai)
-                            score >= threshold -> stringResource(R.string.ai_sheet_confidence_likely_ai)
+                            isAi -> stringResource(R.string.ai_sheet_confidence_likely_ai)
                             score >= 0.35f -> stringResource(R.string.ai_sheet_confidence_borderline)
                             else -> stringResource(R.string.ai_sheet_confidence_human)
                         },
@@ -451,26 +503,28 @@ fun AiDetectionBottomSheet(
             }
 
             // ─── Privacy Note ────────────────────────────────────────────────────
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Shield,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = stringResource(R.string.ai_sheet_privacy_note),
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Shield,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.ai_sheet_privacy_note),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp, lineHeight = 15.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             // ─── Actions ─────────────────────────────────────────────────────────
@@ -506,7 +560,7 @@ fun AiDetectionBottomSheet(
                             MaterialTheme.colorScheme.onErrorContainer
                         }
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().height(44.dp)
                 ) {
                     Icon(
                         imageVector = if (isTrackBlocked) Icons.Rounded.VisibilityOff else Icons.Rounded.Block,
@@ -524,16 +578,19 @@ fun AiDetectionBottomSheet(
                 }
 
                 // 2. Block / Unblock Artist
-                if (artistId != null && !track.user?.username.isNullOrBlank()) {
-                    OutlinedButton(
+                val artistName = track.user?.username?.ifBlank { null }
+                    ?: track.displayArtist.ifBlank { null }
+                    ?: ""
+                if (artistId != null && artistName.isNotBlank()) {
+                    FilledTonalButton(
                         onClick = {
                             if (isArtistBlocked) {
                                 BlockManager.unblockArtist(artistId)
                             } else {
                                 BlockManager.blockArtist(
                                     artistId = artistId,
-                                    artistName = track.user!!.username ?: "",
-                                    avatarUrl = track.user.avatarUrl,
+                                    artistName = artistName,
+                                    avatarUrl = track.user?.avatarUrl,
                                     source = track.source ?: "soundcloud",
                                     reason = if (isAi) BlockManager.REASON_AI_GENERATED else BlockManager.REASON_MANUAL,
                                     currentlyPlayingTrack = viewModel.uiCurrentTrack
@@ -542,7 +599,11 @@ fun AiDetectionBottomSheet(
                             onDismissRequest()
                         },
                         shapes = ButtonDefaults.shapes(),
-                        modifier = Modifier.fillMaxWidth()
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        modifier = Modifier.fillMaxWidth().height(44.dp)
                     ) {
                         Icon(
                             imageVector = if (isArtistBlocked) Icons.Rounded.PersonAdd else Icons.Rounded.PersonOff,
@@ -554,7 +615,7 @@ fun AiDetectionBottomSheet(
                             text = if (isArtistBlocked) {
                                 stringResource(R.string.menu_unblock_artist)
                             } else {
-                                stringResource(R.string.ai_sheet_block_artist, track.user!!.username ?: "")
+                                stringResource(R.string.ai_sheet_block_artist, artistName)
                             },
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -566,7 +627,7 @@ fun AiDetectionBottomSheet(
                 TextButton(
                     onClick = onOpenSettings,
                     shapes = ButtonDefaults.shapes(),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().height(40.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Tune,

@@ -117,7 +117,14 @@
         val isEnabled: Boolean = false,
         val preampDb: Float = 0f,
         val bandGainsDb: List<Float> = List(16) { 0f },
-        val selectedPreset: String = "Flat"
+        val selectedPreset: String = "Flat",
+        // Set only while an automatic headphone profile is applied. Nullable so old saved states,
+        // which predate Auto EQ, still deserialize cleanly.
+        val autoProfileId: String? = null,
+        val autoProfileName: String? = null,
+        val autoProfileSource: String? = null,
+        val autoProfileDeviceKey: String? = null,
+        val autoProfileDeviceName: String? = null,
     )
 
     data class EqualizerPreset(

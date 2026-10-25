@@ -26,6 +26,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.PlayerSliderStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,7 +77,7 @@ fun SliderStyleDialog(
                                 },
                                 RoundedCornerShape(16.dp)
                             )
-                            .clickable {
+                            .hapticClickable {
                                 onStyleSelected(PlayerSliderStyle.BAR)
                                 onDismiss()
                             }
@@ -113,7 +116,7 @@ fun SliderStyleDialog(
                                 },
                                 RoundedCornerShape(16.dp)
                             )
-                            .clickable {
+                            .hapticClickable {
                                 onStyleSelected(PlayerSliderStyle.WAVY)
                                 onDismiss()
                             }
@@ -158,7 +161,7 @@ fun SliderStyleDialog(
                                 },
                                 RoundedCornerShape(16.dp)
                             )
-                            .clickable {
+                            .hapticClickable {
                                 onStyleSelected(PlayerSliderStyle.SLIM)
                                 onDismiss()
                             }
@@ -207,7 +210,7 @@ fun SliderStyleDialog(
                                 },
                                 RoundedCornerShape(16.dp)
                             )
-                            .clickable {
+                            .hapticClickable {
                                 onStyleSelected(PlayerSliderStyle.SQUIGGLY)
                                 onDismiss()
                             }

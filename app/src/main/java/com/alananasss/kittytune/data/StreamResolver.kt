@@ -15,6 +15,8 @@
     import com.alananasss.kittytune.domain.Track
     import com.alananasss.kittytune.utils.Config
     import com.alananasss.kittytune.utils.NetworkUtils
+    import com.zionhuang.innertube.YouTube
+    import com.zionhuang.innertube.models.SongItem
     import kotlinx.coroutines.Dispatchers
     import kotlinx.coroutines.async
     import kotlinx.coroutines.withContext
@@ -236,6 +238,46 @@
             }
         }
 
+        /**
+         * Resolves a full-bandwidth, non-DRM stream suitable for ArtifactNet AI detection,
+         * matching KittyTuneDesktop's stream resolution (`aac_160k` HLS / progressive first).
+         */
+        suspend fun resolveStreamForAiAnalysis(context: Context, track: Track): ResolvedStream? {
+            return withContext(Dispatchers.IO) {
+                val scStream = try {
+                    resolveFromSoundCloudWithDrm(
+                        context = context,
+                        track = track,
+                        forDownload = false,
+                        forceHighQualityNonDrm = true
+                    )
+                } catch (e: Exception) {
+                    Log.w(TAG, "[AiAnalysis] Failed resolving SoundCloud stream: ${e.message}")
+                    null
+                }
+                if (scStream != null && !scStream.isDrmProtected) {
+                    return@withContext scStream
+                }
+
+                val providerStream = try {
+                    resolveViaProviders(context, track, forDownload = true)
+                } catch (_: Exception) { null }
+                if (providerStream != null) {
+                    return@withContext providerStream
+                }
+
+                val prefs = PlayerPreferences(context)
+                if (prefs.getYouTubeFallbackEnabled()) {
+                    val ytUrl = try { resolveViaNewPipe(context, track) } catch (_: Exception) { null }
+                    if (ytUrl != null) {
+                        return@withContext ResolvedStream(ytUrl, source = "youtube")
+                    }
+                }
+
+                null
+            }
+        }
+
         suspend fun resolveStreamWithDrm(context: Context, track: Track, forDownload: Boolean = false): ResolvedStream? {
             return withContext(Dispatchers.IO) {
                 val resolved: ResolvedStream? = run {
@@ -321,8 +363,8 @@
                         if (providerStream != null) {
                             return@run providerStream
                         }
-                        // Provider failed — fall back to YouTube rather than silently playing
-                        // a SoundCloud snippet of a different song (issue #33).
+                        // Provider failed (or account is free and only a 30s preview was returned).
+                        // Fall back to YouTube first:
                         val allowYoutubeFallback = PlayerPreferences(context).getYouTubeFallbackEnabled()
                         if (allowYoutubeFallback) {
                             Log.w(TAG, "Provider track (${track.source}) resolution failed, trying YouTube fallback for: ${track.title}")
@@ -331,6 +373,57 @@
                                 return@run ResolvedStream(ytFallback, source = "youtube")
                             }
                         }
+
+                        // Try SoundCloud fallback with strict duration check:
+                        try {
+                            val wantedDuration = track.actualDurationMs
+                            val cleanTitle = track.title?.replace(Regex("(?i)(\\[.*?\\]|\\(.*?\\))"), "")?.trim() ?: ""
+                            val artistName = track.displayArtist.ifBlank { track.user?.username ?: "" }
+                            val query = "$cleanTitle $artistName".trim()
+                            val scResults = RetrofitClient.create(context).searchTracks(query, limit = 5)
+                            val bestScTrack = scResults.collection.firstOrNull { sc ->
+                                wantedDuration <= 0L || kotlin.math.abs(sc.actualDurationMs - wantedDuration) <= 20_000L
+                            }
+                            if (bestScTrack != null) {
+                                val scStream = resolveFromSoundCloudWithDrm(context, bestScTrack, forDownload)
+                                if (scStream != null) {
+                                    Log.i(TAG, "Using SoundCloud fallback for ${track.source} track: ${track.title}")
+                                    return@run scStream
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed SoundCloud fallback for ${track.source} track: ${e.message}")
+                        }
+
+                        // As a last resort for Qobuz tracks: if no full track fallback succeeded anywhere,
+                        // allow the 30s sample preview rather than complete silence.
+                        if (track.source == "qobuz" || track.permalink?.startsWith("qobuz:") == true) {
+                            try {
+                                val quality = DataSaver.effectiveQobuzQuality(context)
+                                val prefs = PlayerPreferences(context)
+                                val qQuery = QobuzAudioProvider.Query(
+                                    mediaId = track.permalink?.takeIf { it.isNotBlank() } ?: track.id.toString(),
+                                    title = track.title.orEmpty(),
+                                    artists = listOf(track.displayArtist),
+                                    album = (track.publisherMetadata?.albumTitle ?: track.publisherMetadata?.releaseTitle).orEmpty().ifBlank { null },
+                                    isrc = ProviderIsrc.normalize(track.publisherMetadata?.isrc),
+                                    durationMs = track.actualDurationMs,
+                                    countryCode = prefs.getQobuzCountry(),
+                                    qualityCode = quality,
+                                    customInstances = prefs.getQobuzCustomInstances(),
+                                    userAuthToken = prefs.getQobuzUserAuthToken(),
+                                    allowPreview = true,
+                                )
+                                val previewResolved = QobuzAudioProvider.resolve(qQuery)
+                                if (previewResolved != null && previewResolved.mediaUri.isNotBlank()) {
+                                    Log.w(TAG, "Playing 30s preview as last resort for Qobuz track: ${track.title}")
+                                    return@run ResolvedStream(previewResolved.mediaUri, mimeType = previewResolved.mimeType, source = "qobuz")
+                                }
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Preview resolution failed as last resort: ${e.message}")
+                            }
+                        }
+
                         Log.w(TAG, "Could not resolve provider track (${track.source}): ${track.title}")
                         return@run null
                     }
@@ -459,12 +552,13 @@
                                 durationMs = durationMs,
                                 countryCode = country,
                                 qualityCode = quality,
-                                customInstances = customInstances
+                                customInstances = customInstances,
+                                userAuthToken = prefs.getQobuzUserAuthToken()
                             )
                             val resolved = QobuzAudioProvider.resolve(query)
                             if (resolved != null && resolved.mediaUri.isNotBlank()) {
                                 Log.i(TAG, "Using Qobuz stream for '${track.title}': ${resolved.label}")
-                                return ResolvedStream(resolved.mediaUri, mimeType = "audio/mp4", source = "qobuz")
+                                return ResolvedStream(resolved.mediaUri, mimeType = resolved.mimeType, source = "qobuz")
                             }
                         }
                         AudioProviderOrderItem.TIDAL -> {
@@ -614,43 +708,71 @@
             return try {
                 val cleanTitle = track.title?.replace(Regex("(?i)(\\[.*?\\]|\\(.*?\\))"), "")?.trim() ?: ""
                 val artistName = track.displayArtist.ifBlank { track.user?.username ?: "" }
-                val query = "$cleanTitle $artistName audio"
+                val query = "$cleanTitle $artistName audio".trim()
+                val wantedSec = track.actualDurationMs / 1000
 
-                Log.d(TAG, "[NewPipe] Searching for: $query")
+                Log.d(TAG, "[YouTube/NewPipe] Searching for: $query (wanted duration: ${wantedSec}s)")
 
-                val youtubeService = ServiceList.YouTube
-                val searchInfo = SearchInfo.getInfo(youtubeService, youtubeService.searchQHFactory.fromQuery(query, listOf("videos"), ""))
-                val videoResults = searchInfo.relatedItems.filterIsInstance<StreamInfoItem>()
+                // Try InnerTube first as it uses the official JSON API (bypassing NewPipe scraping regex breakages)
+                val innertubeUrl = runCatching {
+                    val searchResult = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()
+                        ?: YouTube.search("$cleanTitle $artistName", YouTube.SearchFilter.FILTER_SONG).getOrNull()
+                    val songs = searchResult?.items?.filterIsInstance<SongItem>().orEmpty()
+                    if (songs.isNotEmpty()) {
+                        val matched = if (wantedSec <= 0) {
+                            songs.first()
+                        } else {
+                            songs.filter { (it.duration ?: 0) > 0 && kotlin.math.abs((it.duration ?: 0) - wantedSec) <= DURATION_TOLERANCE_SEC }
+                                .minByOrNull { kotlin.math.abs((it.duration ?: 0) - wantedSec) }
+                        }
+                        matched?.let { "https://www.youtube.com/watch?v=${it.id}" }
+                    } else null
+                }.getOrNull()
 
-                if (videoResults.isEmpty()) {
-                    Log.w(TAG, "[NewPipe] No results found.")
+                val firstResultUrl = innertubeUrl ?: runCatching {
+                    val youtubeService = ServiceList.YouTube
+                    val searchInfo = SearchInfo.getInfo(youtubeService, youtubeService.searchQHFactory.fromQuery(query, listOf("videos"), ""))
+                    val videoResults = searchInfo.relatedItems.filterIsInstance<StreamInfoItem>()
+                    if (videoResults.isEmpty()) {
+                        Log.w(TAG, "[NewPipe] No results found.")
+                        return@runCatching null
+                    }
+
+                    if (wantedSec <= 0) {
+                        videoResults.first().url
+                    } else {
+                        val matched = videoResults
+                            .filter { it.duration > 0 && kotlin.math.abs(it.duration - wantedSec) <= DURATION_TOLERANCE_SEC }
+                            .minByOrNull { kotlin.math.abs(it.duration - wantedSec) }
+                        if (matched == null) {
+                            Log.w(
+                                TAG,
+                                "[NewPipe] no result within ${DURATION_TOLERANCE_SEC}s of ${wantedSec}s for " +
+                                        "'${track.title}' — refusing to substitute a different song"
+                            )
+                            return@runCatching null
+                        }
+                        matched.url
+                    }
+                }.getOrNull()
+
+                if (firstResultUrl == null) {
+                    Log.w(TAG, "[YouTube/NewPipe] No matching stream URL found for: ${track.title}")
                     return null
                 }
+                Log.d(TAG, "[YouTube/NewPipe] Found match: $firstResultUrl")
 
-                // The first hit was taken blindly, and that is how a twenty-second clip comes to stand in
-                // for a three-minute song: YouTube's top result for a track name is frequently a snippet, a
-                // teaser or a "sped up" edit. A substitute has to be the same length as the thing it
-                // replaces (issue #33).
-                val wantedSec = track.actualDurationMs / 1000
-                val firstResultUrl = if (wantedSec <= 0) {
-                    videoResults.first().url
-                } else {
-                    val matched = videoResults
-                        .filter { it.duration > 0 && kotlin.math.abs(it.duration - wantedSec) <= DURATION_TOLERANCE_SEC }
-                        .minByOrNull { kotlin.math.abs(it.duration - wantedSec) }
-                    if (matched == null) {
-                        Log.w(
-                            TAG,
-                            "[NewPipe] no result within ${DURATION_TOLERANCE_SEC}s of ${wantedSec}s for " +
-                                    "'${track.title}' — refusing to substitute a different song"
-                        )
-                        return null
-                    }
-                    matched.url
-                }
-                Log.d(TAG, "[NewPipe] Found match: $firstResultUrl")
+                extractStreamFromYoutubeUrl(context, firstResultUrl)
+            } catch (e: Exception) {
+                Log.e(TAG, "[YouTube/NewPipe] Error:", e)
+                null
+            }
+        }
 
-                val extractor = youtubeService.getStreamExtractor(firstResultUrl)
+        private fun extractStreamFromYoutubeUrl(context: Context, url: String): String? {
+            return try {
+                val service = ServiceList.YouTube
+                val extractor = service.getStreamExtractor(url)
                 extractor.fetchPage()
 
                 try {
@@ -697,7 +819,7 @@
 
                 val bestVideoStream = videoStreams
                     .filter { it.url != null }
-                    .minByOrNull { 
+                    .minByOrNull {
                         it.getResolution()?.replace("p", "")?.toIntOrNull() ?: Int.MAX_VALUE
                     }
 
@@ -709,45 +831,26 @@
                 Log.w(TAG, "[NewPipe] No streams available at all (audio=${audioStreams.size}, video=${videoStreams.size})")
                 null
             } catch (e: Exception) {
-                Log.e(TAG, "[NewPipe] Error:", e)
+                Log.e(TAG, "[YouTube] Failed to extract stream from $url: ${e.message}")
                 null
             }
         }
 
         private suspend fun resolveFromYoutubeDirect(context: Context, track: Track): String? {
             val url = track.permalinkUrl ?: return null
-            return try {
-                val service = ServiceList.YouTube
-                val extractor = service.getStreamExtractor(url)
-                extractor.fetchPage()
-                // Data saver: smallest audio stream instead of the largest (~64 kbps Opus
-                // instead of ~256 kbps). Same ladder, just walked from the other end.
-                val eco = DataSaver.prefersSmallestStream(context)
-                fun List<org.schabi.newpipe.extractor.stream.AudioStream>.byBitrate() =
-                    if (eco) minByOrNull { it.averageBitrate } else maxByOrNull { it.averageBitrate }
-                val best = extractor.audioStreams
-                    .filter { it.deliveryMethod == org.schabi.newpipe.extractor.stream.DeliveryMethod.PROGRESSIVE_HTTP && it.url != null }
-                    .byBitrate()
-                    ?: extractor.audioStreams
-                        .filter { it.url != null }
-                        .byBitrate()
-                if (best != null) return best.url
-
-                val muxed = extractor.videoStreams
-                    .filter { it.url != null }
-                    .minByOrNull { it.getResolution()?.replace("p", "")?.toIntOrNull() ?: Int.MAX_VALUE }
-                muxed?.url
-            } catch (e: Exception) {
-                Log.e(TAG, "[YouTube] Failed to extract direct stream: ${e.message}")
-                null
-            }
+            return extractStreamFromYoutubeUrl(context, url)
         }
 
         private suspend fun resolveFromSoundCloud(context: Context, track: Track, forDownload: Boolean): String? {
             return resolveFromSoundCloudWithDrm(context, track, forDownload)?.url
         }
 
-        private suspend fun resolveFromSoundCloudWithDrm(context: Context, track: Track, forDownload: Boolean): ResolvedStream? {
+        private suspend fun resolveFromSoundCloudWithDrm(
+            context: Context,
+            track: Track,
+            forDownload: Boolean,
+            forceHighQualityNonDrm: Boolean = false
+        ): ResolvedStream? {
             val prefs = PlayerPreferences(context)
             val api = RetrofitClient.create(context)
             var trackToUse = track
@@ -782,7 +885,7 @@
             val transcodings = trackToUse.media?.transcodings ?: return null
             // The data saver overrides the user's quality choice: when it is active every
             // SoundCloud track goes through the eco ladder below, whatever the settings say.
-            val qualityPref = DataSaver.effectiveSoundCloudQuality(context)
+            val qualityPref = if (forceHighQualityNonDrm) "HIGH" else DataSaver.effectiveSoundCloudQuality(context)
 
             Log.d(TAG, "Track ${track.id} — ${transcodings.size} transcodings available:")
             transcodings.forEachIndexed { i, t ->
@@ -790,7 +893,7 @@
             }
             Log.d(TAG, "Track ${track.id} — policy=${trackToUse.policy}, monetization=${trackToUse.monetizationModel}")
 
-            val allowDrm = !forDownload || prefs.getDownloadDrmStreamsEnabled()
+            val allowDrm = !forceHighQualityNonDrm && (!forDownload || prefs.getDownloadDrmStreamsEnabled())
             val candidates = buildTranscodingCandidates(transcodings, qualityPref, forDownload, allowDrm)
 
             if (candidates.isEmpty()) {

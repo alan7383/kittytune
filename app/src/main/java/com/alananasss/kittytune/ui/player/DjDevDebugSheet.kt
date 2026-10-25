@@ -35,6 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import com.alananasss.kittytune.utils.makeTimeString
 
@@ -126,7 +129,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
                             onCheckedChange = { viewModel.djFlowController.enableDjMode(it) }
                         )
                         Spacer(Modifier.width(8.dp))
-                        IconButton(onClick = { viewModel.showDjDebugSheet = false }) {
+                        IconButton(onClick = hapticAction(HapticKind.UI) { viewModel.showDjDebugSheet = false }) {
                             Icon(Icons.Rounded.Close, contentDescription = "Close")
                         }
                     }
@@ -550,7 +553,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
                             }
 
                             TextButton(
-                                onClick = { viewModel.djFlowController.resetStems() },
+                                onClick = hapticAction(HapticKind.UI) { viewModel.djFlowController.resetStems() },
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                             ) {
                                 Text("Reset (1.0x)", style = MaterialTheme.typography.labelSmall)
@@ -714,7 +717,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
                                     val isSelected = flowState.loopBeats == beats
                                     FilterChip(
                                         selected = isSelected,
-                                        onClick = { viewModel.djFlowController.setLoopBeats(beats) },
+                                        onClick = hapticAction(HapticKind.UI) { viewModel.djFlowController.setLoopBeats(beats) },
                                         label = { Text(label, style = MaterialTheme.typography.labelSmall) },
                                         modifier = Modifier.weight(1f)
                                     )
@@ -748,7 +751,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clickable { viewModel.djFlowController.setEnergyMode(mode) }
+                                    .hapticClickable { viewModel.djFlowController.setEnergyMode(mode) }
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -775,7 +778,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
-                        onClick = { viewModel.djFlowController.triggerTransition() },
+                        onClick = hapticAction(HapticKind.UI) { viewModel.djFlowController.triggerTransition() },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f),
@@ -787,7 +790,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
                     }
 
                     FilledTonalIconButton(
-                        onClick = { viewModel.djFlowController.evaluateQueueAsync() },
+                        onClick = hapticAction(HapticKind.UI) { viewModel.djFlowController.evaluateQueueAsync() },
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(Icons.Rounded.Refresh, contentDescription = "Rescore Queue")
@@ -858,7 +861,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
                             )
 
                             Button(
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     viewModel.djFlowController.searchAndPopulateCategory(textInput)
                                 },
                                 shape = RoundedCornerShape(12.dp),
@@ -885,7 +888,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
                                 val isSelected = flowState.selectedCategory.equals(cat, ignoreCase = true)
                                 FilterChip(
                                     selected = isSelected,
-                                    onClick = {
+                                    onClick = hapticAction(HapticKind.UI) {
                                         textInput = cat
                                         viewModel.djFlowController.searchAndPopulateCategory(cat)
                                     },
@@ -903,7 +906,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
                                 val isSelected = flowState.selectedCategory.equals(cat, ignoreCase = true)
                                 FilterChip(
                                     selected = isSelected,
-                                    onClick = {
+                                    onClick = hapticAction(HapticKind.UI) {
                                         textInput = cat
                                         viewModel.djFlowController.searchAndPopulateCategory(cat)
                                     },
@@ -1385,7 +1388,7 @@ private fun StemControlRow(
                 val isSelected = kotlin.math.abs(currentLevel - level) < 0.05f
                 FilterChip(
                     selected = isSelected,
-                    onClick = { onSelect(level) },
+                    onClick = hapticAction(HapticKind.UI) { onSelect(level) },
                     label = {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                             Text(label, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))

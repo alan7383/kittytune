@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.PlayerActionButtonSlot
 import com.alananasss.kittytune.ui.player.RepeatMode
@@ -59,6 +60,7 @@ fun BottomToggleRow(
     isFullscreenLyricsActive: Boolean = false,
     isSleepTimerActive: Boolean = false,
     isHapticsActive: Boolean = false,
+    isConnectActive: Boolean = false,
     onShuffleToggle: () -> Unit,
     onRepeatToggle: () -> Unit,
     onFavoriteToggle: () -> Unit,
@@ -70,6 +72,7 @@ fun BottomToggleRow(
     onCommentsClick: () -> Unit = {},
     onSleepTimerClick: () -> Unit = {},
     onHapticsToggle: () -> Unit = {},
+    onConnectClick: () -> Unit = {},
     onMoreClick: () -> Unit = {},
     onDevicesClick: () -> Unit = {},
     activeColorMain: Color = MaterialTheme.colorScheme.primary,
@@ -300,6 +303,20 @@ fun BottomToggleRow(
                             contentDesc = "Haptics"
                         )
                     }
+                    PlayerActionButtonSlot.CONNECT -> {
+                        ToggleSegmentButton(
+                            modifier = commonModifier,
+                            active = isConnectActive,
+                            activeColor = activeBg,
+                            activeCornerRadius = rowCorners,
+                            activeContentColor = activeContent,
+                            inactiveColor = inactiveColor,
+                            inactiveContentColor = inactiveContentColor,
+                            onClick = onConnectClick,
+                            iconVector = if (isConnectActive) Icons.Rounded.CastConnected else Icons.Rounded.Devices,
+                            contentDesc = "Connect"
+                        )
+                    }
                     PlayerActionButtonSlot.MORE -> {
                         ToggleSegmentButton(
                             modifier = commonModifier,
@@ -371,7 +388,7 @@ fun ToggleSegmentButton(
             enabled = enabled,
             onClick = onClick,
             onLongClick = {
-                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
                 onLongClick()
             }
         )
