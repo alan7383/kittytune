@@ -1236,6 +1236,80 @@ class SafeTrackListAdapter : com.google.gson.JsonDeserializer<List<Track>>, com.
     }
 }
 
+class SafePlaylistListAdapter : com.google.gson.JsonDeserializer<List<Playlist>>, com.google.gson.JsonSerializer<List<Playlist>> {
+    override fun deserialize(
+        json: com.google.gson.JsonElement?,
+        typeOfT: java.lang.reflect.Type?,
+        context: com.google.gson.JsonDeserializationContext
+    ): List<Playlist> {
+        if (json == null || !json.isJsonArray) return emptyList()
+        val list = mutableListOf<Playlist>()
+        json.asJsonArray.forEach { elem ->
+            runCatching {
+                context.deserialize<Playlist>(elem, Playlist::class.java)
+            }.getOrNull()?.let { playlist ->
+                if (playlist.id != 0L || !playlist.permalink.isNullOrBlank() || !playlist.urn.isNullOrBlank()) {
+                    list.add(playlist)
+                }
+            }
+        }
+        return list
+    }
+
+    override fun serialize(
+        src: List<Playlist>?,
+        typeOfSrc: java.lang.reflect.Type?,
+        context: com.google.gson.JsonSerializationContext
+    ): com.google.gson.JsonElement {
+        val array = com.google.gson.JsonArray()
+        src?.forEach { playlist ->
+            if (playlist is Playlist) {
+                runCatching { context.serialize(playlist, Playlist::class.java) }.getOrNull()?.let {
+                    array.add(it)
+                }
+            }
+        }
+        return array
+    }
+}
+
+class SafeUserListAdapter : com.google.gson.JsonDeserializer<List<User>>, com.google.gson.JsonSerializer<List<User>> {
+    override fun deserialize(
+        json: com.google.gson.JsonElement?,
+        typeOfT: java.lang.reflect.Type?,
+        context: com.google.gson.JsonDeserializationContext
+    ): List<User> {
+        if (json == null || !json.isJsonArray) return emptyList()
+        val list = mutableListOf<User>()
+        json.asJsonArray.forEach { elem ->
+            runCatching {
+                context.deserialize<User>(elem, User::class.java)
+            }.getOrNull()?.let { user ->
+                if (user.id != 0L || !user.username.isNullOrBlank()) {
+                    list.add(user)
+                }
+            }
+        }
+        return list
+    }
+
+    override fun serialize(
+        src: List<User>?,
+        typeOfSrc: java.lang.reflect.Type?,
+        context: com.google.gson.JsonSerializationContext
+    ): com.google.gson.JsonElement {
+        val array = com.google.gson.JsonArray()
+        src?.forEach { user ->
+            if (user is User) {
+                runCatching { context.serialize(user, User::class.java) }.getOrNull()?.let {
+                    array.add(it)
+                }
+            }
+        }
+        return array
+    }
+}
+
 fun String?.isDefaultAvatar(): Boolean {
     if (this.isNullOrBlank()) return true
     if (this.contains("default_avatar", ignoreCase = true)) return true

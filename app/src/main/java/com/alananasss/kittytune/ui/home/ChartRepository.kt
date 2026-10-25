@@ -6,8 +6,12 @@ import com.alananasss.kittytune.data.deezer.DeezerSearchRepository
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.data.spotify.SpotifyRepository
 import com.alananasss.kittytune.domain.Playlist
+import com.alananasss.kittytune.domain.SafeTrackListAdapter
 import com.alananasss.kittytune.domain.Track
+import com.alananasss.kittytune.utils.AppUtils
 import com.google.gson.Gson
+import com.google.gson.annotations.JsonAdapter
+import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -147,9 +151,12 @@ object ChartRepository {
     private val spotifyTop50Searched = HashSet<String>()
     private val spotifyTop50Mutex = Mutex()
 
-    private val gson = Gson()
+    private val gson = AppUtils.gson
 
-    private class CachedChart(val savedAt: Long, val tracks: List<Track>)
+    private data class CachedChart(
+        @SerializedName("saved_at", alternate = ["savedAt"]) val savedAt: Long,
+        @SerializedName("tracks") @JsonAdapter(SafeTrackListAdapter::class) val tracks: List<Track>
+    )
 
     private fun chartCacheFile(context: Context, key: String): File =
         File(File(context.cacheDir, "country_charts"), key.replace(Regex("[^A-Za-z0-9._-]"), "_") + ".json")
@@ -183,7 +190,8 @@ object ChartRepository {
         if (!file.exists()) return null
         val cached = gson.fromJson(file.readText(), CachedChart::class.java) ?: return null
         if (System.currentTimeMillis() - cached.savedAt > COUNTRY_CACHE_MS) return null
-        System.currentTimeMillis() to cached.tracks
+        val safeTracks = (cached.tracks as? List<*>)?.filterIsInstance<Track>() ?: emptyList()
+        System.currentTimeMillis() to safeTracks
     }.getOrNull()
 
     /** Spotify first — the songs play as they are; Deezer's chart playlist second. */

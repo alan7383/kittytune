@@ -7,10 +7,15 @@ import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.toTrack
 import com.alananasss.kittytune.data.spotify.SpotifyArtist
 import com.alananasss.kittytune.domain.Playlist
+import com.alananasss.kittytune.domain.SafePlaylistListAdapter
+import com.alananasss.kittytune.domain.SafeTrackListAdapter
+import com.alananasss.kittytune.domain.SafeUserListAdapter
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
+import com.alananasss.kittytune.utils.AppUtils
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import com.google.gson.annotations.JsonAdapter
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,30 +26,44 @@ import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 
 data class CachedArtistProfile(
-    val user: User? = null,
-    val isSpotify: Boolean = false,
-    val isVk: Boolean = false,
-    val vkPageUrl: String? = null,
-    val spotifyArtist: SpotifyArtist? = null,
-    val popularTracks: List<Track> = emptyList(),
-    val allTracks: List<Track> = emptyList(),
-    val popularReleases: List<Playlist> = emptyList(),
-    val albums: List<Playlist> = emptyList(),
-    val singles: List<Playlist> = emptyList(),
-    val compilations: List<Playlist> = emptyList(),
-    val appearsOn: List<Playlist> = emptyList(),
-    val discoveredOn: List<Playlist> = emptyList(),
-    val similarArtists: List<User> = emptyList(),
-    val playlists: List<Playlist> = emptyList(),
-    val likedTracks: List<Track> = emptyList(),
-    val repostedTracks: List<Track> = emptyList(),
-    val savedAtMs: Long = System.currentTimeMillis()
+    @SerializedName("user") val user: User? = null,
+    @SerializedName("isSpotify", alternate = ["is_spotify"]) val isSpotify: Boolean = false,
+    @SerializedName("isVk", alternate = ["is_vk"]) val isVk: Boolean = false,
+    @SerializedName("vkPageUrl", alternate = ["vk_page_url"]) val vkPageUrl: String? = null,
+    @SerializedName("spotifyArtist", alternate = ["spotify_artist"]) val spotifyArtist: SpotifyArtist? = null,
+    @SerializedName("popularTracks", alternate = ["popular_tracks"]) @JsonAdapter(SafeTrackListAdapter::class) val popularTracks: List<Track> = emptyList(),
+    @SerializedName("allTracks", alternate = ["all_tracks"]) @JsonAdapter(SafeTrackListAdapter::class) val allTracks: List<Track> = emptyList(),
+    @SerializedName("popularReleases", alternate = ["popular_releases"]) @JsonAdapter(SafePlaylistListAdapter::class) val popularReleases: List<Playlist> = emptyList(),
+    @SerializedName("albums") @JsonAdapter(SafePlaylistListAdapter::class) val albums: List<Playlist> = emptyList(),
+    @SerializedName("singles") @JsonAdapter(SafePlaylistListAdapter::class) val singles: List<Playlist> = emptyList(),
+    @SerializedName("compilations") @JsonAdapter(SafePlaylistListAdapter::class) val compilations: List<Playlist> = emptyList(),
+    @SerializedName("appearsOn", alternate = ["appears_on"]) @JsonAdapter(SafePlaylistListAdapter::class) val appearsOn: List<Playlist> = emptyList(),
+    @SerializedName("discoveredOn", alternate = ["discovered_on"]) @JsonAdapter(SafePlaylistListAdapter::class) val discoveredOn: List<Playlist> = emptyList(),
+    @SerializedName("similarArtists", alternate = ["similar_artists"]) @JsonAdapter(SafeUserListAdapter::class) val similarArtists: List<User> = emptyList(),
+    @SerializedName("playlists") @JsonAdapter(SafePlaylistListAdapter::class) val playlists: List<Playlist> = emptyList(),
+    @SerializedName("likedTracks", alternate = ["liked_tracks"]) @JsonAdapter(SafeTrackListAdapter::class) val likedTracks: List<Track> = emptyList(),
+    @SerializedName("repostedTracks", alternate = ["reposted_tracks"]) @JsonAdapter(SafeTrackListAdapter::class) val repostedTracks: List<Track> = emptyList(),
+    @SerializedName("savedAtMs", alternate = ["saved_at_ms"]) val savedAtMs: Long = System.currentTimeMillis()
+)
+
+fun CachedArtistProfile.sanitized(): CachedArtistProfile = copy(
+    popularTracks = (popularTracks as? List<*>)?.filterIsInstance<Track>() ?: emptyList(),
+    allTracks = (allTracks as? List<*>)?.filterIsInstance<Track>() ?: emptyList(),
+    popularReleases = (popularReleases as? List<*>)?.filterIsInstance<Playlist>() ?: emptyList(),
+    albums = (albums as? List<*>)?.filterIsInstance<Playlist>() ?: emptyList(),
+    singles = (singles as? List<*>)?.filterIsInstance<Playlist>() ?: emptyList(),
+    compilations = (compilations as? List<*>)?.filterIsInstance<Playlist>() ?: emptyList(),
+    appearsOn = (appearsOn as? List<*>)?.filterIsInstance<Playlist>() ?: emptyList(),
+    discoveredOn = (discoveredOn as? List<*>)?.filterIsInstance<Playlist>() ?: emptyList(),
+    similarArtists = (similarArtists as? List<*>)?.filterIsInstance<User>() ?: emptyList(),
+    playlists = (playlists as? List<*>)?.filterIsInstance<Playlist>() ?: emptyList(),
+    likedTracks = (likedTracks as? List<*>)?.filterIsInstance<Track>() ?: emptyList(),
+    repostedTracks = (repostedTracks as? List<*>)?.filterIsInstance<Track>() ?: emptyList(),
 )
 
 object ArtistProfileCache {
     private const val TAG = "ArtistProfileCache"
-    private val gson = Gson()
-    private val cacheType = object : TypeToken<CachedArtistProfile>() {}.type
+    private val gson = AppUtils.gson
 
     private val dir: File by lazy {
         File(KittyTuneApp.instance.filesDir, "artist_profiles").apply { mkdirs() }
@@ -113,17 +132,18 @@ object ArtistProfileCache {
     fun get(rawKey: String): CachedArtistProfile? {
         val key = normalizeKey(rawKey)
         memory[key]?.let {
-            if (it.user != null) return it else memory.remove(key)
+            if (it.user != null) return it.sanitized() else memory.remove(key)
         }
 
         return try {
             val file = File(dir, "${hashKey(key)}.json")
             if (file.exists() && file.length() > 0) {
                 val json = file.readText()
-                val profile: CachedArtistProfile = gson.fromJson(json, cacheType)
+                val profile: CachedArtistProfile = gson.fromJson(json, CachedArtistProfile::class.java)
                 if (profile.user != null) {
-                    memory[key] = profile
-                    profile
+                    val safe = profile.sanitized()
+                    memory[key] = safe
+                    safe
                 } else {
                     file.delete()
                     null
@@ -133,6 +153,7 @@ object ArtistProfileCache {
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to read cached artist profile for $key: ${e.message}")
+            runCatching { File(dir, "${hashKey(key)}.json").delete() }
             null
         }
     }
@@ -144,11 +165,11 @@ object ArtistProfileCache {
 
         // Fallback: search memory & disk for matching username
         val clean = artistName.trim().lowercase()
-        memory.values.firstOrNull { it.user?.username?.trim()?.lowercase() == clean }?.let { return it }
+        memory.values.firstOrNull { it.user?.username?.trim()?.lowercase() == clean }?.let { return it.sanitized() }
 
         for (cached in getAllCachedProfiles()) {
             if (cached.user?.username?.trim()?.lowercase() == clean) {
-                return cached
+                return cached.sanitized()
             }
         }
         return null
@@ -165,7 +186,7 @@ object ArtistProfileCache {
             for (file in files) {
                 try {
                     val json = file.readText()
-                    val profile: CachedArtistProfile = gson.fromJson(json, cacheType)
+                    val profile: CachedArtistProfile = gson.fromJson(json, CachedArtistProfile::class.java)
                     profile.user?.let { artists.add(it) }
                 } catch (_: Exception) {}
             }
@@ -176,15 +197,15 @@ object ArtistProfileCache {
 
     fun getAllCachedProfiles(): List<CachedArtistProfile> {
         val profiles = mutableListOf<CachedArtistProfile>()
-        profiles.addAll(memory.values.filter { it.user != null })
+        profiles.addAll(memory.values.filter { it.user != null }.map { it.sanitized() })
         try {
             val files = dir.listFiles { f -> f.extension == "json" } ?: emptyArray()
             for (file in files) {
                 try {
                     val json = file.readText()
-                    val profile: CachedArtistProfile = gson.fromJson(json, cacheType)
+                    val profile: CachedArtistProfile = gson.fromJson(json, CachedArtistProfile::class.java)
                     if (profile.user != null) {
-                        profiles.add(profile)
+                        profiles.add(profile.sanitized())
                     } else {
                         file.delete()
                     }

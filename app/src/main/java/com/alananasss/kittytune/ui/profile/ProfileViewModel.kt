@@ -19,6 +19,7 @@ import androidx.lifecycle.viewModelScope
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.ArtistProfileCache
 import com.alananasss.kittytune.data.CachedArtistProfile
+import com.alananasss.kittytune.data.sanitized
 import com.alananasss.kittytune.data.MusicManager
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.domain.*
@@ -150,49 +151,50 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun applyCachedProfile(cached: CachedArtistProfile) {
-        if (cached.user != null) {
-            user = cached.user
+        val safe = cached.sanitized()
+        if (safe.user != null) {
+            user = safe.user
         }
-        isSpotifyProfile = cached.isSpotify
-        isVkProfile = cached.isVk
-        vkPageUrl = cached.vkPageUrl
-        spotifyArtist = cached.spotifyArtist
+        isSpotifyProfile = safe.isSpotify
+        isVkProfile = safe.isVk
+        vkPageUrl = safe.vkPageUrl
+        spotifyArtist = safe.spotifyArtist
 
         popularTracks.clear()
-        popularTracks.addAll(cached.popularTracks)
+        popularTracks.addAll(safe.popularTracks)
 
         allTracks.clear()
-        allTracks.addAll(cached.allTracks)
+        allTracks.addAll(safe.allTracks)
 
         popularReleases.clear()
-        popularReleases.addAll(cached.popularReleases)
+        popularReleases.addAll(safe.popularReleases)
 
         albums.clear()
-        albums.addAll(cached.albums)
+        albums.addAll(safe.albums)
 
         singles.clear()
-        singles.addAll(cached.singles)
+        singles.addAll(safe.singles)
 
         compilations.clear()
-        compilations.addAll(cached.compilations)
+        compilations.addAll(safe.compilations)
 
         appearsOn.clear()
-        appearsOn.addAll(cached.appearsOn)
+        appearsOn.addAll(safe.appearsOn)
 
         discoveredOn.clear()
-        discoveredOn.addAll(cached.discoveredOn)
+        discoveredOn.addAll(safe.discoveredOn)
 
         similarArtists.clear()
-        similarArtists.addAll(cached.similarArtists)
+        similarArtists.addAll(safe.similarArtists)
 
         playlists.clear()
-        playlists.addAll(cached.playlists)
+        playlists.addAll(safe.playlists)
 
         likedTracks.clear()
-        likedTracks.addAll(cached.likedTracks)
+        likedTracks.addAll(safe.likedTracks)
 
         repostedTracks.clear()
-        repostedTracks.addAll(cached.repostedTracks)
+        repostedTracks.addAll(safe.repostedTracks)
     }
 
     private fun cacheCurrentProfile(key: String) {

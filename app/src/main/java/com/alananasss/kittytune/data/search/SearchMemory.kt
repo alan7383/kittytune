@@ -3,7 +3,9 @@ package com.alananasss.kittytune.data.search
 import android.content.Context
 import com.alananasss.kittytune.KittyTuneApp
 import com.alananasss.kittytune.domain.Track
+import com.alananasss.kittytune.utils.AppUtils
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,22 +25,22 @@ object RecentVisits {
      * @param track the track itself, for a track, played straight from the list.
      */
     data class Visit(
-        val kind: Kind,
-        val key: String,
-        val title: String,
-        val subtitle: String?,
-        val imageUrl: String?,
-        val destination: String?,
-        val track: Track?,
-        val isVerified: Boolean,
-        val at: Long,
+        @SerializedName("kind") val kind: Kind,
+        @SerializedName("key") val key: String,
+        @SerializedName("title") val title: String,
+        @SerializedName("subtitle") val subtitle: String?,
+        @SerializedName("imageUrl", alternate = ["image_url"]) val imageUrl: String?,
+        @SerializedName("destination") val destination: String?,
+        @SerializedName("track") val track: Track?,
+        @SerializedName("isVerified", alternate = ["is_verified"]) val isVerified: Boolean,
+        @SerializedName("at") val at: Long,
     )
 
     private const val PREFS_NAME = "search_memory"
     private const val KEY = "recent_search_visits"
     private const val MAX_VISITS = 12
 
-    private val gson = Gson()
+    private val gson = AppUtils.gson
 
     private fun getPrefs() = runCatching {
         KittyTuneApp.instance.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -64,7 +66,10 @@ object RecentVisits {
 
     private fun load(): List<Visit> = runCatching {
         val raw = getPrefs()?.getString(KEY, null) ?: return emptyList()
-        gson.fromJson<List<Visit>>(raw, object : TypeToken<List<Visit>>() {}.type).orEmpty()
+        val visits = gson.fromJson(raw, Array<Visit>::class.java)?.filterNotNull() ?: emptyList()
+        visits.map { v ->
+            if (v.track != null && v.track !is Track) v.copy(track = null) else v
+        }
     }.getOrDefault(emptyList())
 }
 
