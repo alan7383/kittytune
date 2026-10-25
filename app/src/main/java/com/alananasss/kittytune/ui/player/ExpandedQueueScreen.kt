@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui.player
 
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -59,8 +60,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.local.TrackRemovalMethod
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.common.PlayingBars
+import com.alananasss.kittytune.ui.common.SwipeToDeleteItem
 import com.alananasss.kittytune.utils.formatQueueDuration
 import com.alananasss.kittytune.utils.makeTimeString
 import kotlinx.coroutines.launch
@@ -85,7 +89,8 @@ private const val PAST_COLLAPSE_THRESHOLD = 3
 @Composable
 fun ExpandedQueueScreen(
     viewModel: PlayerViewModel,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    bottomContentPadding: androidx.compose.ui.unit.Dp = 96.dp
 ) {
     val listState = rememberLazyListState()
     val queueState = viewModel.uiQueueState
@@ -150,7 +155,7 @@ fun ExpandedQueueScreen(
             QueueListView(
                 viewModel = viewModel,
                 listState = listState,
-                contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 96.dp)
+                contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 4.dp, bottom = bottomContentPadding)
             )
         }
     }
@@ -343,10 +348,11 @@ private fun QueueListView(
     val played = viewModel.playedTrackIds
     val pastIndices = remember(queue, currentIndex, played) {
         if (currentIndex <= 0) emptyList()
-        else queue.indices.filter { it < currentIndex - 1 && (played.isEmpty() || queue[it].id in played) }
+        else queue.indices.filter { it < currentIndex - 1 && queue[it].id in played }
     }
     val pastCount = pastIndices.size
     val firstPast = pastIndices.firstOrNull()
+    val upNextCount = (queue.size - currentIndex - 1).coerceAtLeast(0)
 
     var pastExpandedByUser by remember { mutableStateOf<Boolean?>(null) }
     val isPastExpanded = pastExpandedByUser ?: (pastCount <= PAST_COLLAPSE_THRESHOLD)
@@ -364,7 +370,6 @@ private fun QueueListView(
             }
         }
     }
-    val upNextCount = (queue.size - currentIndex - 1).coerceAtLeast(0)
 
     val reorderableState = rememberReorderableLazyListState(
         lazyListState = listState,
@@ -375,7 +380,7 @@ private fun QueueListView(
             val toIndex = keys.indexOf(toKey)
             if (fromIndex >= 0 && toIndex >= 0) {
                 viewModel.moveQueueItem(fromIndex, toIndex)
-                view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+                view.performAppHaptic(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
             }
         }
     )
@@ -424,9 +429,13 @@ private fun QueueListView(
                     val isCurrent = index == currentIndex
                     val isPast = index in pastIndices
 
-                    ReorderableItem(state = reorderableState, key = keys[index]) { isDragging ->
+                    ReorderableItem(
+                        state = reorderableState,
+                        key = keys[index],
+                        animateItemModifier = Modifier,
+                    ) { isDragging ->
                         Column {
-                            if (currentIndex >= 0 && index == currentIndex + 1) {
+                            if (currentIndex >= 0 && index == currentIndex + 1 && upNextCount > 0) {
                                 QueueSectionRule(
                                     label = stringResource(R.string.queue_up_next),
                                     count = upNextCount
@@ -436,6 +445,7 @@ private fun QueueListView(
                                 viewModel = viewModel,
                                 track = item.track,
                                 index = index,
+                                itemKey = keys[index],
                                 isCurrent = isCurrent,
                                 isPast = isPast,
                                 isDragging = isDragging,
@@ -523,6 +533,7 @@ private fun QueueRow(
     viewModel: PlayerViewModel,
     track: Track,
     index: Int,
+    itemKey: String = track.id.toString(),
     isCurrent: Boolean,
     isPast: Boolean,
     isDragging: Boolean,
@@ -530,45 +541,56 @@ private fun QueueRow(
 ) {
     val view = LocalView.current
     val scheme = MaterialTheme.colorScheme
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+    val trackRemovalMethod by prefs.getTrackRemovalMethodFlow().collectAsState(initial = prefs.getTrackRemovalMethod())
+    val isSwipeRemovalEnabled = trackRemovalMethod == TrackRemovalMethod.SWIPE_AND_MENU
 
-    if (isCurrent) {
-        // Current track: featured in a prominent card with PlayingBars
-        val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation_cur")
-        Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = scheme.secondaryContainer,
-            shadowElevation = elevation,
+    val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
+    val background by animateColorAsState(
+        targetValue = when {
+            isDragging -> scheme.surfaceContainerHighest
+            isCurrent -> scheme.secondaryContainer
+            else -> Color.Transparent
+        },
+        animationSpec = tween(150),
+        label = "queue_row_background"
+    )
+    val rowShape = RoundedCornerShape(12.dp)
+
+    val rowContent = @Composable {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 4.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .combinedClickable(
-                        onClick = { /* already playing */ },
-                        onLongClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            viewModel.showTrackOptions(track, fromPlayer = true)
+                .combinedClickable(
+                    onClick = {
+                        if (!isCurrent) {
+                            viewModel.skipToQueueItem(index)
                         }
-                    )
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    },
+                    onLongClick = {
+                        view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
+                        viewModel.showTrackOptions(track, fromPlayer = true, queueIndex = index)
+                    }
+                )
+                .padding(start = 10.dp, end = if (isPast) 10.dp else 4.dp, top = if (isPast) 4.dp else 6.dp, bottom = if (isPast) 4.dp else 6.dp)
+                .then(if (isPast) Modifier.alpha(0.55f) else Modifier),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(if (isPast) 32.dp else 44.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(scheme.surfaceVariant),
+                contentAlignment = Alignment.Center
             ) {
-                // Cover with PlayingBars animated overlay
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(scheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = track.thumbnailUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                AsyncImage(
+                    model = track.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                if (isCurrent) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -580,23 +602,25 @@ private fun QueueRow(
                         color = Color.White
                     )
                 }
+            }
 
-                Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(12.dp))
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = track.title ?: stringResource(R.string.generic_title),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = scheme.onSecondaryContainer,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = track.title ?: stringResource(R.string.generic_title),
+                    style = if (isPast) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
+                    color = if (isCurrent) scheme.onSecondaryContainer else scheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (!isPast) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.generic_artist) },
                             style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSecondaryContainer.copy(alpha = 0.8f),
+                            color = if (isCurrent) scheme.onSecondaryContainer.copy(alpha = 0.8f) else scheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -611,264 +635,65 @@ private fun QueueRow(
                         }
                     }
                 }
-
-                Spacer(Modifier.width(8.dp))
-
-                val duration = track.actualDurationMs.takeIf { it > 0 }
-                if (duration != null) {
-                    Text(
-                        text = makeTimeString(duration),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = scheme.onSecondaryContainer,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                }
-
-                with(scope) {
-                    Icon(
-                        imageVector = Icons.Rounded.DragHandle,
-                        contentDescription = stringResource(R.string.desc_move),
-                        tint = scheme.onSecondaryContainer.copy(alpha = 0.6f),
-                        modifier = Modifier
-                            .size(26.dp)
-                            .draggableHandle(
-                                onDragStarted = { view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS) },
-                                onDragStopped = { view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END) }
-                            )
-                    )
-                }
             }
-        }
-    } else if (isPast) {
-        // Compact already-played track row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .alpha(0.55f)
-                .clickable { viewModel.skipToQueueItem(index) }
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            AsyncImage(
-                model = track.thumbnailUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(scheme.surfaceVariant)
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = track.title ?: stringResource(R.string.generic_title),
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            val duration = track.actualDurationMs.takeIf { it > 0 }
-            if (duration != null) {
-                Spacer(Modifier.width(8.dp))
+
+            Spacer(Modifier.width(8.dp))
+
+            val duration = (viewModel.clipLengthOf(track) ?: track.actualDurationMs).takeIf { it > 0 }
+            if (duration != null && !isPast) {
                 Text(
                     text = makeTimeString(duration),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = scheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isCurrent) scheme.onSecondaryContainer else scheme.onSurfaceVariant,
                 )
-            }
-        }
-    } else {
-        // Upcoming track row with swipe to delete
-        val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation_up")
-        val backgroundColor = if (isDragging) scheme.surfaceContainerHigh else Color.Transparent
-
-        SwipeToDeleteItem(onDelete = { viewModel.removeTrackFromQueue(index) }) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-                    .shadow(elevation, RoundedCornerShape(12.dp))
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(backgroundColor)
-                    .combinedClickable(
-                        onClick = { viewModel.skipToQueueItem(index) },
-                        onLongClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            viewModel.showTrackOptions(track, fromPlayer = true)
-                        }
-                    )
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                AsyncImage(
-                    model = track.thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(scheme.surfaceVariant)
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = track.title ?: stringResource(R.string.generic_title),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = scheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.generic_artist) },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        if (track.user?.verified == true) {
-                            Spacer(Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Rounded.Verified,
-                                contentDescription = null,
-                                tint = scheme.primary,
-                                modifier = Modifier.size(12.dp)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(Modifier.width(8.dp))
-
-                val duration = track.actualDurationMs.takeIf { it > 0 }
-                if (duration != null) {
-                    Text(
-                        text = makeTimeString(duration),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = scheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                }
-
-                with(scope) {
-                    Icon(
-                        imageVector = Icons.Rounded.DragHandle,
-                        contentDescription = stringResource(R.string.desc_move),
-                        tint = if (isDragging) scheme.primary else scheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier
-                            .size(26.dp)
-                            .draggableHandle(
-                                onDragStarted = { view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS) },
-                                onDragStopped = { view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END) }
-                            )
-                    )
-                }
+                Spacer(Modifier.width(4.dp))
             }
         }
     }
-}
 
-/**
- * Swipe to delete container for upcoming queue items.
- */
-@Composable
-private fun SwipeToDeleteItem(
-    onDelete: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    val coroutineScope = rememberCoroutineScope()
-    val density = LocalDensity.current
-
-    val dismissThresholdPx = with(density) { 100.dp.toPx() }
-    val maxSwipePx = with(density) { 180.dp.toPx() }
-
-    val offsetX = remember { Animatable(0f) }
-    val progress = (-offsetX.value / dismissThresholdPx).coerceIn(0f, 1f)
-
-    val bgColor by animateColorAsState(
-        targetValue = if (progress > 0f)
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = progress.coerceIn(0.1f, 1f))
-        else
-            Color.Transparent,
-        label = "swipe_bg"
-    )
-    val iconAlpha by animateFloatAsState(
-        targetValue = progress.coerceIn(0f, 1f),
-        label = "icon_alpha"
-    )
-
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    val velocityTracker = VelocityTracker()
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    velocityTracker.addPosition(down.uptimeMillis, down.position)
-
-                    var isHorizontal: Boolean? = null
-                    var dragStarted = false
-
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Main)
-                        val change = event.changes.firstOrNull() ?: break
-                        if (!change.pressed) break
-
-                        val deltaX = change.position.x - change.previousPosition.x
-                        val deltaY = change.position.y - change.previousPosition.y
-
-                        if (isHorizontal == null) {
-                            val absX = abs(deltaX)
-                            val absY = abs(deltaY)
-                            if (absX > 3f || absY > 3f) {
-                                isHorizontal = absX > absY
-                            }
-                        }
-
-                        if (isHorizontal == true) {
-                            change.consume()
-                            dragStarted = true
-                            velocityTracker.addPosition(change.uptimeMillis, change.position)
-                            val newOffset = (offsetX.value + deltaX).coerceIn(-maxSwipePx, 0f)
-                            coroutineScope.launch { offsetX.snapTo(newOffset) }
-                        }
-                    }
-
-                    if (dragStarted) {
-                        val velocity = velocityTracker.calculateVelocity().x
-                        coroutineScope.launch {
-                            if (-offsetX.value >= dismissThresholdPx || velocity < -1000f) {
-                                offsetX.animateTo(-size.width.toFloat())
-                                onDelete()
-                                offsetX.snapTo(0f)
-                            } else {
-                                offsetX.animateTo(0f)
-                            }
-                        }
-                    }
-                }
-            }
+            .shadow(elevation, rowShape)
+            .clip(rowShape)
+            .background(background),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(bgColor)
-                .padding(end = 20.dp),
-            contentAlignment = Alignment.CenterEnd
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Delete,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error.copy(alpha = iconAlpha),
-                modifier = Modifier.size(24.dp)
-            )
+        Box(modifier = Modifier.weight(1f)) {
+            SwipeToDeleteItem(
+                key = itemKey,
+                enabled = isSwipeRemovalEnabled && !isCurrent && !isPast && !isDragging,
+                clipContent = !isDragging,
+                onDelete = { viewModel.removeTrackFromQueue(index) },
+                shape = rowShape,
+                horizontalPadding = 0.dp
+            ) {
+                rowContent()
+            }
         }
 
-        Box(
-            modifier = Modifier.offset { IntOffset(offsetX.value.roundToInt(), 0) }
-        ) {
-            content()
+        if (!isPast) {
+            with(scope) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .padding(end = 6.dp)
+                        .draggableHandle(
+                            onDragStarted = { view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS) },
+                            onDragStopped = { view.performAppHaptic(HapticFeedbackConstants.GESTURE_END) }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DragHandle,
+                        contentDescription = stringResource(R.string.desc_move),
+                        tint = if (isCurrent) scheme.onSecondaryContainer.copy(alpha = 0.6f)
+                               else if (isDragging) scheme.primary
+                               else scheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
         }
     }
 }
