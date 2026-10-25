@@ -40,6 +40,12 @@ jobs:
         run: |
           git fetch --tags || true
           BASE_NAME=$(grep -m1 'versionName = ' app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          if git rev-parse "v${BASE_NAME}" >/dev/null 2>&1; then
+            echo "Stable tag v${BASE_NAME} already exists — skipping beta build for already released version."
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "skip=false" >> $GITHUB_OUTPUT
           LATEST_NUM=$(git tag -l "v${BASE_NAME}-beta.*" | sed "s/.*-beta\.//" | sort -n | tail -n1)
           if [ -z "$LATEST_NUM" ]; then
             BETA_NUM=1
@@ -56,6 +62,7 @@ jobs:
 
       # ── Java ────────────────────────────────────────────────────────────────
       - name: Set up JDK 21
+        if: steps.beta.outputs.skip != 'true'
         uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -63,13 +70,16 @@ jobs:
 
       # ── Gradle cache (build outputs, not just dependencies) ─────────────────
       - name: Cache Gradle
+        if: steps.beta.outputs.skip != 'true'
         uses: burrunan/gradle-cache-action@v3
 
       # ── ccache (native CMake code) ──────────────────────────────────────────
       - name: Install ccache
+        if: steps.beta.outputs.skip != 'true'
         run: sudo apt-get update && sudo apt-get install -y ccache
 
       - name: Cache ccache
+        if: steps.beta.outputs.skip != 'true'
         uses: actions/cache@v4
         with:
           path: ~/.ccache
@@ -79,13 +89,16 @@ jobs:
 
       # ── Android NDK ─────────────────────────────────────────────────────────
       - name: Setup Android NDK
+        if: steps.beta.outputs.skip != 'true'
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.1.12297006"
 
       - name: Accept Android SDK Licenses
+        if: steps.beta.outputs.skip != 'true'
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       # ── Signing keystore ────────────────────────────────────────────────────
       - name: Decode keystore
+        if: steps.beta.outputs.skip != 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
@@ -93,6 +106,7 @@ jobs:
 
       # ── Build signed APK ────────────────────────────────────────────────────
       - name: Build release APK
+        if: steps.beta.outputs.skip != 'true'
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS:         ${{ secrets.KEY_ALIAS }}
@@ -109,6 +123,7 @@ jobs:
 
       # ── Changelog (git-cliff, since previous tag, beta included) ────────────
       - name: Get previous tag
+        if: steps.beta.outputs.skip != 'true'
         id: prev_tag
         run: |
           # Most recent reachable tag of any kind: each beta only lists what
@@ -125,6 +140,7 @@ jobs:
 
       # ── Tag now (prev already computed) so cliff attributes commits to it ───
       - name: Create beta tag
+        if: steps.beta.outputs.skip != 'true'
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
@@ -132,6 +148,7 @@ jobs:
           git push origin "${{ steps.beta.outputs.tag }}" || true
 
       - name: Generate changelog
+        if: steps.beta.outputs.skip != 'true'
         uses: orhun/git-cliff-action@v4
         id: cliff
         with:
@@ -140,11 +157,13 @@ jobs:
 
       # ── GitHub Pre-Release (no Discord ping: betas stay quiet) ─────────────
       - name: Delete existing beta release if present
+        if: steps.beta.outputs.skip != 'true'
         run: gh release delete ${{ steps.beta.outputs.tag }} --yes || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Write changelog to file
+        if: steps.beta.outputs.skip != 'true'
         run: |
           {
             echo "> [!WARNING]"
@@ -154,6 +173,7 @@ jobs:
           } > CHANGELOG_BETA.md
 
       - name: Create GitHub Pre-Release
+        if: steps.beta.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.beta.outputs.tag }}
