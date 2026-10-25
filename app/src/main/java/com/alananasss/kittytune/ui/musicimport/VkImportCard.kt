@@ -66,6 +66,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.vk.VkImportedPlaylist
 
 /**
@@ -110,7 +113,7 @@ fun VkImportCard(
                     placeholder = { Text(stringResource(R.string.vk_import_hint), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     leadingIcon = { Icon(Icons.Rounded.Link, null) },
                     trailingIcon = {
-                        IconButton(shapes = IconButtonDefaults.shapes(), onClick = { clipboard.getText()?.text?.let { link = it.trim() } }, enabled = !isBusy) {
+                        IconButton(shapes = IconButtonDefaults.shapes(), onClick = hapticAction(HapticKind.UI) { clipboard.getText()?.text?.let { link = it.trim() } }, enabled = !isBusy) {
                             Icon(Icons.Rounded.ContentPaste, stringResource(R.string.vk_import_paste))
                         }
                     },
@@ -122,7 +125,7 @@ fun VkImportCard(
                     modifier = Modifier.weight(1f),
                 )
                 Button(
-                    onClick = { VkImportSession.load(link) },
+                    onClick = hapticAction(HapticKind.UI) { VkImportSession.load(link) },
                     enabled = link.isNotBlank() && !isBusy,
                     shapes = ButtonDefaults.shapes(),
                     modifier = Modifier.height(52.dp),
@@ -143,7 +146,7 @@ fun VkImportCard(
                     is VkImportState.Problem -> ProblemLine(shown)
                     is VkImportState.Ready -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         PlaylistHeader(shown.playlist, stringResource(R.string.vk_import_tracks, shown.playlist.tracks.size))
-                        Button(onClick = { VkImportSession.start() }, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                        Button(onClick = hapticAction(HapticKind.UI) { VkImportSession.start() }, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth().height(48.dp)) {
                             Icon(Icons.Rounded.QueueMusic, null, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(stringResource(R.string.vk_import_start))
@@ -216,11 +219,11 @@ private fun DoneSection(done: VkImportState.Done, onOpenPlaylist: (Long) -> Unit
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { onOpenPlaylist(result.playlistId) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.vk_import_open)) }
-            FilledTonalButton(onClick = { VkImportSession.reset() }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.vk_import_another)) }
+            Button(onClick = hapticAction(HapticKind.UI) { onOpenPlaylist(result.playlistId) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.vk_import_open)) }
+            FilledTonalButton(onClick = hapticAction(HapticKind.UI) { VkImportSession.reset() }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.vk_import_another)) }
         }
         if (result.missing.isNotEmpty()) {
-            TextButton(shapes = ButtonDefaults.shapes(), onClick = { showMissing = !showMissing }) {
+            TextButton(shapes = ButtonDefaults.shapes(), onClick = hapticAction(HapticKind.UI) { showMissing = !showMissing }) {
                 Text(stringResource(R.string.vk_import_missing, result.missing.size))
                 Icon(if (showMissing) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null)
             }

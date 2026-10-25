@@ -83,7 +83,8 @@ class MusicImportSelectionViewModel(application: Application) : AndroidViewModel
                 }
                 if (fetchFailed) break
             } while (next != null)
-            playlists = collected
+            val seenIds = mutableSetOf<String>()
+            playlists = collected.filter { (it.totalItems ?: 0) > 0 && seenIds.add(it.id) }
             isLoading = false
             loadLikedTracksCount()
         }

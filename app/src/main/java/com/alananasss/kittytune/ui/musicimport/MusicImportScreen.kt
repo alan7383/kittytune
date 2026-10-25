@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +19,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.musicimport.MusicApi
 import com.alananasss.kittytune.data.musicimport.MusicImportCoordinator
 import com.alananasss.kittytune.ui.common.SettingsGroup
@@ -33,6 +37,7 @@ fun MusicImportScreen(
     onPlatformSelected: (String) -> Unit,
     onOpenPlaylist: (Long) -> Unit = {},
     onLoginClick: () -> Unit = {},
+    onPortableImportClick: () -> Unit = {},
     viewModel: MusicImportViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -132,6 +137,19 @@ fun MusicImportScreen(
                     // VK needs no account of any kind, so it is offered without the SoundCloud login too.
                     Spacer(modifier = Modifier.height(24.dp))
                     SettingsGroup(items = listOf { shape -> VkImportItem(shape) { showVkImport = true } })
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    SettingsGroup(
+                        items = listOf { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.portable_import_title),
+                                subtitle = stringResource(R.string.portable_import_subtitle),
+                                icon = Icons.Rounded.Description,
+                                onClick = onPortableImportClick,
+                            )
+                        }
+                    )
                 }
             } else {
                 LazyColumn(
@@ -166,7 +184,7 @@ fun MusicImportScreen(
                                     } else {
                                         null
                                     },
-                                    onClick = {
+                                    onClick = hapticAction(HapticKind.UI) {
                                         if (viewModel.isConnected(platform)) {
                                             onPlatformSelected(platform.providerName)
                                         } else {
@@ -176,6 +194,20 @@ fun MusicImportScreen(
                                 )
                             }
                         } + listOf { shape -> VkImportItem(shape) { showVkImport = true } }
+                    )
+                }
+
+                item {
+                    SettingsGroup(
+                        items = listOf { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.portable_import_title),
+                                subtitle = stringResource(R.string.portable_import_subtitle),
+                                icon = Icons.Rounded.Description,
+                                onClick = onPortableImportClick,
+                            )
+                        }
                     )
                 }
 
@@ -220,7 +252,7 @@ fun MusicImportScreen(
             },
             confirmButton = {
                 TextButton(
-                    onClick = { 
+                    onClick = hapticAction(HapticKind.UI) { 
                         val platform = platformPendingAuth!!
                         platformPendingAuth = null
                         viewModel.markConnecting(true)
