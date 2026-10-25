@@ -1118,6 +1118,135 @@
                 </intent-filter>
             </activity-alias>
 
+            <!-- Community icons by shiro -->
+            <activity-alias
+                android:name=".LauncherIconShiroHeadphonesAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_headphones"
+                android:roundIcon="@mipmap/sc_ic_shiro_headphones"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroMusicalDreamAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_musical_dream"
+                android:roundIcon="@mipmap/sc_ic_shiro_musical_dream"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroPastelCatAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_pastel_cat"
+                android:roundIcon="@mipmap/sc_ic_shiro_pastel_cat"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroCapRedAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_cap_red"
+                android:roundIcon="@mipmap/sc_ic_shiro_cap_red"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroCapPurpleAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_cap_purple"
+                android:roundIcon="@mipmap/sc_ic_shiro_cap_purple"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroKtLogoAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_kt_logo"
+                android:roundIcon="@mipmap/sc_ic_shiro_kt_logo"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroCozyNapAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_cozy_nap"
+                android:roundIcon="@mipmap/sc_ic_shiro_cozy_nap"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroCoolCatAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_cool_cat"
+                android:roundIcon="@mipmap/sc_ic_shiro_cool_cat"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
             <service
                 android:name=".data.PlaybackService"
                 android:enabled="true"
@@ -1208,6 +1337,9 @@
         </application>
     
         <queries>
+            <intent>
+                <action android:name="android.view.InputMethod" />
+            </intent>
             <intent>
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent>
