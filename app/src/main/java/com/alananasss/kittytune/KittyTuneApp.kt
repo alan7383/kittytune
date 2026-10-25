@@ -24,6 +24,7 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        com.alananasss.kittytune.audio.haptics.HapticUtil.initialize(this)
         com.alananasss.kittytune.utils.AppLogManager.init(this)
         LocaleUtils.applyAppLanguage(this)
         Config.init(applicationContext)

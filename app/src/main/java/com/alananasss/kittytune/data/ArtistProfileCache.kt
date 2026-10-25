@@ -21,7 +21,7 @@ import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 
 data class CachedArtistProfile(
-    val user: User,
+    val user: User? = null,
     val isSpotify: Boolean = false,
     val isVk: Boolean = false,
     val vkPageUrl: String? = null,
@@ -81,7 +81,7 @@ object ArtistProfileCache {
         memory[primaryKey] = profile
 
         // Also index by artist username if available
-        profile.user.username?.let { name ->
+        profile.user?.username?.let { name ->
             if (name.isNotBlank()) {
                 val nameKey = "name:${name.trim().lowercase()}"
                 memory[nameKey] = profile
@@ -96,7 +96,7 @@ object ArtistProfileCache {
                 file.writeText(json)
 
                 // Also save auxiliary file for name lookup if primary key was not already name
-                profile.user.username?.let { name ->
+                profile.user?.username?.let { name ->
                     if (name.isNotBlank()) {
                         val nameFile = File(dir, "${hashKey("name:${name.trim().lowercase()}")}.json")
                         if (nameFile.absolutePath != file.absolutePath) {
@@ -112,15 +112,22 @@ object ArtistProfileCache {
 
     fun get(rawKey: String): CachedArtistProfile? {
         val key = normalizeKey(rawKey)
-        memory[key]?.let { return it }
+        memory[key]?.let {
+            if (it.user != null) return it else memory.remove(key)
+        }
 
         return try {
             val file = File(dir, "${hashKey(key)}.json")
             if (file.exists() && file.length() > 0) {
                 val json = file.readText()
                 val profile: CachedArtistProfile = gson.fromJson(json, cacheType)
-                memory[key] = profile
-                profile
+                if (profile.user != null) {
+                    memory[key] = profile
+                    profile
+                } else {
+                    file.delete()
+                    null
+                }
             } else {
                 null
             }
@@ -137,10 +144,10 @@ object ArtistProfileCache {
 
         // Fallback: search memory & disk for matching username
         val clean = artistName.trim().lowercase()
-        memory.values.firstOrNull { it.user.username?.trim()?.lowercase() == clean }?.let { return it }
+        memory.values.firstOrNull { it.user?.username?.trim()?.lowercase() == clean }?.let { return it }
 
         for (cached in getAllCachedProfiles()) {
-            if (cached.user.username?.trim()?.lowercase() == clean) {
+            if (cached.user?.username?.trim()?.lowercase() == clean) {
                 return cached
             }
         }
@@ -150,7 +157,7 @@ object ArtistProfileCache {
     fun getAllCachedArtists(): List<User> {
         val artists = mutableListOf<User>()
         // From memory
-        artists.addAll(memory.values.map { it.user })
+        artists.addAll(memory.values.mapNotNull { it.user })
 
         // From disk
         try {
@@ -159,7 +166,7 @@ object ArtistProfileCache {
                 try {
                     val json = file.readText()
                     val profile: CachedArtistProfile = gson.fromJson(json, cacheType)
-                    artists.add(profile.user)
+                    profile.user?.let { artists.add(it) }
                 } catch (_: Exception) {}
             }
         } catch (_: Exception) {}
@@ -169,18 +176,22 @@ object ArtistProfileCache {
 
     fun getAllCachedProfiles(): List<CachedArtistProfile> {
         val profiles = mutableListOf<CachedArtistProfile>()
-        profiles.addAll(memory.values)
+        profiles.addAll(memory.values.filter { it.user != null })
         try {
             val files = dir.listFiles { f -> f.extension == "json" } ?: emptyArray()
             for (file in files) {
                 try {
                     val json = file.readText()
                     val profile: CachedArtistProfile = gson.fromJson(json, cacheType)
-                    profiles.add(profile)
+                    if (profile.user != null) {
+                        profiles.add(profile)
+                    } else {
+                        file.delete()
+                    }
                 } catch (_: Exception) {}
             }
         } catch (_: Exception) {}
-        return profiles.distinctBy { it.user.username?.trim()?.lowercase() }
+        return profiles.distinctBy { it.user?.username?.trim()?.lowercase() }
     }
 
     suspend fun synthesizeFromDownloads(rawQuery: String, context: Context): CachedArtistProfile? = withContext(Dispatchers.IO) {

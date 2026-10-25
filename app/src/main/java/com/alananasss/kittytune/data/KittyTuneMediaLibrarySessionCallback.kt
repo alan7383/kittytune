@@ -25,6 +25,8 @@ import androidx.media3.common.MediaItem
     import com.alananasss.kittytune.data.GenreData
     import com.alananasss.kittytune.data.SearchCategory
     import com.alananasss.kittytune.ui.player.PlaybackContext
+    import com.alananasss.kittytune.audio.haptics.PlayerHapticManager
+    import com.alananasss.kittytune.data.local.LastUsedPlaylist
     import com.alananasss.kittytune.data.local.PlayerPreferences
     import com.google.common.collect.ImmutableList
     import com.google.common.util.concurrent.Futures
@@ -215,27 +217,47 @@ import androidx.media3.common.MediaItem
                 }
                 PlaybackService.CUSTOM_ACTION_ADD_TO_PLAYLIST -> {
                     val currentTrack = MusicManager.currentTrack
-                    if (currentTrack != null) {
-                        val playerPrefs = PlayerPreferences(context)
-                        val playlistId = playerPrefs.getLastUsedPlaylistId()
-                        val playlistTitle = playerPrefs.getLastUsedPlaylistTitle()
-                        if (playlistId != -1L && !playlistTitle.isNullOrBlank()) {
-                            DownloadManager.addTrackToPlaylist(playlistId, currentTrack)
-                            serviceScope.launch(Dispatchers.Main) {
-                                android.widget.Toast.makeText(
-                                    context,
-                                    context.getString(R.string.notif_added_to_playlist, currentTrack.title ?: "", playlistTitle),
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        } else {
-                            serviceScope.launch(Dispatchers.Main) {
-                                android.widget.Toast.makeText(
-                                    context,
-                                    context.getString(R.string.notif_no_playlist_available),
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
-                            }
+                    if (currentTrack == null) {
+                        serviceScope.launch(Dispatchers.Main) {
+                            android.widget.Toast.makeText(
+                                context,
+                                context.getString(R.string.notif_no_track_playing),
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                    }
+                    val playerPrefs = PlayerPreferences(context)
+                    val playlistId = playerPrefs.getLastUsedPlaylistId()
+                    if (!LastUsedPlaylist.isValidId(playlistId)) {
+                        serviceScope.launch(Dispatchers.Main) {
+                            android.widget.Toast.makeText(
+                                context,
+                                context.getString(R.string.notif_no_playlist_available),
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                    }
+                    serviceScope.launch {
+                        // The name is decoration: the id identifies the playlist. A bookmark made
+                        // before the name was stored still has to work, so the library is asked for
+                        // the name when the bookmark has none.
+                        val playlistTitle = LastUsedPlaylist.resolveTitle(
+                            playerPrefs.getLastUsedPlaylistTitle(),
+                            DownloadManager.getPlaylistTitle(playlistId)
+                        )
+                        DownloadManager.addTrackToPlaylist(playlistId, currentTrack)
+                        withContext(Dispatchers.Main) {
+                            android.widget.Toast.makeText(
+                                context,
+                                if (playlistTitle != null) {
+                                    context.getString(R.string.notif_added_to_playlist, playlistTitle)
+                                } else {
+                                    context.getString(R.string.notif_added_to_playlist_unnamed)
+                                },
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                     return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
@@ -244,6 +266,26 @@ import androidx.media3.common.MediaItem
                     val playerPrefs = PlayerPreferences(context)
                     val newHaptics = !playerPrefs.getHapticsEnabled()
                     playerPrefs.setHapticsEnabled(newHaptics)
+                    // The engine keeps its own copy of the flag, so it is told about the change
+                    // here instead of waiting for the preference listener - otherwise the toggle
+                    // could stay silent until the next reload.
+                    val hapticManager = PlayerHapticManager.getInstance(context)
+                    hapticManager.setHapticsEnabled(newHaptics)
+                    if (newHaptics) {
+                        // A short pulse confirms the switch, the same way the settings screen does.
+                        hapticManager.triggerTestVibration(playerPrefs.getHapticsStrength())
+                    }
+                    serviceScope.launch(Dispatchers.Main) {
+                        android.widget.Toast.makeText(
+                            context,
+                            context.getString(
+                                if (newHaptics) R.string.notif_btn_haptics_on
+                                else R.string.notif_btn_haptics_off
+                            ),
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    // Rebuild the notification so the button shows the new state.
                     val updateIntent = Intent(context, PlaybackService::class.java).apply {
                         action = PlaybackService.ACTION_FORCE_UPDATE
                     }

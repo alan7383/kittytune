@@ -75,6 +75,46 @@ class DataSaverTest {
         )
     }
 
+    // ─── Spotify ─────────────────────────────────────────────────────────────────
+
+    @Test
+    fun `spotify album cover 640 collapses to 300`() {
+        assertEquals(
+            "https://i.scdn.co/image/ab67616d00001e02ba5db46f4b838ef6027e6f96",
+            DataSaver.lightArtwork("https://i.scdn.co/image/ab67616d0000b273ba5db46f4b838ef6027e6f96")
+        )
+    }
+
+    @Test
+    fun `spotify album cover 1400 collapses to 300`() {
+        assertEquals(
+            "https://i.scdn.co/image/ab67616d00001e02ba5db46f4b838ef6027e6f96",
+            DataSaver.lightArtwork("https://i.scdn.co/image/ab67616d000082c1ba5db46f4b838ef6027e6f96")
+        )
+    }
+
+    @Test
+    fun `spotify artist portrait 640 collapses to 320`() {
+        assertEquals(
+            "https://i.scdn.co/image/ab67616100005174ba5db46f4b838ef6027e6f96",
+            DataSaver.lightArtwork("https://i.scdn.co/image/ab6761610000e5ebba5db46f4b838ef6027e6f96")
+        )
+    }
+
+    @Test
+    fun `spotify cover on spotifycdn is folded too`() {
+        assertEquals(
+            "https://image-cdn-fa.spotifycdn.com/image/ab67616d00001e02ba5db46f4b838ef6027e6f96",
+            DataSaver.lightArtwork("https://image-cdn-fa.spotifycdn.com/image/ab67616d0000b273ba5db46f4b838ef6027e6f96")
+        )
+    }
+
+    @Test
+    fun `spotify 300 cover is already light enough`() {
+        val url = "https://i.scdn.co/image/ab67616d00001e02ba5db46f4b838ef6027e6f96"
+        assertEquals(url, DataSaver.lightArtwork(url))
+    }
+
     // ─── YouTube ─────────────────────────────────────────────────────────────────
 
     @Test

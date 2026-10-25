@@ -44,6 +44,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.AuthFlowManager
 import com.alananasss.kittytune.data.GuestDataTransferManager
 import kotlinx.coroutines.launch
@@ -256,7 +259,7 @@ fun LoginScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    OutlinedButton(onClick = { launchSoundCloudAuth(context, authUrl) }) {
+                    OutlinedButton(onClick = hapticAction(HapticKind.UI) { launchSoundCloudAuth(context, authUrl) }) {
                         Text(stringResource(R.string.login_reopen_browser))
                     }
                 }

@@ -798,6 +798,16 @@ object DownloadManager {
     fun getUserPlaylistsFlow() = database.downloadDao().getUserPlaylists()
     fun isPlaylistInLibraryFlow(playlistId: Long) = database.downloadDao().getPlaylistFlow(playlistId)
 
+    /**
+     * The name of a playlist in the local library, or null when it is not known.
+     *
+     * The notification's "Add to last playlist" action uses it to name its destination when the
+     * bookmark does not carry a name - the id is what identifies the playlist, the name is only
+     * there to be shown.
+     */
+    suspend fun getPlaylistTitle(playlistId: Long): String? =
+        database.downloadDao().getPlaylist(playlistId)?.title
+
     fun importPlaylistToLibrary(
         playlist: Playlist,
         tracks: List<Track>,
@@ -807,73 +817,118 @@ object DownloadManager {
         likePlaylist: Boolean = false
     ) {
         scope.launch {
-            if (likePlaylist && playlist.id != 0L) {
-                LikeRepository.togglePlaylistLike(
-                    playlistId = playlist.id,
-                    isLiked = true,
-                    permalink = playlist.permalinkUrl,
-                    urn = playlist.urn
-                )
-            }
-
-            val dao = database.downloadDao()
-            val existing = dao.getPlaylist(playlist.id)
-            val prefs = PlayerPreferences(context)
-            val currentUserId = prefs.getCachedUserId()
-            val currentUsername = prefs.getCachedUsername()
-
-            val isOwner = (playlist.user?.id != null && playlist.user?.id != 0L && playlist.user?.id == currentUserId) ||
-                (!currentUsername.isNullOrBlank() && (playlist.user?.username?.equals(currentUsername, ignoreCase = true) == true || existing?.artist?.equals(currentUsername, ignoreCase = true) == true))
-
-            val isUserCreatedFinal = isUserCreated ?: (playlist.id < 0 || (existing?.isUserCreated == true) || isOwner)
-            val localCover = existing?.localCoverPath ?: (if (playlist.id < 0) playlist.calculatedArtworkUrl ?: playlist.artworkUrl else null)
-            val isDownloadedFinal = isDownloaded ?: (existing?.isDownloaded ?: false)
-            val baseTime = System.currentTimeMillis()
-
-            val localPlaylist = LocalPlaylist(
-                id = playlist.id,
-                title = playlist.title ?: context.getString(R.string.untitled_track),
-                artist = playlist.user?.username ?: context.getString(R.string.unknown_artist),
-                artworkUrl = playlist.fullResArtwork,
-                localCoverPath = localCover,
-                trackCount = tracks.size,
-                isUserCreated = isUserCreatedFinal,
-                permalinkUrl = playlist.permalinkUrl,
-                isAlbum = playlist.isRealAlbum,
-                isDownloaded = isDownloadedFinal
+            persistPlaylistToLibrary(
+                playlist = playlist,
+                tracks = tracks,
+                isDownloaded = isDownloaded,
+                isUserCreated = isUserCreated,
+                likePlaylist = likePlaylist
             )
-            dao.insertPlaylist(localPlaylist)
-
-            tracks.forEachIndexed { index, track ->
-                val existingTrack = dao.getTrack(track.id)
-
-                if (existingTrack == null) {
-                    val localTrack = LocalTrack(
-                        id = track.id,
-                        title = track.title ?: context.getString(R.string.untitled_track),
-                        artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) },
-                        artworkUrl = track.fullResArtwork,
-                        duration = track.durationMs ?: 0L,
-                        localAudioPath = "",
-                        localArtworkPath = "",
-                        source = track.source ?: "soundcloud",
-                        permalinkUrl = track.permalinkUrl,
-                        ownerId = track.user?.id ?: 0L,
-                        secretToken = track.secretToken
-                    )
-                    dao.insertTrack(localTrack)
-                }
-
-                dao.insertPlaylistTrackRef(
-                    PlaylistTrackCrossRef(
-                        playlistId = playlist.id,
-                        trackId = track.id,
-                        addedAt = baseTime + index
-                    )
-                )
-            }
-            _libraryUpdated.tryEmit(Unit)
         }
+    }
+
+    /**
+     * Blocking variant for screens that need to know the playlist is in the
+     * database before navigating to it (the portable TXT/CSV import).
+     */
+    suspend fun importPlaylistToLibrarySync(
+        playlist: Playlist,
+        tracks: List<Track>,
+        isDownloaded: Boolean? = null,
+        isUserCreated: Boolean? = null,
+        likePlaylist: Boolean = false
+    ) = withContext(Dispatchers.IO) {
+        persistPlaylistToLibrary(
+            playlist = playlist,
+            tracks = tracks,
+            isDownloaded = isDownloaded,
+            isUserCreated = isUserCreated,
+            likePlaylist = likePlaylist
+        )
+    }
+
+    private suspend fun persistPlaylistToLibrary(
+        playlist: Playlist,
+        tracks: List<Track>,
+        isDownloaded: Boolean? = null,
+        isUserCreated: Boolean? = null,
+        likePlaylist: Boolean = false
+    ) {
+        // Radio cards created by home/history carry their own track id, which is
+        // not the id the radio route resolves to. Normalize every save to the
+        // route id so one radio is one library row and its liked flag survives.
+        val libraryId = com.alananasss.kittytune.data.local.ExternalPlaylists.libraryIdFor(
+            playlist.permalinkUrl,
+            playlist.id
+        )
+        val targetPlaylist = if (libraryId != playlist.id) playlist.copy(id = libraryId) else playlist
+
+        if (likePlaylist && libraryId != 0L) {
+            LikeRepository.togglePlaylistLike(
+                playlistId = libraryId,
+                isLiked = true,
+                permalink = targetPlaylist.permalinkUrl,
+                urn = targetPlaylist.urn
+            )
+        }
+
+        val dao = database.downloadDao()
+        val existing = dao.getPlaylist(libraryId)
+        val prefs = PlayerPreferences(context)
+        val currentUserId = prefs.getCachedUserId()
+        val currentUsername = prefs.getCachedUsername()
+
+        val isOwner = (targetPlaylist.user?.id != null && targetPlaylist.user?.id != 0L && targetPlaylist.user?.id == currentUserId) ||
+            (!currentUsername.isNullOrBlank() && (targetPlaylist.user?.username?.equals(currentUsername, ignoreCase = true) == true || existing?.artist?.equals(currentUsername, ignoreCase = true) == true))
+
+        val isUserCreatedFinal = isUserCreated ?: (libraryId < 0 || (existing?.isUserCreated == true) || isOwner)
+        val localCover = existing?.localCoverPath ?: (if (libraryId < 0) targetPlaylist.calculatedArtworkUrl ?: targetPlaylist.artworkUrl else null)
+        val isDownloadedFinal = isDownloaded ?: (existing?.isDownloaded ?: false)
+        val baseTime = System.currentTimeMillis()
+
+        val localPlaylist = LocalPlaylist(
+            id = libraryId,
+            title = targetPlaylist.title ?: context.getString(R.string.untitled_track),
+            artist = targetPlaylist.user?.username ?: context.getString(R.string.unknown_artist),
+            artworkUrl = targetPlaylist.fullResArtwork,
+            localCoverPath = localCover,
+            trackCount = tracks.size,
+            isUserCreated = isUserCreatedFinal,
+            permalinkUrl = targetPlaylist.permalinkUrl,
+            isAlbum = targetPlaylist.isRealAlbum,
+            isDownloaded = isDownloadedFinal
+        )
+        dao.insertPlaylist(localPlaylist)
+
+        tracks.forEachIndexed { index, track ->
+            val existingTrack = dao.getTrack(track.id)
+
+            if (existingTrack == null) {
+                val localTrack = LocalTrack(
+                    id = track.id,
+                    title = track.title ?: context.getString(R.string.untitled_track),
+                    artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) },
+                    artworkUrl = track.fullResArtwork,
+                    duration = track.durationMs ?: 0L,
+                    localAudioPath = "",
+                    localArtworkPath = "",
+                    source = track.source ?: "soundcloud",
+                    permalinkUrl = track.permalinkUrl,
+                    ownerId = track.user?.id ?: 0L,
+                    secretToken = track.secretToken
+                )
+                dao.insertTrack(localTrack)
+            }
+
+            dao.insertPlaylistTrackRef(
+                PlaylistTrackCrossRef(
+                    playlistId = libraryId,
+                    trackId = track.id,
+                    addedAt = baseTime + index
+                )
+            )
+        }
+        _libraryUpdated.tryEmit(Unit)
     }
 
     fun deletePlaylist(

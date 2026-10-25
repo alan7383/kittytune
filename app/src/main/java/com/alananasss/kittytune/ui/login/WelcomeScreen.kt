@@ -67,6 +67,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.local.AppThemeMode
 import com.alananasss.kittytune.data.local.PlayerDesign
@@ -391,7 +394,7 @@ fun WelcomeScreen(
                         content = {
                             if (!isMediaGranted) {
                                 TextButton(
-                                    onClick = {
+                                    onClick = hapticAction(HapticKind.UI) {
                                         isMediaSkipped = true
                                         navigateToNextPage()
                                     },
@@ -1081,7 +1084,7 @@ private fun PlayerDesignSelectionPage(
                 )
 
                 Card(
-                    onClick = { onDesignSelected(item.design) },
+                    onClick = hapticAction(HapticKind.UI) { onDesignSelected(item.design) },
                     colors = CardDefaults.cardColors(
                         containerColor = cardColors.container,
                         contentColor = cardColors.content
@@ -1242,7 +1245,7 @@ private fun SliderStyleSelectionPage(
                 val isSelected = selectedStyle == item.style
 
                 Card(
-                    onClick = { onStyleSelected(item.style) },
+                    onClick = hapticAction(HapticKind.UI) { onStyleSelected(item.style) },
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer
                     ),
@@ -1444,7 +1447,7 @@ private fun ThemeSelectionPage(
                 )
 
                 Card(
-                    onClick = { onThemeSelected(option.mode) },
+                    onClick = hapticAction(HapticKind.UI) { onThemeSelected(option.mode) },
                     colors = CardDefaults.cardColors(
                         containerColor = cardColors.container,
                         contentColor = cardColors.content
@@ -1593,7 +1596,7 @@ private fun FinishPage(
         }
 
         Surface(
-            onClick = { uriHandler.openUri("https://ko-fi.com/alan7383") },
+            onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://ko-fi.com/alan7383") },
             shape = RoundedCornerShape(22.dp),
             color = MaterialTheme.colorScheme.surfaceContainer,
             border = BorderStroke(
