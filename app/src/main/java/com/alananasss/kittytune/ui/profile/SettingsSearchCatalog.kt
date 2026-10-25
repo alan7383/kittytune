@@ -67,6 +67,7 @@ internal fun rememberSettingsSearchCatalog(
         var autoUpdate = prefs.getAutoUpdateEnabled()
         var betaUpdates = prefs.getBetaUpdatesEnabled()
         var rememberSearchFilter = prefs.getRememberSearchFilter()
+        var verifiedFilterEnabled = prefs.getVerifiedFilterEnabled()
         var showPlaylistTotalDuration = prefs.getShowPlaylistTotalDuration()
         var customFontEnabled = prefs.getCustomFontEnabled()
         var showHomeListeningStats = prefs.getShowHomeListeningStats()
@@ -1135,6 +1136,27 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     rememberSearchFilter = it
                     prefs.setRememberSearchFilter(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_verified_filter,
+                subtitleRes = R.string.pref_verified_filter_sub,
+                categoryName = catMisc,
+                icon = Icons.Rounded.Verified,
+                route = "misc_general_settings",
+                highlightKey = "pref_verified_filter",
+                keywords = listOf(
+                    "verified", "verification", "reupload", "official", "cover",
+                    "vérifié", "officiel", "reupload", "проверено", "официальный",
+                ),
+                hasSwitch = true,
+                switchState = verifiedFilterEnabled,
+                onSwitchChange = {
+                    verifiedFilterEnabled = it
+                    prefs.setVerifiedFilterEnabled(it)
                     onPreferenceChange()
                 }
             ),

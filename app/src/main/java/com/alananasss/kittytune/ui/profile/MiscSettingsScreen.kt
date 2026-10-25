@@ -10,6 +10,7 @@ import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Translate
+import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -70,6 +71,7 @@ fun MiscGeneralSettingsScreen(
     var autoUpdate by remember { mutableStateOf(prefs.getAutoUpdateEnabled()) }
     var betaUpdates by remember { mutableStateOf(prefs.getBetaUpdatesEnabled()) }
     var rememberSearchFilter by remember { mutableStateOf(prefs.getRememberSearchFilter()) }
+    var verifiedFilterEnabled by remember { mutableStateOf(prefs.getVerifiedFilterEnabled()) }
     var showPlaylistTotalDuration by remember { mutableStateOf(prefs.getShowPlaylistTotalDuration()) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showStartDialog by remember { mutableStateOf(false) }
@@ -149,6 +151,7 @@ fun MiscGeneralSettingsScreen(
             "pref_auto_update" to 0,
             "pref_beta_updates" to 0,
             "pref_remember_search_filter" to 0,
+            "pref_verified_filter" to 0,
             "pref_show_playlist_total_duration" to 0
         )
     )
@@ -248,6 +251,21 @@ fun MiscGeneralSettingsScreen(
                                     prefs.setRememberSearchFilter(it)
                                 },
                                 highlightKey = "pref_remember_search_filter"
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_verified_filter),
+                                subtitle = stringResource(R.string.pref_verified_filter_sub),
+                                icon = Icons.Rounded.Verified,
+                                hasSwitch = true,
+                                switchState = verifiedFilterEnabled,
+                                onSwitchChange = {
+                                    verifiedFilterEnabled = it
+                                    prefs.setVerifiedFilterEnabled(it)
+                                },
+                                highlightKey = "pref_verified_filter"
                             )
                         },
                         { shape ->

@@ -1,6 +1,7 @@
 package com.alananasss.kittytune.data.vk
 
 import com.alananasss.kittytune.data.LyricsMatcher
+import com.alananasss.kittytune.data.search.TrackVersionTags
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -13,22 +14,6 @@ internal object VkTrackMatcher {
 
     /** Below this a candidate is not taken, however it ranks. */
     const val ACCEPT = 0.72f
-
-    /** Words that make a recording a different version of a song, in the languages VK titles use. */
-    private val VERSION_MARKERS = mapOf(
-        "remix" to "remix", "rmx" to "remix", "ремикс" to "remix",
-        "slowed" to "slowed", "slow" to "slowed", "слоу" to "slowed", "замедленная" to "slowed",
-        "sped" to "spedup", "speed" to "spedup", "spedup" to "spedup", "спид" to "spedup", "ускоренная" to "spedup",
-        "nightcore" to "nightcore",
-        "acoustic" to "acoustic", "акустика" to "acoustic", "акустическая" to "acoustic",
-        "live" to "live", "концерт" to "live", "лайв" to "live",
-        "instrumental" to "instrumental", "минус" to "instrumental", "минусовка" to "instrumental",
-        "karaoke" to "instrumental", "караоке" to "instrumental",
-        "cover" to "cover", "кавер" to "cover",
-        "reverb" to "reverb", "8d" to "8d",
-        "mashup" to "mashup", "мэшап" to "mashup",
-        "extended" to "extended",
-    )
 
     fun score(track: VkTrack, candidate: Candidate): Float {
         val titleSim = max(
@@ -75,12 +60,7 @@ internal object VkTrackMatcher {
             .filter { it.isNotBlank() }
             .distinct()
 
-    internal fun versionsOf(text: String): Set<String> {
-        val words = text.lowercase().split(Regex("[^\\p{L}\\p{Nd}]+")).filter { it.isNotBlank() }
-        val found = words.mapNotNull { VERSION_MARKERS[it] }.toMutableSet()
-        if ("spedup" in found && "up" !in words && "spedup" !in words && "спид" !in words) found.remove("spedup")
-        return found
-    }
+    internal fun versionsOf(text: String): Set<String> = TrackVersionTags.of(text)
 
     private val CYRILLIC = mapOf(
         'а' to "a", 'б' to "b", 'в' to "v", 'г' to "g", 'д' to "d", 'е' to "e", 'ё' to "e", 'ж' to "zh",
