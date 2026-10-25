@@ -302,18 +302,30 @@ internal fun rememberSmoothPosition(
         }
         var startedAtMs = System.currentTimeMillis()
         var startedAt = positionMs().toFloat()
+        var lastReported = startedAt
         while (isActive) {
             withFrameMillis {
                 val now = System.currentTimeMillis()
                 val reported = positionMs().toFloat()
-                val extrapolated = startedAt + ((now - startedAtMs) * speed)
-                if (kotlin.math.abs(reported - extrapolated) > 200f) {
-                    startedAt = reported
-                    startedAtMs = now
-                    smooth.floatValue = reported
-                } else {
-                    val elapsed = (now - startedAtMs).coerceAtMost(MAX_EXTRAPOLATION_MS)
-                    smooth.floatValue = startedAt + (elapsed * speed)
+                if (reported != lastReported) {
+                    val jumpedBack = reported < lastReported - 1000f
+                    val jumpedFar = kotlin.math.abs(reported - smooth.floatValue) > 1200f
+                    if (jumpedBack || jumpedFar) {
+                        startedAt = reported
+                        startedAtMs = now
+                        smooth.floatValue = reported
+                    } else {
+                        // Smoothly adjust anchor forward without jerking backwards
+                        startedAt = maxOf(smooth.floatValue, reported)
+                        startedAtMs = now
+                    }
+                    lastReported = reported
+                }
+                val elapsed = (now - startedAtMs).coerceIn(0L, 500L)
+                val target = startedAt + (elapsed * speed)
+                // Enforce monotonic forward motion during playback
+                if (target >= smooth.floatValue) {
+                    smooth.floatValue = target
                 }
             }
         }

@@ -63,7 +63,7 @@ fun SyncedLineText(
             )
         }
         if (showTranslation) {
-            line.translation?.let {
+            line.translation?.takeUnless { com.alananasss.kittytune.ui.player.lyrics.LyricsUtils.isDuplicateTranslation(line.content, it) }?.let {
                 Box(
                     modifier = Modifier.fillMaxWidth(widthFraction),
                     contentAlignment = boxAlignment
