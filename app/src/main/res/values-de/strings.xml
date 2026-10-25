@@ -2,7 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="Typos,Grammar">
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- APP & CORE                                                                       -->
+    <!-- APP &amp; CORE                                                                       -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <string name="app_name">KittyTune</string>
@@ -15,7 +15,7 @@
     <string name="unknown">Unbekannt</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- BUTTONS & ACTIONS                                                                -->
+    <!-- BUTTONS &amp; ACTIONS                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <string name="btn_ok">OK</string>
@@ -47,10 +47,9 @@
     <string name="btn_share">Teilen</string>
     <string name="btn_follow">Folgen</string>
     <string name="all_filters">Alle</string>
-    <string name="captcha_done">Ich habe das Captcha gelöst</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- NAVIGATION & AUTH                                                                -->
+    <!-- NAVIGATION &amp; AUTH                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <string name="nav_home">Start</string>
@@ -71,7 +70,7 @@
     <string name="login_reopen_browser">Browser erneut öffnen</string>
     
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- HOME & DISCOVERY                                                                 -->
+    <!-- HOME &amp; DISCOVERY                                                                 -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <string name="search_hint">Titel, Künstler suchen&#8230;</string>
@@ -86,7 +85,6 @@
     <string name="home_stream">Neues von Künstlern, denen du folgst</string>
     <string name="radio">Radio</string>
     <string name="home_albums_for_you">Alben für dich</string>
-    <string name="home_top_albums_query">Top-Alben</string>
 
     <string name="home_section_similar">Ähnlich wie %1$s</string>
     <string name="home_section_similar_sub">Weil du diesen Titel gehört hast</string>
@@ -114,9 +112,6 @@
     <string name="home_made_for_you">Für dich gemacht</string>
     <string name="home_curated_by_soundcloud">Kuratiert von SoundCloud</string>
 
-    <string name="home_hiphop">Hip-Hop &amp; Rap</string>
-    <string name="home_electro">Electro House</string>
-    <string name="home_pop">Pop</string>
 
     <!-- Offline Home Screen -->
     <string name="home_offline_title">Ups, keine Verbindung</string>
@@ -127,7 +122,7 @@
     <string name="offline_banner_action_downloads">Möchtest du zu deinen Downloads? Tippe hier</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- EXPLORER & SEARCH                                                                -->
+    <!-- EXPLORER &amp; SEARCH                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <string name="explorer_title">Explorer</string>
@@ -143,20 +138,15 @@
     <string name="search_source_deezer">Deezer</string>
     <string name="search_source_tidal">Tidal</string>
     <string name="search_source_qobuz">Qobuz</string>
-    <string name="charts_select_country">Land auswählen</string>
-    <string name="charts_top_artists">Top-Künstler</string>
 
-    <string name="search_section_moods">Stimmungen &amp; Momente</string>
     <string name="search_section_genres">Genres</string>
-    <string name="genre_official_playlists">Offizielle Playlists</string>
-    <string name="genre_community_playlists">Community-Playlists</string>
 
     <!-- MOODS -->
     <string name="category_mood_feelgood">Gute Laune</string>
     <string name="category_mood_calm">Ruhe</string>
     <string name="category_mood_focus">Fokus</string>
     <string name="category_mood_energy">Energie</string>
-    <string name="category_mood_workout">Workout</string>
+    <string name="category_mood_workout">Training</string>
     <string name="category_mood_gaming">Gaming</string>
     <string name="category_mood_winter">Winter</string>
     <string name="category_mood_driving">Autofahrt</string>
@@ -240,6 +230,8 @@
     <string name="lib_guest_mode">Gastmodus • Zum Synchronisieren anmelden</string>
     
     <string name="lib_sort_recently_added">Zuletzt hinzugefügt</string>
+    <string name="lib_sort_manual">Eigene Reihenfolge</string>
+    <string name="lib_reorder_mode">Neu anordnen</string>
     
     <string name="lib_playlists">Playlists</string>
     <string name="lib_artists">Künstler</string>
@@ -326,6 +318,8 @@
     <string name="player_effects">Effekte</string>
     <string name="player_special_effects">Audio-FX</string>
     <string name="audio_fx_long_press_hint">Halte eine Kachel gedrückt, um ihre Einstellungen anzupassen</string>
+    <string name="fx_active_count">%1$d an</string>
+    <string name="fx_reset_speed">Normales Tempo</string>
     <string name="player_pitch">Tonhöhe</string>
     <string name="player_speed">Geschwindigkeit</string>
     <string name="pref_precise_speed">Präzise Geschwindigkeit</string>
@@ -543,7 +537,7 @@
     <string name="lyrics_sync">Synchro</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- MENUS & CONTEXT                                                                  -->
+    <!-- MENUS &amp; CONTEXT                                                                  -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <string name="menu_play_next">Als Nächstes abspielen</string>
@@ -601,7 +595,7 @@
     <string name="context_album">Album • %1$s</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- DETAILS & METADATA                                                               -->
+    <!-- DETAILS &amp; METADATA                                                               -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <string name="detail_track_title">Info</string>
@@ -636,11 +630,12 @@
     <string name="share_card_code_solid_desc">Höchster Kontrast, Artwork nur im Code</string>
     <string name="share_card_code_halftone">Ganzes Cover</string>
     <string name="share_card_code_halftone_desc">Artwork vollflächig, schwerer zu scannen</string>
-    <string name="share_card_face_song">Song</string>
+    <string name="share_card_face_song">Titel</string>
     <string name="share_card_face_lyrics">Songtext</string>
     <string name="share_card_qr">Cover als QR-Code</string>
     <string name="share_card_send">Karte teilen</string>
     <string name="share_card_title">Als Karte teilen</string>
+    <string name="share_link">Link teilen</string>
     <string name="share_via">Teilen über</string>
     <string name="generic_title">Titel</string>
     <string name="generic_artist">Künstler</string>
@@ -725,6 +720,8 @@
     <string name="comment_send_action">Posten</string>
     <string name="comment_default_avatar">Standard-Profilbild</string>
     <string name="comment_reply">Antworten</string>
+    <string name="comment_creator_liked_this">%1$s hat diesen Kommentar geliked</string>
+    <string name="comment_artist_fallback">Künstler</string>
     <string name="login_to_interact">Zum Interagieren anmelden</string>
     <string name="login_to_comment">Zum Kommentieren anmelden</string>
     <string name="dialog_delete_comment_title">Kommentar löschen?</string>
@@ -919,6 +916,18 @@
     <string name="icon_name_uruguay">Uruguay</string>
     <string name="icon_name_uzbekistan">Usbekistan</string>
 
+    <string name="icon_category_official">Offiziell</string>
+    <string name="icon_category_community">Community</string>
+    <string name="icon_by_artist">von %1$s</string>
+    <string name="icon_name_shiro_headphones">Orangene Kopfhörer</string>
+    <string name="icon_name_shiro_musical_dream">Musikalische Gedanken</string>
+    <string name="icon_name_shiro_pastel_cat">Pastell-Katze</string>
+    <string name="icon_name_shiro_cap_red">Rote Kappe</string>
+    <string name="icon_name_shiro_cap_purple">Lila Kappe</string>
+    <string name="icon_name_shiro_kt_logo">KT Logo</string>
+    <string name="icon_name_shiro_cozy_nap">Gemütliche Katze</string>
+    <string name="icon_name_shiro_cool_cat">Coole Katze</string>
+
     <string name="theme_system">System</string>
     <string name="theme_light">Hell</string>
     <string name="theme_dark">Dunkel</string>
@@ -948,9 +957,9 @@
     <string name="font_preset_chunky">Kräftig</string>
     <string name="font_preset_elegant">Elegant</string>
 
-    <!-- AUDIO & PLAYBACK -->
+    <!-- AUDIO &amp; PLAYBACK -->
     <string name="pref_audio_title">Audio &amp; Wiedergabe</string>
-    <string name="pref_audio_subtitle">Qualität, Autoplay, Warteschlange</string>
+    <string name="pref_audio_subtitle">Equalizer, Wiedergabe, Übergänge und Haptik</string>
     <string name="pref_autoplay">Autoplay</string>
     <string name="pref_autoplay_sub">Ähnliche Titel abspielen, wenn die Warteschlange endet</string>
     <string name="pref_stop_on_task_clear">Musik beim Schließen der App stoppen</string>
@@ -969,7 +978,7 @@
     <string name="pref_download_drm_sub">Aktiviert lassen, um DRM nativ für die interne Wiedergabe zwischenzuspeichern. Deaktivieren, um unverschlüsselte MP3-Downloads über den YouTube-Fallback zu erzwingen.</string>
     <string name="drm_explanation_text">DRM-geschützte Titel werden von den Rechteinhabern verschlüsselt, um das Extrahieren zu verhindern und Urheberrechte zu schützen.\n\n• Aktiviert (empfohlen): Der Titel wird in nativer hoher Qualität in den sicheren internen Cache von KittyTune heruntergeladen. Er kann nur in der App abgespielt werden und erscheint nicht in deinem eingestellten Download-Ordner.\n\n• Deaktiviert: KittyTune ignoriert die verschlüsselte Version und versucht, den Song über YouTube zu finden und herunterzuladen. Die Datei wird in eine normale MP3 umgewandelt und in deinem festgelegten Ordner gespeichert. Achtung: Da die Suche automatisch erfolgt, kann versehentlich falscher Inhalt heruntergeladen werden (etwa ein Musikvideo oder ein Cover), wenn der Titel wenig bekannt ist.</string>
 
-    <!-- AUDIO DSP & PERSISTENCE -->
+    <!-- AUDIO DSP &amp; PERSISTENCE -->
     <string name="pref_audio_mono">Mono-Audio</string>
     <string name="pref_audio_mono_sub">Mischt beide Kanäle zu einem, hilfreich bei Hörbeeinträchtigungen</string>
     <string name="pref_norm_title">Lautstärkenormalisierung</string>
@@ -1073,7 +1082,6 @@
     <string name="pref_storage_title">Speicher</string>
     <string name="pref_storage_subtitle">Cache und Downloads</string>
     <string name="storage_used">belegt</string>
-    <string name="storage_free_formatted">%1$s frei</string>
     <string name="storage_location">Download-Speicherort</string>
     <string name="storage_reset">Leeren</string>
     <string name="storage_cat_audio">Musik</string>
@@ -1086,10 +1094,8 @@
     <string name="storage_custom_folder">Benutzerdefiniert</string>
     <string name="storage_change_btn">Ändern</string>
     <string name="storage_change_cta">Speicherort wählen</string>
-    <string name="storage_db_subtitle">Index &amp; Einstellungen</string>
     <string name="storage_loading">Wird berechnet&#8230;</string>
     <string name="dialog_clean_title">Bereinigung</string>
-    <string name="dialog_clean_audio_msg">Alle heruntergeladene Musik löschen?</string>
     <string name="dialog_clean_images_msg">Bild-Cache leeren? (Albumcover)</string>
     <string name="dialog_clean_cache_msg">App-Cache leeren?</string>
 
@@ -1134,6 +1140,33 @@
     <string name="music_import_auth_warning_title">Wichtig</string>
     <string name="music_import_auth_warning_message">Wenn dein Browser dich nach der Anmeldung fragt, womit der Link geöffnet werden soll, wähle unbedingt Kittytune und nicht die SoundCloud-App.</string>
     <string name="music_import_auth_warning_ok">OK</string>
+
+    <!-- Portable guest import (TXT/CSV) -->
+    <string name="portable_import_title">Aus TXT/CSV importieren</string>
+    <string name="portable_import_subtitle">Kein Konto nötig — lies einen Spotify-, Deezer-, TIDAL-, Qobuz- oder YouTube-Export</string>
+    <string name="portable_import_choose_file">Datei auswählen</string>
+    <string name="portable_import_reading">Datei wird gelesen…</string>
+    <string name="portable_import_empty_title">Nimm deine Musik mit</string>
+    <string name="portable_import_empty_message">Wähle einen TXT- oder CSV-Export; KittyTune ordnet jede Zeile dem Katalog zu. Keine Anmeldung, kein Konto, kein Upload.</string>
+    <string name="portable_import_formats">TXT, CSV und M3U • Titel/Künstler oder Dienst-Links</string>
+    <string name="portable_import_playlist_name">Playlist-Name</string>
+    <string name="portable_import_summary">%1$d Titel gefunden • %2$d zugeordnet</string>
+    <string name="portable_import_add_to_likes">Auch zu den Liked Tracks hinzufügen</string>
+    <string name="portable_import_add_to_likes_desc">Die zugeordneten Titel speisen auch dein Radio aus deinen Likes.</string>
+    <string name="portable_import_select_all">Alle auswählen</string>
+    <string name="portable_import_select_none">Keine auswählen</string>
+    <string name="portable_import_start">%1$d Titel importieren</string>
+    <string name="portable_import_not_found">Nicht gefunden</string>
+    <string name="portable_import_likely">Wahrscheinlich</string>
+    <string name="portable_import_matched">Zugeordnet</string>
+    <string name="portable_import_done_title">Import abgeschlossen</string>
+    <string name="portable_import_done_message">%1$d Titel importiert. %2$d Zeilen konnten nicht zugeordnet werden.</string>
+    <string name="portable_import_open_playlist">Playlist öffnen</string>
+    <string name="portable_import_done">Fertig</string>
+    <string name="portable_import_error_too_large">Die Datei ist zu groß (max. 8 MB)</string>
+    <string name="portable_import_error_unreadable">Die ausgewählte Datei konnte nicht gelesen werden</string>
+    <string name="portable_import_error_empty_selection">Es ist kein zugeordneter Titel ausgewählt</string>
+    <string name="portable_import_error_import">Import fehlgeschlagen</string>
     <string name="music_provider_spotify">Spotify</string>
     <string name="music_provider_apple_music">Apple Music</string>
     <string name="music_provider_youtube_music">YouTube Music</string>
@@ -1395,7 +1428,7 @@
     <string name="completion_continue">Zum Fortfahren tippen</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- SYSTEM & NOTIFICATIONS                                                           -->
+    <!-- SYSTEM &amp; NOTIFICATIONS                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <string name="achievement_unlocked">Erfolg freigeschaltet!</string>
@@ -1419,7 +1452,7 @@
     <string name="widget_search_hint">Suchen</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- ACCESSIBILITY & EMPTY STATES                                                     -->
+    <!-- ACCESSIBILITY &amp; EMPTY STATES                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <string name="desc_play">Abspielen</string>
@@ -1466,7 +1499,7 @@
     <string name="license_unknown">Unbekannte Lizenz</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- SLEEP TIMER & CROSSFADE                                                        -->
+    <!-- SLEEP TIMER &amp; CROSSFADE                                                        -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <!-- Sleep Timer -->
@@ -1613,6 +1646,7 @@
     <string name="automix_overlap_4bars">4 Takte</string>
     <string name="automix_overlap_8bars">8 Takte</string>
     <string name="automix_overlap_custom">Eigene Dauer</string>
+    <string name="automix_overlap_custom_value">Dauer: %d Sekunden</string>
     <string name="automix_start_offset">Start-Offset</string>
     <string name="automix_start_offset_desc">Wähle, an welcher Stelle der nächste Titel während des Übergangs beginnt</string>
     <string name="automix_start_offset_auto">Automatisch (intelligenter Intro-Skip)</string>
@@ -1669,7 +1703,7 @@
     <string name="action_pause">Pause</string>
     <!-- Shazam integration -->
     <string name="recognize_music">Musik erkennen</string>
-    <!-- Music Recognition & Recognition History -->
+    <!-- Music Recognition &amp; Recognition History -->
     <string name="recognition_history_title">Verlauf</string>
     <string name="dialog_clear_history_title">Verlauf löschen?</string>
     <string name="dialog_clear_history_msg">Möchtest du wirklich deinen gesamten Musikerkennungs-Verlauf löschen?</string>
@@ -1707,7 +1741,7 @@
     <string name="about_kofi_desc">Dieses Projekt ist vollständig kostenlos und quelloffen. Wenn dir meine Arbeit gefällt, unterstütze ihre Entwicklung gerne mit einem Kaffee auf Ko-fi!</string>
     <string name="about_kofi_btn">Ko-fi</string>
     <string name="about_website_group">KittyTune überall</string>
-    <string name="about_website_title">Website</string>
+    <string name="about_website_title">Webseite</string>
     <string name="about_downloads_title">Andere Plattformen</string>
     <string name="about_downloads_desc">Windows, Linux, macOS</string>
     <!-- Volume Normalization Info Dialog -->
@@ -1873,7 +1907,7 @@
     <string name="upload_error_storefront_next_pro">Das Erstellen eines Produktshops wurde von SoundCloud abgelehnt. Die API beschränkt diese Funktion auf SoundCloud-Artist-Pro-Abonnenten.</string>
     <string name="upload_field_url_invalid">Bitte gib eine gültige URL ein (z. B. https://example.com)</string>
 
-    <!-- Upload Category Tabs & Metadata -->
+    <!-- Upload Category Tabs &amp; Metadata -->
     <string name="upload_tab_basic_info">Info</string>
     <string name="upload_tab_metadata">Details</string>
     <string name="upload_tab_permissions">Rechte</string>
@@ -1891,7 +1925,7 @@
     <string name="upload_field_contains_music_desc">Gib an, ob dieser Titel ein Musikstück oder gesprochenes Audio / ein Podcast ist</string>
     <string name="upload_field_album_title">Albumtitel</string>
     <string name="upload_field_release_title">Titel der Veröffentlichung</string>
-    <string name="upload_field_upc_or_ean">Barcode (UPC / EAN)</string>
+    <string name="upload_field_upc_or_ean">Strichcode (UPC / EAN)</string>
     <string name="upload_field_p_line">P-Line (℗ Tonträger-Copyright)</string>
     <string name="upload_field_c_line">C-Line (© Kompositions-Copyright)</string>
     <string name="upload_field_iswc">ISWC</string>
@@ -1937,7 +1971,7 @@
     <string name="upload_error_storefront_save">Shop konnte nicht gespeichert werden</string>
     <string name="upload_error_storefront_delete">Shop konnte nicht gelöscht werden</string>
 
-    <!-- Permissions Tab (Access & Quiet mode) -->
+    <!-- Permissions Tab (Access &amp; Quiet mode) -->
     <string name="upload_perm_section_access">Zugriff</string>
     <string name="upload_perm_direct_downloads">Direkte Downloads aktivieren</string>
     <string name="upload_perm_direct_downloads_desc_on">Dieser Titel steht als direkter Download im ursprünglich hochgeladenen Format zur Verfügung.</string>
@@ -1965,7 +1999,7 @@
     <string name="upload_perm_display_stats_desc_on">Die Statistiken für diesen Titel werden öffentlich angezeigt.</string>
     <string name="upload_perm_display_stats_desc_off">Die Statistiken für diesen Titel sind privat.</string>
 
-    <!-- Track Info Checklist & Header -->
+    <!-- Track Info Checklist &amp; Header -->
     <string name="track_details_file_name">Dateiname</string>
     <string name="track_details_replace_file">Datei ersetzen</string>
     <string name="track_details_pick_image_content_description">Coverbild</string>
@@ -1997,7 +2031,7 @@
     <string name="upload_field_artist_required">Bitte gib einen gültigen Künstlernamen ein</string>
     <string name="upload_field_hint_artist">Verwende Kommas, um mehrere Künstlernamen anzugeben.</string>
 
-    <!-- Track Edit & Delete -->
+    <!-- Track Edit &amp; Delete -->
     <string name="menu_edit_track">Titel bearbeiten</string>
     <string name="edit_track_title">Titel bearbeiten</string>
     <string name="edit_track_save_button">Änderungen speichern</string>
@@ -2196,6 +2230,9 @@
     
     <string name="spotify_streams_formatted">Streams</string>
     <string name="spotify_radio_title">%1$s-Radio</string>
+    <string name="tidal_radio_title">%1$s-Radio</string>
+    <string name="deezer_radio_title">%1$s-Radio</string>
+    <string name="qobuz_radio_title">%1$s-Radio</string>
     <string name="playlist_details_saves">%1$s Speicherungen</string>
     <string name="playlist_creator_badge">Playlist-Ersteller</string>
     
@@ -2206,10 +2243,10 @@
     <string name="filter_artists">Künstler</string>
     <string name="filter_profiles">Profile</string>
 
-    <!-- Accounts Settings & SoundCloud Account -->
+    <!-- Accounts Settings &amp; SoundCloud Account -->
     <string name="settings_cat_accounts">Konten</string>
     <string name="pref_accounts_title">Konten verwalten</string>
-    <string name="pref_accounts_subtitle">SoundCloud, Discord und andere Plattformen</string>
+    <string name="pref_accounts_subtitle">Streaming-Dienste, Quellenreihenfolge und Importe</string>
     <string name="pref_account_soundcloud_title">SoundCloud</string>
     <string name="pref_account_soundcloud_subtitle_connected">Verbunden als %1$s</string>
     <string name="pref_account_soundcloud_subtitle_guest">Nicht verbunden (Gastmodus)</string>
@@ -2301,7 +2338,7 @@
     <string name="lib_vk_connect_desc">Verbinde dein VK-Konto, um deine gespeicherte Musik und Playlists anzusehen und zu streamen.</string>
     <string name="lib_vk_connect_action">VK-Konto verbinden</string>
     
-    <!-- Subscriptions & Extended Info -->
+    <!-- Subscriptions &amp; Extended Info -->
     <string name="account_section_subscriptions">Abos &amp; Tarife</string>
     <string name="account_label_creator_sub">Künstler- / Creator-Tarif</string>
     <string name="account_label_consumer_sub">Hörer- / Consumer-Tarif</string>
@@ -2315,7 +2352,7 @@
     <string name="account_email_confirmed">Bestätigte E-Mail-Adresse</string>
     <string name="account_email_unconfirmed">Unbestätigte E-Mail-Adresse</string>
     <string name="account_stat_private_tracks">Private Titel</string>
-    <string name="account_stat_private_playlists">Private Playlists</string>
+    <string name="account_stat_private_playlists">Private Wiedergabelisten</string>
     <string name="account_stat_playlist_likes">Gelikte Playlists</string>
     <string name="account_section_creator_settings">Creator- &amp; Inhaltsdetails</string>
     <string name="account_label_default_license">Standardlizenz für Uploads</string>
@@ -2410,6 +2447,16 @@
     <!-- Haptic Vibrations (Haptic Vibes) -->
     <string name="pref_haptics_title">Haptisches Feedback</string>
     <string name="pref_haptics_subtitle">Vibrationen im Takt der Musik und der Beats</string>
+    <string name="pref_haptics_app_section">App- &amp; Interface-Haptik</string>
+    <string name="pref_haptics_app_sub">Physisches Feedback beim Tippen auf Tasten, Navigation und Schieberegler</string>
+    <string name="label_haptics_title">Haptics</string>
+    <string name="haptic_mode_disabled">Deaktiviert</string>
+    <string name="haptic_mode_enabled">Aktiviert</string>
+    <string name="haptic_mode_stronger">Sehr stark</string>
+    <string name="pref_haptics_buttons">Tasten &amp; Karten</string>
+    <string name="pref_haptics_buttons_sub">Vibrieren bei Klicks auf Tasten und Titelauswahl</string>
+    <string name="pref_haptics_navigation">Navigationsleiste</string>
+    <string name="pref_haptics_navigation_sub">Vibrieren beim Wechseln von Reitern</string>
     <string name="pref_haptics_enable">Musik-Haptik</string>
     <string name="pref_haptics_enable_sub">Lässt das Gerät in Echtzeit zu Bässen und Beats vibrieren</string>
     <string name="pref_haptics_strength">Vibrationsstärke</string>
@@ -2425,25 +2472,38 @@
     <string name="pref_haptics_queue_sub">Vibriert beim Ziehen von Einträgen in der Warteschlange</string>
     <string name="slot_haptics">Haptik</string>
 
-    <!-- Audio Providers & Integrations -->
+    <!-- Audio Providers &amp; Integrations -->
     <string name="audio_providers_title">Audioquellen &amp; Integrationen</string>
     <string name="provider_order">Reihenfolge der Audioanbieter</string>
-    <string name="provider_order_settings_desc">Ziehe die Audioanbieter in die Reihenfolge, in der Kittytune sie ausprobieren soll</string>
     <string name="provider_order_summary">Ziehe Anbieter weiter nach oben, damit sie bei Wiedergabe und Downloads früher versucht werden.</string>
     <string name="provider_order_reset">Anbieterreihenfolge zurücksetzen</string>
     <string name="audio_provider_soundcloud">SoundCloud</string>
     <string name="audio_provider_tidal">TIDAL</string>
     <string name="audio_provider_deezer">Deezer</string>
-    <string name="audio_provider_instagram">Instagram</string>
     <string name="audio_provider_youtube_music">YouTube Music</string>
-    <string name="audio_provider_apple_music">Apple Music</string>
-    <string name="audio_provider_amazon_music">Amazon Music</string>
     <string name="audio_provider_qobuz">Qobuz</string>
 
     <string name="qobuz_integration">Qobuz</string>
     <string name="qobuz_country">Qobuz-Land</string>
     <string name="qobuz_country_desc">Gib den zweibuchstabigen Ländercode für Qobuz-Anfragen ein (z. B. US, FR, GB).</string>
     <string name="qobuz_custom_instances">Eigene Qobuz-Instanzen</string>
+    <string name="qobuz_account">Qobuz-Konto</string>
+    <string name="qobuz_account_desc_connected">Verbunden – das offizielle Qobuz-Radio ist verfügbar.</string>
+    <string name="qobuz_account_desc_disconnected">Melde dich bei einem Qobuz-Konto an, um das offizielle Qobuz-Radio freizuschalten.</string>
+    <string name="qobuz_account_disconnect">Abmelden</string>
+    <string name="qobuz_account_login_failed">Anmeldung fehlgeschlagen – prüfe E-Mail und Passwort.</string>
+    <string name="qobuz_account_login">Bei Qobuz anmelden</string>
+    <string name="qobuz_sign_in_google">Google</string>
+    <string name="qobuz_google_config_title">Google-Anmeldung</string>
+    <string name="qobuz_google_config_desc">Client-ID und Redirect für die Google-Anmeldung</string>
+    <string name="qobuz_google_client_id">Client-ID</string>
+    <string name="qobuz_google_redirect">Redirect-URL</string>
+    <string name="qobuz_google_config_hint">Die Server-Client-ID, mit der Google das id token signiert (die offizielle Qobuz-App nutzt eine). Sie muss den Paketnamen und das Signaturzertifikat dieser App nennen, sonst verweigert Google — registriere bei Bedarf deine eigene in der Google Cloud Console.</string>
+    <string name="qobuz_facebook_config_title">Facebook-Anmeldung</string>
+    <string name="qobuz_facebook_config_desc">Client-ID und Redirect für die Facebook-Anmeldung</string>
+    <string name="qobuz_facebook_client_id">Client-ID</string>
+    <string name="qobuz_facebook_redirect">Redirect-URL</string>
+    <string name="qobuz_facebook_config_hint">Die offizielle Qobuz-Client-ID funktioniert so wie sie ist. Registriere bei Bedarf deine eigene App.</string>
     
     <string name="qobuz_custom_instances_placeholder">https://qobuz-dll.vercel.app/</string>
     <string name="qobuz_custom_instances_helper">Füge Basis-URLs von Qobuz-Resolvern hinzu (eine pro Zeile). Sie werden in dieser Reihenfolge versucht.</string>
@@ -2456,7 +2516,6 @@
     <string name="qobuz_quality_mp3_320">MP3 320 kbit/s</string>
 
     <string name="deezer_integration">Deezer</string>
-    <string name="deezer_integration_desc">Löse Deezer-Audio über deinen dzmedia-Server oder dein Konto auf.</string>
     <string name="deezer_resolver_url">Deezer-Resolver-URL</string>
     <string name="deezer_resolver_url_desc">Aktueller Endpunkt: %1$s</string>
     <string name="deezer_resolver_url_placeholder">https://yesitworkssomehow-funny-deeza-api-and-yeah.hf.space/get_url</string>
@@ -2467,12 +2526,9 @@
     <string name="deezer_proxy_render">Render-Server</string>
     <string name="deezer_proxy_custom">Eigene URL</string>
     <string name="deezer_proxy_custom_url">Eigene Deezer-Proxy-URL</string>
-    <string name="deezer_proxy_url_desc">Aktueller Proxy: %1$s</string>
     <string name="deezer_proxy_url_placeholder">proxy.example.com:3128 oder https://your-dzmedia.onrender.com</string>
     <string name="deezer_proxy_url_helper">Nutze dies nur für einen eigenen HTTP-Proxy im Format host:port oder eine andere dzmedia-Basis-URL.</string>
     <string name="deezer_proxy_disabled">Direkte Verbindung</string>
-    <string name="deezer_proxy_direct_desc">Direkt mit den Deezer-Medien verbinden.</string>
-    <string name="deezer_proxy_render_desc">Verwendet %1$s automatisch.</string>
     <string name="deezer_clear_proxy">Deezer-Proxy löschen</string>
     <string name="deezer_audio_quality">Deezer-Audioqualität</string>
     <string name="deezer_quality_flac">FLAC</string>
@@ -2523,7 +2579,6 @@
     <!-- Lyrics UI and Animation Settings -->
     <string name="pref_lyrics_ui_style_title">Stil der Songtext-Oberfläche</string>
     <string name="pref_lyrics_ui_style_enhanced">Apple Music (Mocharealm, Standard)</string>
-    <string name="lyrics_ui_style_enhanced_short">Apple Music</string>
     <string name="pref_lyrics_ui_style_classic">Klassisch</string>
     <string name="pref_lyrics_effects_category">Visuelle Effekte &amp; Animationen</string>
     <string name="pref_lyrics_line_blur_title">Inaktive Zeilen weichzeichnen</string>
@@ -2649,7 +2704,7 @@
     <string name="pref_haptics_contrast_off">Aus</string>
     <string name="pref_haptics_contrast_full">Voll</string>
 
-    <!-- App Logs & Diagnostics -->
+    <!-- App Logs &amp; Diagnostics -->
     <string name="logs_title">App-Protokolle &amp; Diagnose</string>
     <string name="logs_subtitle">Protokolle anzeigen, kopieren oder teilen, um Probleme zu beheben</string>
     
@@ -2673,7 +2728,7 @@
     <string name="logs_save_logcat">Logcat speichern</string>
     <string name="logs_saved_toast">Protokolle erfolgreich gespeichert!</string>
     <string name="logs_save_failed_toast">Fehler beim Speichern der Protokolldatei.</string>
-    <!-- Settings Parity & Search -->
+    <!-- Settings Parity &amp; Search -->
     <string name="homepage_search">Einstellungen durchsuchen</string>
     
     <string name="settings_search_no_results">Keine Einstellungen gefunden</string>
@@ -2769,6 +2824,9 @@
     <string name="ai_badge_scanning">KI…</string>
     <string name="ai_badge_ai_tag">KI %d%%</string>
     <string name="ai_badge_human_tag">Mensch %d%%</string>
+    <string name="ai_chip_ai_detected">KI erkannt</string>
+    <string name="ai_chip_high_confidence">KI hohe Konfidenz</string>
+    <string name="ai_chip_human_audio">Menschliches Audio</string>
     <string name="ai_sheet_title_ai">KI-generierte Musik erkannt</string>
     <string name="ai_sheet_title_human">Authentische Musik</string>
     <string name="ai_sheet_title_analyzing">Audio wird analysiert…</string>
@@ -2809,6 +2867,8 @@
     <string name="notif_btn_add_playlist_sub">Titel schnell zur zuletzt genutzten Playlist hinzufügen</string>
     <string name="notif_btn_haptics">Musik-Haptik</string>
     <string name="notif_btn_haptics_sub">Rhythmische Vibrationen umschalten</string>
+    <string name="notif_btn_haptics_on">Musik-Haptik an</string>
+    <string name="notif_btn_haptics_off">Musik-Haptik aus</string>
     <string name="notif_btn_share">Teilen</string>
     <string name="notif_btn_share_sub">Aktuellen Titellink teilen</string>
     <string name="notif_btn_download">Herunterladen</string>
@@ -2817,6 +2877,8 @@
     <string name="notif_btn_off_sub">Keine zusätzliche Schaltfläche anzeigen</string>
     <string name="notif_dislike_toast">Titel blockiert und übersprungen</string>
     <string name="notif_added_to_playlist">Zu \"%s\" hinzugefügt</string>
+    <string name="notif_added_to_playlist_unnamed">Zur Playlist hinzugefügt</string>
+    <string name="notif_no_track_playing">Kein Titel läuft</string>
     <string name="notif_no_playlist_available">Noch keine Playlist verfügbar</string>
 
     <!-- YEARLY PLAYBACK / SOUNDCLOUD WRAPPED -->
@@ -2846,7 +2908,7 @@
     <string name="yearly_playback_playlist_404_title">Playback nicht verfügbar</string>
     <string name="yearly_playback_playlist_404_desc">Diese Playback-Playlist ist nicht verfügbar oder wurde von SoundCloud nicht für dein Konto generiert.</string>
 
-    <!-- SHARE SCREENSHOT & SOCIAL OPTIONS -->
+    <!-- SHARE SCREENSHOT &amp; SOCIAL OPTIONS -->
     <string name="share_screenshot_title">Screenshot teilen</string>
     <string name="share_screenshot_subtitle">Teile ein Bild mit einem Link zu diesem Titel, damit deine Freunde ihn auch hören können.</string>
     <string name="share_option_whatsapp">WhatsApp</string>
@@ -2984,15 +3046,17 @@
     <string name="data_saver_metered_only">Nur im Mobilfunknetz</string>
     <string name="data_saver_metered_only_sub">Im WLAN kehrt alles zu Ihrer gewählten Qualität zurück</string>
     <string name="data_saver_forced_eco">Eco — durch Datensparmodus erzwungen</string>
-    <string name="provider_data_saver_title">Über mobile Daten deaktivieren</string>
-    <string name="provider_data_saver_sub">Qobuz, TIDAL und Deezer werden im Mobilfunknetz nicht verwendet — nur SoundCloud und YouTube. Verbinden Sie sich mit WLAN, um Hi-Res wieder zu genießen.</string>
+    <string name="data_saver_lyrics_restrict_title">Liedtextquellen einschränken</string>
+    <string name="data_saver_lyrics_restrict_sub">Bei aktivem Datensparmodus werden nur die ausgewählten Quellen abgefragt. Automatische und manuelle Suchen beachten dies.</string>
+    <string name="data_saver_lyrics_sources_title">Erlaubte Liedtextquellen</string>
+    <string name="data_saver_lyrics_dialog_title">Liedtextquellen im Datensparmodus</string>
+    <string name="data_saver_lyrics_dialog_desc">Bei aktivem Datensparmodus werden nur die ausgewählten Quellen abgefragt. Weniger Anfragen bedeuten weniger Datenverbrauch und kürzere Wartezeiten in schwachen Netzen.</string>
+    <string name="data_saver_lyrics_select_one">Wählen Sie mindestens eine Quelle aus.</string>
+    <string name="keywords_data_saver_lyrics">liedtextquellen, songtextquellen, musixmatch, lrclib, datensparmodus, texte netzwerk</string>
     <string name="provider_enabled_hint">SoundCloud und YouTube Music sind die Basisquellen und immer verfügbar.</string>
     <string name="provider_disabled_suffix">(aus)</string>
     <string name="keywords_data_saver">datensparmodus, traffic, mobile daten, eco, sparen, bandbreite, netzwerk, mobilfunk</string>
     <string name="lyrics_searching">Songtext wird gesucht…</string>
-    <string name="lyrics_auto_found_title">Songtext automatisch gefunden</string>
-    <string name="lyrics_auto_found_desc">Für diesen Titel wurde automatisch ein Songtext gefunden.</string>
-    <string name="lyrics_auto_found_use">Anzeigen</string>
     <string name="pref_track_source_badge_title">Audioquellen-Anzeige</string>
     <string name="pref_track_source_badge_desc">Plattform-Badge (YouTube, SoundCloud usw.) für den aktuellen Titel anzeigen</string>
     <string name="pref_track_source_badge_both">Symbol &amp; Text</string>
@@ -3006,15 +3070,12 @@
     <string name="settings_cat_misc_sub">Allgemein, Inhaltsfilter, Discord und Über</string>
     <string name="settings_audio_playback_sub">Autoplay, Warteschlange, Fortsetzen und Geschwindigkeit</string>
     <string name="settings_audio_quality_title">Klang &amp; Ausgabe</string>
-    <string name="settings_audio_quality_sub">Audioqualität, Ausgabegerät und Lautstärkenormalisierung</string>
+    <string name="settings_audio_quality_sub">Equalizer, Lautstärkenormalisierung und Mono-Audio</string>
     <string name="settings_audio_transitions_title">Übergänge &amp; Mix</string>
     <string name="settings_audio_transitions_sub">Überblenden und DJ-Automix</string>
     <string name="settings_audio_sleep_sub">Ausblenddauer und Sleep-Timer-Optionen</string>
 
     <string name="sources_services_sub">SoundCloud, Qobuz, TIDAL, Deezer, VK</string>
-    <string name="sources_order_sub">Prioritätsreihenfolge und Musikimport</string>
-    <string name="lyrics_sources_title">Songtext-Anbieter</string>
-    <string name="lyrics_sources_sub">Reihenfolge und aktivierte Quellen für Songtexte</string>
 
     <string name="storage_cache_sub">Audio- und Bild-Cache-Limits und Bereinigung</string>
     
@@ -3059,9 +3120,6 @@
     <string name="keywords_zapret">zapret, dpi, umgehung, zensur, sperre, youtube, discord</string>
 
     <string name="misc_general_sub">Sprache, Startbildschirm und Aktualisierungen</string>
-    <string name="misc_discord_sub">Zeigen, was du gerade auf Discord hörst</string>
-    <string name="pref_lyrics_backing_vocals_title">Backgroundgesang getrennt</string>
-    <string name="pref_lyrics_backing_vocals_sub">Wörter in runden Klammern stehen in einer kleineren Zeile unter der gesungenen</string>
     <string name="pref_lyrics_reveal_words_title">Wort für Wort aufleuchten</string>
     <string name="pref_lyrics_reveal_words_sub">Zeilen ohne Wort-Timing füllen sich schnell Wort für Wort statt auf einmal</string>
     <string name="wave_title">Meine Welle</string>
@@ -3124,4 +3182,307 @@
     <string name="night_screen_title">Nachtbildschirm</string>
     <string name="night_screen_since">Seit der Nachtbildschirm an ist</string>
     <string name="night_screen_tap_to_wake">Zum Aufwachen irgendwo tippen</string>
+    <string name="deezer_proxy_url">Deezer-Proxy</string>
+    <string name="connect_devices_title">Verfügbare Geräte</string>
+    <string name="connect_pair_hint">Koppeln Sie Ihr Telefon und Ihren Computer in der Gerätesynchronisierung.</string>
+    <string name="connect_offline">Offline</string>
+    <string name="connect_headphones_title">Mit Kopfhörern fortsetzen</string>
+    <string name="connect_headphones_desc">Verbinden überträgt vom PC. Trennen pausiert.</string>
+    <string name="connect_headphones_hint">Während die App geöffnet ist. Nach dem Beenden erneut öffnen, um fortzufahren. Bluetooth-Lautsprecher können auch als Kopfhörer erkannt werden.</string>
+    <string name="connect_playing_on">Wiedergabe auf %1$s</string>
+    <string name="category_introducing_buzzing">Angesagt</string>
+    <string name="player_side_player">Seiten-Player</string>
+    <string name="yearly_playback_tracks_played">Gespielte Titel</string>
+    <string name="yearly_playback_unique_tracks">Einzigartige Titel</string>
+    <string name="edit_playlist_title">Playlist bearbeiten</string>
+    <string name="edit_playlist_field_title">Titel *</string>
+    <string name="edit_playlist_field_permalink">Permalink *</string>
+    <string name="edit_playlist_permalink_hint">Verwenden Sie nur Zahlen, Kleinbuchstaben, Unterstriche oder Bindestriche.</string>
+    <string name="edit_playlist_field_description">Beschreibung</string>
+    <string name="edit_playlist_privacy">Privatsphäre</string>
+    <string name="edit_playlist_public">Öffentlich</string>
+    <string name="edit_playlist_private">Privat</string>
+    <string name="edit_playlist_type">Playlist-Typ</string>
+    <string name="edit_playlist_release_date">Veröffentlichungsdatum (JJJJ-MM-TT) *</string>
+    <string name="edit_playlist_pick_date">Auswählen</string>
+    <string name="edit_playlist_genre">Genre</string>
+    <string name="edit_playlist_custom_genre">Benutzerdefiniertes Genre</string>
+    <string name="edit_playlist_tags">Tags</string>
+    <string name="edit_playlist_add_tags">Tags hinzufügen</string>
+    <string name="artist_monthly_listeners">%,d monatliche Hörer</string>
+    <string name="artist_resume">Fortsetzen</string>
+    <string name="artist_trailer">Teaser</string>
+    <string name="artist_trailer_playing">Teaser läuft</string>
+    <string name="beta_updates_subtitle">Erhalten Sie Vorabversionen, um neue Funktionen vorab zu testen</string>
+    <string name="beta_updates_title">Beta-Updates</string>
+    <string name="beta_warning_message">Beta-Versionen können instabil sein und Fehler enthalten. Wenn aktiviert, bietet die normale Update-Prüfung auch Vorabversionen an.</string>
+    <string name="beta_warning_title">Beta-Updates aktivieren?</string>
+    <string name="btn_enable">Aktivieren</string>
+    <string name="category_ambiances_title">Stimmungen</string>
+    <string name="category_discover_more_tracks">Weitere Titel entdecken</string>
+    <string name="category_genre_electro">Elektronisch</string>
+    <string name="category_genre_soul">Soul</string>
+    <string name="category_genre_techno">Techno</string>
+    <string name="category_introducing">Neu vorgestellt</string>
+    <string name="category_kind_genre">Genre</string>
+    <string name="category_mood_athome">Zuhause</string>
+    <string name="category_mood_chill">Entspannung</string>
+    <string name="category_mood_study">Lernen</string>
+    <string name="category_no_content">Kein Inhalt verfügbar</string>
+    <string name="category_play_all">Abspielen</string>
+    <string name="category_profiles">Profile</string>
+    <string name="category_see_all">Alle anzeigen</string>
+    <string name="category_tab_albums">Alben</string>
+    <string name="category_tab_all">Alle</string>
+    <string name="category_tab_playlists">Playlists</string>
+    <string name="category_tab_trending">Trends</string>
+    <string name="chart_failed">Die Charts konnten nicht geladen werden. Bitte versuchen Sie es gleich noch einmal.</string>
+    <string name="chart_section_title">Charts</string>
+    <string name="dialog_upload_yaml_title">Eigene Songtexte hochladen</string>
+    <string name="home_clips_title">Clips</string>
+    <string name="keywords_charts">charts, top, rangliste, trends, bestenliste</string>
+    <string name="keywords_my_wave">mywave, welle, radio, stream, mix, empfehlungen</string>
+    <string name="lyrics_badge_line_sync">Zeilenweise Synchronisation</string>
+    <string name="lyrics_badge_plain">Nur Text</string>
+    <string name="lyrics_badge_word_sync">Wortweise Synchronisation</string>
+    <string name="lyrics_provider_all">Alle Quellen</string>
+    <string name="lyrics_search_clear">Löschen</string>
+    <string name="lyrics_search_now_showing">Wird angezeigt: %1$s</string>
+    <string name="lyrics_search_progress">%1$d gefunden, %2$d Quellen suchen noch</string>
+    <string name="lyrics_sync_drift_active">%1$s bei %2$s, %3$s bei %4$s, gleichmäßig dazwischen. Die Schaltflächen oben ändern den Punkt in Ihrer Nähe.</string>
+    <string name="lyrics_sync_drift_hint">Start synchronisieren und anheften, dann einen Punkt nahe dem Ende anheften und dort synchronisieren. Der Versatz gleicht sich gleichmäßig an.</string>
+    <string name="lyrics_sync_drift_title">Gegen Ende asynchron?</string>
+    <string name="lyrics_sync_end_too_close">Das Ende mindestens 20 Sekunden nach dem Start anheften</string>
+    <string name="lyrics_sync_pin_end">Ende hier anheften</string>
+    <string name="lyrics_sync_pin_start">Start hier anheften</string>
+    <string name="lyrics_sync_point_end">Ende %1$s</string>
+    <string name="lyrics_sync_point_start">Beginn %1$s</string>
+    <string name="lyrics_sync_single">Zurück zu einzelnem Versatz</string>
+    <string name="pref_home_charts_desc">Charts-Karte auf dem Startbildschirm anzeigen</string>
+    <string name="pref_home_my_wave_desc">MyWave-Karte auf dem Startbildschirm anzeigen</string>
+    <string name="queue_clear_upcoming">Nächste Titel leeren</string>
+    <string name="queue_played">Bereits gespielt</string>
+    <string name="queue_time_left">Noch %1$s</string>
+    <string name="queue_up_next">Als Nächstes</string>
+    <string name="queue_remove">Aus der Warteschlange entfernen</string>
+    <string name="screensaver_focus_mode">Bildschirmschoner &amp; Fokusmodus</string>
+    <string name="screensaver_since_sleep">Seit Bildschirmschoner</string>
+    <string name="screensaver_tap_to_wake">Zum Aufwecken irgendwo tippen</string>
+    <string name="search_clear_all">Alle löschen</string>
+    <string name="search_kind_artist">Künstler</string>
+    <string name="search_kind_playlist">Playlist</string>
+    <string name="search_kind_track">Titel · %1$s</string>
+    <string name="search_recent_searches">Letzte Suchanfragen</string>
+    <string name="search_remove_recent">Aus letzten Suchanfragen entfernen</string>
+    <string name="search_section_other_genres">Weitere Kategorien</string>
+    <string name="search_section_personalized">Für dich</string>
+    <string name="search_see_less">Weniger anzeigen</string>
+    <string name="search_see_more">Mehr anzeigen</string>
+    <string name="search_showing_results_for">Ergebnisse für „%1$s“</string>
+    <string name="search_top_result">Top-Ergebnis</string>
+    <string name="slot_connect">Verbinden</string>
+    <string name="sync_playback_sub">Setzen Sie den letzten Titel und die Warteschlange auf einem anderen Gerät fort</string>
+    <string name="sync_playback_title">Warteschlange und Wiedergabeposition</string>
+    <string name="time_hours">%1$d Std.</string>
+    <string name="time_hours_minutes">%1$d Std. %2$02d Min.</string>
+    <string name="time_minutes">%1$d Min.</string>
+    <string name="time_seconds">%1$d s</string>
+    <string name="together_accept">Annehmen</string>
+    <string name="together_add_tracks">Titel hinzufügen</string>
+    <string name="together_automix_host_only">Nur der Host kann Automix umschalten</string>
+    <string name="together_bad_code">Dieser Code scheint nicht zu stimmen</string>
+    <string name="together_become_host">Übernehmen</string>
+    <string name="together_code">Code %s</string>
+    <string name="together_code_copied">Code kopiert</string>
+    <string name="together_code_hint">ABCD-EFGH</string>
+    <string name="together_create">Gemeinsame Playlist erstellen</string>
+    <string name="together_decline">Ablehnen</string>
+    <string name="together_empty">Noch nichts da — suchen Sie unten und schlagen Sie den ersten Titel vor.</string>
+    <string name="together_forget">Vergessen</string>
+    <string name="together_hint">Gemeinsam synchron hören, über Smartphones und Desktop hinweg</string>
+    <string name="together_join">Beitreten</string>
+    <string name="together_leave">Verlassen</string>
+    <string name="together_listen">Mithören</string>
+    <string name="together_listening_now">Hören gerade: %s</string>
+    <string name="together_name_hint">Playlist-Name</string>
+    <string name="together_nobody">Niemand hört zu</string>
+    <string name="together_offline">Verbindung wird wiederhergestellt…</string>
+    <string name="together_play_next">Als Nächstes spielen</string>
+    <string name="together_preview">Vorschau</string>
+    <string name="together_suggest">Vorschlagen</string>
+    <string name="together_suggested_by">Vorgeschlagen von %s</string>
+    <string name="together_suggestions">Vorschläge</string>
+    <string name="together_title">Together</string>
+    <string name="together_tracks">Titel</string>
+    <string name="together_up_next">Als Nächstes</string>
+    <string name="together_your_name">Ihr Name</string>
+    <string name="track_sorted_by_followers">Nach Followern sortiert</string>
+    <string name="vk_import_another">Weiteren importieren</string>
+    <string name="vk_import_done">Fertig: %1$d von %2$d Titeln sind in der Playlist „%3$s“</string>
+    <string name="vk_import_empty">Diese Playlist ist leer.</string>
+    <string name="vk_import_failed">VK konnte nicht erreicht werden: %1$s</string>
+    <string name="vk_import_hint">Link zu einer VK-Playlist</string>
+    <string name="vk_import_load">Suchen</string>
+    <string name="vk_import_missing">Nicht gefunden (%1$d)</string>
+    <string name="vk_import_not_playlist">Dieser Link enthält keine Playlist. Öffnen Sie die Playlist in VK und kopieren Sie den Link.</string>
+    <string name="vk_import_not_vk">Das ist kein VK-Link.</string>
+    <string name="vk_import_note">Titel werden auf SoundCloud und YouTube Music nach Titel, Künstler und Länge gesucht. Kein VK-Login erforderlich.</string>
+    <string name="vk_import_open">Playlist öffnen</string>
+    <string name="vk_import_paste">Einfügen</string>
+    <string name="vk_import_platform">VK Musik</string>
+    <string name="vk_import_platform_sub">Playlists und Alben per Link, ohne Anmeldung</string>
+    <string name="vk_import_private">VK kann diese Playlist nicht öffnen: Sie ist privat oder der Link hat keinen Zugriffsschlüssel. In VK auf Teilen tippen, Link kopieren und hier einfügen.</string>
+    <string name="vk_import_progress">Titel werden gesucht: %1$d von %2$d · %3$d gefunden</string>
+    <string name="vk_import_start">Playlist importieren</string>
+    <string name="vk_import_sub">Link zu einer Playlist oder einem Album einfügen</string>
+    <string name="vk_import_title">Aus VK Musik importieren</string>
+    <string name="vk_import_tracks">%1$d Titel</string>
+    <string name="desc_fullscreen">Vollbild</string>
+    <string name="connect_cant_find">Gerät nicht gefunden?</string>
+    <string name="connect_devices_hero">Mit einem Gerät verbinden</string>
+    <string name="connect_error_connection">Verbindungsfehler: %1$s</string>
+    <string name="connect_feedback_auto_cancelled">Automatische Übertragung abgebrochen.</string>
+    <string name="connect_feedback_local_file">Diese lokale Datei ist nur auf dem Quellgerät verfügbar.</string>
+    <string name="connect_feedback_offline">Das Gerät ist offline.</string>
+    <string name="connect_feedback_prepare_failed">Titel konnte auf diesem Gerät nicht geöffnet werden.</string>
+    <string name="connect_feedback_timeout">Das Gerät hat nicht rechtzeitig geantwortet. Erneut versuchen.</string>
+    <string name="connect_feedback_track_changed">Titel während der Übertragung gewechselt. Wählen Sie das Gerät erneut aus.</string>
+    <string name="connect_independent_desc">Eigene Warteschlange behalten und Fernsteuerung von anderen Geräten deaktivieren</string>
+    <string name="connect_independent_title">Unabhängig abspielen</string>
+    <string name="connect_listening_on">AKTUELL WIEDERGEGEBEN AUF</string>
+    <string name="connect_pair_action">Gerät koppeln</string>
+    <string name="connect_playing_here">Wiedergabe auf diesem Gerät</string>
+    <string name="connect_relay_desc">Ihre Serveradresse. Verwenden Sie auf beiden Geräten dieselbe Adresse.</string>
+    <string name="connect_relay_title">Internetverbindung (Relay)</string>
+    <string name="connect_relay_url_error">Verwenden Sie eine https://- oder wss://-Adresse</string>
+    <string name="connect_relay_url_label">Serveradresse</string>
+    <string name="connect_service_name">KittyTune Connect</string>
+    <string name="connect_status_offline">Offline</string>
+    <string name="connect_status_playing">Wiedergabe · %1$s</string>
+    <string name="connect_this_phone">Dieses Telefon</string>
+    <string name="menu_playback_devices">Wiedergabegeräte</string>
+    <string name="slot_devices">Wiedergabegeräte</string>
+    <string name="pref_developer_options_title">Entwickleroptionen</string>
+    <string name="pref_developer_options_subtitle">Debug-Overlays, Protokolle und Diagnosewerkzeuge</string>
+    <string name="dev_section_audio_debug">Audio- &amp; Übergangs-Debug</string>
+    <string name="dev_section_logs">Protokolle &amp; Diagnose</string>
+    <string name="dev_section_ai_debug">KI-Erkennungsdiagnose</string>
+    <string name="dev_clear_ai_cache">KI-Erkennungs-Cache leeren</string>
+    <string name="dev_clear_ai_cache_desc">Gespeicherte KI-Urteile entfernen und Neuerkennung erzwingen</string>
+    <string name="dev_ai_cache_cleared">KI-Erkennungs-Cache geleert</string>
+    <string name="dev_dj_debug_sheet">DJ-Flow-Entwickleransicht</string>
+    <string name="dev_dj_debug_sheet_desc">Echtzeit-DJ-Übergangssteuerung und Beat-Grid-Inspektor öffnen</string>
+    <string name="dev_view_logs">App-Protokolle anzeigen</string>
+    <string name="dev_view_logs_desc">Echtzeit-Logcat, Diagnosen und letzte Abstürze prüfen</string>
+    <string name="dev_export_logs">App-Protokolle teilen</string>
+    <string name="dev_export_logs_desc">Laufzeitprotokolle für Fehlerberichte teilen</string>
+    <string name="dev_clear_logs">Absturzprotokolle löschen</string>
+    <string name="dev_logs_cleared">Absturzprotokolle gelöscht</string>
+    <string name="home_reposts_from_friends">Reposts von Personen, denen du folgst</string>
+    <string name="qobuz_account_login_success">Erfolgreich bei Qobuz angemeldet!</string>
+    <string name="qobuz_enter_token">Mit Auth-Token anmelden</string>
+    <string name="qobuz_forgot_or_google_account">Google-Konto oder Passwort vergessen?</string>
+    <string name="qobuz_google_help_desc">Google beschränkt die direkte native Anmeldung auf die offizielle Qobuz-App unter Android (Fehler 16). Mit Google erstellte Qobuz-Konten haben standardmäßig kein Passwort.\n\nUm dich in KittyTune zu verbinden, lege einfach mit deiner Google-E-Mail-Adresse ein Passwort für dein Konto fest.</string>
+    <string name="qobuz_google_help_title">Anmeldung mit Google-Konto</string>
+    <string name="qobuz_logging_in">Anmeldung bei Qobuz…</string>
+    <string name="qobuz_open_website">Qobuz-Webseite öffnen</string>
+    <string name="qobuz_reset_password_failed">E-Mail zur Passworterstellung konnte nicht gesendet werden. Bitte überprüfe deine E-Mail-Adresse.</string>
+    <string name="qobuz_reset_password_sent">Eine E-Mail wurde von Qobuz gesendet! Prüfe deinen Posteingang, um dein Passwort zu erstellen, und kehre dann hierher zurück.</string>
+    <string name="qobuz_send_reset_password">E-Mail zur Passworterstellung senden</string>
+    <string name="qobuz_token_login_desc">Füge dein Qobuz user_auth_token direkt ein, falls vorhanden.</string>
+    <string name="qobuz_token_login_title">Sitzungs-Token</string>
+    <string name="qobuz_token_not_found">Noch kein Sitzungs-Token gefunden. Bitte melde dich zuerst auf der Seite an.</string>
+    <string name="qobuz_token_saved">Qobuz-Sitzungs-Token gespeichert!</string>
+    <string name="qobuz_web_login">Web-Anmeldung (Google / Browser)</string>
+    <string name="qobuz_web_login_desc">Melde dich im WebView bei Qobuz an. Google-Anmeldung und Browser-Authentifizierung werden unterstützt, und KittyTune erfasst dein Sitzungs-Token automatisch.</string>
+    <string name="storage_audio_subtitle">%1$d heruntergeladene Titel</string>
+    <string name="storage_cat_app">Anwendung</string>
+    <string name="storage_delete_all_confirm">Alle %1$d heruntergeladenen Titel vom Speicher löschen?</string>
+    <string name="storage_delete_count">Löschen (%1$d)</string>
+    <string name="storage_delete_selected_playlists_confirm">Downloads für %1$d ausgewählte Wiedergabelisten (%2$s) löschen?</string>
+    <string name="storage_delete_selected_tracks_confirm">%1$d ausgewählte Titel (%2$s) vom Gerät löschen?</string>
+    <string name="storage_delete_single_playlist_confirm">Heruntergeladene Titel und Dateien für Wiedergabeliste \"%1$s\" löschen?</string>
+    <string name="storage_delete_single_track_confirm">\"%1$s\" aus den heruntergeladenen Titeln löschen?</string>
+    <string name="storage_deselect_all">Auswahl aufheben</string>
+    <string name="storage_downloaded_empty">Noch nichts heruntergeladen</string>
+    <string name="storage_downloaded_music">Heruntergeladene Musik</string>
+    <string name="storage_downloaded_playlists_summary">%1$d Wiedergabelisten — tippen zum Anzeigen</string>
+    <string name="storage_downloaded_summary">Titel: %1$d · %2$s — tippen zum Anzeigen</string>
+    <string name="storage_freed_space_hint">%1$s freigeben</string>
+    <string name="storage_gauge_bottom_no_music">KittyTune: %1$s · %2$s frei für Downloads</string>
+    <string name="storage_gauge_bottom_with_music">KittyTune: %1$s (%2$s Musik) · %3$s frei für Downloads</string>
+    <string name="storage_group_downloads">Downloads</string>
+    <string name="storage_manage_downloads_title">Downloads verwalten</string>
+    <string name="storage_no_search_results">Keine Downloads für \"%1$s\" gefunden</string>
+    <string name="storage_search_downloads_hint">Downloads durchsuchen…</string>
+    <string name="storage_select_all">Alle auswählen</string>
+    <string name="storage_selected_format">%1$d ausgewählt</string>
+    <string name="storage_size_cached">zwischengespeichert</string>
+    <string name="storage_system_label">System</string>
+    <string name="storage_tab_playlists">Wiedergabelisten</string>
+    <string name="storage_tab_tracks">Titel</string>
+    <string name="storage_total_summary">/ %1$s</string>
+    <string name="zapret_status_vpn_paused">Pausiert • VPN ist aktiv</string>
+    <string name="zapret_vpn_active_notice">Eine VPN-Verbindung ist aktiv. Zapret wird automatisch pausiert, um Konflikte zu vermeiden und Akku zu sparen. Der Datenverkehr wird direkt über dein VPN geleitet.</string>
+
+    <string name="pref_haptics_sliders">Schieberegler &amp; Suchleisten</string>
+    <string name="pref_haptics_sliders_sub">Schrittweise vibrieren beim Ziehen von Schiebereglern</string>
+    <string name="pref_haptics_test_title">Feedback testen</string>
+    <string name="pref_haptics_test_sub">Tippen Sie auf eine Kachel, um den Modus zu spüren</string>
+    <string name="haptic_test_light">Leicht</string>
+    <string name="haptic_test_medium">Mittel</string>
+    <string name="haptic_test_heavy">Stark</string>
+    <string name="haptic_test_confirm">Bestätigen</string>
+    <string name="equalizer_mode_manual">Manuell</string>
+    <string name="equalizer_mode_auto">Automatisch</string>
+    <string name="equalizer_auto_title">Auto EQ</string>
+    <string name="equalizer_auto_subtitle">Abgestimmtes Profil für Ihre Kopfhörer auswählen</string>
+    <string name="equalizer_auto_detected">Erkannte Kopfhörer</string>
+    <string name="equalizer_auto_no_device">Keine Kopfhörer erkannt</string>
+    <string name="equalizer_auto_no_device_sub">Schließen Sie Kopfhörer an oder suchen Sie unten ein Modell.</string>
+    <string name="equalizer_auto_search_hint">Kopfhörermodell suchen (z. B. HD 650)</string>
+    <string name="equalizer_auto_search_action">Suchen</string>
+    <string name="equalizer_auto_suggestions">Beliebte Modelle</string>
+    <string name="equalizer_auto_searching">Wird gesucht…</string>
+    <string name="equalizer_auto_no_results">Kein Profil gefunden. Versuchen Sie Marke und Modellname.</string>
+    <string name="equalizer_auto_results">Profile gefunden</string>
+    <string name="equalizer_auto_apply">Anwenden</string>
+    <string name="equalizer_auto_applying">Wird angewendet…</string>
+    <string name="equalizer_auto_applied">Profil angewendet</string>
+    <string name="equalizer_auto_source">Quelle: %1</string>
+    <string name="equalizer_auto_restore">Automatisch anwenden, wenn dieses Gerät wieder verbunden wird</string>
+    <string name="equalizer_auto_restored">Auto EQ wiederhergestellt: %1</string>
+    <string name="equalizer_auto_remove">Profil entfernen</string>
+    <string name="equalizer_auto_credit">Profile von AutoEq, basierend auf oratory1990, crinacle, Rtings und Squiglink.</string>
+    <string name="equalizer_auto_import">EQ importieren</string>
+    <string name="equalizer_auto_error">Profile konnten nicht geladen werden. Verbindung prüfen.</string>
+    <string name="equalizer_auto_retry">Wiederholen</string>
+    <string name="equalizer_auto_profile_hint">Messungen variieren nach Ohrpolster und ANC. Passenden Eintrag wählen.</string>
+    <string name="equalizer_auto_detected_query">Suche nach „%1“</string>
+
+    <string name="theme_preview_harmony_title">Palettenharmonie</string>
+    <string name="theme_preview_tokens_label">Paletten-Tokens</string>
+    <string name="theme_preview_ui_sample">UI-Vorschau</string>
+    <string name="theme_preview_sample_play">Abspielen</string>
+    <string name="theme_preview_sample_favorite">Favorit</string>
+    <string name="theme_preset_accents_title">Kuratierte Vorlagen</string>
+    <string name="theme_preset_accents_subtitle">Harmonische, gebrauchsfertige Farbwerte</string>
+    <string name="color_hint_muted">Gedämpft</string>
+    <string name="color_hint_balanced">Ausgewogen</string>
+    <string name="color_hint_vivid">Lebendig</string>
+    <string name="color_hint_dark">Dunkel</string>
+    <string name="color_hint_default">Standard</string>
+    <string name="color_hint_bright">Hell</string>
+    <string name="color_spec_2025_label">SPEC 2025 (M3)</string>
+    <string name="color_spec_2021_label">SPEC 2021 (Legacy)</string>
+    <string name="color_hex_copied">Hex-Code kopiert</string>
+    <string name="color_palette_system_dynamic">System Dynamisch</string>
+    <string name="mix_artists_section">Künstler</string>
+    <string name="mix_genres_section">Genres &amp; Tags</string>
+    <string name="mix_artist_search_placeholder">Künstler suchen oder hinzufügen…</string>
+    <string name="mix_start_with_count">Mix starten (%1$d ausgewählt)</string>
+    <string name="mix_suggested_artists">Vorgeschlagene Künstler</string>
+    <string name="mix_followers_count">%1$s Follower</string>
+    <string name="mix_in_library">In Bibliothek</string>
+    <string name="mix_selected_chip_remove">%1$s entfernen</string>
 </resources>
