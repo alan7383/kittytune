@@ -4,6 +4,8 @@ import android.content.Context
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.HistoryItem
+import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.domain.HistoryRoute
 import com.alananasss.kittytune.domain.Playlist
 import com.alananasss.kittytune.domain.Track
 import kotlinx.coroutines.SupervisorJob
@@ -26,12 +28,58 @@ object HistoryRepository {
             database.downloadDao().deleteHistoryItem("history")
             database.downloadDao().deleteMixHistory()
             database.downloadDao().deleteWaveHistory()
+            repairTrailerHistoryRows()
+        }
+    }
+
+    /**
+     * Repairs the rows the trailer flow used to write.
+     *
+     * A trailer was written down as a page of its own, under an id that was a hash of
+     * its route, while the artist it belongs to was written under its real id as well:
+     * the artist showed up twice in "Recently played", and the copy with the hashed id
+     * named no SoundCloud user, so tapping it fell through to the Spotify lookup and
+     * opened an unrelated artist.
+     *
+     * The row is rewritten under the route it came from, which takes the place of the
+     * row that was already there, and the Spotify mapping that was derived from the
+     * hashed id is dropped: it named an artist nobody asked for.
+     */
+    private suspend fun repairTrailerHistoryRows() {
+        val rows = try {
+            database.downloadDao().getTrailerRoutedHistoryItems()
+        } catch (_: Exception) {
+            emptyList()
+        }
+        if (rows.isEmpty()) return
+
+        val prefs = PlayerPreferences(appContext)
+        for (row in rows) {
+            val base = HistoryRoute.unwrap(row.originalUrl.orEmpty())
+            val profileId = HistoryRoute.soundCloudProfileId(base)
+            val repairedNumericId = profileId?.substringAfter(":")?.toLongOrNull()
+
+            // The row under the hashed id goes either way: it names an artist nobody
+            // visited, and the one under the real id is the one that is kept.
+            database.downloadDao().deleteHistoryItem(row.id)
+
+            if (profileId != null && repairedNumericId != null) {
+                database.downloadDao().insertHistory(
+                    row.copy(id = profileId, numericId = repairedNumericId, originalUrl = base)
+                )
+            }
+
+            // The mapping that was derived from the hashed id points at whatever artist
+            // a name search returned: it must not outlive the row it was built from.
+            if (row.numericId != 0L && row.numericId != repairedNumericId) {
+                prefs.removeSpotifyArtistMapping(row.numericId)
+            }
         }
     }
 
     fun addToHistory(track: Track) {
         try {
-            com.alananasss.kittytune.data.local.PlayerPreferences(appContext).incrementTracksPlayedCount()
+            PlayerPreferences(appContext).incrementTracksPlayedCount()
         } catch (_: Exception) {}
         scope.launch {
             val safeSource = (track.source as? String) ?: "soundcloud"
@@ -71,8 +119,10 @@ object HistoryRepository {
             return
         }
         scope.launch {
-            val isYoutubeRadio = playlist.permalinkUrl?.startsWith("yt_radio:") == true
-            val rawNav = playlist.permalinkUrl ?: playlist.urn ?: ""
+            // A trailer is the page it was started from: the row has to name that page,
+            // or it names nobody.
+            val rawNav = HistoryRoute.unwrap(playlist.permalinkUrl ?: playlist.urn ?: "")
+            val isYoutubeRadio = rawNav.startsWith("yt_radio:")
             val isSpotifyArtist = isProfile && (rawNav.contains("spotify") || rawNav.startsWith("spotify_artist:"))
             val isSpotifyRadio = isStation && (rawNav.contains("spotify") || rawNav.startsWith("spotify_radio:"))
             val isSpotifyItem = rawNav.contains("spotify") || rawNav.startsWith("spotify_")
@@ -103,8 +153,14 @@ object HistoryRepository {
                     else "spotify:playlist:$clean" to "PLAYLIST"
                 }
                 isSystemPlaylist -> systemPlaylistId to "PLAYLIST"
-                isProfile -> "profile:${playlist.id}" to "PROFILE"
-                isYoutubeRadio -> playlist.permalinkUrl!! to "STATION"
+                isProfile -> {
+                    // The route carries the SoundCloud user id; the id the caller passed
+                    // may be a hash of a route that could not be parsed, and a row that
+                    // names nobody opens whatever artist a name search returns.
+                    val profileId = HistoryRoute.soundCloudProfileId(rawNav)
+                    (profileId ?: "profile:${playlist.id}") to "PROFILE"
+                }
+                isYoutubeRadio -> rawNav to "STATION"
                 isStation -> "station:${playlist.id}" to "STATION"
                 playlist.id == -1L -> "likes" to "PLAYLIST"
                 playlist.id == -2L -> "downloads" to "PLAYLIST"
@@ -137,13 +193,14 @@ object HistoryRepository {
 
             val item = HistoryItem(
                 id = stringId,
-                numericId = if (isSystemPlaylist && playlist.id == 0L) kotlin.math.abs(systemPlaylistUrn.hashCode().toLong()) else playlist.id,
+                numericId = HistoryRoute.numericId(rawNav)
+                    ?: if (isSystemPlaylist && playlist.id == 0L) kotlin.math.abs(systemPlaylistUrn.hashCode().toLong()) else playlist.id,
                 title = finalTitle,
                 subtitle = finalSubtitle,
                 imageUrl = resolvedImageUrl,
                 type = type,
                 isVerified = playlist.user?.verified == true,
-                originalUrl = if (isSystemPlaylist) systemPlaylistId else playlist.permalinkUrl
+                originalUrl = if (isSystemPlaylist) systemPlaylistId else rawNav.ifBlank { null }
             )
             database.downloadDao().insertHistory(item)
         }
