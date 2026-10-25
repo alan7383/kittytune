@@ -342,6 +342,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_AUTO_UPDATE = "auto_update_enabled"
         private const val KEY_REMEMBER_SEARCH_FILTER = "remember_search_filter"
         private const val KEY_LAST_SEARCH_FILTER = "last_search_filter"
+        private const val KEY_VERIFIED_FILTER_ENABLED = "verified_filter_enabled"
         private const val KEY_RECOGNITION_AUDIO_SOURCE = "recognition_audio_source"
         private const val KEY_YOUTUBE_FALLBACK = "youtube_fallback_enabled"
         private const val KEY_HIDE_YOUTUBE_VIDEOS = "hide_youtube_videos_and_shorts"
@@ -394,7 +395,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_FULL_PLAYER_COVER_FEATHER = "full_player_cover_feather"
         private const val KEY_FULL_PLAYER_COVER_FEATHER_AMOUNT = "full_player_cover_feather_amount"
         private const val KEY_FULL_PLAYER_COVER_SCALE = "full_player_cover_scale"
-        private const val KEY_FULL_PLAYER_BG_STYLE = "full_player_bg_style"
+        const val KEY_FULL_PLAYER_BG_STYLE = "full_player_bg_style"
         private const val KEY_FULL_PLAYER_LAYOUT = "full_player_layout"
         private const val KEY_FULL_PLAYER_INFO_ALIGN = "full_player_info_align"
         private const val KEY_FULL_PLAYER_HEART_SIDE = "full_player_heart_side"
@@ -403,6 +404,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_LYRICS_VERTICAL_OFFSET = "lyrics_vertical_offset"
         private const val KEY_LYRICS_ACTIVE_SCALE = "lyrics_active_scale"
         private const val KEY_LYRICS_WHEEL_LINES = "lyrics_wheel_lines"
+        private const val KEY_QUICK_LYRICS_TAB = "quick_lyrics_tab"
 
         private const val KEY_DISCORD_ASSET_LOGO = "discord_asset_logo"
         private const val KEY_DISCORD_STATUS_DISPLAY = "discord_status_display"
@@ -889,6 +891,20 @@ class PlayerPreferences(context: Context) {
     fun getLastSearchFilter(): String = prefs.getString(KEY_LAST_SEARCH_FILTER, "ALL") ?: "ALL"
     fun setLastSearchFilter(filterName: String) = prefs.edit { putString(KEY_LAST_SEARCH_FILTER, filterName) }
 
+    fun getVerifiedFilterEnabled(): Boolean = prefs.getBoolean(KEY_VERIFIED_FILTER_ENABLED, false)
+    fun setVerifiedFilterEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_VERIFIED_FILTER_ENABLED, enabled) }
+
+    fun verifiedFilterEnabledFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getVerifiedFilterEnabled())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_VERIFIED_FILTER_ENABLED) {
+                trySend(getVerifiedFilterEnabled())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
     fun getRecognitionAudioSource(): String = prefs.getString(KEY_RECOGNITION_AUDIO_SOURCE, "MIC") ?: "MIC"
     fun setRecognitionAudioSource(source: String) = prefs.edit { putString(KEY_RECOGNITION_AUDIO_SOURCE, source) }
 
@@ -1140,10 +1156,28 @@ class PlayerPreferences(context: Context) {
     fun setFullPlayerCoverScale(scale: Float) = prefs.edit { putFloat(KEY_FULL_PLAYER_COVER_SCALE, scale) }
 
     fun getFullPlayerBgStyle(): FullPlayerBgStyle {
-        val name = prefs.getString(KEY_FULL_PLAYER_BG_STYLE, FullPlayerBgStyle.APPLE_MUSIC.name)
-        return runCatching { FullPlayerBgStyle.valueOf(name!!) }.getOrDefault(FullPlayerBgStyle.APPLE_MUSIC)
+        val name = prefs.getString(KEY_FULL_PLAYER_BG_STYLE, null)
+        if (name != null) {
+            return runCatching { FullPlayerBgStyle.valueOf(name) }.getOrDefault(FullPlayerBgStyle.APPLE_MUSIC)
+        }
+        return when (getPlayerStyle()) {
+            PlayerBackgroundStyle.APPLE_MUSIC -> FullPlayerBgStyle.APPLE_MUSIC
+            PlayerBackgroundStyle.BLUR -> FullPlayerBgStyle.BLUR
+            PlayerBackgroundStyle.GRADIENT -> FullPlayerBgStyle.GRADIENT
+            PlayerBackgroundStyle.THEME -> FullPlayerBgStyle.PURE_BLACK
+        }
     }
-    fun setFullPlayerBgStyle(style: FullPlayerBgStyle) = prefs.edit { putString(KEY_FULL_PLAYER_BG_STYLE, style.name) }
+    fun setFullPlayerBgStyle(style: FullPlayerBgStyle) {
+        prefs.edit {
+            putString(KEY_FULL_PLAYER_BG_STYLE, style.name)
+            when (style) {
+                FullPlayerBgStyle.APPLE_MUSIC -> putString(KEY_PLAYER_STYLE, PlayerBackgroundStyle.APPLE_MUSIC.name)
+                FullPlayerBgStyle.BLUR -> putString(KEY_PLAYER_STYLE, PlayerBackgroundStyle.BLUR.name)
+                FullPlayerBgStyle.GRADIENT -> putString(KEY_PLAYER_STYLE, PlayerBackgroundStyle.GRADIENT.name)
+                FullPlayerBgStyle.PURE_BLACK -> putString(KEY_PLAYER_STYLE, PlayerBackgroundStyle.THEME.name)
+            }
+        }
+    }
 
     fun getFullPlayerLayout(): FullPlayerLayout {
         val name = prefs.getString(KEY_FULL_PLAYER_LAYOUT, FullPlayerLayout.LYRICS_RIGHT.name)
@@ -1180,6 +1214,9 @@ class PlayerPreferences(context: Context) {
 
     fun getLyricsWheelLines(): Float = getSafeFloat(KEY_LYRICS_WHEEL_LINES, 3f)
     fun setLyricsWheelLines(lines: Float) = prefs.edit { putFloat(KEY_LYRICS_WHEEL_LINES, lines) }
+
+    fun getQuickLyricsTab(): Int = prefs.getInt(KEY_QUICK_LYRICS_TAB, 0)
+    fun setQuickLyricsTab(index: Int) = prefs.edit { putInt(KEY_QUICK_LYRICS_TAB, index) }
 
     fun getLocalMediaEnabled(): Boolean = prefs.getBoolean(KEY_LOCAL_MEDIA_ENABLED, false)
     fun setLocalMediaEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LOCAL_MEDIA_ENABLED, enabled) }
@@ -1229,7 +1266,17 @@ class PlayerPreferences(context: Context) {
         }
     }
 
-    fun setPlayerStyle(style: PlayerBackgroundStyle) = prefs.edit { putString(KEY_PLAYER_STYLE, style.name) }
+    fun setPlayerStyle(style: PlayerBackgroundStyle) {
+        prefs.edit {
+            putString(KEY_PLAYER_STYLE, style.name)
+            when (style) {
+                PlayerBackgroundStyle.APPLE_MUSIC -> putString(KEY_FULL_PLAYER_BG_STYLE, FullPlayerBgStyle.APPLE_MUSIC.name)
+                PlayerBackgroundStyle.BLUR -> putString(KEY_FULL_PLAYER_BG_STYLE, FullPlayerBgStyle.BLUR.name)
+                PlayerBackgroundStyle.GRADIENT -> putString(KEY_FULL_PLAYER_BG_STYLE, FullPlayerBgStyle.GRADIENT.name)
+                PlayerBackgroundStyle.THEME -> putString(KEY_FULL_PLAYER_BG_STYLE, FullPlayerBgStyle.PURE_BLACK.name)
+            }
+        }
+    }
     fun getAutoplayEnabled(): Boolean = prefs.getBoolean(KEY_AUTOPLAY_STATION, true)
     fun setAutoplayEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_AUTOPLAY_STATION, enabled) }
     fun getListeningStatsEnabled(): Boolean = prefs.getBoolean(KEY_LISTENING_STATS_ENABLED, true)

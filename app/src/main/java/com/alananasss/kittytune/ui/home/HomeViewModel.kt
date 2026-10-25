@@ -16,9 +16,13 @@
     import com.alananasss.kittytune.data.SearchCategory
     import com.alananasss.kittytune.data.TokenManager
     import com.alananasss.kittytune.data.search.ProviderLinks
+    import com.alananasss.kittytune.data.search.TrackVerification
+    import com.alananasss.kittytune.data.search.TrackVerifier
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.SafeTrackListAdapter
+    import com.alananasss.kittytune.domain.SafePlaylistListAdapter
+    import com.alananasss.kittytune.domain.SafeUserListAdapter
     import com.alananasss.kittytune.domain.Track
     import com.alananasss.kittytune.domain.TrackPublisherMetadata
     import com.alananasss.kittytune.domain.User
@@ -81,8 +85,8 @@
         @SerializedName("subtitle") val subtitle: String?,
         @SerializedName("type") val type: SectionType,
         @SerializedName("tracks") @JsonAdapter(SafeTrackListAdapter::class) val tracks: List<Track> = emptyList(),
-        @SerializedName("playlists") val playlists: List<Playlist> = emptyList(),
-        @SerializedName("users") val users: List<User> = emptyList(),
+        @SerializedName("playlists") @JsonAdapter(SafePlaylistListAdapter::class) val playlists: List<Playlist> = emptyList(),
+        @SerializedName("users") @JsonAdapter(SafeUserListAdapter::class) val users: List<User> = emptyList(),
         @SerializedName("reposts") val reposts: List<com.alananasss.kittytune.domain.CaptionedRepostItem> = emptyList(),
         @SerializedName("id") val id: String? = null
     )
@@ -182,7 +186,28 @@
         private var tracksNextUrl: String? = null
         private var artistsNextUrl: String? = null
         private var playlistsNextUrl: String? = null
+        private var vkSearchFetchedCount = 0
         var isSearchLoadingMore by mutableStateOf(false)
+
+        /**
+         * Master switch for the Verified filter, set from Settings. Off by default: the
+         * comparison needs extra network calls, so it stays out of search unless asked for.
+         * When enabled the filter is on by default in search; the small search-bar button is a
+         * per-search override.
+         */
+        var verifiedFilterEnabled by mutableStateOf(playerPrefs.getVerifiedFilterEnabled())
+            private set
+
+        /** Whether the current search is applying the Verified filter. */
+        var verifiedOnly by mutableStateOf(verifiedFilterEnabled)
+            private set
+
+        /** Source-scoped identity of the rows the verifier could fully confirm. */
+        var verifiedTrackKeys by mutableStateOf<Set<String>>(emptySet())
+            private set
+
+        var trackVerificationStatus by mutableStateOf(TrackVerification.Status.IDLE)
+            private set
 
         var searchCorrectedQuery by mutableStateOf<String?>(null)
         val recentSearches = mutableStateListOf<String>()
@@ -326,6 +351,23 @@
             }
 
         init {
+            viewModelScope.launch {
+                playerPrefs.verifiedFilterEnabledFlow().collect { enabled ->
+                    val changed = verifiedFilterEnabled != enabled
+                    verifiedFilterEnabled = enabled
+                    if (!enabled) {
+                        verifiedOnly = false
+                        verifiedTrackKeys = emptySet()
+                        trackVerificationStatus = TrackVerification.Status.IDLE
+                    } else if (changed) {
+                        verifiedOnly = true
+                    }
+                    if (changed && searchQuery.isNotBlank()) {
+                        searchJob?.cancel()
+                        searchJob = viewModelScope.launch { performSearch(searchQuery) }
+                    }
+                }
+            }
             viewModelScope.launch { loadFromCache() }
             loadSearchLandingCategories()
             if (isOfflineMode) {
@@ -666,6 +708,11 @@
                         activeFilter = SearchFilter.ALL
                     }
                 }
+                verifiedOnly = verifiedFilterEnabled
+                if (!verifiedOnly) {
+                    verifiedTrackKeys = emptySet()
+                    trackVerificationStatus = TrackVerification.Status.IDLE
+                }
             }
             isSearching = true
             searchTrigger++
@@ -676,8 +723,10 @@
             if (!playerPrefs.getRememberSearchFilter()) {
                 activeFilter = SearchFilter.ALL
             }
+            verifiedOnly = verifiedFilterEnabled
             clearSearchResults()
         }
+
         fun onFilterChanged(filter: SearchFilter) {
             activeFilter = filter
             if (playerPrefs.getRememberSearchFilter()) {
@@ -686,6 +735,128 @@
             if (searchQuery.isNotBlank()) {
                 searchJob?.cancel()
                 searchJob = viewModelScope.launch { performSearch(searchQuery) }
+            }
+        }
+
+        /** Whether [track] may show the verified badge in the current result list. */
+        fun isVerifiedMatch(track: Track): Boolean =
+            verifiedFilterEnabled && verifiedOnly && TrackVerification.keyOf(track) in verifiedTrackKeys
+
+        /**
+         * Toggles the Verified filter for the current search. Turning it back off restores the
+         * unfiltered list straight away by repeating the search, exactly like changing the
+         * tracks/artists filter does. The feature itself has to be enabled in Settings first.
+         */
+        fun onVerifiedFilterChanged(enabled: Boolean) {
+            if (!verifiedFilterEnabled || verifiedOnly == enabled) return
+            verifiedOnly = enabled
+            if (!enabled) {
+                verifiedTrackKeys = emptySet()
+                trackVerificationStatus = TrackVerification.Status.IDLE
+            }
+            if (searchQuery.isNotBlank()) {
+                searchJob?.cancel()
+                searchJob = viewModelScope.launch { performSearch(searchQuery) }
+            }
+        }
+
+        private fun currentTrackResults(): MutableList<Track> = when (activeSearchSource) {
+            SearchSource.SOUNDCLOUD -> searchResultsTracks
+            SearchSource.YOUTUBE -> searchResultsYoutube
+            SearchSource.SPOTIFY -> searchResultsSpotify
+            SearchSource.VK -> searchResultsVk
+            SearchSource.DEEZER -> searchResultsDeezerTracks
+            SearchSource.TIDAL -> searchResultsTidalTracks
+            SearchSource.QOBUZ -> searchResultsQobuzTracks
+        }
+
+        private fun excludedVerificationPlatform(): String? = when (activeSearchSource) {
+            SearchSource.DEEZER -> "deezer"
+            SearchSource.TIDAL -> "tidal"
+            SearchSource.QOBUZ -> "qobuz"
+            SearchSource.SPOTIFY -> "spotify"
+            else -> null
+        }
+
+        /** Whether the active source/filter combination is showing a track list at all. */
+        private fun trackSectionVisible(): Boolean =
+            activeFilter == SearchFilter.ALL ||
+                activeFilter == SearchFilter.TRACKS ||
+                activeSearchSource == SearchSource.YOUTUBE ||
+                activeSearchSource == SearchSource.VK
+
+        /**
+         * Replaces the current source's track list with the verified ranking. When the filter is
+         * off, or no catalogue could be reached, the list is left as it was: the filter has to
+         * degrade to "unverified" rather than to "no results".
+         */
+        private suspend fun applyTrackVerification(query: String) {
+            if (!verifiedFilterEnabled || !verifiedOnly || !trackSectionVisible()) {
+                verifiedTrackKeys = emptySet()
+                trackVerificationStatus = TrackVerification.Status.IDLE
+                return
+            }
+
+            val target = currentTrackResults()
+            if (target.isEmpty()) {
+                verifiedTrackKeys = emptySet()
+                trackVerificationStatus = TrackVerification.Status.IDLE
+                return
+            }
+
+            val snapshot = target.toList()
+            val outcome = TrackVerifier.verify(
+                context = getApplication<Application>(),
+                query = query,
+                tracks = snapshot,
+                excludedPlatform = excludedVerificationPlatform(),
+            )
+
+            withContext(Dispatchers.Main) {
+                if (!verifiedOnly) return@withContext
+                target.clear()
+                target.addAll(BlockManager.filterBlocked(outcome.tracks))
+                verifiedTrackKeys = outcome.verifiedKeys
+                trackVerificationStatus = outcome.status
+            }
+        }
+
+        /**
+         * Adds another page of results. Only the new rows are verified so the part of the list the
+         * reader has already scrolled through is not re-sorted and pulled out from under them.
+         */
+        private suspend fun appendVerifiedTracks(target: MutableList<Track>, incoming: List<Track>) {
+            if (incoming.isEmpty()) return
+            if (!verifiedOnly) {
+                target.addAll(incoming)
+                return
+            }
+
+            val hadResults = target.isNotEmpty()
+            val outcome = try {
+                TrackVerifier.verify(
+                    context = getApplication<Application>(),
+                    query = searchQuery,
+                    tracks = incoming,
+                    excludedPlatform = excludedVerificationPlatform(),
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+
+            if (outcome == null) {
+                target.addAll(incoming)
+                return
+            }
+
+            target.addAll(BlockManager.filterBlocked(outcome.tracks))
+            verifiedTrackKeys = verifiedTrackKeys + outcome.verifiedKeys
+            if (outcome.verifiedKeys.isNotEmpty()) {
+                trackVerificationStatus = TrackVerification.Status.VERIFIED
+            } else if (!hadResults) {
+                trackVerificationStatus = outcome.status
             }
         }
 
@@ -705,7 +876,10 @@
             searchResultsDeezerTracks.clear(); searchResultsDeezerAlbums.clear(); searchResultsDeezerPlaylists.clear(); searchResultsDeezerArtists.clear()
             searchResultsTidalTracks.clear(); searchResultsTidalAlbums.clear(); searchResultsTidalPlaylists.clear(); searchResultsTidalArtists.clear()
             searchResultsQobuzTracks.clear(); searchResultsQobuzAlbums.clear(); searchResultsQobuzPlaylists.clear(); searchResultsQobuzArtists.clear()
+            verifiedTrackKeys = emptySet()
+            trackVerificationStatus = TrackVerification.Status.IDLE
             tracksNextUrl = null; artistsNextUrl = null; playlistsNextUrl = null
+            vkSearchFetchedCount = 0
             youtubeContinuation = null
         }
 
@@ -716,6 +890,9 @@
             val isOffline = !NetworkUtils.isInternetAvailable(getApplication())
             if (isOffline) {
                 performOfflineSearch(query)
+                if (verifiedOnly && trackSectionVisible()) {
+                    trackVerificationStatus = TrackVerification.Status.UNAVAILABLE
+                }
                 isSearchLoading = false
                 return
             }
@@ -732,12 +909,25 @@
                 if (searchResultsTracks.isEmpty() && searchResultsArtists.isEmpty() && searchResultsPlaylists.isEmpty()) {
                     performOfflineSearch(query)
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 e.printStackTrace()
                 performOfflineSearch(query)
-            } finally {
-                isSearchLoading = false
             }
+
+            try {
+                applyTrackVerification(query)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                e.printStackTrace()
+                if (verifiedOnly && trackSectionVisible()) {
+                    trackVerificationStatus = TrackVerification.Status.UNAVAILABLE
+                }
+            }
+
+            isSearchLoading = false
             warmTopResults(query)
         }
 
@@ -1006,6 +1196,7 @@
                     val vkApi = com.alananasss.kittytune.data.vk.VkApi(getApplication())
                     val results = vkApi.searchAudios(query)
                     withContext(Dispatchers.Main) {
+                        vkSearchFetchedCount = results.tracks.size
                         searchResultsVk.clear()
                         searchResultsVk.addAll(BlockManager.filterBlocked(results.tracks))
                     }
@@ -1237,13 +1428,17 @@
                 isSearchLoadingMore = true
                 try {
                     if (activeSearchSource == SearchSource.VK) {
-                        val currentCount = searchResultsVk.size
+                        // Offset follows what the page returned, not what survived the verified
+                        // filter: otherwise a page whose rows were all filtered would be fetched
+                        // again forever and the list would never advance.
+                        val currentCount = vkSearchFetchedCount
                         if (searchQuery.isNotBlank() && currentCount > 0) {
                             val vkApi = com.alananasss.kittytune.data.vk.VkApi(getApplication())
                             val results = vkApi.searchAudios(searchQuery, offset = currentCount)
+                            vkSearchFetchedCount = currentCount + results.tracks.size
                             if (results.tracks.isNotEmpty()) {
                                 val newTracks = BlockManager.filterBlocked(results.tracks.filter { nt -> searchResultsVk.none { it.id == nt.id && it.user?.id == nt.user?.id } })
-                                searchResultsVk.addAll(newTracks)
+                                appendVerifiedTracks(searchResultsVk, newTracks)
                             }
                         }
                     } else if (activeSearchSource == SearchSource.YOUTUBE) {
@@ -1273,14 +1468,19 @@
                                 } else null
                             } ?: emptyList()
                             if (newTracks.isNotEmpty()) {
-                                searchResultsYoutube.addAll(BlockManager.filterBlocked(newTracks.filter { nt -> searchResultsYoutube.none { it.id == nt.id } }))
+                                appendVerifiedTracks(
+                                    searchResultsYoutube,
+                                    BlockManager.filterBlocked(newTracks.filter { nt -> searchResultsYoutube.none { it.id == nt.id } }),
+                                )
                             }
                         }
                     } else {
                         when (activeFilter) {
                             SearchFilter.TRACKS -> {
                                 if (tracksNextUrl != null) {
-                                    val response = api.getSearchTracksNextPage(tracksNextUrl!!); searchResultsTracks.addAll(BlockManager.filterBlocked(response.collection)); tracksNextUrl = response.next_href
+                                    val response = api.getSearchTracksNextPage(tracksNextUrl!!)
+                                    appendVerifiedTracks(searchResultsTracks, BlockManager.filterBlocked(response.collection))
+                                    tracksNextUrl = response.next_href
                                 }
                             }
                             SearchFilter.ARTISTS -> {

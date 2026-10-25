@@ -77,12 +77,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.util.lerp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.data.LikeRepository
 import com.alananasss.kittytune.data.SearchCategory
+import com.alananasss.kittytune.data.search.TrackVerification
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import com.alananasss.kittytune.data.local.HistoryItem
@@ -477,10 +482,50 @@ fun HomeScreen(
                                     if (homeViewModel.activeSearchSource == SearchSource.YOUTUBE || homeViewModel.activeSearchSource == SearchSource.VK) {
                                         Spacer(Modifier.weight(1f))
                                     }
+                                    if (homeViewModel.verifiedFilterEnabled &&
+                                        (homeViewModel.activeFilter == SearchFilter.ALL ||
+                                            homeViewModel.activeFilter == SearchFilter.TRACKS ||
+                                            homeViewModel.activeSearchSource == SearchSource.YOUTUBE ||
+                                            homeViewModel.activeSearchSource == SearchSource.VK)
+                                    ) {
+                                        Spacer(Modifier.width(8.dp))
+                                        VerifiedFilterButton(
+                                            verifiedOnly = homeViewModel.verifiedOnly,
+                                            status = homeViewModel.trackVerificationStatus,
+                                            verifiedCount = homeViewModel.verifiedTrackKeys.size,
+                                            onToggle = homeViewModel::onVerifiedFilterChanged
+                                        )
+                                    }
                                     Spacer(Modifier.width(8.dp))
                                     SearchSourceSelector(
                                         selectedSource = homeViewModel.activeSearchSource,
                                         onSelect = homeViewModel::onSearchSourceChanged
+                                    )
+                                }
+
+                                val verifiedStatusText = when {
+                                    !homeViewModel.verifiedOnly -> null
+                                    homeViewModel.trackVerificationStatus == TrackVerification.Status.NO_MATCHES ->
+                                        stringResource(R.string.search_verified_no_matches)
+                                    homeViewModel.trackVerificationStatus == TrackVerification.Status.UNAVAILABLE ->
+                                        stringResource(R.string.search_verified_unavailable)
+                                    else -> null
+                                }
+                                AnimatedVisibility(
+                                    visible = verifiedStatusText != null,
+                                    enter = fadeIn() + expandVertically(),
+                                    exit = fadeOut() + shrinkVertically()
+                                ) {
+                                    Text(
+                                        text = verifiedStatusText.orEmpty(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp)
+                                            .padding(bottom = 2.dp)
                                     )
                                 }
 
@@ -2444,6 +2489,67 @@ fun SearchFilters(activeFilter: SearchFilter, onFilterSelected: (SearchFilter) -
     )
 }
 
+/**
+ * Compact Verified toggle for the search bar.
+ *
+ * It lives beside the source selector, using the same expressive button shape, and stays visually
+ * quiet (flat and transparent) until the filter is enabled. A label would make it compete with the
+ * search filters; the status hint below only appears when the comparison has something to report.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun VerifiedFilterButton(
+    verifiedOnly: Boolean,
+    status: TrackVerification.Status,
+    verifiedCount: Int,
+    onToggle: (Boolean) -> Unit,
+) {
+    val label = stringResource(R.string.search_verified_filter)
+    val statusDescription = when {
+        !verifiedOnly -> null
+        status == TrackVerification.Status.VERIFIED && verifiedCount > 0 ->
+            stringResource(R.string.search_verified_count, verifiedCount)
+        status == TrackVerification.Status.NO_MATCHES ->
+            stringResource(R.string.search_verified_no_matches)
+        status == TrackVerification.Status.UNAVAILABLE ->
+            stringResource(R.string.search_verified_unavailable)
+        status == TrackVerification.Status.INCONCLUSIVE ->
+            stringResource(R.string.search_verified_inconclusive)
+        else -> null
+    }
+    val colors = IconButtonDefaults.iconButtonColors(
+        containerColor = if (verifiedOnly) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            Color.Transparent
+        },
+        contentColor = if (verifiedOnly) {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+        }
+    )
+
+    IconButton(
+        onClick = hapticAction(HapticKind.LIGHT) { onToggle(!verifiedOnly) },
+        shapes = IconButtonDefaults.shapes(),
+        colors = colors,
+        modifier = Modifier
+            .size(44.dp)
+            .semantics {
+                contentDescription = label
+                selected = verifiedOnly
+                statusDescription?.let { stateDescription = it }
+            }
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Verified,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
 @Composable
 fun SearchResultsList(
     homeViewModel: HomeViewModel,
@@ -2485,6 +2591,7 @@ fun SearchResultsList(
                         val isDownloaded = downloadedIds.contains(track.id)
                         TrackListItem(
                             track = track,
+                            isVerifiedMatch = homeViewModel.isVerifiedMatch(track),
                             currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                             index = index,
                             isDownloading = false,
@@ -2534,6 +2641,7 @@ fun SearchResultsList(
                             val isDownloaded = downloadedIds.contains(track.id)
                             TrackListItem(
                                 track = track,
+                                isVerifiedMatch = homeViewModel.isVerifiedMatch(track),
                                 currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                                 index = index,
                                 isDownloading = false,
@@ -2719,6 +2827,7 @@ fun SearchResultsList(
                                 val isDownloaded = downloadedIds.contains(track.id)
                                 TrackListItem(
                                     track = track,
+                                    isVerifiedMatch = homeViewModel.isVerifiedMatch(track),
                                     currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                                     index = index,
                                     isDownloading = false,
@@ -3014,6 +3123,7 @@ fun SearchResultsList(
                     ) {
                         TrackListItem(
                             track = track,
+                            isVerifiedMatch = homeViewModel.isVerifiedMatch(track),
                             currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                             index = index,
                             isDownloading = downloadProgress[track.id] != null,
@@ -3406,6 +3516,7 @@ fun ProviderSearchResults(
                         val isDownloaded = downloadedIds.contains(track.id)
                         TrackListItem(
                             track = track,
+                            isVerifiedMatch = homeViewModel.isVerifiedMatch(track),
                             currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                             index = index,
                             isDownloading = false,
