@@ -385,13 +385,17 @@ object AutomixManager {
         // Overlap duration: default 16 beats (4 bars), bounded 6-16s
         val overlapMode = prefs.getAutomixOverlapMode() // 0=Auto (4 bars), 1=2 bars, 2=4 bars, 3=8 bars, 4=Custom
         val baseOverlapMs = when (overlapMode) {
-            1 -> (8 * periodMs).toLong().coerceIn(4_000L, 10_000L) // 2 bars
-            2 -> (16 * periodMs).toLong().coerceIn(6_000L, 16_000L) // 4 bars
-            3 -> (32 * periodMs).toLong().coerceIn(10_000L, 20_000L) // 8 bars
-            4 -> prefs.getCrossfadeDuration() * 1000L
+            PlayerPreferences.AUTOMIX_OVERLAP_2BARS -> (8 * periodMs).toLong().coerceIn(4_000L, 10_000L) // 2 bars
+            PlayerPreferences.AUTOMIX_OVERLAP_4BARS -> (16 * periodMs).toLong().coerceIn(6_000L, 16_000L) // 4 bars
+            PlayerPreferences.AUTOMIX_OVERLAP_8BARS -> (32 * periodMs).toLong().coerceIn(10_000L, 20_000L) // 8 bars
+            PlayerPreferences.AUTOMIX_OVERLAP_CUSTOM -> prefs.getAutomixOverlapCustomSec() * 1000L
             else -> (16 * periodMs).toLong().coerceIn(6_000L, 16_000L) // Auto
         }
-        var overlapMs = baseOverlapMs.coerceIn(4_000L, 20_000L)
+        var overlapMs = if (overlapMode == PlayerPreferences.AUTOMIX_OVERLAP_CUSTOM) {
+            baseOverlapMs.coerceIn(1_000L, 30_000L)
+        } else {
+            baseOverlapMs.coerceIn(4_000L, 20_000L)
+        }
 
         // How the two keys fit, by the Camelot wheel (PR #77): harmonic mixing sizes the blend on it.
         val keyFit = if (prefs.getAutomixHarmonicMixEnabled()) {

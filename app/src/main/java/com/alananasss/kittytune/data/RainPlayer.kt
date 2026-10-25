@@ -13,6 +13,7 @@ class RainPlayer(private val context: Context) {
 
     private var exoPlayer: ExoPlayer? = null
     private var isEnabled = false
+    private var isMusicPlaying = false
     private var volume = 0.5f
     private var currentType = "rain"
 
@@ -25,6 +26,9 @@ class RainPlayer(private val context: Context) {
         }
     }
 
+    private val shouldPlay: Boolean
+        get() = isEnabled && isMusicPlaying
+
     fun setVolume(volume: Float) {
         this.volume = volume.coerceIn(0f, 1f)
         exoPlayer?.volume = this.volume
@@ -33,8 +37,15 @@ class RainPlayer(private val context: Context) {
     fun setAmbientType(type: String) {
         if (currentType == type) return
         currentType = type
-        if (isEnabled) {
+        if (shouldPlay) {
             loadAndPlayMedia()
+        } else if (exoPlayer != null) {
+            val rawResId = getRawResId(currentType)
+            val uri = "android.resource://${context.packageName}/$rawResId"
+            exoPlayer?.apply {
+                setMediaItem(MediaItem.fromUri(uri))
+                prepare()
+            }
         }
     }
 
@@ -61,11 +72,27 @@ class RainPlayer(private val context: Context) {
     fun setEnabled(enabled: Boolean) {
         if (this.isEnabled != enabled) {
             this.isEnabled = enabled
-            if (enabled) {
+            updatePlayback()
+        }
+    }
+
+    fun setMusicPlaying(playing: Boolean) {
+        if (this.isMusicPlaying != playing) {
+            this.isMusicPlaying = playing
+            updatePlayback()
+        }
+    }
+
+    private fun updatePlayback() {
+        if (shouldPlay) {
+            if (exoPlayer == null || exoPlayer?.currentMediaItem == null || exoPlayer?.playbackState == Player.STATE_IDLE) {
                 loadAndPlayMedia()
             } else {
-                exoPlayer?.pause()
+                exoPlayer?.volume = this.volume
+                exoPlayer?.play()
             }
+        } else {
+            exoPlayer?.pause()
         }
     }
 
@@ -73,5 +100,6 @@ class RainPlayer(private val context: Context) {
         exoPlayer?.release()
         exoPlayer = null
         isEnabled = false
+        isMusicPlaying = false
     }
 }
