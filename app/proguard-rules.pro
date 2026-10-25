@@ -139,3 +139,7 @@
 -keep class org.chromium.support_lib_boundary.** { *; }
 -dontwarn org.chromium.support_lib_boundary.**
 -keep class com.alananasss.kittytune.ui.common.SafeWebView { *; }
+
+# Accompanist Lyrics (Karaoke models & layout)
+-keep class com.mocharealm.accompanist.** { *; }
+-dontwarn com.mocharealm.accompanist.**
