@@ -6,7 +6,7 @@ import android.content.pm.PackageManager
 
 object AppIconSwitcher {
 
-    val ICON_IDS: List<String> = listOf(
+    val OFFICIAL_ICON_IDS: List<String> = listOf(
         "default",
         "black", "blue", "chrome", "hot_pink", "lavender", "leopard", "lime", "og",
         "rose_gold", "silver", "soft_purple", "sunset", "tie_dye",
@@ -18,6 +18,26 @@ object AppIconSwitcher {
         "saudi_arabia", "scotland", "senegal", "south_africa", "south_korea", "spain",
         "sweden", "switzerland", "tunisia", "turkey", "united_states", "uruguay", "uzbekistan"
     )
+
+    val COMMUNITY_ICON_IDS: List<String> = listOf(
+        "shiro_headphones",
+        "shiro_musical_dream",
+        "shiro_pastel_cat",
+        "shiro_cap_red",
+        "shiro_cap_purple",
+        "shiro_kt_logo",
+        "shiro_cozy_nap",
+        "shiro_cool_cat"
+    )
+
+    val ICON_IDS: List<String> = OFFICIAL_ICON_IDS + COMMUNITY_ICON_IDS
+
+    fun getAuthor(id: String): String? = when {
+        id.startsWith("shiro_") -> "shiro"
+        else -> null
+    }
+
+    fun isCommunity(id: String): Boolean = id in COMMUNITY_ICON_IDS
 
     fun aliasName(id: String): String {
         if (id == "default") return "LauncherIconDefaultAlias"
