@@ -3,6 +3,9 @@
 </p>
 
 <p align="center">
+  <img src=".github/assets/badges.svg" alt="Android | Kotlin | Material Design | Jetpack Compose" width="100%"/>
+</p>
+<p align="center">
   <a href="https://alan7383.github.io/kittytune-website/download" title="Download KittyTune"><img src=".github/assets/download-kittytune.svg" alt="Download KittyTune" width="260"/></a>
 </p>
 
