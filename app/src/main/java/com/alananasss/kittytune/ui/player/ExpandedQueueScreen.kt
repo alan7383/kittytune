@@ -724,11 +724,13 @@ private fun QueueRow(
         Box(modifier = Modifier.weight(1f)) {
             SwipeToDeleteItem(
                 key = itemKey,
-                enabled = isSwipeRemovalEnabled && !isCurrent && !isPast && !isDragging,
+                enabled = isSwipeRemovalEnabled && !isCurrent && !isDragging,
                 clipContent = !isDragging,
                 onDelete = { viewModel.removeTrackFromQueue(index) },
                 shape = rowShape,
-                horizontalPadding = 0.dp
+                horizontalPadding = 0.dp,
+                endZoneIgnoreWidth = 0.dp,
+                showDeleteIcon = false
             ) {
                 rowContent()
             }
