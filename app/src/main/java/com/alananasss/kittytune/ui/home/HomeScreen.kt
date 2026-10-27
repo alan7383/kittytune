@@ -58,6 +58,7 @@ import com.alananasss.kittytune.ui.library.getRelativeTime
 import java.text.SimpleDateFormat
 import java.util.Locale
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -179,17 +180,29 @@ fun HomeScreen(
         }
     }
 
+    LaunchedEffect(playerViewModel.isPlayerExpanded) {
+        if (playerViewModel.isPlayerExpanded) {
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+        }
+    }
+
     LaunchedEffect(homeViewModel.isSearching, homeViewModel.searchTrigger) {
         if (homeViewModel.isSearching) {
-            delay(400)
-            try {
-                focusRequester.requestFocus()
-                keyboardController?.show()
-            } catch (e: Exception) {
-                e.printStackTrace()
+            if (!playerViewModel.isPlayerExpanded) {
+                delay(400)
+                try {
+                    if (!playerViewModel.isPlayerExpanded) {
+                        focusRequester.requestFocus()
+                        keyboardController?.show()
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         } else {
-            focusManager.clearFocus()
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
         }
     }
 
@@ -347,7 +360,11 @@ fun HomeScreen(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 },
-                                modifier = Modifier.focusRequester(focusRequester),
+                                modifier = Modifier
+                                    .focusProperties {
+                                        canFocus = !playerViewModel.isPlayerExpanded
+                                    }
+                                    .focusRequester(focusRequester),
                                 interactionSource = searchFieldInteractions,
                                 leadingIcon = {
                                     if (isSearching) {
