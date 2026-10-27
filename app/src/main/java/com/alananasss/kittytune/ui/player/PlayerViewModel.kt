@@ -1373,6 +1373,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         currentQueueIndex = -1
         currentTrack = null
         MusicManager.currentTrack = null
+        currentStreamSource = null
         MusicManager.isLoadingTrack = false
         MusicManager.pendingSeekPositionMs = null
         currentContext = null
@@ -1411,6 +1412,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         }
         currentTrack = null
         MusicManager.currentTrack = null
+        currentStreamSource = null
         isPlaying = false
     }
 
@@ -1418,6 +1420,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         val track = dismissedTrack ?: return
         currentTrack = track
         MusicManager.currentTrack = track
+        currentStreamSource = track.source
         if (dismissedQueue.isNotEmpty()) {
             _queue.clear()
             _queue.addAll(dismissedQueue)
@@ -4632,6 +4635,7 @@ query CommentsWithReactions(
         MusicManager.playWhenReadyRequested = autoPlay
         MusicManager.currentTrack = trackToPlay
         currentTrack = trackToPlay
+        currentStreamSource = trackToPlay.source
         MusicManager.isLoadingTrack = true
 
         if (!isCrossfade) {
@@ -4664,6 +4668,7 @@ query CommentsWithReactions(
         hasPushedRecentlyPlayed = false
 
         currentTrack = trackToPlay; MusicManager.currentTrack = trackToPlay
+        currentStreamSource = trackToPlay.source
         updatePlayerColors(trackToPlay)
         djFlowController.onTrackChanged(trackToPlay)
         feedHapticBeatGrid(trackToPlay)
@@ -7674,6 +7679,7 @@ query CommentsWithReactions(
         trackOverride: Track? = null
     ) {
         val trackToPlay = trackOverride ?: _queue.getOrNull(index) ?: return
+        currentStreamSource = trackToPlay.source
 
         if (isCrossfade && MusicManager.isPrebuffered(trackToPlay.id)) {
             val emptyItem = MediaItem.Builder().setMediaId(trackToPlay.id.toString()).build()
@@ -7734,6 +7740,7 @@ query CommentsWithReactions(
                     MusicManager.cancelCrossfade()
                     isLoading = false
                     isPlaying = false
+                    currentStreamSource = trackToPlay.source
                     MusicManager.isLoadingTrack = false
                     if (allowSkipOnFailure && currentQueueIndex + 1 < _queue.size) {
                         playNext(manual = false, isCrossfade = false)
@@ -7838,6 +7845,7 @@ query CommentsWithReactions(
                     }
                     isLoading = false
                     isPlaying = false
+                    currentStreamSource = trackToPlay.source
                     MusicManager.isLoadingTrack = false
                     MusicManager.cancelCrossfade()
                     try {
@@ -7945,6 +7953,7 @@ query CommentsWithReactions(
                     MusicManager.cancelCrossfade()
                     isLoading = false
                     isPlaying = false
+                    currentStreamSource = trackToPlay.source
                     MusicManager.isLoadingTrack = false
                     if (allowSkipOnFailure && currentQueueIndex + 1 < _queue.size) {
                         Log.i("PlayerViewModel", "Skipping to next track after error for ${trackToPlay.id}")
