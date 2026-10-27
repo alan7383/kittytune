@@ -61,6 +61,13 @@ import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.profile.SectionTitle
 import com.alananasss.kittytune.ui.profile.SquareCard
 import java.util.Locale
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.FilledIconButton
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.FilledTonalIconButton
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -558,14 +565,21 @@ private fun TrendingWallTrackItem(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = track.title ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = titleColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = track.title ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = titleColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (track.isGoPlus) {
+                    Spacer(Modifier.width(6.dp))
+                    com.alananasss.kittytune.ui.common.GoPlusBadge(compact = true)
+                }
+            }
             Spacer(Modifier.height(2.dp))
             Text(
                 text = track.user?.username ?: "",
@@ -958,14 +972,21 @@ private fun DiscoverMoreTrackItem(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = track.title ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = titleColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = track.title ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = titleColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (track.isGoPlus) {
+                    Spacer(Modifier.width(6.dp))
+                    com.alananasss.kittytune.ui.common.GoPlusBadge(compact = true)
+                }
+            }
             Spacer(Modifier.height(2.dp))
             Text(
                 text = track.user?.username ?: "",
@@ -1573,14 +1594,21 @@ fun PopularTrackListItem(
 
         Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = track.title ?: stringResource(R.string.untitled_track),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
-                color = titleColor
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = track.title ?: stringResource(R.string.untitled_track),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                    color = titleColor,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (track.isGoPlus) {
+                    Spacer(Modifier.width(6.dp))
+                    com.alananasss.kittytune.ui.common.GoPlusBadge(compact = true)
+                }
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "${track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.unknown_artist) }} • ${formatNumber(track.playbackCount)} ${stringResource(R.string.playback_count_formatted)}",

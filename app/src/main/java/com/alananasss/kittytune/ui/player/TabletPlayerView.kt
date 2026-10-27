@@ -71,6 +71,13 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.text.NumberFormat
 import java.util.Locale
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.LiquidIconButton
+import com.alananasss.kittytune.ui.design.OutlinedButton
+import com.alananasss.kittytune.ui.design.OutlinedTextField
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
 
 /**
  * Sound wave animation indicator (ılı) for currently playing queue track
@@ -177,10 +184,11 @@ fun TabletSidePlayerPanel(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
+                    LiquidIconButton(
                         onClick = onExpandFullScreen,
-                        shapes = IconButtonDefaults.shapes(),
-                        modifier = Modifier.size(36.dp)
+                        size = 36.dp,
+                        tint = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f),
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.OpenInFull,
@@ -189,10 +197,11 @@ fun TabletSidePlayerPanel(
                             modifier = Modifier.size(18.dp)
                         )
                     }
-                    IconButton(
+                    LiquidIconButton(
                         onClick = onClose,
-                        shapes = IconButtonDefaults.shapes(),
-                        modifier = Modifier.size(36.dp)
+                        size = 36.dp,
+                        tint = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f),
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     ) {
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowDown,
@@ -215,10 +224,11 @@ fun TabletSidePlayerPanel(
                         .hapticClickable { viewModel.navigateToContext() }
                 )
 
-                IconButton(
+                LiquidIconButton(
                     onClick = hapticAction(HapticKind.UI) { viewModel.showTrackOptions(track, fromPlayer = true) },
-                    shapes = IconButtonDefaults.shapes(),
-                    modifier = Modifier.size(36.dp)
+                    size = 36.dp,
+                    tint = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f),
+                    contentColor = MaterialTheme.colorScheme.onSurface
                 ) {
                     Icon(
                         imageVector = Icons.Filled.MoreVert,
@@ -481,6 +491,11 @@ fun DesktopTrackInfoTabContent(
                         resolvedSource = viewModel.currentStreamSource,
                         modifier = Modifier.padding(start = 6.dp)
                     )
+                    if (track?.isGoPlus == true) {
+                        com.alananasss.kittytune.ui.common.GoPlusBadge(
+                            modifier = Modifier.padding(start = 6.dp)
+                        )
+                    }
                 }
             }
         }
@@ -1088,6 +1103,11 @@ fun TabletFullScreenPlayerView(
                                 resolvedSource = viewModel.currentStreamSource,
                                 modifier = Modifier.padding(start = 6.dp)
                             )
+                            if (track?.isGoPlus == true) {
+                                com.alananasss.kittytune.ui.common.GoPlusBadge(
+                                    modifier = Modifier.padding(start = 6.dp)
+                                )
+                            }
                         }
                     }
 

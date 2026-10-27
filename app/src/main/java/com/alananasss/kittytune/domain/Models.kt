@@ -659,6 +659,13 @@ data class Track(
                 policy == "SNIP" ||
                 (fullDuration != null && durationMs != null && fullDuration > 0 && durationMs in 1..45000 && fullDuration > durationMs + 15000)
 
+    val isGoPlus: Boolean
+        get() = (source == null || source == "soundcloud") &&
+                (monetizationModel.equals("SUB_HIGH_TIER", ignoreCase = true) ||
+                 policy.equals("SNIP", ignoreCase = true) ||
+                 isSnipped ||
+                 media?.transcodings?.any { it.snipped } == true)
+
     val fullResArtwork: String
         get() {
             if (!artworkUrl.isNullOrEmpty()) return artworkUrl.toHighResArtwork()

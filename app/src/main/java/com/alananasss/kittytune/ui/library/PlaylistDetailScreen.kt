@@ -104,6 +104,16 @@ import java.io.File
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.alananasss.kittytune.data.local.toTrack
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.FilledTonalIconButton
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.OutlinedTextField
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.TopAppBar
 
 enum class TrackSortBy {
     RECENTLY_ADDED, FIRST_ADDED, TITLE_AZ, ARTIST_AZ
@@ -3269,13 +3279,20 @@ fun TrackListItem(
             }
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = track.title ?: stringResource(R.string.untitled_track),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = titleWeight,
-                    color = titleColor
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = track.title ?: stringResource(R.string.untitled_track),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = titleWeight,
+                        color = titleColor,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (track.isGoPlus) {
+                        Spacer(Modifier.width(6.dp))
+                        com.alananasss.kittytune.ui.common.GoPlusBadge(compact = true)
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (isDownloaded && !isDownloading) {
                         Icon(

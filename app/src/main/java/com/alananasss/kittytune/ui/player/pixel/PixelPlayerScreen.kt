@@ -48,8 +48,8 @@ import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.IconButton
+import com.alananasss.kittytune.ui.design.FilledIconButton
+import com.alananasss.kittytune.ui.design.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -739,6 +739,11 @@ fun PixelPlayerScreen(
                         resolvedSource = viewModel.currentStreamSource,
                         modifier = Modifier.padding(start = 6.dp)
                     )
+                    if (track?.isGoPlus == true) {
+                        com.alananasss.kittytune.ui.common.GoPlusBadge(
+                            modifier = Modifier.padding(start = 6.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
