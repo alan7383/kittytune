@@ -33,6 +33,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -149,6 +152,19 @@ fun MainScreen(
     val currentDestination = navBackStackEntry?.destination
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    val isFullscreenOverlayVisible = playerViewModel.isPlayerExpanded ||
+        playerViewModel.showLyricsSheet ||
+        playerViewModel.showEqualizerScreen
+
+    LaunchedEffect(isFullscreenOverlayVisible) {
+        if (isFullscreenOverlayVisible) {
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+        }
+    }
 
     val prefs = remember { PlayerPreferences(context) }
 
@@ -224,6 +240,10 @@ fun MainScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
+                if (isFullscreenOverlayVisible) {
+                    focusManager.clearFocus(force = true)
+                    keyboardController?.hide()
+                }
                 com.alananasss.kittytune.data.sync.ConnectManager.setForeground(true)
                 SessionManager.requestSessionRefresh(
                     context = context,
@@ -662,6 +682,9 @@ fun MainScreen(
                             startDestination = startDestination,
                             modifier = Modifier
                                 .fillMaxSize()
+                                .focusProperties {
+                                    canFocus = !isFullscreenOverlayVisible
+                                }
                                 .then(
                                     if (!isFullScreenRoute) {
                                         Modifier.progressiveBlur(
