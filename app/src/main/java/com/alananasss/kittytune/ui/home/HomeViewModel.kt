@@ -1281,7 +1281,7 @@
                                     artist = displayArtist,
                                     explicit = item.explicit
                                 ),
-                                source = "youtube"
+                                source = "youtube_music"
                             )
                         } else {
                             try {
@@ -1344,7 +1344,7 @@
                                     artist = displayArtist,
                                     explicit = item.explicit
                                 ),
-                                source = "youtube"
+                                source = "youtube_music"
                             )
                         } else {
                             try {
