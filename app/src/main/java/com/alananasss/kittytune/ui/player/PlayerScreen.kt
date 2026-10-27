@@ -1,6 +1,7 @@
 package com.alananasss.kittytune.ui.player
 
 import androidx.compose.foundation.clickable
+import com.alananasss.kittytune.ui.common.Slider as ExpressiveSlider
 import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.rememberAppHaptics
@@ -25,6 +26,10 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.*
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -43,7 +48,9 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.*
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
@@ -123,34 +130,36 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.GlassEmphasis
+import com.alananasss.kittytune.ui.design.interactiveGlassButton
+import com.alananasss.kittytune.ui.design.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.alananasss.kittytune.ui.design.TextButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.alananasss.kittytune.ui.design.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import com.alananasss.kittytune.ui.design.Surface
 import com.alananasss.kittytune.ui.common.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Card
+import com.alananasss.kittytune.ui.design.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
+import com.alananasss.kittytune.ui.design.CenterAlignedTopAppBar
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TextField
+import com.alananasss.kittytune.ui.design.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.AssistChip
+import com.alananasss.kittytune.ui.design.OutlinedButton
+import com.alananasss.kittytune.ui.design.OutlinedTextField
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -173,6 +182,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.font.FontWeight
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import com.alananasss.kittytune.ui.design.FilterChip
+import kotlin.math.abs
+import kotlin.math.round
 
 @Composable
 fun PremiumMarqueeText(
@@ -1478,6 +1490,12 @@ fun NewPlayerScreen(
                                                     resolvedSource = viewModel.currentStreamSource,
                                                     modifier = Modifier.padding(start = 6.dp)
                                                 )
+
+                                                if (track?.isGoPlus == true) {
+                                                    com.alananasss.kittytune.ui.common.GoPlusBadge(
+                                                        modifier = Modifier.padding(start = 6.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -4542,6 +4560,7 @@ fun PlayerControls(
     val sideButtonContainerColor = animatedSideButtonColor.copy(alpha = 0.15f)
     val sideButtonContentColor = animatedSideButtonColor
 
+    val controlShape = RoundedCornerShape(50)
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
             horizontalArrangement = Arrangement.Center,
@@ -4584,12 +4603,17 @@ fun PlayerControls(
                 modifier = Modifier
                     .height(68.dp)
                     .weight(backButtonWeight)
-                    .clip(RoundedCornerShape(50))
-                    .background(sideButtonContainerColor)
+                    .clip(controlShape)
                     .clickable(
                         interactionSource = backInteractionSource,
-                        indication = ripple()
-                    ) { viewModel.smartPrevious() },
+                        indication = null
+                    ) { viewModel.smartPrevious() }
+                    .interactiveGlassButton(
+                        shape = controlShape,
+                        tint = sideButtonContainerColor,
+                        emphasis = GlassEmphasis.Surface,
+                        shadowElevation = 6.dp
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Rounded.SkipPrevious, null, tint = sideButtonContentColor, modifier = Modifier.size(32.dp))
@@ -4601,12 +4625,17 @@ fun PlayerControls(
                 modifier = Modifier
                     .height(68.dp)
                     .weight(playPauseWeight)
-                    .clip(RoundedCornerShape(50))
-                    .background(animatedMainColor)
+                    .clip(controlShape)
                     .clickable(
                         interactionSource = playPauseInteractionSource,
-                        indication = ripple()
-                    ) { viewModel.togglePlayPause() },
+                        indication = null
+                    ) { viewModel.togglePlayPause() }
+                    .interactiveGlassButton(
+                        shape = controlShape,
+                        tint = animatedMainColor,
+                        emphasis = GlassEmphasis.Prominent,
+                        shadowElevation = 9.dp
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 AnimatedContent(
@@ -4659,12 +4688,17 @@ fun PlayerControls(
                 modifier = Modifier
                     .height(68.dp)
                     .weight(nextButtonWeight)
-                    .clip(RoundedCornerShape(50))
-                    .background(sideButtonContainerColor)
+                    .clip(controlShape)
                     .clickable(
                         interactionSource = nextInteractionSource,
-                        indication = ripple()
-                    ) { viewModel.requestSkipNext() },
+                        indication = null
+                    ) { viewModel.requestSkipNext() }
+                    .interactiveGlassButton(
+                        shape = controlShape,
+                        tint = sideButtonContainerColor,
+                        emphasis = GlassEmphasis.Surface,
+                        shadowElevation = 6.dp
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Rounded.SkipNext, null, tint = sideButtonContentColor, modifier = Modifier.size(32.dp))
@@ -4880,8 +4914,13 @@ private fun PlayerSlotButton(
             modifier = modifier
                 .size(42.dp)
                 .clip(shape)
-                .background(containerColor)
-                .then(clickModifier),
+                .then(clickModifier)
+                .interactiveGlassButton(
+                    shape = shape,
+                    tint = containerColor,
+                    emphasis = GlassEmphasis.Surface,
+                    shadowElevation = 5.dp
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -5083,17 +5122,18 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                     }
                 }
             }
-            Spacer(Modifier.height(24.dp)); Slider(
-            value = viewModel.effectsState.speed,
-            onValueChange = {
-                if (it != viewModel.effectsState.speed) view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK); viewModel.setCustomSpeed(
-                it
+            Spacer(Modifier.height(24.dp))
+            val speedRange = 0.5f..2.0f
+            val speedSteps = if (isPrecise) 29 else 14
+            // Same component as the settings sliders: KittyLiquidSlider in liquid mode, with
+            // the glass capsule thumb, press/lens animation and inertia.
+            ExpressiveSlider(
+                value = viewModel.effectsState.speed,
+                onValueChange = { viewModel.setCustomSpeed(it) },
+                valueRange = speedRange,
+                steps = speedSteps,
+                modifier = Modifier.fillMaxWidth()
             )
-            },
-            valueRange = 0.5f..2.0f,
-            steps = if (isPrecise) 29 else 14,
-            modifier = Modifier.fillMaxWidth()
-        )
         }
         Spacer(Modifier.height(16.dp))
         Row(
@@ -10695,13 +10735,20 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                 )
                 Spacer(Modifier.width(16.dp))
                 Column {
-                    Text(
-                        text = track.title ?: stringResource(R.string.untitled_track),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = track.title ?: stringResource(R.string.untitled_track),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (track.isGoPlus) {
+                            Spacer(Modifier.width(8.dp))
+                            com.alananasss.kittytune.ui.common.GoPlusBadge()
+                        }
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.hapticClickable {
                         onClose()
                         viewModel.navigateToTrackArtist(track)
@@ -11156,10 +11203,16 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                 Spacer(Modifier.height(24.dp))
             }
             item {
+                if (track.isGoPlus) {
+                    DetailInfoRow("SoundCloud Go+") {
+                        com.alananasss.kittytune.ui.common.GoPlusBadge()
+                    }
+                }
                 DetailInfoRow(stringResource(R.string.detail_release_date), releaseDateStr)
                 if (!track.genre.isNullOrBlank()) {
                     DetailInfoRow(stringResource(R.string.detail_genre), track.genre)
                 }
+                DetailInfoRow(stringResource(R.string.detail_duration), makeTimeString(track.actualDurationMs))
                 Spacer(Modifier.height(16.dp))
             }
             if (!track.description.isNullOrBlank()) {
@@ -11233,13 +11286,31 @@ fun DetailStatItem(icon: ImageVector, value: String, label: String, onClick: () 
 fun DetailInfoRow(label: String, value: String) {
     Row(
         Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
-        ); Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+        )
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+fun DetailInfoRow(label: String, content: @Composable () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        content()
     }
 }
 
@@ -11846,6 +11917,12 @@ fun OldPlayerScreen(
                                                 resolvedSource = viewModel.currentStreamSource,
                                                 modifier = Modifier.padding(start = 6.dp)
                                             )
+
+                                            if (track?.isGoPlus == true) {
+                                                com.alananasss.kittytune.ui.common.GoPlusBadge(
+                                                    modifier = Modifier.padding(start = 6.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -12463,6 +12540,12 @@ fun LandscapePlayerView(
                         resolvedSource = viewModel.currentStreamSource,
                         modifier = Modifier.padding(start = 6.dp)
                     )
+
+                    if (track?.isGoPlus == true) {
+                        com.alananasss.kittytune.ui.common.GoPlusBadge(
+                            modifier = Modifier.padding(start = 6.dp)
+                        )
+                    }
                 }
             }
 
@@ -12860,6 +12943,12 @@ fun PhoneLandscapePlayerView(
                         resolvedSource = viewModel.currentStreamSource,
                         modifier = Modifier.padding(start = 6.dp)
                     )
+
+                    if (track?.isGoPlus == true) {
+                        com.alananasss.kittytune.ui.common.GoPlusBadge(
+                            modifier = Modifier.padding(start = 6.dp)
+                        )
+                    }
                 }
             }
 
@@ -13323,6 +13412,11 @@ fun SoundCloudPlayerView(
                                 track = pageTrack,
                                 resolvedSource = viewModel.currentStreamSource
                             )
+                            if (pageTrack.isGoPlus) {
+                                com.alananasss.kittytune.ui.common.GoPlusBadge(
+                                    modifier = Modifier.padding(start = 6.dp)
+                                )
+                            }
                         }
                     }
                     if (!isSpotifyTrack && pageTrack.source != "youtube") {

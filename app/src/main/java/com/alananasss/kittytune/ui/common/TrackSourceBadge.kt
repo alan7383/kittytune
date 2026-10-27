@@ -215,3 +215,36 @@ fun TrackSourceCoverBadge(
     }
 }
 
+/**
+ * Visual badge for SoundCloud Go+ subscription tracks.
+ */
+@Composable
+fun GoPlusBadge(
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
+    Surface(
+        shape = RoundedCornerShape(4.dp),
+        color = Color(0xFFFF5500),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = if (compact) 4.dp else 5.dp,
+                vertical = if (compact) 1.dp else 2.dp
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "GO+",
+                color = Color.White,
+                fontSize = if (compact) 8.5.sp else 9.5.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 0.3.sp,
+                lineHeight = if (compact) 10.sp else 11.sp
+            )
+        }
+    }
+}
+

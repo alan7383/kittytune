@@ -31,6 +31,7 @@
 import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.ui.design.IconButton
 
     @Composable
     fun MiniPlayer(
@@ -121,14 +122,21 @@ import com.alananasss.kittytune.ui.common.hapticClickable
                         .padding(vertical = 8.dp),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    PremiumMarqueeText(
-                        text = track.title ?: stringResource(R.string.untitled_track),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        edgeGradientWidth = 10.dp,
-                        delayMillis = 3000,
-                        velocity = 25.dp
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        PremiumMarqueeText(
+                            text = track.title ?: stringResource(R.string.untitled_track),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            edgeGradientWidth = 10.dp,
+                            delayMillis = 3000,
+                            velocity = 25.dp,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (track.isGoPlus) {
+                            Spacer(Modifier.width(5.dp))
+                            com.alananasss.kittytune.ui.common.GoPlusBadge(compact = true)
+                        }
+                    }
                     val deviceLabel = viewModel.playbackDeviceLabel
                     if (deviceLabel != null) {
                         Row(

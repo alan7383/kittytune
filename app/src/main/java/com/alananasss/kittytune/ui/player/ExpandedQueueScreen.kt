@@ -75,6 +75,9 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.CenterAlignedTopAppBar
 
 private sealed interface QueueListItem {
     data class PastHeader(val count: Int, val isExpanded: Boolean) : QueueListItem
@@ -656,14 +659,21 @@ private fun QueueRow(
             Spacer(Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = track.title ?: stringResource(R.string.generic_title),
-                    style = if (isPast) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
-                    color = if (isCurrent) scheme.onSecondaryContainer else scheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = track.title ?: stringResource(R.string.generic_title),
+                        style = if (isPast) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
+                        color = if (isCurrent) scheme.onSecondaryContainer else scheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (track.isGoPlus) {
+                        Spacer(Modifier.width(6.dp))
+                        com.alananasss.kittytune.ui.common.GoPlusBadge(compact = true)
+                    }
+                }
                 if (!isPast) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
