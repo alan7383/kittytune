@@ -81,6 +81,7 @@ import com.alananasss.kittytune.ui.design.CenterAlignedTopAppBar
 
 private sealed interface QueueListItem {
     data class PastHeader(val count: Int, val isExpanded: Boolean) : QueueListItem
+    data class UpNextHeader(val count: Int) : QueueListItem
     data class TrackItem(val queueIndex: Int, val track: Track) : QueueListItem
 }
 
@@ -409,11 +410,14 @@ private fun QueueListView(
     var pastExpandedByUser by remember { mutableStateOf<Boolean?>(null) }
     val isPastExpanded = pastExpandedByUser ?: (pastCount <= PAST_COLLAPSE_THRESHOLD)
 
-    val listItems = remember(queue, currentIndex, pastIndices, isPastExpanded) {
+    val listItems = remember(queue, currentIndex, pastIndices, isPastExpanded, upNextCount) {
         buildList {
             for (index in queue.indices) {
                 if (index == firstPast && pastCount > 0) {
                     add(QueueListItem.PastHeader(count = pastCount, isExpanded = isPastExpanded))
+                }
+                if (currentIndex >= 0 && index == currentIndex + 1 && upNextCount > 0) {
+                    add(QueueListItem.UpNextHeader(count = upNextCount))
                 }
                 val isPast = index in pastIndices
                 if (!isPast || isPastExpanded) {
@@ -462,6 +466,7 @@ private fun QueueListView(
             key = { item ->
                 when (item) {
                     is QueueListItem.PastHeader -> "queue_header_past"
+                    is QueueListItem.UpNextHeader -> "queue_header_up_next"
                     is QueueListItem.TrackItem -> keys[item.queueIndex]
                 }
             }
@@ -476,6 +481,12 @@ private fun QueueListView(
                         onToggle = { pastExpandedByUser = !item.isExpanded }
                     )
                 }
+                is QueueListItem.UpNextHeader -> {
+                    QueueSectionRule(
+                        label = stringResource(R.string.queue_up_next),
+                        count = item.count
+                    )
+                }
                 is QueueListItem.TrackItem -> {
                     val index = item.queueIndex
                     val isCurrent = index == currentIndex
@@ -486,24 +497,16 @@ private fun QueueListView(
                         key = keys[index],
                         animateItemModifier = Modifier,
                     ) { isDragging ->
-                        Column {
-                            if (currentIndex >= 0 && index == currentIndex + 1 && upNextCount > 0) {
-                                QueueSectionRule(
-                                    label = stringResource(R.string.queue_up_next),
-                                    count = upNextCount
-                                )
-                            }
-                            QueueRow(
-                                viewModel = viewModel,
-                                track = item.track,
-                                index = index,
-                                itemKey = keys[index],
-                                isCurrent = isCurrent,
-                                isPast = isPast,
-                                isDragging = isDragging,
-                                scope = this@ReorderableItem,
-                            )
-                        }
+                        QueueRow(
+                            viewModel = viewModel,
+                            track = item.track,
+                            index = index,
+                            itemKey = keys[index],
+                            isCurrent = isCurrent,
+                            isPast = isPast,
+                            isDragging = isDragging,
+                            scope = this@ReorderableItem,
+                        )
                     }
                 }
             }
