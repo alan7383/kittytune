@@ -131,8 +131,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import com.alananasss.kittytune.ui.design.AlertDialog
-import com.alananasss.kittytune.ui.design.GlassEmphasis
-import com.alananasss.kittytune.ui.design.interactiveGlassButton
 import com.alananasss.kittytune.ui.design.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
@@ -182,8 +180,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.font.FontWeight
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import com.alananasss.kittytune.data.local.UiDesignStyle
-import com.alananasss.kittytune.ui.liquidglass.LocalUiDesignStyle
 import com.alananasss.kittytune.ui.design.FilterChip
 import kotlin.math.abs
 import kotlin.math.round
@@ -4556,9 +4552,6 @@ fun PlayerControls(
     val sideButtonContainerColor = animatedSideButtonColor.copy(alpha = 0.15f)
     val sideButtonContentColor = animatedSideButtonColor
 
-    val controlShape = RoundedCornerShape(50)
-    val isLiquid = LocalUiDesignStyle.current == UiDesignStyle.LIQUID_GLASS
-
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
             horizontalArrangement = Arrangement.Center,
@@ -4601,23 +4594,12 @@ fun PlayerControls(
                 modifier = Modifier
                     .height(68.dp)
                     .weight(backButtonWeight)
-                    .clip(controlShape)
+                    .clip(RoundedCornerShape(50))
+                    .background(sideButtonContainerColor)
                     .clickable(
                         interactionSource = backInteractionSource,
-                        indication = null
-                    ) { viewModel.smartPrevious() }
-                    .then(
-                        if (isLiquid) {
-                            Modifier.interactiveGlassButton(
-                                shape = controlShape,
-                                tint = sideButtonContainerColor,
-                                emphasis = GlassEmphasis.Surface,
-                                shadowElevation = 6.dp
-                            )
-                        } else {
-                            Modifier.background(sideButtonContainerColor, controlShape)
-                        }
-                    ),
+                        indication = ripple()
+                    ) { viewModel.smartPrevious() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Rounded.SkipPrevious, null, tint = sideButtonContentColor, modifier = Modifier.size(32.dp))
@@ -4629,23 +4611,12 @@ fun PlayerControls(
                 modifier = Modifier
                     .height(68.dp)
                     .weight(playPauseWeight)
-                    .clip(controlShape)
+                    .clip(RoundedCornerShape(50))
+                    .background(animatedMainColor)
                     .clickable(
                         interactionSource = playPauseInteractionSource,
-                        indication = null
-                    ) { viewModel.togglePlayPause() }
-                    .then(
-                        if (isLiquid) {
-                            Modifier.interactiveGlassButton(
-                                shape = controlShape,
-                                tint = animatedMainColor,
-                                emphasis = GlassEmphasis.Prominent,
-                                shadowElevation = 9.dp
-                            )
-                        } else {
-                            Modifier.background(animatedMainColor, controlShape)
-                        }
-                    ),
+                        indication = ripple()
+                    ) { viewModel.togglePlayPause() },
                 contentAlignment = Alignment.Center
             ) {
                 AnimatedContent(
@@ -4670,12 +4641,24 @@ fun PlayerControls(
                     if (isLoading) {
                         LoadingIndicator(color = playIconColor, modifier = Modifier.size(32.dp))
                     } else {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            contentDescription = stringResource(if (isPlaying) R.string.action_pause else R.string.action_play),
-                            tint = playIconColor,
-                            modifier = Modifier.size(36.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                contentDescription = null,
+                                tint = playIconColor,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(if (isPlaying) R.string.action_pause else R.string.action_play),
+                                color = playIconColor,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -4686,23 +4669,12 @@ fun PlayerControls(
                 modifier = Modifier
                     .height(68.dp)
                     .weight(nextButtonWeight)
-                    .clip(controlShape)
+                    .clip(RoundedCornerShape(50))
+                    .background(sideButtonContainerColor)
                     .clickable(
                         interactionSource = nextInteractionSource,
-                        indication = null
-                    ) { viewModel.requestSkipNext() }
-                    .then(
-                        if (isLiquid) {
-                            Modifier.interactiveGlassButton(
-                                shape = controlShape,
-                                tint = sideButtonContainerColor,
-                                emphasis = GlassEmphasis.Surface,
-                                shadowElevation = 6.dp
-                            )
-                        } else {
-                            Modifier.background(sideButtonContainerColor, controlShape)
-                        }
-                    ),
+                        indication = ripple()
+                    ) { viewModel.requestSkipNext() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Rounded.SkipNext, null, tint = sideButtonContentColor, modifier = Modifier.size(32.dp))
@@ -4914,24 +4886,12 @@ private fun PlayerSlotButton(
             }
         }
 
-        val isLiquid = LocalUiDesignStyle.current == UiDesignStyle.LIQUID_GLASS
         Box(
             modifier = modifier
                 .size(42.dp)
                 .clip(shape)
-                .then(clickModifier)
-                .then(
-                    if (isLiquid) {
-                        Modifier.interactiveGlassButton(
-                            shape = shape,
-                            tint = containerColor,
-                            emphasis = GlassEmphasis.Surface,
-                            shadowElevation = 5.dp
-                        )
-                    } else {
-                        Modifier.background(containerColor, shape)
-                    }
-                ),
+                .background(containerColor)
+                .then(clickModifier),
             contentAlignment = Alignment.Center
         ) {
             Icon(
