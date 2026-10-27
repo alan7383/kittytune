@@ -132,10 +132,6 @@ import com.alananasss.kittytune.ui.design.IconButton
                             velocity = 25.dp,
                             modifier = Modifier.weight(1f, fill = false)
                         )
-                        if (track.isGoPlus) {
-                            Spacer(Modifier.width(5.dp))
-                            com.alananasss.kittytune.ui.common.GoPlusBadge(compact = true)
-                        }
                     }
                     val deviceLabel = viewModel.playbackDeviceLabel
                     if (deviceLabel != null) {

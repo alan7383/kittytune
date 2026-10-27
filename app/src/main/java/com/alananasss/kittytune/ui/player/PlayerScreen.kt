@@ -182,6 +182,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.font.FontWeight
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import com.alananasss.kittytune.data.local.UiDesignStyle
+import com.alananasss.kittytune.ui.liquidglass.LocalUiDesignStyle
 import com.alananasss.kittytune.ui.design.FilterChip
 import kotlin.math.abs
 import kotlin.math.round
@@ -1490,12 +1492,6 @@ fun NewPlayerScreen(
                                                     resolvedSource = viewModel.currentStreamSource,
                                                     modifier = Modifier.padding(start = 6.dp)
                                                 )
-
-                                                if (track?.isGoPlus == true) {
-                                                    com.alananasss.kittytune.ui.common.GoPlusBadge(
-                                                        modifier = Modifier.padding(start = 6.dp)
-                                                    )
-                                                }
                                             }
                                         }
                                     }
@@ -4561,6 +4557,8 @@ fun PlayerControls(
     val sideButtonContentColor = animatedSideButtonColor
 
     val controlShape = RoundedCornerShape(50)
+    val isLiquid = LocalUiDesignStyle.current == UiDesignStyle.LIQUID_GLASS
+
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
             horizontalArrangement = Arrangement.Center,
@@ -4608,11 +4606,17 @@ fun PlayerControls(
                         interactionSource = backInteractionSource,
                         indication = null
                     ) { viewModel.smartPrevious() }
-                    .interactiveGlassButton(
-                        shape = controlShape,
-                        tint = sideButtonContainerColor,
-                        emphasis = GlassEmphasis.Surface,
-                        shadowElevation = 6.dp
+                    .then(
+                        if (isLiquid) {
+                            Modifier.interactiveGlassButton(
+                                shape = controlShape,
+                                tint = sideButtonContainerColor,
+                                emphasis = GlassEmphasis.Surface,
+                                shadowElevation = 6.dp
+                            )
+                        } else {
+                            Modifier.background(sideButtonContainerColor, controlShape)
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -4630,11 +4634,17 @@ fun PlayerControls(
                         interactionSource = playPauseInteractionSource,
                         indication = null
                     ) { viewModel.togglePlayPause() }
-                    .interactiveGlassButton(
-                        shape = controlShape,
-                        tint = animatedMainColor,
-                        emphasis = GlassEmphasis.Prominent,
-                        shadowElevation = 9.dp
+                    .then(
+                        if (isLiquid) {
+                            Modifier.interactiveGlassButton(
+                                shape = controlShape,
+                                tint = animatedMainColor,
+                                emphasis = GlassEmphasis.Prominent,
+                                shadowElevation = 9.dp
+                            )
+                        } else {
+                            Modifier.background(animatedMainColor, controlShape)
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -4660,24 +4670,12 @@ fun PlayerControls(
                     if (isLoading) {
                         LoadingIndicator(color = playIconColor, modifier = Modifier.size(32.dp))
                     } else {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                contentDescription = null,
-                                tint = playIconColor,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(if (isPlaying) R.string.action_pause else R.string.action_play),
-                                color = playIconColor,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            contentDescription = stringResource(if (isPlaying) R.string.action_pause else R.string.action_play),
+                            tint = playIconColor,
+                            modifier = Modifier.size(36.dp)
+                        )
                     }
                 }
             }
@@ -4693,11 +4691,17 @@ fun PlayerControls(
                         interactionSource = nextInteractionSource,
                         indication = null
                     ) { viewModel.requestSkipNext() }
-                    .interactiveGlassButton(
-                        shape = controlShape,
-                        tint = sideButtonContainerColor,
-                        emphasis = GlassEmphasis.Surface,
-                        shadowElevation = 6.dp
+                    .then(
+                        if (isLiquid) {
+                            Modifier.interactiveGlassButton(
+                                shape = controlShape,
+                                tint = sideButtonContainerColor,
+                                emphasis = GlassEmphasis.Surface,
+                                shadowElevation = 6.dp
+                            )
+                        } else {
+                            Modifier.background(sideButtonContainerColor, controlShape)
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -4910,16 +4914,23 @@ private fun PlayerSlotButton(
             }
         }
 
+        val isLiquid = LocalUiDesignStyle.current == UiDesignStyle.LIQUID_GLASS
         Box(
             modifier = modifier
                 .size(42.dp)
                 .clip(shape)
                 .then(clickModifier)
-                .interactiveGlassButton(
-                    shape = shape,
-                    tint = containerColor,
-                    emphasis = GlassEmphasis.Surface,
-                    shadowElevation = 5.dp
+                .then(
+                    if (isLiquid) {
+                        Modifier.interactiveGlassButton(
+                            shape = shape,
+                            tint = containerColor,
+                            emphasis = GlassEmphasis.Surface,
+                            shadowElevation = 5.dp
+                        )
+                    } else {
+                        Modifier.background(containerColor, shape)
+                    }
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -11917,12 +11928,6 @@ fun OldPlayerScreen(
                                                 resolvedSource = viewModel.currentStreamSource,
                                                 modifier = Modifier.padding(start = 6.dp)
                                             )
-
-                                            if (track?.isGoPlus == true) {
-                                                com.alananasss.kittytune.ui.common.GoPlusBadge(
-                                                    modifier = Modifier.padding(start = 6.dp)
-                                                )
-                                            }
                                         }
                                     }
                                 }
@@ -12540,12 +12545,6 @@ fun LandscapePlayerView(
                         resolvedSource = viewModel.currentStreamSource,
                         modifier = Modifier.padding(start = 6.dp)
                     )
-
-                    if (track?.isGoPlus == true) {
-                        com.alananasss.kittytune.ui.common.GoPlusBadge(
-                            modifier = Modifier.padding(start = 6.dp)
-                        )
-                    }
                 }
             }
 
@@ -12943,12 +12942,6 @@ fun PhoneLandscapePlayerView(
                         resolvedSource = viewModel.currentStreamSource,
                         modifier = Modifier.padding(start = 6.dp)
                     )
-
-                    if (track?.isGoPlus == true) {
-                        com.alananasss.kittytune.ui.common.GoPlusBadge(
-                            modifier = Modifier.padding(start = 6.dp)
-                        )
-                    }
                 }
             }
 
@@ -13412,11 +13405,6 @@ fun SoundCloudPlayerView(
                                 track = pageTrack,
                                 resolvedSource = viewModel.currentStreamSource
                             )
-                            if (pageTrack.isGoPlus) {
-                                com.alananasss.kittytune.ui.common.GoPlusBadge(
-                                    modifier = Modifier.padding(start = 6.dp)
-                                )
-                            }
                         }
                     }
                     if (!isSpotifyTrack && pageTrack.source != "youtube") {

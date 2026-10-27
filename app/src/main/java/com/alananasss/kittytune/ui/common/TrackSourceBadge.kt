@@ -216,7 +216,7 @@ fun TrackSourceCoverBadge(
 }
 
 /**
- * Visual badge for SoundCloud Go+ subscription tracks.
+ * Visual badge for SoundCloud Go+ subscription tracks styled as a Material 3 chip.
  */
 @Composable
 fun GoPlusBadge(
@@ -224,25 +224,27 @@ fun GoPlusBadge(
     compact: Boolean = false,
 ) {
     Surface(
-        shape = RoundedCornerShape(4.dp),
-        color = Color(0xFFFF5500),
+        shape = RoundedCornerShape(if (compact) 6.dp else 8.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f),
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier
     ) {
         Row(
             modifier = Modifier.padding(
-                horizontal = if (compact) 4.dp else 5.dp,
-                vertical = if (compact) 1.dp else 2.dp
+                horizontal = if (compact) 5.dp else 7.dp,
+                vertical = if (compact) 1.5.dp else 2.5.dp
             ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
                 text = "GO+",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                style = MaterialTheme.typography.labelSmall,
                 fontSize = if (compact) 8.5.sp else 9.5.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.3.sp,
-                lineHeight = if (compact) 10.sp else 11.sp
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.4.sp
             )
         }
     }
