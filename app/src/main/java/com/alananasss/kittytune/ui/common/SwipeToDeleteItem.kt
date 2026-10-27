@@ -2,7 +2,9 @@ package com.alananasss.kittytune.ui.common
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -48,7 +50,8 @@ fun SwipeToDeleteItem(
     horizontalPadding: Dp = 0.dp,
     cardColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     clipContent: Boolean = true,
-    endZoneIgnoreWidth: Dp = 56.dp,
+    endZoneIgnoreWidth: Dp = 0.dp,
+    showDeleteIcon: Boolean = true,
     content: @Composable () -> Unit
 ) {
     if (!enabled) {
@@ -67,20 +70,20 @@ fun SwipeToDeleteItem(
     val density = LocalDensity.current
     val haptics = rememberAppHaptics()
 
-    val dismissThresholdPx = with(density) { 100.dp.toPx() }
+    val dismissThresholdPx = with(density) { 96.dp.toPx() }
 
     val offsetX = remember(key) { Animatable(0f) }
-    val progress = (-offsetX.value / dismissThresholdPx).coerceIn(0f, 1f)
+    val progress = (abs(offsetX.value) / dismissThresholdPx).coerceIn(0f, 1f)
 
     val bgColor by animateColorAsState(
-        targetValue = if (progress > 0f)
+        targetValue = if (showDeleteIcon && progress > 0f)
             MaterialTheme.colorScheme.errorContainer.copy(alpha = progress.coerceIn(0.1f, 1f))
         else
             Color.Transparent,
         label = "swipe_bg"
     )
     val iconAlpha by animateFloatAsState(
-        targetValue = progress.coerceIn(0f, 1f),
+        targetValue = if (showDeleteIcon) progress.coerceIn(0f, 1f) else 0f,
         label = "icon_alpha"
     )
     val iconScale by animateFloatAsState(
@@ -99,10 +102,8 @@ fun SwipeToDeleteItem(
 
         awaitEachGesture {
             val velocityTracker = VelocityTracker()
-            val down = awaitFirstDown(requireUnconsumed = false)
+            val down = awaitFirstDown(pass = PointerEventPass.Initial, requireUnconsumed = false)
 
-            // If the gesture starts in the designated end zone (e.g. reorder handle or options menu),
-            // do not intercept or interfere with child gesture detectors.
             if (endZoneThresholdPx > 0f && down.position.x > size.width - endZoneThresholdPx) {
                 waitForUpOrCancellation()
                 return@awaitEachGesture
@@ -116,16 +117,10 @@ fun SwipeToDeleteItem(
             val maxSwipe = size.width.toFloat()
 
             while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Main)
-                val change = event.changes.firstOrNull() ?: break
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                val change = event.changes.firstOrNull { it.id == down.id } ?: break
                 if (!change.pressed) break
 
-                // If a child has consumed the change before horizontal swipe started, stop handling.
-                if (change.isConsumed && !dragStarted) {
-                    break
-                }
-
-                val deltaX = change.position.x - change.previousPosition.x
                 val totalDeltaX = change.position.x - down.position.x
                 val totalDeltaY = change.position.y - down.position.y
 
@@ -133,9 +128,10 @@ fun SwipeToDeleteItem(
                     val absTotalX = abs(totalDeltaX)
                     val absTotalY = abs(totalDeltaY)
                     if (absTotalX > touchSlop || absTotalY > touchSlop) {
-                        // Swipe-to-delete is strictly leftward; ignore rightward drags or vertical motion
-                        if (absTotalX > absTotalY && (totalDeltaX < -touchSlop || offsetX.value < 0f)) {
+                        if (absTotalX > absTotalY) {
                             isHorizontal = true
+                            dragStarted = true
+                            change.consume()
                         } else {
                             isHorizontal = false
                             break
@@ -147,12 +143,15 @@ fun SwipeToDeleteItem(
                     change.consume()
                     dragStarted = true
                     velocityTracker.addPosition(change.uptimeMillis, change.position)
-                    val newOffset = (offsetX.value + deltaX).coerceIn(-maxSwipe, 0f)
+                    val deltaX = change.position.x - change.previousPosition.x
+                    val newOffset = (offsetX.value + deltaX).coerceIn(-maxSwipe, maxSwipe)
                     coroutineScope.launch { offsetX.snapTo(newOffset) }
-                    if (!thresholdAnnounced && -newOffset >= dismissThresholdPx) {
+
+                    val absOffset = abs(newOffset)
+                    if (!thresholdAnnounced && absOffset >= dismissThresholdPx) {
                         thresholdAnnounced = true
                         haptics.perform(HapticKind.THRESHOLD)
-                    } else if (thresholdAnnounced && -newOffset < dismissThresholdPx) {
+                    } else if (thresholdAnnounced && absOffset < dismissThresholdPx) {
                         thresholdAnnounced = false
                     }
                 }
@@ -160,13 +159,21 @@ fun SwipeToDeleteItem(
 
             if (dragStarted) {
                 val velocity = velocityTracker.calculateVelocity().x
+                val currentOffset = offsetX.value
+                val dismissRight = currentOffset >= dismissThresholdPx || (velocity > 1000f && currentOffset > 0f)
+                val dismissLeft = currentOffset <= -dismissThresholdPx || (velocity < -1000f && currentOffset < 0f)
+
                 coroutineScope.launch {
-                    if (-offsetX.value >= dismissThresholdPx || velocity < -1000f) {
+                    if (dismissRight) {
                         haptics.perform(HapticKind.CONFIRM)
-                        offsetX.animateTo(-size.width.toFloat())
+                        offsetX.animateTo(size.width.toFloat(), animationSpec = tween(180))
+                        onDelete()
+                    } else if (dismissLeft) {
+                        haptics.perform(HapticKind.CONFIRM)
+                        offsetX.animateTo(-size.width.toFloat(), animationSpec = tween(180))
                         onDelete()
                     } else {
-                        offsetX.animateTo(0f)
+                        offsetX.animateTo(0f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
                     }
                 }
             } else if (offsetX.value != 0f) {
@@ -175,6 +182,8 @@ fun SwipeToDeleteItem(
         }
     }
 
+    val isSwipingLeft = offsetX.value < 0f
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -182,13 +191,16 @@ fun SwipeToDeleteItem(
             .padding(horizontal = horizontalPadding)
             .then(if (clipContent) Modifier.clip(shape) else Modifier)
     ) {
-        if (progress > 0f) {
+        if (showDeleteIcon && progress > 0f) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
                     .background(bgColor)
-                    .padding(end = 20.dp),
-                contentAlignment = Alignment.CenterEnd
+                    .padding(
+                        start = if (!isSwipingLeft) 20.dp else 0.dp,
+                        end = if (isSwipingLeft) 20.dp else 0.dp
+                    ),
+                contentAlignment = if (isSwipingLeft) Alignment.CenterEnd else Alignment.CenterStart
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Delete,
@@ -204,10 +216,17 @@ fun SwipeToDeleteItem(
             }
         }
 
+        val itemAlpha = if (!showDeleteIcon && progress > 0f) {
+            (1f - (abs(offsetX.value) / (dismissThresholdPx * 1.8f))).coerceIn(0f, 1f)
+        } else {
+            1f
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                .graphicsLayer { alpha = itemAlpha }
                 .clip(shape)
                 .background(cardBgColor)
         ) {
