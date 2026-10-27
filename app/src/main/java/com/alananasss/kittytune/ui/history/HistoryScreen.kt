@@ -47,6 +47,12 @@ import com.alananasss.kittytune.ui.player.PlaybackContext
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.TopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -615,6 +621,10 @@ fun HistoryTrackRow(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(14.dp)
                         )
+                    }
+
+                    if (track.isGoPlus) {
+                        com.alananasss.kittytune.ui.common.GoPlusBadge(compact = true)
                     }
 
                     Text(

@@ -739,11 +739,6 @@ fun PixelPlayerScreen(
                         resolvedSource = viewModel.currentStreamSource,
                         modifier = Modifier.padding(start = 6.dp)
                     )
-                    if (track?.isGoPlus == true) {
-                        com.alananasss.kittytune.ui.common.GoPlusBadge(
-                            modifier = Modifier.padding(start = 6.dp)
-                        )
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
