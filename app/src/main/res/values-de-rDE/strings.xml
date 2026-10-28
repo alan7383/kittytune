@@ -1559,6 +1559,14 @@
     <string name="listening_stats_period_week_short">Week</string>
     <string name="listening_stats_period_month_short">Month</string>
     <string name="listening_stats_period_year_short">Year</string>
+    <string name="listening_stats_previous_period">Previous period</string>
+    <string name="listening_stats_next_period">Next period</string>
+    <string name="listening_stats_period_week_current">This Week</string>
+    <string name="listening_stats_period_week_last">Last Week</string>
+    <string name="listening_stats_period_month_current">This Month</string>
+    <string name="listening_stats_period_month_last">Last Month</string>
+    <string name="listening_stats_period_year_current">This Year</string>
+    <string name="listening_stats_period_year_last">Last Year</string>
     <string name="stats_sort_time">By time</string>
     <string name="stats_sort_plays">By plays</string>
     <string name="stats_sort_name">A–Z</string>
