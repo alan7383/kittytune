@@ -263,6 +263,9 @@
         @Query("SELECT * FROM listening_stats WHERE timestamp >= :since ORDER BY timestamp DESC LIMIT :limit")
         suspend fun getRecentEventsAfter(since: Long, limit: Int): List<ListeningStatsEvent>
 
+        @Query("SELECT * FROM listening_stats WHERE timestamp >= :since AND timestamp < :until ORDER BY timestamp DESC LIMIT :limit")
+        suspend fun getRecentEventsBetween(since: Long, until: Long, limit: Int): List<ListeningStatsEvent>
+
         /** Listening time inside a closed range, for comparing a span against the one before it. */
         @Query("SELECT COALESCE(SUM(listenDurationMs), 0) FROM listening_stats WHERE timestamp >= :since AND timestamp < :until")
         suspend fun getTotalListenTimeBetween(since: Long, until: Long): Long

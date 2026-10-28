@@ -44,6 +44,18 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
     var selectedPeriod by mutableStateOf(StatsPeriod.WEEK)
         private set
 
+    /** Offset from current period: 0 = current, -1 = previous, -2 = 2 periods ago, etc. */
+    var periodOffset by mutableStateOf(0)
+        private set
+
+    var canGoBack by mutableStateOf(false)
+        private set
+
+    var canGoForward by mutableStateOf(false)
+        private set
+
+    private var oldestEventMs: Long? = null
+
     /** Everything the screen shows for the selected span. Null until the first load lands. */
     var report by mutableStateOf<ListeningReport?>(null)
         private set
@@ -76,8 +88,27 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
     }
 
     fun selectPeriod(period: StatsPeriod) {
-        if (period == selectedPeriod) return
+        if (period == selectedPeriod && periodOffset == 0) return
         selectedPeriod = period
+        periodOffset = 0
+        load()
+    }
+
+    fun previousPeriod() {
+        if (selectedPeriod == StatsPeriod.ALL_TIME || !canGoBack) return
+        periodOffset--
+        load()
+    }
+
+    fun nextPeriod() {
+        if (selectedPeriod == StatsPeriod.ALL_TIME || !canGoForward) return
+        periodOffset++
+        load()
+    }
+
+    fun resetToCurrentPeriod() {
+        if (periodOffset == 0) return
+        periodOffset = 0
         load()
     }
 
@@ -92,6 +123,7 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
      */
     private fun load() {
         val period = selectedPeriod
+        val offset = periodOffset
         loadJob?.cancel()
         isLoading = true
         loadJob = viewModelScope.launch {
@@ -102,18 +134,19 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
             // "All time" has to start where the history does, not at the epoch: the window is what
             // the activity chart is measured against, and a chart that opens on years of empty
             // months says nothing.
-            val firstEventMs = if (period == StatsPeriod.ALL_TIME) {
-                ListeningStatsRepository.getOldestEventAt()
-            } else null
+            if (oldestEventMs == null) {
+                oldestEventMs = ListeningStatsRepository.getOldestEventAt()
+            }
+            val firstEventMs = oldestEventMs
 
             val window = ListeningReports.windowFor(
-                period.toReportPeriod(), now, zone, firstEventMs, weekStartsOn
+                period.toReportPeriod(), now, zone, firstEventMs, weekStartsOn, offset
             )
             val previous = ListeningReports.previousWindow(period.toReportPeriod(), window, zone, weekStartsOn)
 
             // One read of the rows serves the whole report. Bounded, because the report is built in
             // memory and a heavy year of listening is tens of thousands of rows.
-            val rows = ListeningStatsRepository.getRecentEvents(window.startMs, REPORT_EVENT_LIMIT)
+            val rows = ListeningStatsRepository.getRecentEventsBetween(window.startMs, window.endMs, REPORT_EVENT_LIMIT)
             val previousListenMs = previous?.let { ListeningStatsRepository.getTotalListenTime(it.startMs, it.endMs) }
 
             report = ListeningReports.build(
@@ -125,7 +158,9 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
                 splitter = splitter,
                 nowMs = now,
             )
-            events = rows
+            events = rows.filter { it.timestamp >= window.startMs && it.timestamp < window.endMs }
+            canGoForward = period != StatsPeriod.ALL_TIME && offset < 0
+            canGoBack = period != StatsPeriod.ALL_TIME && (firstEventMs == null || window.endMs > firstEventMs || offset > -52)
             isLoading = false
         }
     }
