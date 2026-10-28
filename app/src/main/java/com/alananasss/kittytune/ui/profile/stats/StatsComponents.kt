@@ -207,15 +207,45 @@ internal fun spanLabel(period: ReportPeriod, report: ListeningReport): String {
     val loc = Locale.getDefault()
     val start = Instant.ofEpochMilli(report.window.startMs).atZone(zone).toLocalDate()
     val end = Instant.ofEpochMilli(report.window.endMs).atZone(zone).toLocalDate().minusDays(1)
+    val currentYear = LocalDate.now(zone).year
     return when (period) {
-        ReportPeriod.WEEK -> "${start.dayOfMonth} ${start.month.getDisplayName(TextStyle.SHORT, loc)} – " +
-                "${end.dayOfMonth} ${end.month.getDisplayName(TextStyle.SHORT, loc)}"
+        ReportPeriod.WEEK -> {
+            val startStr = "${start.dayOfMonth} ${start.month.getDisplayName(TextStyle.SHORT, loc)}"
+            val endStr = "${end.dayOfMonth} ${end.month.getDisplayName(TextStyle.SHORT, loc)}"
+            if (end.year != currentYear) {
+                "$startStr – $endStr ${end.year}"
+            } else {
+                "$startStr – $endStr"
+            }
+        }
         ReportPeriod.MONTH -> monthName(start, loc) + " ${start.year}"
         ReportPeriod.YEAR -> start.year.toString()
         ReportPeriod.ALL_TIME -> stringResource(
             R.string.listening_stats_since,
             monthName(start, loc) + " ${start.year}"
         )
+    }
+}
+
+@Composable
+internal fun periodHeadline(period: ReportPeriod, offset: Int, report: ListeningReport): String {
+    if (period == ReportPeriod.ALL_TIME) {
+        return stringResource(R.string.listening_stats_period_all)
+    }
+    return when (offset) {
+        0 -> when (period) {
+            ReportPeriod.WEEK -> stringResource(R.string.listening_stats_period_week_current)
+            ReportPeriod.MONTH -> stringResource(R.string.listening_stats_period_month_current)
+            ReportPeriod.YEAR -> stringResource(R.string.listening_stats_period_year_current)
+            ReportPeriod.ALL_TIME -> stringResource(R.string.listening_stats_period_all)
+        }
+        -1 -> when (period) {
+            ReportPeriod.WEEK -> stringResource(R.string.listening_stats_period_week_last)
+            ReportPeriod.MONTH -> stringResource(R.string.listening_stats_period_month_last)
+            ReportPeriod.YEAR -> stringResource(R.string.listening_stats_period_year_last)
+            ReportPeriod.ALL_TIME -> stringResource(R.string.listening_stats_period_all)
+        }
+        else -> spanLabel(period, report)
     }
 }
 

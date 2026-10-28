@@ -1508,6 +1508,14 @@
     <string name="listening_stats_period_week_short">Semaine</string>
     <string name="listening_stats_period_month_short">Mois</string>
     <string name="listening_stats_period_year_short">Année</string>
+    <string name="listening_stats_previous_period">Période précédente</string>
+    <string name="listening_stats_next_period">Période suivante</string>
+    <string name="listening_stats_period_week_current">Cette semaine</string>
+    <string name="listening_stats_period_week_last">Semaine dernière</string>
+    <string name="listening_stats_period_month_current">Ce mois-ci</string>
+    <string name="listening_stats_period_month_last">Mois dernier</string>
+    <string name="listening_stats_period_year_current">Cette année</string>
+    <string name="listening_stats_period_year_last">Année dernière</string>
     <string name="stats_sort_time">Par durée</string>
     <string name="stats_sort_plays">Par écoutes</string>
     <string name="stats_sort_name">A–Z</string>

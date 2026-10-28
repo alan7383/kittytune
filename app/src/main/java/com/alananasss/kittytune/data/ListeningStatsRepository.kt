@@ -307,6 +307,10 @@ object ListeningStatsRepository {
     suspend fun getRecentEvents(since: Long, limit: Int): List<ListeningStatsEvent> =
         dao.getRecentEventsAfter(since, limit)
 
+    /** Rows between [since] and [until], newest first, up to [limit]. */
+    suspend fun getRecentEventsBetween(since: Long, until: Long, limit: Int): List<ListeningStatsEvent> =
+        dao.getRecentEventsBetween(since, until, limit)
+
     /** Listening time inside a closed range, for comparing a span against the one before it. */
     suspend fun getTotalListenTime(since: Long, until: Long): Long =
         dao.getTotalListenTimeBetween(since, until)
