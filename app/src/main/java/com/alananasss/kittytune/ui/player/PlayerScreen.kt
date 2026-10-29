@@ -1185,222 +1185,161 @@ fun NewPlayerScreen(
                     verticalDragModifier = verticalDragModifier
                 )
             } else {
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .systemBarsPadding()
+                Column(
+                    modifier = Modifier.fillMaxSize().systemBarsPadding(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    val totalHeight = maxHeight
-                    val totalWidth = maxWidth
+                    val lyricsUnderCoverPlacement = remember { prefs.getLyricsUnderCoverPlacement() }
 
-                    var lyricsUnderCoverPlacement by remember { mutableStateOf(prefs.getLyricsUnderCoverPlacement()) }
-                    DisposableEffect(context) {
-                        val sp = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
-                        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                            if (key == PlayerPreferences.KEY_LYRICS_UNDER_COVER_PLACEMENT) {
-                                lyricsUnderCoverPlacement = prefs.getLyricsUnderCoverPlacement()
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp)
+                            .then(verticalDragModifier)
+                    ) {
+                        PlayerHeader(
+                            onClose = handleClose,
+                            viewModel = viewModel,
+                            contentColor = mainContentColor,
+                            subContentColor = subContentColor,
+                            accentColor = animatedColor,
+                            onCollapseToSide = if (windowSizeInfo.showTabletDock) {
+                                {
+                                    viewModel.isPlayerExpanded = false
+                                    viewModel.isSidePlayerOpen = true
+                                }
+                            } else null
+                        )
+                    }
+                    Spacer(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .then(verticalDragModifier)
+                    )
+
+                    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+                        initialPage = viewModel.uiCurrentQueueIndex.coerceAtLeast(0),
+                        pageCount = { viewModel.uiQueueState.size.takeIf { it > 0 } ?: 1 }
+                    )
+
+                    LaunchedEffect(viewModel.uiCurrentQueueIndex) {
+                        if (viewModel.uiCurrentQueueIndex >= 0 && viewModel.uiCurrentQueueIndex != pagerState.currentPage && viewModel.uiCurrentQueueIndex < pagerState.pageCount) {
+                            try {
+                                pagerState.animateScrollToPage(viewModel.uiCurrentQueueIndex)
+                            } catch (e: Exception) {
+                                pagerState.scrollToPage(viewModel.uiCurrentQueueIndex)
                             }
                         }
-                        sp.registerOnSharedPreferenceChangeListener(listener)
-                        onDispose { sp.unregisterOnSharedPreferenceChangeListener(listener) }
                     }
 
-                    val isWaveform = playerProgressMode == PlayerProgressMode.HYBRID_WAVEFORM
-                    val hasAboveTitleLyrics = viewModel.isLyricsUnderCoverActive &&
-                        lyricsUnderCoverPlacement == LyricsUnderCoverPlacement.ABOVE_TITLE_ARTIST
+                    LaunchedEffect(pagerState) {
+                        snapshotFlow { pagerState.settledPage }.collect { settledPage ->
+                            if (settledPage != viewModel.uiCurrentQueueIndex && settledPage in viewModel.uiQueueState.indices) {
+                                viewModel.skipToQueueItem(settledPage)
+                            }
+                        }
+                    }
 
-                    // Estimated heights of non-cover UI elements (in dp)
-                    val headerHeight = 48.dp
-                    val lyricsAboveTitleHeight = if (hasAboveTitleLyrics) 44.dp else 0.dp
-                    val titleArtistHeight = 68.dp
-                    val progressHeight = if (isWaveform) 176.dp else 44.dp
-                    val controlsHeight = 126.dp
-                    val fixedSpacersHeight = 8.dp + 14.dp
-                    val minFlexibleSpacers = 4.dp + 8.dp + 16.dp // top + middle + bottom = 28.dp
+                    val showLyrics = viewModel.showInlineLyrics
+                    val lyricsAlpha by animateFloatAsState(
+                        targetValue = if (showLyrics) 1f else 0f,
+                        tween(400),
+                        label = "lyricsAlpha"
+                    )
+                    val coverAlpha by animateFloatAsState(
+                        targetValue = if (showLyrics) 0f else 1f,
+                        tween(400),
+                        label = "coverAlpha"
+                    )
 
-                    val totalRequiredExceptCover = headerHeight + lyricsAboveTitleHeight +
-                        titleArtistHeight + progressHeight + controlsHeight +
-                        fixedSpacersHeight + minFlexibleSpacers
-
-                    val maxArtworkWidth = (totalWidth - 48.dp).coerceAtLeast(0.dp)
-                    val maxArtworkHeight = (totalHeight - totalRequiredExceptCover).coerceAtLeast(160.dp)
-                    val artworkSize = minOf(maxArtworkWidth, maxArtworkHeight)
-                    val horizontalCoverPadding = ((totalWidth - artworkSize) / 2).coerceAtLeast(24.dp)
-
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(if (!showLyrics) verticalDragModifier else Modifier),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .padding(horizontal = 24.dp)
-                                .then(verticalDragModifier)
-                        ) {
-                            PlayerHeader(
-                                onClose = handleClose,
-                                viewModel = viewModel,
-                                contentColor = mainContentColor,
-                                subContentColor = subContentColor,
-                                accentColor = animatedColor,
-                                onCollapseToSide = if (windowSizeInfo.showTabletDock) {
-                                    {
-                                        viewModel.isPlayerExpanded = false
-                                        viewModel.isSidePlayerOpen = true
-                                    }
-                                } else null
-                            )
-                        }
-                        Spacer(
-                            modifier = Modifier
-                                .weight(0.35f)
-                                .fillMaxWidth()
-                                .then(verticalDragModifier)
-                        )
-
-                        val pagerState = androidx.compose.foundation.pager.rememberPagerState(
-                            initialPage = viewModel.uiCurrentQueueIndex.coerceAtLeast(0),
-                            pageCount = { viewModel.uiQueueState.size.takeIf { it > 0 } ?: 1 }
-                        )
-
-                        LaunchedEffect(viewModel.uiCurrentQueueIndex) {
-                            if (viewModel.uiCurrentQueueIndex >= 0 && viewModel.uiCurrentQueueIndex != pagerState.currentPage && viewModel.uiCurrentQueueIndex < pagerState.pageCount) {
-                                try {
-                                    pagerState.animateScrollToPage(viewModel.uiCurrentQueueIndex)
-                                } catch (e: Exception) {
-                                    pagerState.scrollToPage(viewModel.uiCurrentQueueIndex)
-                                }
-                            }
-                        }
-
-                        LaunchedEffect(pagerState) {
-                            snapshotFlow { pagerState.settledPage }.collect { settledPage ->
-                                if (settledPage != viewModel.uiCurrentQueueIndex && settledPage in viewModel.uiQueueState.indices) {
-                                    viewModel.skipToQueueItem(settledPage)
-                                }
-                            }
-                        }
-
-                        val showLyrics = viewModel.showInlineLyrics
-                        val lyricsAlpha by animateFloatAsState(
-                            targetValue = if (showLyrics) 1f else 0f,
-                            tween(400),
-                            label = "lyricsAlpha"
-                        )
-                        val coverAlpha by animateFloatAsState(
-                            targetValue = if (showLyrics) 0f else 1f,
-                            tween(400),
-                            label = "coverAlpha"
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(artworkSize)
-                                .then(if (!showLyrics) verticalDragModifier else Modifier),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(artworkSize)
-                                    .alpha(coverAlpha)
-                                    .zIndex(if (showLyrics) 0f else 1f),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (viewModel.uiQueueState.isNotEmpty()) {
-                                    androidx.compose.foundation.pager.HorizontalPager(
-                                        state = pagerState,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(artworkSize),
-                                        pageSpacing = 16.dp,
-                                        contentPadding = PaddingValues(horizontal = horizontalCoverPadding)
-                                    ) { page ->
-                                        val pageTrack = viewModel.uiQueueState.getOrNull(page) ?: track
-                                        Box(
-                                            modifier = Modifier
-                                                .size(artworkSize)
-                                                .shadow(
-                                                    24.dp,
-                                                    RoundedCornerShape(20.dp),
-                                                    spotColor = if (isBlurMode) Color.Black else animatedColor
-                                                )
-                                                .clip(RoundedCornerShape(20.dp))
-                                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                        ) {
-                                            AnimatedArtwork(
-                                                artworkUrl = pageTrack.fullResArtwork,
-                                                animatedCoverUrl = if (pageTrack.id == track.id) viewModel.currentAnimatedCoverUrl else null,
-                                                isPlaying = viewModel.uiIsPlaying,
-                                                contentDescription = null,
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier.fillMaxSize()
-                                            )
-                                        }
-                                    }
-                                } else {
+                        Box(modifier = Modifier.fillMaxWidth().alpha(coverAlpha).zIndex(if (showLyrics) 0f else 1f)) {
+                            if (viewModel.uiQueueState.isNotEmpty()) {
+                                androidx.compose.foundation.pager.HorizontalPager(
+                                    state = pagerState,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    pageSpacing = 16.dp,
+                                    contentPadding = PaddingValues(24.dp)
+                                ) { page ->
+                                    val pageTrack = viewModel.uiQueueState.getOrNull(page) ?: track
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(artworkSize)
-                                            .padding(horizontal = horizontalCoverPadding),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(artworkSize)
-                                                .shadow(
-                                                    24.dp,
-                                                    RoundedCornerShape(20.dp),
-                                                    spotColor = if (isBlurMode) Color.Black else animatedColor
-                                                )
-                                                .clip(RoundedCornerShape(20.dp))
-                                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                        ) {
-                                            AnimatedArtwork(
-                                                artworkUrl = track.fullResArtwork,
-                                                animatedCoverUrl = viewModel.currentAnimatedCoverUrl,
-                                                isPlaying = viewModel.uiIsPlaying,
-                                                contentDescription = null,
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier.fillMaxSize()
+                                            .aspectRatio(1f)
+                                            .shadow(
+                                                24.dp,
+                                                RoundedCornerShape(20.dp),
+                                                spotColor = if (isBlurMode) Color.Black else animatedColor
                                             )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(artworkSize)
-                                    .alpha(lyricsAlpha)
-                                    .zIndex(if (showLyrics) 1f else 0f),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (lyricsAlpha > 0f) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(artworkSize)
-                                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
                                     ) {
-                                        InlineLyricsContent(viewModel = viewModel)
+                                        AnimatedArtwork(
+                                            artworkUrl = pageTrack.fullResArtwork,
+                                            animatedCoverUrl = if (pageTrack.id == track.id) viewModel.currentAnimatedCoverUrl else null,
+                                            isPlaying = viewModel.uiIsPlaying,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
                                     }
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .padding(24.dp)
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f)
+                                        .shadow(
+                                            24.dp,
+                                            RoundedCornerShape(20.dp),
+                                            spotColor = if (isBlurMode) Color.Black else animatedColor
+                                        )
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    AnimatedArtwork(
+                                        artworkUrl = track.fullResArtwork,
+                                        animatedCoverUrl = viewModel.currentAnimatedCoverUrl,
+                                        isPlaying = viewModel.uiIsPlaying,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
 
-                        if (viewModel.isLyricsUnderCoverActive && lyricsUnderCoverPlacement == LyricsUnderCoverPlacement.ABOVE_TITLE_ARTIST) {
-                            PlayerInlineLyrics(
-                                viewModel = viewModel,
-                                textColor = mainContentColor,
-                                onClick = hapticAction(HapticKind.UI) { viewModel.openLyrics() },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 24.dp, vertical = 4.dp)
-                            )
+                        Box(modifier = Modifier.fillMaxWidth().alpha(lyricsAlpha).zIndex(if (showLyrics) 1f else 0f)) {
+                            if (lyricsAlpha > 0f) {
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f)
+                                ) {
+                                    InlineLyricsContent(viewModel = viewModel)
+                                }
+                            }
                         }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (viewModel.isLyricsUnderCoverActive && lyricsUnderCoverPlacement == LyricsUnderCoverPlacement.ABOVE_TITLE_ARTIST) {
+                        PlayerInlineLyrics(
+                            viewModel = viewModel,
+                            textColor = mainContentColor,
+                            onClick = hapticAction(HapticKind.UI) { viewModel.openLyrics() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 4.dp)
+                        )
+                    }
 
                     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
 
@@ -1639,10 +1578,9 @@ fun NewPlayerScreen(
                             onQueueClick = { showQueueSheet = true }
                         )
                     }
-                    Spacer(modifier = Modifier.weight(0.65f))
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
-        }
         }
 
         if (showEffectsSheet) {
