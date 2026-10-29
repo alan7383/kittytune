@@ -421,7 +421,6 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
                 context.externalCacheDirs.filterNotNull().forEach { dir ->
                     dir.listFiles()?.forEach { it.deleteRecursively() }
                 }
-                File(context.filesDir, "exo_offline_cache").deleteRecursively()
                 try {
                     File(context.applicationInfo.dataDir, "app_webview/Default/HTTP Cache").deleteRecursively()
                     File(context.applicationInfo.dataDir, "app_webview/Cache").deleteRecursively()

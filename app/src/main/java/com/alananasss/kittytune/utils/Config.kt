@@ -7,10 +7,14 @@ object Config {
     private const val PREFS_NAME = "app_config"
     private const val KEY_CLIENT_ID = "dynamic_client_id"
 
-    // keeping this public just in case
-    const val OFFICIAL_CLIENT_ID = "QOFuKCOeAXIph267vzqj3B1wb65cZVAQ"
+    // Official client ID and secret extracted from SoundCloud Android (2026.10.08)
+    const val OFFICIAL_CLIENT_ID = "SSdQ80vM8nLPhbDBylHl2JFK6ElhBr9B"
+    const val OFFICIAL_CLIENT_SECRET = "hfRHykhbMuLT7PnpTv0hPXsKS0NM5pX1"
+
+    // Previous client ID kept as fallback
+    const val EXPIRING_CLIENT_ID = "QOFuKCOeAXIph267vzqj3B1wb65cZVAQ"
+    const val EXPIRING_CLIENT_SECRET = "EhBDsGIj9EbuBbRf0QkhH9Fq9BX3yN4B"
     const val FALLBACK_ID = OFFICIAL_CLIENT_ID
-    const val OFFICIAL_CLIENT_SECRET = "EhBDsGIj9EbuBbRf0QkhH9Fq9BX3yN4B"
 
     val OFFICIAL_CLIENT_SIGNATURE: String by lazy {
         calculateSignature(OFFICIAL_CLIENT_ID, OFFICIAL_CLIENT_SECRET)
@@ -20,9 +24,9 @@ object Config {
         try {
             val concat = "$clientId:$clientSecret".toByteArray(Charsets.UTF_8)
             val digest = java.security.MessageDigest.getInstance("SHA-256").digest(concat)
-            return android.util.Base64.encodeToString(digest, android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP)
+            return android.util.Base64.encodeToString(digest, android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP).trim()
         } catch (e: Exception) {
-            return "ztQ_RKaMCPavrjcXvMT6t0STPQ0vU2cY4YKGVeLU6Iw"
+            return "cg5kjFy0kprA70IQrfihSM2yTEZiI774yeG1CW4uyTA"
         }
     }
 

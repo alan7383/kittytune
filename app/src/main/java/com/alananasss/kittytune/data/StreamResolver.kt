@@ -757,6 +757,8 @@
                         } else {
                             songs.filter { (it.duration ?: 0) > 0 && kotlin.math.abs((it.duration ?: 0) - wantedSec) <= DURATION_TOLERANCE_SEC }
                                 .minByOrNull { kotlin.math.abs((it.duration ?: 0) - wantedSec) }
+                                ?: songs.filter { (it.duration ?: 0) > 0 && kotlin.math.abs((it.duration ?: 0) - wantedSec) <= 25L }
+                                    .minByOrNull { kotlin.math.abs((it.duration ?: 0) - wantedSec) }
                         }
                         matched?.let { "https://www.youtube.com/watch?v=${it.id}" }
                     } else null
@@ -777,6 +779,9 @@
                         val matched = videoResults
                             .filter { it.duration > 0 && kotlin.math.abs(it.duration - wantedSec) <= DURATION_TOLERANCE_SEC }
                             .minByOrNull { kotlin.math.abs(it.duration - wantedSec) }
+                            ?: videoResults
+                                .filter { it.duration > 0 && kotlin.math.abs(it.duration - wantedSec) <= 25L }
+                                .minByOrNull { kotlin.math.abs(it.duration - wantedSec) }
                         if (matched == null) {
                             Log.w(
                                 TAG,
@@ -1120,23 +1125,48 @@
                 // Opus 64k ≈ 64 kbps, AAC 64k/96k next, the HLS MP3 after that; the progressive
                 // MP3 (128 kbps) comes last, only when nothing lighter exists at all.
                 for (preset in listOf("opus_64k", "aac_64k", "aac_96k")) {
-                    playableTranscodings.find { it.preset == preset && it.format?.protocol == "hls" }?.let { candidates.add(it) }
+                    playableTranscodings.filter { it.preset == preset && it.format?.protocol == "hls" }.forEach {
+                        if (it !in candidates) candidates.add(it)
+                    }
                 }
-                playableTranscodings.find { it.format?.protocol == "hls" && it.format.mimeType?.contains("mpeg") == true }?.let { if (it !in candidates) candidates.add(it) }
-                playableTranscodings.find { it.format?.protocol == "hls" }?.let { if (it !in candidates) candidates.add(it) }
-                playableTranscodings.find { it.format?.protocol == "progressive" }?.let { if (it !in candidates) candidates.add(it) }
+                playableTranscodings.filter { it.format?.protocol == "hls" && it.format.mimeType?.contains("mpeg") == true }.forEach {
+                    if (it !in candidates) candidates.add(it)
+                }
+                playableTranscodings.filter { it.format?.protocol == "hls" }.forEach {
+                    if (it !in candidates) candidates.add(it)
+                }
+                playableTranscodings.filter { it.format?.protocol == "progressive" }.forEach {
+                    if (it !in candidates) candidates.add(it)
+                }
             } else {
-                // High: prefer progressive (direct MP3/AAC), then any HLS rendition.
-                playableTranscodings.find { it.format?.protocol == "progressive" }?.let { candidates.add(it) }
-                playableTranscodings.find { it.format?.protocol == "hls" }?.let { if (it !in candidates) candidates.add(it) }
+                // High: prefer progressive (direct MP3/AAC), then all HLS renditions in quality order (aac_160k, aac_96k, abr_sq)
+                playableTranscodings.filter { it.format?.protocol == "progressive" }.forEach {
+                    if (it !in candidates) candidates.add(it)
+                }
+                for (preset in listOf("aac_160k", "aac_96k", "opus_64k", "abr_sq")) {
+                    playableTranscodings.filter { it.preset == preset && it.format?.protocol == "hls" }.forEach {
+                        if (it !in candidates) candidates.add(it)
+                    }
+                }
+                playableTranscodings.filter { it.format?.protocol == "hls" }.forEach {
+                    if (it !in candidates) candidates.add(it)
+                }
             }
 
             if (allowDrm) {
-                // Encrypted Go+ streams walk the same ladder — eco just starts lower.
+                // For Android Widevine DRM, ctr-encrypted-hls MUST come first because
+                // SoundCloud only includes Widevine PSSH in ctr-encrypted-hls manifests
+                // (cbc-encrypted-hls is FairPlay for Apple).
                 val cencPresets = if (qualityPref == "LOW") listOf("aac_96k", "aac_160k", "abr_sq") else listOf("aac_160k", "aac_96k", "abr_sq")
                 for (preset in cencPresets) {
-                    playableTranscodings.find { it.preset == preset && it.format?.protocol == "ctr-encrypted-hls" }?.let { candidates.add(it) }
-                    playableTranscodings.find { it.preset == preset && it.format?.protocol == "cbc-encrypted-hls" }?.let { candidates.add(it) }
+                    playableTranscodings.filter { it.preset == preset && it.format?.protocol == "ctr-encrypted-hls" }.forEach {
+                        if (it !in candidates) candidates.add(it)
+                    }
+                }
+                for (preset in cencPresets) {
+                    playableTranscodings.filter { it.preset == preset && it.format?.protocol == "cbc-encrypted-hls" }.forEach {
+                        if (it !in candidates) candidates.add(it)
+                    }
                 }
                 playableTranscodings.filter { it.format?.protocol?.contains("encrypted") == true }.forEach {
                     if (it !in candidates) candidates.add(it)
