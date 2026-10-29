@@ -139,7 +139,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         get() = remotePeer?.snapshot?.let { it.queue.getOrNull(it.currentIndex) } ?: currentTrack
         set(value) { currentTrack = value }
     var uiIsPlaying: Boolean
-        get() = if (ConnectManager.selectedDevice.value != null) remotePeer?.connected == true && remotePeer?.snapshot?.isPlaying == true else isPlaying
+        get() = if (ConnectManager.selectedDevice.value != null) remotePeer?.connected == true && remotePeer?.snapshot?.isPlaying == true else (isPlaying || (isLoading && playWhenReady))
         set(value) { isPlaying = value }
     var uiDuration: Long
         get() = remotePeer?.snapshot?.let { it.queue.getOrNull(it.currentIndex)?.durationMs ?: 0L } ?: duration
@@ -1127,7 +1127,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
     private val playerListener = object : Player.Listener {
         override fun onPlayWhenReadyChanged(playWhenReadyState: Boolean, reason: Int) {
+            if (MusicManager.isLoadingTrack) {
+                if (!playWhenReadyState && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS) {
+                    playWhenReady = false
+                    MusicManager.playWhenReadyRequested = false
+                }
+                return
+            }
             playWhenReady = playWhenReadyState
+            MusicManager.playWhenReadyRequested = playWhenReadyState
         }
 
         override fun onIsPlayingChanged(isPlayingState: Boolean) {
@@ -1140,9 +1148,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             if (isPlayingState) listenSession?.onPlaying(currentPosition) else listenSession?.onPaused()
             if (isPlayingState) {
                 restoreDismissedPlayerStateIfNeeded()
-                playWhenReady = true
-                startProgressUpdate()
-                SoundCloudTelemetryTracker.onTrackResumed(currentPosition)
+                if (MusicManager.playWhenReadyRequested) {
+                    playWhenReady = true
+                    startProgressUpdate()
+                    SoundCloudTelemetryTracker.onTrackResumed(currentPosition)
+                } else {
+                    try { player.pause() } catch (_: Exception) {}
+                }
             } else {
                 SoundCloudTelemetryTracker.onTrackPaused(currentPosition)
             }
@@ -1560,6 +1572,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         viewModelScope.launch {
             com.alananasss.kittytune.data.audio.HeadphoneDetector.device.collect { device ->
                 maybeRestoreAutoEq(device)
+            }
+        }
+        viewModelScope.launch {
+            MusicManager.playWhenReadyRequestedFlow.collect { req ->
+                playWhenReady = req
             }
         }
         com.alananasss.kittytune.data.together.Together.init(context)
@@ -5444,12 +5461,20 @@ query CommentsWithReactions(
             context,
             com.alananasss.kittytune.data.local.PlayerPreferences.KEY_HAPTICS_PLAY_PAUSE
         )
-        if (player.isPlaying || playWhenReady) {
+        if (player.isPlaying || playWhenReady || MusicManager.playWhenReadyRequested) {
             playWhenReady = false
-            player.pause()
+            MusicManager.playWhenReadyRequested = false
+            try {
+                player.playWhenReady = false
+                player.pause()
+            } catch (_: Exception) {}
             saveStateAsync(savePositionOnly = true)
         } else {
             playWhenReady = true
+            MusicManager.playWhenReadyRequested = true
+            try {
+                player.playWhenReady = true
+            } catch (_: Exception) {}
             restoreDismissedPlayerStateIfNeeded()
             if (player.currentMediaItem == null && currentTrack != null) {
                 pendingSeekPosition = currentPosition
@@ -5467,11 +5492,13 @@ query CommentsWithReactions(
 
     fun pause() {
         if (routeRemote("pause")) return
-        if (player.isPlaying || playWhenReady) {
-            playWhenReady = false
+        playWhenReady = false
+        MusicManager.playWhenReadyRequested = false
+        try {
+            player.playWhenReady = false
             player.pause()
-            saveStateAsync(savePositionOnly = true)
-        }
+        } catch (_: Exception) {}
+        saveStateAsync(savePositionOnly = true)
     }
 
     fun seekTo(position: Long) {
@@ -7713,26 +7740,38 @@ query CommentsWithReactions(
                         djFlowController.livePhaseOffsetMs
                     } else 0L
 
-                    val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
-                    val isDjConstantEnergy = isDjFlowOn && djState.isConstantEnergyEnabled
-                    MusicManager.crossfadeToMediaItem(
-                        emptyItem,
-                        startPosition,
-                        crossfadeDurationMs,
-                        automixPlan,
-                        isDjConstantEnergy = isDjConstantEnergy,
-                        djFlowActive = isDjFlowOn,
-                        djTempoRatio = tempoRatio,
-                        djPhaseOffsetMs = phaseOffset,
-                        outgoingGrid = if (isDjFlowOn) djState.sync.outgoingGrid else null,
-                        incomingGrid = if (isDjFlowOn) djState.sync.incomingGrid else null
-                    )
+                    val shouldPlay = autoPlay && MusicManager.playWhenReadyRequested && playWhenReady
+                    if (shouldPlay) {
+                        val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
+                        val isDjConstantEnergy = isDjFlowOn && djState.isConstantEnergyEnabled
+                        MusicManager.crossfadeToMediaItem(
+                            emptyItem,
+                            startPosition,
+                            crossfadeDurationMs,
+                            automixPlan,
+                            isDjConstantEnergy = isDjConstantEnergy,
+                            djFlowActive = isDjFlowOn,
+                            djTempoRatio = tempoRatio,
+                            djPhaseOffsetMs = phaseOffset,
+                            outgoingGrid = if (isDjFlowOn) djState.sync.outgoingGrid else null,
+                            incomingGrid = if (isDjFlowOn) djState.sync.incomingGrid else null
+                        )
+                        startProgressUpdate()
+                    } else {
+                        MusicManager.cancelCrossfade()
+                        val effectiveStart = MusicManager.pendingSeekPositionMs ?: startPosition
+                        MusicManager.pendingSeekPositionMs = null
+                        MusicManager.player.playWhenReady = false
+                        MusicManager.player.setMediaItem(emptyItem, effectiveStart)
+                        MusicManager.player.prepare()
+                        MusicManager.player.pause()
+                        progressJob?.cancel()
+                    }
                     isLoading = false
-                    isPlaying = true
+                    isPlaying = shouldPlay
                     MusicManager.isLoadingTrack = false
                     currentPosition = startPosition
                     duration = if (MusicManager.player.duration > 0) MusicManager.player.duration else trackToPlay.actualDurationMs
-                    startProgressUpdate()
                     MusicManager.applyEffects(effectsState)
                     preloadNextTrack(index + 1)
                 } catch (e: Exception) {
@@ -7912,37 +7951,55 @@ query CommentsWithReactions(
                             djFlowController.livePhaseOffsetMs
                         } else 0L
 
-                        val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
-                        val djState = djFlowController.flowState.value
-                        val isDjFlowOn = djState.isActive
-                        MusicManager.crossfadeToMediaItem(
-                            newMediaItem,
-                            startPosition,
-                            crossfadeDurationMs,
-                            automixPlan,
-                            isDjConstantEnergy = isDjFlowOn && djState.isConstantEnergyEnabled,
-                            djFlowActive = isDjFlowOn,
-                            djTempoRatio = tempoRatio,
-                            djPhaseOffsetMs = phaseOffset,
-                            outgoingGrid = if (isDjFlowOn) djState.sync.outgoingGrid else null,
-                            incomingGrid = if (isDjFlowOn) djState.sync.incomingGrid else null
-                        )
+                        val shouldPlay = autoPlay && MusicManager.playWhenReadyRequested && playWhenReady
+                        if (shouldPlay) {
+                            val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
+                            val djState = djFlowController.flowState.value
+                            val isDjFlowOn = djState.isActive
+                            MusicManager.crossfadeToMediaItem(
+                                newMediaItem,
+                                startPosition,
+                                crossfadeDurationMs,
+                                automixPlan,
+                                isDjConstantEnergy = isDjFlowOn && djState.isConstantEnergyEnabled,
+                                djFlowActive = isDjFlowOn,
+                                djTempoRatio = tempoRatio,
+                                djPhaseOffsetMs = phaseOffset,
+                                outgoingGrid = if (isDjFlowOn) djState.sync.outgoingGrid else null,
+                                incomingGrid = if (isDjFlowOn) djState.sync.incomingGrid else null
+                            )
+                            startProgressUpdate()
+                        } else {
+                            MusicManager.cancelCrossfade()
+                            val effectiveStart = MusicManager.pendingSeekPositionMs ?: startPosition
+                            MusicManager.pendingSeekPositionMs = null
+                            MusicManager.player.playWhenReady = false
+                            MusicManager.player.setMediaItem(newMediaItem, effectiveStart)
+                            MusicManager.player.prepare()
+                            MusicManager.player.pause()
+                            progressJob?.cancel()
+                        }
                         isLoading = false
-                        isPlaying = true
+                        isPlaying = shouldPlay
                         MusicManager.isLoadingTrack = false
                         currentPosition = startPosition
                         duration = if (MusicManager.player.duration > 0) MusicManager.player.duration else trackToPlay.actualDurationMs
-                        startProgressUpdate()
                     } else {
                         val effectiveStart = MusicManager.pendingSeekPositionMs ?: startPosition
                         MusicManager.pendingSeekPositionMs = null
+                        val shouldPlay = autoPlay && MusicManager.playWhenReadyRequested && playWhenReady
+                        MusicManager.player.playWhenReady = shouldPlay
                         MusicManager.player.setMediaItem(newMediaItem, effectiveStart)
                         MusicManager.player.prepare()
-                        if (autoPlay && MusicManager.playWhenReadyRequested) {
-                            val intent = Intent(context, PlaybackService::class.java)
-                            startServiceSafe(context, intent)
+                        val intent = Intent(context, PlaybackService::class.java)
+                        startServiceSafe(context, intent)
+                        if (shouldPlay) {
                             MusicManager.player.play()
+                        } else {
+                            MusicManager.player.pause()
                         }
+                        isLoading = false
+                        isPlaying = shouldPlay
                         MusicManager.isLoadingTrack = false
                     }
 

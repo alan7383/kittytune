@@ -4576,8 +4576,20 @@ fun PlayerControls(
                     },
                     label = "playPauseLoading"
                 ) { (isLoading, isPlaying) ->
-                    if (isLoading) {
-                        LoadingIndicator(color = playIconColor, modifier = Modifier.size(32.dp))
+                    if (isLoading && isPlaying) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            LoadingIndicator(color = playIconColor, modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.action_pause),
+                                color = playIconColor,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     } else {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -12310,8 +12322,16 @@ fun OldPlayerControls(
                     transitionSpec = { (scaleIn() + fadeIn()).togetherWith(scaleOut() + fadeOut()) },
                     label = "playPauseLoading"
                 ) { (isLoading, isPlaying) ->
-                    if (isLoading) {
-                        LoadingIndicator(color = playIconColor, modifier = Modifier.size(32.dp))
+                    if (isLoading && isPlaying) {
+                        Box(contentAlignment = Alignment.Center) {
+                            LoadingIndicator(color = playIconColor, modifier = Modifier.size(36.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.Pause,
+                                contentDescription = null,
+                                tint = playIconColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     } else {
                         Icon(
                             imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,

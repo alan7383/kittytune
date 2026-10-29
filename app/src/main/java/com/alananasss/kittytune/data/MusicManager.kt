@@ -269,7 +269,20 @@ object MusicManager {
             isLoadingTrackFlow.value = value
         }
 
-    var playWhenReadyRequested: Boolean = true
+    val playWhenReadyRequestedFlow = MutableStateFlow(true)
+    var playWhenReadyRequested: Boolean
+        get() = playWhenReadyRequestedFlow.value
+        set(value) {
+            playWhenReadyRequestedFlow.value = value
+            if (!value) {
+                try {
+                    _player1?.playWhenReady = false
+                    _player1?.pause()
+                    _player2?.playWhenReady = false
+                    _player2?.pause()
+                } catch (_: Exception) {}
+            }
+        }
     var pendingSeekPositionMs: Long? = null
 
     // Stores the licenseAuthToken per trackId for DRM-protected streams
@@ -999,7 +1012,7 @@ object MusicManager {
         } else {
             isAdopted = false
             releasePrebuffered()
-            newPlayer.playWhenReady = true
+            newPlayer.playWhenReady = playWhenReadyRequested
             newPlayer.setMediaItem(mediaItem, synchronizedStartMs)
             val base = try { newPlayer.playbackParameters } catch (_: Exception) { PlaybackParameters.DEFAULT }
             basePlaybackParams = base
@@ -1028,8 +1041,13 @@ object MusicManager {
         }
 
         requestAudioFocus()
-        newPlayer.playWhenReady = true
-        newPlayer.play()
+        val shouldPlayInitial = playWhenReadyRequested
+        newPlayer.playWhenReady = shouldPlayInitial
+        if (shouldPlayInitial) {
+            newPlayer.play()
+        } else {
+            newPlayer.pause()
+        }
 
         if (effectivePlan != null) {
             com.alananasss.kittytune.audio.automix.AutomixManager.setIsAutomixing(true)
@@ -1165,9 +1183,12 @@ object MusicManager {
 
                 if (actualCrossfadeMs <= 0L) {
                     newPlayer.volume = targetVolume
-                    if (playWhenReadyRequested || newPlayer.playWhenReady) {
-                        newPlayer.playWhenReady = true
+                    val shouldPlayNow = playWhenReadyRequested && newPlayer.playWhenReady
+                    newPlayer.playWhenReady = shouldPlayNow
+                    if (shouldPlayNow) {
                         newPlayer.play()
+                    } else {
+                        newPlayer.pause()
                     }
                     oldPlayer.playWhenReady = false
                     oldPlayer.stop()
@@ -1353,9 +1374,12 @@ object MusicManager {
                 try {
                     if (stillOwnsTransition) {
                         newPlayer.volume = targetVolume
-                        if (playWhenReadyRequested || newPlayer.playWhenReady) {
-                            newPlayer.playWhenReady = true
+                        val shouldPlayEnd = playWhenReadyRequested && newPlayer.playWhenReady
+                        newPlayer.playWhenReady = shouldPlayEnd
+                        if (shouldPlayEnd) {
                             newPlayer.play()
+                        } else {
+                            newPlayer.pause()
                         }
                         oldPlayer.volume = 0f
                         oldPlayer.playWhenReady = false

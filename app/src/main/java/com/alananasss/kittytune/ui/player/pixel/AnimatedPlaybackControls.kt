@@ -246,11 +246,19 @@ private fun MorphingPlayPauseIcon(
         },
         label = "playPauseLoadingCrossfade"
     ) { (loading, playing) ->
-        if (loading) {
-            LoadingIndicator(
-                color = tint,
-                modifier = Modifier.size(size)
-            )
+        if (loading && playing) {
+            Box(contentAlignment = Alignment.Center) {
+                LoadingIndicator(
+                    color = tint,
+                    modifier = Modifier.size(size)
+                )
+                Icon(
+                    imageVector = Icons.Rounded.Pause,
+                    contentDescription = "Pause",
+                    tint = tint,
+                    modifier = Modifier.size(size * 0.55f)
+                )
+            }
         } else {
             Icon(
                 imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
