@@ -494,7 +494,56 @@ object MusicManager {
         val defaultDataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
         val deezerAwareDataSourceFactory = com.alananasss.kittytune.audio.providers.deezer.DeezerAudioAwareDataSourceFactory(defaultDataSourceFactory)
 
-        val resolvingDataSourceFactory = ResolvingDataSource.Factory(deezerAwareDataSourceFactory, object : ResolvingDataSource.Resolver {
+        val downloadCache = com.alananasss.kittytune.data.local.ExoCacheManager.getDownloadCache(context)
+        val playbackCache = com.alananasss.kittytune.data.local.ExoCacheManager.getPlaybackCache(context)
+
+        val downloadCacheFactory = androidx.media3.datasource.cache.CacheDataSource.Factory()
+            .setCache(downloadCache)
+            .setUpstreamDataSourceFactory(deezerAwareDataSourceFactory)
+            .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+
+        val playbackCacheFactory = androidx.media3.datasource.cache.CacheDataSource.Factory()
+            .setCache(playbackCache)
+            .setUpstreamDataSourceFactory(deezerAwareDataSourceFactory)
+            .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+
+        val tieredCacheDataSourceFactory = androidx.media3.datasource.DataSource.Factory {
+            val downloadSource = downloadCacheFactory.createDataSource()
+            val playbackSource = playbackCacheFactory.createDataSource()
+            object : androidx.media3.datasource.DataSource {
+                private var currentSource: androidx.media3.datasource.DataSource = playbackSource
+
+                override fun addTransferListener(transferListener: androidx.media3.datasource.TransferListener) {
+                    downloadSource.addTransferListener(transferListener)
+                    playbackSource.addTransferListener(transferListener)
+                }
+
+                override fun open(dataSpec: androidx.media3.datasource.DataSpec): Long {
+                    val key = dataSpec.key ?: dataSpec.uri.toString()
+                    val isDownloaded = try {
+                        downloadCache.keys.contains(key)
+                    } catch (_: Exception) {
+                        false
+                    }
+                    currentSource = if (isDownloaded) downloadSource else playbackSource
+                    return currentSource.open(dataSpec)
+                }
+
+                override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+                    return currentSource.read(buffer, offset, length)
+                }
+
+                override fun getUri(): android.net.Uri? {
+                    return currentSource.uri
+                }
+
+                override fun close() {
+                    currentSource.close()
+                }
+            }
+        }
+
+        val resolvingDataSourceFactory = ResolvingDataSource.Factory(tieredCacheDataSourceFactory, object : ResolvingDataSource.Resolver {
             override fun resolveDataSpec(dataSpec: DataSpec): DataSpec {
                 val uri = dataSpec.uri
 
@@ -656,17 +705,11 @@ object MusicManager {
             .setAcceptsDelayedFocusGain(true)
             .build()
 
-        val cache = com.alananasss.kittytune.data.local.ExoCacheManager.getCache(context)
-        val cacheDataSourceFactory = androidx.media3.datasource.cache.CacheDataSource.Factory()
-            .setCache(cache)
-            .setUpstreamDataSourceFactory(resolvingDataSourceFactory)
-            .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-
         val createExoPlayer = { index: Int ->
             ExoPlayer.Builder(context.applicationContext)
                 .setMediaSourceFactory(
                     DefaultMediaSourceFactory(context)
-                        .setDataSourceFactory(cacheDataSourceFactory)
+                        .setDataSourceFactory(resolvingDataSourceFactory)
                         .setDrmSessionManagerProvider(drmSessionManagerProvider)
                 )
                 .setRenderersFactory(

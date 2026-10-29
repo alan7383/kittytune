@@ -1503,11 +1503,21 @@ object DownloadManager {
                                     parser.parse(dataSpec.uri, inputStream)
                                 }
 
-                            if (playlist is androidx.media3.exoplayer.hls.playlist.HlsMediaPlaylist) {
-                                val firstSegment = playlist.segments.firstOrNull()
-                                if (firstSegment != null && firstSegment.drmInitData != null) {
-                                    formatBuilder.setDrmInitData(firstSegment.drmInitData)
-                                }
+                            val mediaPlaylist = if (playlist is androidx.media3.exoplayer.hls.playlist.HlsMultivariantPlaylist) {
+                                val primaryMediaUri = playlist.variants.firstOrNull()?.url
+                                if (primaryMediaUri != null) {
+                                    val mediaDataSpec = androidx.media3.datasource.DataSpec(primaryMediaUri)
+                                    androidx.media3.datasource.DataSourceInputStream(dataSource, mediaDataSpec).use { s ->
+                                        parser.parse(primaryMediaUri, s) as? androidx.media3.exoplayer.hls.playlist.HlsMediaPlaylist
+                                    }
+                                } else null
+                            } else {
+                                playlist as? androidx.media3.exoplayer.hls.playlist.HlsMediaPlaylist
+                            }
+
+                            val firstSegment = mediaPlaylist?.segments?.firstOrNull()
+                            if (firstSegment != null && firstSegment.drmInitData != null) {
+                                formatBuilder.setDrmInitData(firstSegment.drmInitData)
                             }
 
                             val format = formatBuilder.build()
