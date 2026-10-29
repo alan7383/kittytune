@@ -116,7 +116,9 @@
             fun update(context: Context) {
                 widgetUpdateScope.launch {
                     val track = MusicManager.currentTrack
-                    val isPlaying = try { MusicManager.player.isPlaying } catch(e: Exception) { false }
+                    val isPlaying = try {
+                        MusicManager.player.isPlaying || (MusicManager.isLoadingTrack && MusicManager.playWhenReadyRequested)
+                    } catch(e: Exception) { false }
                     val isLiked = if (track != null) LikeRepository.isTrackLiked(track.id) else false
 
                     // Skip redundant refreshes: playback state changes fire in bursts (each

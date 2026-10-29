@@ -114,6 +114,13 @@ class PlaybackService : MediaLibraryService() {
             }
         }
 
+        serviceScope.launch {
+            MusicManager.playWhenReadyRequestedFlow.collect {
+                currentForwardingPlayer?.notifyLoadingStateChanged()
+                requestUpdate(delayed = false)
+            }
+        }
+
         val sessionIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -698,8 +705,8 @@ class PlaybackService : MediaLibraryService() {
         }
 
         override fun play() {
+            MusicManager.playWhenReadyRequested = true
             if (MusicManager.isLoadingTrack) {
-                MusicManager.playWhenReadyRequested = true
                 notifyLoadingStateChanged()
             } else {
                 super.play()
@@ -707,8 +714,8 @@ class PlaybackService : MediaLibraryService() {
         }
 
         override fun pause() {
+            MusicManager.playWhenReadyRequested = false
             if (MusicManager.isLoadingTrack) {
-                MusicManager.playWhenReadyRequested = false
                 notifyLoadingStateChanged()
             } else {
                 super.pause()
