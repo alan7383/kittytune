@@ -76,9 +76,7 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import com.alananasss.kittytune.ui.design.IconButton
-import com.alananasss.kittytune.ui.design.Surface
-import com.alananasss.kittytune.ui.design.CenterAlignedTopAppBar
+
 
 private sealed interface QueueListItem {
     data class PastHeader(val count: Int, val isExpanded: Boolean) : QueueListItem

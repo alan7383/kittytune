@@ -71,13 +71,7 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.text.NumberFormat
 import java.util.Locale
-import com.alananasss.kittytune.ui.design.AlertDialog
-import com.alananasss.kittytune.ui.design.IconButton
-import com.alananasss.kittytune.ui.design.LiquidIconButton
-import com.alananasss.kittytune.ui.design.OutlinedButton
-import com.alananasss.kittytune.ui.design.OutlinedTextField
-import com.alananasss.kittytune.ui.design.Surface
-import com.alananasss.kittytune.ui.design.TextButton
+
 
 /**
  * Sound wave animation indicator (ılı) for currently playing queue track
@@ -184,11 +178,9 @@ fun TabletSidePlayerPanel(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    LiquidIconButton(
+                    IconButton(
                         onClick = onExpandFullScreen,
-                        size = 36.dp,
-                        tint = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f),
-                        contentColor = MaterialTheme.colorScheme.onSurface
+                        modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.OpenInFull,
@@ -197,11 +189,9 @@ fun TabletSidePlayerPanel(
                             modifier = Modifier.size(18.dp)
                         )
                     }
-                    LiquidIconButton(
+                    IconButton(
                         onClick = onClose,
-                        size = 36.dp,
-                        tint = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f),
-                        contentColor = MaterialTheme.colorScheme.onSurface
+                        modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowDown,
@@ -224,11 +214,9 @@ fun TabletSidePlayerPanel(
                         .hapticClickable { viewModel.navigateToContext() }
                 )
 
-                LiquidIconButton(
+                IconButton(
                     onClick = hapticAction(HapticKind.UI) { viewModel.showTrackOptions(track, fromPlayer = true) },
-                    size = 36.dp,
-                    tint = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f),
-                    contentColor = MaterialTheme.colorScheme.onSurface
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.MoreVert,
