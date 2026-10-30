@@ -181,7 +181,8 @@ enum class AppLanguage(val code: String) {
     GERMAN("de"),
     HUNGARIAN("hu"),
     RUSSIAN("ru"),
-    VIETNAMESE("vi")
+    VIETNAMESE("vi"),
+    TURKISH("tr")
 }
 
 enum class TrackRemovalMethod {

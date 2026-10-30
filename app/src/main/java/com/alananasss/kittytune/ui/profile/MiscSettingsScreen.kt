@@ -116,6 +116,7 @@ fun MiscGeneralSettingsScreen(
                     LanguageRadioButton(stringResource(R.string.lang_russian), AppLanguage.RUSSIAN, appLanguage, onSelected)
                     LanguageRadioButton(stringResource(R.string.lang_hungarian), AppLanguage.HUNGARIAN, appLanguage, onSelected)
                     LanguageRadioButton(stringResource(R.string.lang_vietnamese), AppLanguage.VIETNAMESE, appLanguage, onSelected)
+                    LanguageRadioButton(stringResource(R.string.lang_turkish), AppLanguage.TURKISH, appLanguage, onSelected)
                 }
             },
             confirmButton = {}
@@ -184,6 +185,7 @@ fun MiscGeneralSettingsScreen(
                                     AppLanguage.HUNGARIAN -> stringResource(R.string.lang_hungarian)
                                     AppLanguage.RUSSIAN -> stringResource(R.string.lang_russian)
                                     AppLanguage.VIETNAMESE -> stringResource(R.string.lang_vietnamese)
+                                    AppLanguage.TURKISH -> stringResource(R.string.lang_turkish)
                                 },
                                 icon = Icons.Rounded.Translate,
                                 onClick = hapticAction(HapticKind.UI) { showLanguageDialog = true },
