@@ -2190,7 +2190,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
     val isDownloadedContext = viewModel.currentContext?.navigationId == "downloads"
             || viewModel.currentContext?.navigationId?.startsWith("downloaded_section:") == true
             || viewModel.currentContext?.navigationId == "local_files"
-            || (viewModel.menuContextPlaylistId != null && (viewModel.menuContextPlaylistId == -2L || viewModel.menuContextPlaylistId!! < 0))
+            || viewModel.menuContextPlaylistId == -2L
 
     val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)
     val isOfflineMode = isLocalFile || isDownloadedContext || isOffline

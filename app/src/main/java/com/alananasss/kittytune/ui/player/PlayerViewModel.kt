@@ -3478,7 +3478,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(getApplication())
             val navId = currentContext?.navigationId
             val isContextLocal =
-                (menuContextPlaylistId != null && (menuContextPlaylistId == -2L || menuContextPlaylistId!! < 0))
+                menuContextPlaylistId == -2L
                         || (navId == "downloads" || navId?.startsWith("local_playlist:") == true)
 
             if (isOffline && isContextLocal) {

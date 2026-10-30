@@ -183,7 +183,7 @@ fun PlaylistDetailScreen(
     val isTidalArtist = playlistId.startsWith("tidal:artist:")
     val isQobuzArtist = playlistId.startsWith("qobuz:artist:")
     val isArtistStation = playlistId.startsWith("station_artist:")
-    val isArtistView = isDeezerArtist || isTidalArtist || isQobuzArtist || isArtistStation
+    val isArtistView = isDeezerArtist || isTidalArtist || isQobuzArtist
 
 
 
