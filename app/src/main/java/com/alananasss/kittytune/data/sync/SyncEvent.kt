@@ -78,6 +78,8 @@ data class ListenPayload(
      * merge, they just fall back to the ending label for completion.
      */
     val furthestPositionMs: Long = 0,
+    /** The track's genre, for the recaps. Added later: an older peer's events leave it null. */
+    val genre: String? = null,
 )
 
 /**

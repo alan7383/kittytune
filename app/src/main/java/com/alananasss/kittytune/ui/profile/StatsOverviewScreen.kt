@@ -86,6 +86,7 @@ import com.alananasss.kittytune.data.stats.ReportArtist
 import com.alananasss.kittytune.data.stats.ReportPeriod
 import com.alananasss.kittytune.data.stats.ReportTrack
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
+import com.alananasss.kittytune.ui.profile.recap.RecapCarouselSection
 import com.alananasss.kittytune.ui.profile.stats.ActivityCard
 import com.alananasss.kittytune.ui.profile.stats.ArtistTile
 import com.alananasss.kittytune.ui.profile.stats.ArtistsListDialog
@@ -123,6 +124,8 @@ fun ListeningStatsScreen(
     onTrackClick: (ReportTrack) -> Unit,
     onArtistClick: (ReportArtist) -> Unit,
     onNavigateToYearlyPlayback: () -> Unit = {},
+    onOpenRecap: (String) -> Unit = {},
+    onOpenRecaps: () -> Unit = {},
     isGuest: Boolean = false
 ) {
     val context = LocalContext.current
@@ -306,6 +309,15 @@ fun ListeningStatsScreen(
                     }
             ) { shownPair ->
                 val (shownReport, shownStyle) = shownPair ?: (null to style)
+                // The recaps sit above whichever layout is chosen: they are built from the same history
+                // and are the way back into a finished month, season or year.
+                val recaps: @Composable () -> Unit = {
+                    RecapCarouselSection(
+                        onOpenRecap = onOpenRecap,
+                        onSeeAll = onOpenRecaps,
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    )
+                }
                 when {
                     shownReport == null -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -323,7 +335,8 @@ fun ListeningStatsScreen(
                             onTrackClick = onTrackClick,
                             onArtistClick = onArtistClick,
                             onNavigateToYearlyPlayback = onNavigateToYearlyPlayback,
-                            isGuest = isGuest
+                            isGuest = isGuest,
+                            header = recaps
                         )
                     }
                     shownStyle == StatsStyle.COMPACT -> {
@@ -332,7 +345,8 @@ fun ListeningStatsScreen(
                             period = period,
                             onOpen = { openList = it },
                             onTrackClick = onTrackClick,
-                            onArtistClick = onArtistClick
+                            onArtistClick = onArtistClick,
+                            header = recaps
                         )
                     }
                     else -> {
@@ -341,7 +355,8 @@ fun ListeningStatsScreen(
                             period = period,
                             onOpen = { openList = it },
                             onTrackClick = onTrackClick,
-                            onArtistClick = onArtistClick
+                            onArtistClick = onArtistClick,
+                            header = recaps
                         )
                     }
                 }
@@ -634,7 +649,8 @@ private fun OverviewStats(
     onTrackClick: (ReportTrack) -> Unit,
     onArtistClick: (ReportArtist) -> Unit,
     onNavigateToYearlyPlayback: () -> Unit = {},
-    isGuest: Boolean = false
+    isGuest: Boolean = false,
+    header: (@Composable () -> Unit)? = null,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // Two charts sit side by side only where there is genuinely room; a phone stacks them, and
@@ -645,6 +661,7 @@ private fun OverviewStats(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 180.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (header != null) item(key = "recaps") { header() }
             item { SummaryCard(report, period, onOpen) }
             item {
                 if (isWide) {

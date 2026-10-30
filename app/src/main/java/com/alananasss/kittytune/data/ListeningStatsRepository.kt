@@ -112,6 +112,7 @@ object ListeningStatsRepository {
                 listenDurationMs = listenDurationMs,
                 trackDurationMs = track.durationMs ?: 0L,
                 furthestPositionMs = furthestPositionMs,
+                genre = track.genre?.trim()?.takeIf { it.isNotEmpty() },
             )
 
             // The log first, so the row can carry the event's id and be immune to being applied twice.
@@ -137,6 +138,7 @@ object ListeningStatsRepository {
                     timestamp = timestamp,
                     furthestPositionMs = payload.furthestPositionMs,
                     syncEventId = eventId,
+                    genre = payload.genre,
                 )
             )
             onStatsChanged()
@@ -322,6 +324,35 @@ object ListeningStatsRepository {
      * at the epoch — otherwise the activity chart opens on years of empty months.
      */
     suspend fun getOldestEventAt(): Long? = getSnapshot(0L).firstAtMs?.takeIf { it > 0L }
+
+    /** Artist names (lowercased) heard before [before], so a recap can tell discoveries from favourites. */
+    suspend fun getArtistNamesBefore(before: Long): Set<String> = memo("artistsBefore:$before") {
+        dao.getArtistNamesBefore(before)
+            .flatMap { raw -> splitArtistNames(raw).ifEmpty { listOf(raw) } }
+            .mapTo(HashSet()) { it.lowercase() }
+    }
+
+    /** Track ids heard before [before]. */
+    suspend fun getTrackIdsBefore(before: Long): Set<Long> = memo("tracksBefore:$before") {
+        dao.getTrackIdsBefore(before).toHashSet()
+    }
+
+    /**
+     * Fills in the genre of listens recorded before genres were kept.
+     *
+     * Only the tracks a recap is about are asked for, through [fetch] (track id → genre), so opening a
+     * recap costs one request rather than one per listen. Tracks the service has no genre for are
+     * simply left as they were.
+     */
+    suspend fun backfillGenres(trackIds: Collection<Long>, fetch: suspend (List<Long>) -> Map<Long, String>): Boolean {
+        if (trackIds.isEmpty()) return false
+        val found = runCatching { fetch(trackIds.distinct()) }.getOrDefault(emptyMap())
+            .filterValues { it.isNotBlank() }
+        if (found.isEmpty()) return false
+        found.forEach { (id, genre) -> dao.setGenreForTrack(id, genre.trim()) }
+        onStatsChanged()
+        return true
+    }
 
     fun clearStats() {
         scope.launch {

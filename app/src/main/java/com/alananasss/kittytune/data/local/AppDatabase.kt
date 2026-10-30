@@ -240,6 +240,18 @@
         @Insert(onConflict = OnConflictStrategy.IGNORE)
         suspend fun insertStatsEvent(event: ListeningStatsEvent)
 
+        /** Fills in a track's genre on the rows that lack one; rows that already have one keep it. */
+        @Query("UPDATE listening_stats SET genre = :genre WHERE trackId = :trackId AND genre IS NULL")
+        suspend fun setGenreForTrack(trackId: Long, genre: String)
+
+        /** Artists heard before [before], to tell the recaps' discoveries from old favourites. */
+        @Query("SELECT DISTINCT artistName FROM listening_stats WHERE timestamp < :before")
+        suspend fun getArtistNamesBefore(before: Long): List<String>
+
+        /** Tracks heard before [before], for the same reason. */
+        @Query("SELECT DISTINCT trackId FROM listening_stats WHERE timestamp < :before")
+        suspend fun getTrackIdsBefore(before: Long): List<Long>
+
         /**
          * A whole batch in one transaction, for what arrives from the other device.
          *
@@ -518,7 +530,7 @@
             BlockedContent::class,
             QueueHistoryEntity::class
         ],
-        version = 27,
+        version = 28,
         exportSchema = false
     )
     abstract class AppDatabase : RoomDatabase() {
@@ -695,6 +707,13 @@
                 }
             }
 
+            /** The genre of each listen, for the listening recaps. Nullable: older rows simply have none. */
+            val MIGRATION_27_28 = object : Migration(27, 28) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE listening_stats ADD COLUMN genre TEXT")
+                }
+            }
+
             @Volatile private var INSTANCE: AppDatabase? = null
             fun getDatabase(context: Context): AppDatabase {
                 return INSTANCE ?: synchronized(this) {
@@ -703,7 +722,7 @@
                         AppDatabase::class.java,
                         "soundtune_db"
                     )
-                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27)
+                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28)
                         .fallbackToDestructiveMigration()
                         .build()
                     INSTANCE = instance

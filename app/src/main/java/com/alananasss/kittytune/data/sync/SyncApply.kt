@@ -128,6 +128,7 @@ object SyncApply {
             // puts it in the same week on both devices.
             timestamp = event.timestampMs,
             furthestPositionMs = payload.furthestPositionMs,
+            genre = payload.genre,
             // What makes this insert idempotent at the database level rather than at ours.
             syncEventId = event.id,
         )
