@@ -3414,6 +3414,8 @@
     <string name="queue_history_delete">Delete</string>
     <string name="queue_history_count_one">1 saved queue</string>
     <string name="queue_history_count">%1$d saved queues</string>
+    <string name="pref_queue_auto_archive">Preserve queue history</string>
+    <string name="pref_queue_auto_archive_sub">Automatically save previous queues when a new one starts</string>
     <string name="time_hours_minutes">%1$dh %2$02dmin</string>
     <string name="time_hours">%1$dh</string>
     <string name="time_minutes">%1$d min</string>

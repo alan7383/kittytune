@@ -73,6 +73,7 @@ fun AudioPlaybackSettingsScreen(
     var autoplayEnabled by remember { mutableStateOf(prefs.getAutoplayEnabled()) }
     var stopOnTaskClear by remember { mutableStateOf(prefs.getStopOnTaskClear()) }
     var persistentQueueEnabled by remember { mutableStateOf(prefs.getPersistentQueueEnabled()) }
+    var queueAutoArchiveEnabled by remember { mutableStateOf(prefs.getQueueAutoArchiveEnabled()) }
     var savePositionEnabled by remember { mutableStateOf(prefs.getSavePositionEnabled()) }
     var youtubeFallbackEnabled by remember { mutableStateOf(prefs.getYouTubeFallbackEnabled()) }
     var hideYoutubeVideosEnabled by remember { mutableStateOf(prefs.getHideYoutubeVideos()) }
@@ -86,6 +87,7 @@ fun AudioPlaybackSettingsScreen(
             "pref_autoplay" to 0,
             "pref_stop_on_task_clear" to 0,
             "pref_persist_queue" to 0,
+            "pref_queue_auto_archive" to 0,
             "pref_save_position" to 0,
             "pref_youtube_fallback" to 0,
             "pref_hide_youtube_videos" to 0,
@@ -110,7 +112,7 @@ fun AudioPlaybackSettingsScreen(
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = if (!isGuest) 8 else 7
+                        val totalVisibleItems = if (!isGuest) 9 else 8
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
@@ -143,6 +145,19 @@ fun AudioPlaybackSettingsScreen(
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 3),
+                            title = stringResource(R.string.pref_queue_auto_archive),
+                            subtitle = stringResource(R.string.pref_queue_auto_archive_sub),
+                            hasSwitch = true,
+                            switchState = queueAutoArchiveEnabled,
+                            onSwitchChange = {
+                                queueAutoArchiveEnabled = it
+                                prefs.setQueueAutoArchiveEnabled(it)
+                            },
+                            highlightKey = "pref_queue_auto_archive"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 4),
                             title = stringResource(R.string.pref_save_position),
                             subtitle = stringResource(R.string.pref_save_position_sub),
                             hasSwitch = true,
@@ -152,7 +167,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 4),
+                            shape = getSettingsShape(totalVisibleItems, 5),
                             title = stringResource(R.string.pref_youtube_fallback),
                             subtitle = stringResource(R.string.pref_youtube_fallback_sub),
                             hasSwitch = true,
@@ -162,7 +177,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 5),
+                            shape = getSettingsShape(totalVisibleItems, 6),
                             title = stringResource(R.string.pref_hide_youtube_videos),
                             subtitle = stringResource(R.string.pref_hide_youtube_videos_sub),
                             hasSwitch = true,
@@ -175,7 +190,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 6),
+                            shape = getSettingsShape(totalVisibleItems, 7),
                             title = stringResource(R.string.pref_precise_speed),
                             subtitle = stringResource(R.string.pref_precise_speed_sub),
                             hasSwitch = true,
@@ -186,7 +201,7 @@ fun AudioPlaybackSettingsScreen(
 
                         if (!isGuest) {
                             SettingsItem(
-                                shape = getSettingsShape(totalVisibleItems, 7),
+                                shape = getSettingsShape(totalVisibleItems, 8),
                                 title = stringResource(R.string.pref_sc_sync_title),
                                 subtitle = stringResource(R.string.pref_sc_sync_sub),
                                 hasSwitch = true,

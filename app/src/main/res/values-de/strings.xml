@@ -3298,6 +3298,8 @@
     <string name="queue_history_delete">Löschen</string>
     <string name="queue_history_count_one">1 gespeicherte Warteschlange</string>
     <string name="queue_history_count">%1$d gespeicherte Warteschlangen</string>
+    <string name="pref_queue_auto_archive">Warteschlangen-Verlauf archivieren</string>
+    <string name="pref_queue_auto_archive_sub">Frühere Warteschlangen automatisch speichern, wenn eine neue gestartet wird</string>
     <string name="screensaver_focus_mode">Bildschirmschoner &amp; Fokusmodus</string>
     <string name="screensaver_since_sleep">Seit Bildschirmschoner</string>
     <string name="screensaver_tap_to_wake">Zum Aufwecken irgendwo tippen</string>

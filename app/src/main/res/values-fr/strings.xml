@@ -3284,6 +3284,8 @@
     <string name="queue_history_delete">Supprimer</string>
     <string name="queue_history_count_one">1 file enregistrée</string>
     <string name="queue_history_count">%1$d files enregistrées</string>
+    <string name="pref_queue_auto_archive">Conserver l\'historique des files</string>
+    <string name="pref_queue_auto_archive_sub">Sauvegarder automatiquement l\'ancienne file d\'attente lors du lancement d\'une nouvelle</string>
     <string name="time_hours_minutes">%1$dh %2$02dmin</string>
     <string name="time_hours">%1$dh</string>
     <string name="time_minutes">%1$d min</string>

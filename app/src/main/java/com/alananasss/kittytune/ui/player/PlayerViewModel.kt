@@ -331,6 +331,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     var repeatMode by mutableStateOf(playerPrefs.getLastRepeatMode())
     var shuffleEnabled by mutableStateOf(playerPrefs.getLastShuffleEnabled())
     var isQueuePreserveUpcomingEnabled by mutableStateOf(playerPrefs.getQueuePreserveUpcomingOnJump())
+    var isQueueAutoArchiveEnabled by mutableStateOf(playerPrefs.getQueueAutoArchiveEnabled())
     private var isAutoplayRadioLoading by mutableStateOf(false)
     private var boundPlayer: ExoPlayer? = null
 
@@ -338,6 +339,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         val newState = enabled ?: !isQueuePreserveUpcomingEnabled
         isQueuePreserveUpcomingEnabled = newState
         playerPrefs.setQueuePreserveUpcomingOnJump(newState)
+    }
+
+    fun toggleQueueAutoArchive(enabled: Boolean? = null) {
+        val newState = enabled ?: !isQueueAutoArchiveEnabled
+        isQueueAutoArchiveEnabled = newState
+        playerPrefs.setQueueAutoArchiveEnabled(newState)
     }
 
     var repostedTrackIds by mutableStateOf<Set<Long>>(emptySet())
@@ -1382,14 +1389,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     }
 
     fun resetPlaybackState(closePlayer: Boolean = true) {
-        val tracksToArchive = if (_queue.isNotEmpty()) _queue.toList() else _originalQueue.toList()
-        if (tracksToArchive.isNotEmpty() && (tracksToArchive.size >= 2 || currentContext != null)) {
-            com.alananasss.kittytune.data.QueueHistoryRepository.saveQueue(
-                queue = tracksToArchive,
-                currentIndex = currentQueueIndex,
-                currentPositionMs = currentPosition,
-                context = currentContext
-            )
+        if (playerPrefs.getQueueAutoArchiveEnabled()) {
+            val tracksToArchive = if (_queue.isNotEmpty()) _queue.toList() else _originalQueue.toList()
+            if (tracksToArchive.isNotEmpty() && (tracksToArchive.size >= 2 || currentContext != null)) {
+                com.alananasss.kittytune.data.QueueHistoryRepository.saveQueue(
+                    queue = tracksToArchive,
+                    currentIndex = currentQueueIndex,
+                    currentPositionMs = currentPosition,
+                    context = currentContext
+                )
+            }
         }
         playJob?.cancel()
         isLoading = false
@@ -4635,6 +4644,7 @@ query CommentsWithReactions(
     }
 
     private fun archiveQueueIfNeeded(incomingTracks: List<Track>) {
+        if (!playerPrefs.getQueueAutoArchiveEnabled()) return
         val currentTracks = if (_queue.isNotEmpty()) _queue.toList() else _originalQueue.toList()
         if (currentTracks.isNotEmpty() && !areTrackListsEquivalent(currentTracks, incomingTracks)) {
             if (currentTracks.size >= 2 || currentContext != null) {

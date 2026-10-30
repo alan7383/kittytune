@@ -34,7 +34,8 @@ class QueuePreservationTest {
         return true
     }
 
-    private fun isEligibleForAutoArchive(queue: List<Track>, context: PlaybackContext?): Boolean {
+    private fun isEligibleForAutoArchive(queue: List<Track>, context: PlaybackContext?, isEnabled: Boolean = true): Boolean {
+        if (!isEnabled) return false
         if (queue.isEmpty()) return false
         return queue.size >= 2 || context != null
     }
@@ -75,6 +76,9 @@ class QueuePreservationTest {
 
         // Multi-track playlist with context -> Eligible
         assertTrue(isEligibleForAutoArchive(listOf(track1, track2), context))
+
+        // When disabled by user preference (default) -> Not eligible even for multi-track queue
+        assertFalse(isEligibleForAutoArchive(listOf(track1, track2), context, isEnabled = false))
     }
 
     @Test

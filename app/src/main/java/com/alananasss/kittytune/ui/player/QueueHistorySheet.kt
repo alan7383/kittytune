@@ -111,13 +111,17 @@ fun QueueHistorySheet(
                         view.performAppHaptic(HapticFeedbackConstants.CONFIRM)
                         QueueHistoryRepository.clearAll()
                         showClearConfirmDialog = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.queue_history_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearConfirmDialog = false }) {
+                TextButton(
+                    onClick = { showClearConfirmDialog = false },
+                    shapes = ButtonDefaults.shapes()
+                ) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
@@ -248,7 +252,7 @@ fun QueueHistorySheet(
                                 viewModel.saveCurrentQueueToHistory()
                                 snapshotSavedRecently = true
                             },
-                            shape = RoundedCornerShape(12.dp),
+                            shapes = ButtonDefaults.shapes(),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                         ) {
                             Text(
@@ -449,11 +453,11 @@ private fun QueueHistoryCard(
 
                 Spacer(Modifier.width(8.dp))
 
-                // Actions: Restore button & Expand toggle
+                // Actions: Restore button & Expand toggle & Delete
                 FilledTonalIconButton(
                     onClick = onRestore,
                     modifier = Modifier.size(40.dp),
-                    shape = CircleShape
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.PlayArrow,
@@ -473,6 +477,19 @@ private fun QueueHistoryCard(
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = onDelete,
+                    shapes = IconButtonDefaults.shapes(),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Delete,
+                        contentDescription = stringResource(R.string.queue_history_delete),
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
@@ -566,7 +583,7 @@ private fun QueueHistoryCard(
                             Button(
                                 onClick = onRestore,
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
+                                shapes = ButtonDefaults.shapes(),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary
                                 )
@@ -582,7 +599,7 @@ private fun QueueHistoryCard(
 
                             OutlinedButton(
                                 onClick = onDelete,
-                                shape = RoundedCornerShape(12.dp)
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Delete,
