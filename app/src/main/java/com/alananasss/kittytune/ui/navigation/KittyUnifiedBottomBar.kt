@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.MiniPlayerSwipeAction
@@ -51,6 +52,23 @@ import com.alananasss.kittytune.ui.player.pixel.miniPlayerDismissHorizontalGestu
 import com.alananasss.kittytune.ui.player.pixel.rememberMiniPlayerDismissGestureHandler
 import androidx.compose.ui.platform.LocalContext
 import kotlin.math.abs
+import com.alananasss.kittytune.data.local.UiDesignStyle
+import com.alananasss.kittytune.ui.liquidglass.LocalBackdrop
+import com.alananasss.kittytune.ui.liquidglass.LocalLiquidGlassConfig
+import com.alananasss.kittytune.ui.liquidglass.LocalUiDesignStyle
+import com.alananasss.kittytune.ui.liquidglass.components.KittyLiquidBottomTab
+import com.alananasss.kittytune.ui.liquidglass.components.KittyLiquidBottomTabs
+import com.alananasss.kittytune.ui.liquidglass.components.KittyLiquidButton
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.InnerShadow
+import com.kyant.backdrop.shadow.Shadow
+import com.kyant.shapes.Capsule
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.Surface
 
 data class KittyTab(
     val title: String,
@@ -74,6 +92,14 @@ fun KittyUnifiedBottomBar(
 ) {
     val track = playerViewModel.uiCurrentTrack
     val isPlaying = playerViewModel.uiIsPlaying
+
+    val uiDesignStyle = LocalUiDesignStyle.current
+    val liquidConfig = LocalLiquidGlassConfig.current
+    val backdrop = LocalBackdrop.current
+    val isLiquidGlass = uiDesignStyle == UiDesignStyle.LIQUID_GLASS && backdrop != null && liquidConfig.applyToBottomBar
+
+    val surfaceContainerColor = MaterialTheme.colorScheme.surfaceContainer
+    val tertiaryContainerColor = MaterialTheme.colorScheme.tertiaryContainer
 
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
@@ -110,7 +136,7 @@ fun KittyUnifiedBottomBar(
         }
     )
 
-    if (style == "classic") {
+    if (!isLiquidGlass && style == "classic") {
         Column(
             modifier = modifier
                 .fillMaxWidth()
@@ -309,8 +335,49 @@ fun KittyUnifiedBottomBar(
                             enabled = true,
                             handler = miniDismissGestureHandler
                         )
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .then(
+                            if (isLiquidGlass) {
+                                val miniCornerRadius = (16f * liquidConfig.cornerRadiusFactor).dp
+                                Modifier
+                                    .drawBackdrop(
+                                        backdrop = backdrop,
+                                        shape = { RoundedCornerShape(miniCornerRadius) },
+                                        effects = {
+                                            if (liquidConfig.vibrancyEnabled) {
+                                                vibrancy()
+                                            }
+                                            blur(liquidConfig.blurRadiusDp.dp.toPx())
+                                            lens(
+                                                refractionHeight = liquidConfig.refractionHeightDp.dp.toPx() * 0.6f,
+                                                refractionAmount = liquidConfig.refractionAmountDp.dp.toPx() * 0.6f,
+                                                depthEffect = liquidConfig.depthEffect,
+                                                chromaticAberration = liquidConfig.chromaticAberration > 0f
+                                            )
+                                        },
+                                        highlight = {
+                                            Highlight.Default.copy(alpha = (0.6f * liquidConfig.highlightIntensity).coerceIn(0f, 1f))
+                                        },
+                                        shadow = if (liquidConfig.shadowsEnabled) {
+                                            {
+                                                Shadow(radius = 6.dp, color = Color.Black.copy(alpha = 0.12f))
+                                            }
+                                        } else null,
+                                        innerShadow = if (liquidConfig.innerShadowEnabled) {
+                                            {
+                                                InnerShadow(radius = 4.dp, alpha = 0.15f)
+                                            }
+                                        } else null,
+                                        onDrawSurface = {
+                                            drawRect(surfaceContainerColor.copy(alpha = liquidConfig.surfaceAlpha))
+                                        }
+                                    )
+                                    .clip(RoundedCornerShape(miniCornerRadius))
+                            } else {
+                                Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                            }
+                        )
                         .clickable { onPlayerClick() }
                 ) {
                     Row(
@@ -413,6 +480,81 @@ fun KittyUnifiedBottomBar(
                     .widthIn(max = 480.dp),
                 contentAlignment = Alignment.Center
             ) {
+            val visibleTabs = remember(tabs) { tabs.filter { it.visible } }
+            val selectedTabIndex = remember(visibleTabs, selectedRoute) {
+                val idx = visibleTabs.indexOfFirst { it.route == selectedRoute }
+                if (idx >= 0) idx else 0
+            }
+
+            if (isLiquidGlass) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    KittyLiquidBottomTabs(
+                        selectedTabIndex = { selectedTabIndex },
+                        onTabSelected = { index ->
+                            visibleTabs.getOrNull(index)?.let { tab ->
+                                com.alananasss.kittytune.audio.haptics.HapticUtil.performUIHaptic(context)
+                                onTabSelected(tab)
+                            }
+                        },
+                        backdrop = backdrop,
+                        tabsCount = visibleTabs.size,
+                    showIndicator = selectedRoute != null,
+                        modifier = Modifier.weight(1f, fill = false),
+                        accentColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        visibleTabs.forEachIndexed { index, tab ->
+                            KittyLiquidBottomTab(
+                                onClick = {
+                                    com.alananasss.kittytune.audio.haptics.HapticUtil.performUIHaptic(context)
+                                    onTabSelected(tab)
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = tab.title,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = tab.title,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 11.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    KittyLiquidButton(
+                        onClick = {
+                            com.alananasss.kittytune.audio.haptics.HapticUtil.performMediumHaptic(context)
+                            onFabClick()
+                        },
+                        backdrop = backdrop,
+                        modifier = Modifier.size(56.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        surfaceColor = tertiaryContainerColor.copy(alpha = 0.5f),
+                        tint = MaterialTheme.colorScheme.tertiary
+                    ) {
+                        Icon(
+                            imageVector = fabIcon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            } else {
                 val isCompact = maxWidth < 375.dp
                 val tabHorizontalPadding = if (isCompact) 8.dp else 11.dp
                 val selectedTabHorizontalPadding = if (isCompact) 12.dp else 14.dp
@@ -426,7 +568,7 @@ fun KittyUnifiedBottomBar(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainer,
                         tonalElevation = 2.dp,
-                        shadowElevation = 3.dp,
+                        shadowElevation = 3.dp
                     ) {
                         Row(
                             modifier = Modifier
@@ -558,6 +700,7 @@ fun KittyUnifiedBottomBar(
                         Icon(fabIcon, contentDescription = null)
                     }
                 }
+            }
             }
         }
     }

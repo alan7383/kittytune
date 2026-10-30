@@ -84,6 +84,15 @@ import kotlin.math.abs
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.alananasss.kittytune.ui.design.AssistChip
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.FilledTonalIconButton
+import com.alananasss.kittytune.ui.design.FilterChip
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.TextField
 
 private val FREQUENCY_LABELS = listOf(
     "32", "64", "125", "200", "315", "500", "800", "1.2k",

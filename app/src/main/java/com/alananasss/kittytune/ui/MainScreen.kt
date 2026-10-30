@@ -34,12 +34,12 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -120,6 +120,18 @@ import androidx.compose.ui.draw.clipToBounds
 import com.alananasss.kittytune.utils.Config
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.alananasss.kittytune.data.local.UiDesignStyle
+import com.alananasss.kittytune.ui.liquidglass.LocalBackdrop
+import com.alananasss.kittytune.ui.liquidglass.LocalGlassBackdrop
+import com.alananasss.kittytune.ui.liquidglass.LocalLiquidGlassConfig
+import com.alananasss.kittytune.ui.liquidglass.LocalUiDesignStyle
+import com.alananasss.kittytune.ui.liquidglass.rememberAmbientBackdrop
+import com.alananasss.kittytune.ui.profile.InterfaceDesignScreen
+import com.alananasss.kittytune.ui.profile.LiquidGlassSettingsScreen
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.TopAppBar
 
 private fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
@@ -172,6 +184,8 @@ fun MainScreen(
 
     val bottomMenuStyle by prefs.bottomMenuStyleFlow().collectAsState(initial = prefs.getBottomMenuStyle())
     val rawBottomMenuBlurEnabled by prefs.bottomMenuBlurFlow().collectAsState(initial = prefs.getBottomMenuBlurEnabled())
+    val uiDesignStyle by prefs.uiDesignStyleFlow().collectAsState(initial = prefs.getUiDesignStyle())
+    val liquidGlassConfig by prefs.liquidGlassConfigFlow().collectAsState(initial = prefs.getLiquidGlassConfig())
 
     var startDestination by remember {
         mutableStateOf(
@@ -397,6 +411,20 @@ fun MainScreen(
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val backgroundColor = MaterialTheme.colorScheme.background
+        val mainBackdrop = rememberLayerBackdrop {
+            drawRect(backgroundColor)
+            drawContent()
+        }
+
+        val ambientBackdrop = rememberAmbientBackdrop()
+
+        CompositionLocalProvider(
+            LocalUiDesignStyle provides uiDesignStyle,
+            LocalBackdrop provides mainBackdrop,
+            LocalGlassBackdrop provides ambientBackdrop,
+            LocalLiquidGlassConfig provides liquidGlassConfig
+        ) {
         val windowSizeInfo = rememberWindowSizeInfo(maxWidth, maxHeight)
         val actualBottomMenuBlurEnabled = (bottomMenuStyle == "modern" || windowSizeInfo.showTabletDock) && rawBottomMenuBlurEnabled
         val showBottomUi = !playerViewModel.isPlayerExpanded
@@ -607,7 +635,11 @@ fun MainScreen(
                             launchSingleTop = true
                         }
                     }
-                    homeViewModel.activateSearch()
+                    // Re-activating an already-open search only restarts its 400 ms focus
+                    // delay, which reads as a lag when the Search tab is tapped again.
+                    if (!homeViewModel.isSearching) {
+                        homeViewModel.activateSearch()
+                    }
                 } else {
                     if (tab.route == Screen.Home.route && homeViewModel.isSearching) {
                         homeViewModel.clearSearch()
@@ -675,7 +707,8 @@ fun MainScreen(
                     )
 
                     androidx.compose.runtime.CompositionLocalProvider(
-                        LocalAyuBackState provides ayuBackState
+                        LocalAyuBackState provides ayuBackState,
+                        LocalBackdrop provides null
                     ) {
                         NavHost(
                             navController = navController,
@@ -685,6 +718,13 @@ fun MainScreen(
                                 .focusProperties {
                                     canFocus = !isFullscreenOverlayVisible
                                 }
+                                .then(
+                                    if (uiDesignStyle == UiDesignStyle.LIQUID_GLASS) {
+                                        Modifier.layerBackdrop(mainBackdrop)
+                                    } else {
+                                        Modifier
+                                    }
+                                )
                                 .then(
                                     if (!isFullScreenRoute) {
                                         Modifier.progressiveBlur(
@@ -1644,6 +1684,20 @@ fun MainScreen(
                                 onNavigateToBottomBarSettings = { navController.navigate("bottom_bar_settings") },
                                 onNavigateToAppIconSettings = { navController.navigate("app_icon_settings") },
                                 onNavigateToPlayerCustomization = { navController.navigate("player_design_settings") },
+                                onNavigateToInterfaceDesign = { navController.navigate("interface_design_settings") },
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("interface_design_settings") {
+                            InterfaceDesignScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToLiquidGlassSettings = { navController.navigate("liquid_glass_settings") }
+                            )
+                        }
+
+                        clippedComposable("liquid_glass_settings") {
+                            LiquidGlassSettingsScreen(
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
@@ -2339,6 +2393,7 @@ fun MainScreen(
             animatingNotification?.let {
                 AchievementPopup(notification = it)
             }
+        }
         }
     }
 }

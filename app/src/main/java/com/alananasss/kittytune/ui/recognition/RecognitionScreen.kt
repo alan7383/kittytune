@@ -81,6 +81,11 @@ import com.alananasss.kittytune.music.recognition.RecognitionState
 import com.alananasss.kittytune.music.recognition.RecognitionViewModel
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.ElevatedCard
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.FilledTonalIconButton
+import com.alananasss.kittytune.ui.design.Surface
 
 @Composable
 fun RecognitionScreen(

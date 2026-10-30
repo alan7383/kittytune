@@ -41,6 +41,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
@@ -84,6 +85,10 @@ import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
 
 sealed class SetupPage {
     data object Welcome : SetupPage()
@@ -564,13 +569,15 @@ private fun WelcomePage() {
 
         Box(
             modifier = Modifier
+                .widthIn(max = 380.dp)
                 .fillMaxWidth()
-                .height(240.dp)
+                .aspectRatio(1536f / 1024f)
                 .clip(RoundedCornerShape(20.dp))
         ) {
             com.alananasss.kittytune.ui.common.MaterialYouVectorDrawable(
                 modifier = Modifier.fillMaxSize(),
-                drawableResId = R.drawable.welcome_art
+                drawableResId = R.drawable.welcome_art,
+                contentScale = ContentScale.Fit
             )
             SineWaveLine(
                 modifier = Modifier

@@ -36,6 +36,43 @@ import androidx.annotation.StringRes
 import com.alananasss.kittytune.R
 
 enum class AppThemeMode { SYSTEM, LIGHT, DARK }
+enum class UiDesignStyle {
+    MATERIAL3,
+    LIQUID_GLASS,
+    MIUIX;
+
+    companion object {
+        fun fromString(name: String?): UiDesignStyle = when (name) {
+            LIQUID_GLASS.name -> LIQUID_GLASS
+            MIUIX.name -> MIUIX
+            else -> MATERIAL3
+        }
+    }
+}
+
+data class LiquidGlassConfig(
+    val cornerRadiusFactor: Float = 1.0f,
+    val blurRadiusDp: Float = 8.0f,
+    val refractionHeightDp: Float = 24.0f,
+    val refractionAmountDp: Float = 24.0f,
+    val chromaticAberration: Float = 1.0f,
+    val bubbleWidthFactor: Float = 1.0f,
+    val depthEffect: Boolean = true,
+    val surfaceAlpha: Float = 0.40f,
+    val applyToButtons: Boolean = true,
+    val applyToIconButtons: Boolean = true,
+    val applyToBottomBar: Boolean = true,
+    val applyToSliders: Boolean = true,
+    val applyToChips: Boolean = true,
+    val applyToDialogs: Boolean = true,
+    val applyToControls: Boolean = true,
+    val applyToTextFields: Boolean = true,
+    val highlightIntensity: Float = 1.0f,
+    val shadowsEnabled: Boolean = true,
+    val innerShadowEnabled: Boolean = true,
+    val vibrancyEnabled: Boolean = true,
+    val interactiveBounce: Boolean = true
+)
 enum class PlayerBackgroundStyle { THEME, GRADIENT, BLUR, APPLE_MUSIC }
 enum class StartDestination { HOME, LIBRARY }
 enum class LyricsAlignment { LEFT, CENTER, RIGHT }
@@ -488,6 +525,28 @@ class PlayerPreferences(context: Context) {
         const val SLEEP_TIMER_FADE_UPDATE_INTERVAL_MS = 50L
 
         private const val KEY_BOTTOM_MENU_STYLE = "bottom_menu_style"
+        const val KEY_UI_DESIGN_STYLE = "ui_design_style"
+        const val KEY_LIQUID_CORNER_RADIUS = "liquid_corner_radius"
+        const val KEY_LIQUID_BLUR_RADIUS = "liquid_blur_radius"
+        const val KEY_LIQUID_REFRACTION_HEIGHT = "liquid_refraction_height"
+        const val KEY_LIQUID_REFRACTION_AMOUNT = "liquid_refraction_amount"
+        const val KEY_LIQUID_CHROMATIC_ABERRATION = "liquid_chromatic_aberration"
+        const val KEY_LIQUID_BUBBLE_WIDTH = "liquid_bubble_width"
+        const val KEY_LIQUID_DEPTH_EFFECT = "liquid_depth_effect"
+        const val KEY_LIQUID_SURFACE_ALPHA = "liquid_surface_alpha"
+        const val KEY_LIQUID_APPLY_TO_BUTTONS = "liquid_apply_to_buttons"
+        const val KEY_LIQUID_APPLY_TO_ICON_BUTTONS = "liquid_apply_to_icon_buttons"
+        const val KEY_LIQUID_APPLY_TO_BOTTOM_BAR = "liquid_apply_to_bottom_bar"
+        const val KEY_LIQUID_APPLY_TO_SLIDERS = "liquid_apply_to_sliders"
+        const val KEY_LIQUID_APPLY_TO_CHIPS = "liquid_apply_to_chips"
+        const val KEY_LIQUID_APPLY_TO_DIALOGS = "liquid_apply_to_dialogs"
+        const val KEY_LIQUID_APPLY_TO_CONTROLS = "liquid_apply_to_controls"
+        const val KEY_LIQUID_APPLY_TO_TEXT_FIELDS = "liquid_apply_to_text_fields"
+        const val KEY_LIQUID_HIGHLIGHT_INTENSITY = "liquid_highlight_intensity"
+        const val KEY_LIQUID_SHADOWS_ENABLED = "liquid_shadows_enabled"
+        const val KEY_LIQUID_INNER_SHADOW_ENABLED = "liquid_inner_shadow_enabled"
+        const val KEY_LIQUID_VIBRANCY_ENABLED = "liquid_vibrancy_enabled"
+        const val KEY_LIQUID_INTERACTIVE_BOUNCE = "liquid_interactive_bounce"
         private const val KEY_BOTTOM_MENU_ITEMS = "bottom_menu_items_csv"
         const val DEFAULT_BOTTOM_MENU_ITEMS = "home,search,genres,library"
         private const val KEY_BOTTOM_MENU_ORDER = "bottom_menu_order_csv"
@@ -1318,6 +1377,102 @@ class PlayerPreferences(context: Context) {
                 ),
             )
         }
+
+    fun getUiDesignStyle(): UiDesignStyle =
+        UiDesignStyle.fromString(prefs.getString(KEY_UI_DESIGN_STYLE, UiDesignStyle.MATERIAL3.name))
+
+    fun setUiDesignStyle(style: UiDesignStyle) =
+        prefs.edit { putString(KEY_UI_DESIGN_STYLE, style.name) }
+
+    fun uiDesignStyleFlow(): kotlinx.coroutines.flow.Flow<UiDesignStyle> = kotlinx.coroutines.flow.callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_UI_DESIGN_STYLE) trySend(getUiDesignStyle())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(getUiDesignStyle())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getLiquidGlassConfig(): LiquidGlassConfig = LiquidGlassConfig(
+        cornerRadiusFactor = prefs.getFloat(KEY_LIQUID_CORNER_RADIUS, 1.0f),
+        blurRadiusDp = prefs.getFloat(KEY_LIQUID_BLUR_RADIUS, 8.0f),
+        refractionHeightDp = prefs.getFloat(KEY_LIQUID_REFRACTION_HEIGHT, 24.0f),
+        refractionAmountDp = prefs.getFloat(KEY_LIQUID_REFRACTION_AMOUNT, 24.0f),
+        chromaticAberration = prefs.getFloat(KEY_LIQUID_CHROMATIC_ABERRATION, 1.0f),
+        bubbleWidthFactor = prefs.getFloat(KEY_LIQUID_BUBBLE_WIDTH, 1.0f),
+        depthEffect = prefs.getBoolean(KEY_LIQUID_DEPTH_EFFECT, true),
+        surfaceAlpha = prefs.getFloat(KEY_LIQUID_SURFACE_ALPHA, 0.40f),
+        applyToButtons = prefs.getBoolean(KEY_LIQUID_APPLY_TO_BUTTONS, true),
+        applyToIconButtons = prefs.getBoolean(KEY_LIQUID_APPLY_TO_ICON_BUTTONS, true),
+        applyToBottomBar = prefs.getBoolean(KEY_LIQUID_APPLY_TO_BOTTOM_BAR, true),
+        applyToSliders = prefs.getBoolean(KEY_LIQUID_APPLY_TO_SLIDERS, true),
+        applyToChips = prefs.getBoolean(KEY_LIQUID_APPLY_TO_CHIPS, true),
+        applyToDialogs = prefs.getBoolean(KEY_LIQUID_APPLY_TO_DIALOGS, true),
+        applyToControls = prefs.getBoolean(KEY_LIQUID_APPLY_TO_CONTROLS, true),
+        applyToTextFields = prefs.getBoolean(KEY_LIQUID_APPLY_TO_TEXT_FIELDS, true),
+        highlightIntensity = prefs.getFloat(KEY_LIQUID_HIGHLIGHT_INTENSITY, 1.0f),
+        shadowsEnabled = prefs.getBoolean(KEY_LIQUID_SHADOWS_ENABLED, true),
+        innerShadowEnabled = prefs.getBoolean(KEY_LIQUID_INNER_SHADOW_ENABLED, true),
+        vibrancyEnabled = prefs.getBoolean(KEY_LIQUID_VIBRANCY_ENABLED, true),
+        interactiveBounce = prefs.getBoolean(KEY_LIQUID_INTERACTIVE_BOUNCE, true)
+    )
+
+    fun setLiquidGlassConfig(config: LiquidGlassConfig) = prefs.edit {
+        putFloat(KEY_LIQUID_CORNER_RADIUS, config.cornerRadiusFactor)
+        putFloat(KEY_LIQUID_BLUR_RADIUS, config.blurRadiusDp)
+        putFloat(KEY_LIQUID_REFRACTION_HEIGHT, config.refractionHeightDp)
+        putFloat(KEY_LIQUID_REFRACTION_AMOUNT, config.refractionAmountDp)
+        putFloat(KEY_LIQUID_CHROMATIC_ABERRATION, config.chromaticAberration)
+        putFloat(KEY_LIQUID_BUBBLE_WIDTH, config.bubbleWidthFactor)
+        putBoolean(KEY_LIQUID_DEPTH_EFFECT, config.depthEffect)
+        putFloat(KEY_LIQUID_SURFACE_ALPHA, config.surfaceAlpha)
+        putBoolean(KEY_LIQUID_APPLY_TO_BUTTONS, config.applyToButtons)
+        putBoolean(KEY_LIQUID_APPLY_TO_ICON_BUTTONS, config.applyToIconButtons)
+        putBoolean(KEY_LIQUID_APPLY_TO_BOTTOM_BAR, config.applyToBottomBar)
+        putBoolean(KEY_LIQUID_APPLY_TO_SLIDERS, config.applyToSliders)
+        putBoolean(KEY_LIQUID_APPLY_TO_CHIPS, config.applyToChips)
+        putBoolean(KEY_LIQUID_APPLY_TO_DIALOGS, config.applyToDialogs)
+        putBoolean(KEY_LIQUID_APPLY_TO_CONTROLS, config.applyToControls)
+        putBoolean(KEY_LIQUID_APPLY_TO_TEXT_FIELDS, config.applyToTextFields)
+        putFloat(KEY_LIQUID_HIGHLIGHT_INTENSITY, config.highlightIntensity)
+        putBoolean(KEY_LIQUID_SHADOWS_ENABLED, config.shadowsEnabled)
+        putBoolean(KEY_LIQUID_INNER_SHADOW_ENABLED, config.innerShadowEnabled)
+        putBoolean(KEY_LIQUID_VIBRANCY_ENABLED, config.vibrancyEnabled)
+        putBoolean(KEY_LIQUID_INTERACTIVE_BOUNCE, config.interactiveBounce)
+    }
+
+    fun resetLiquidGlassConfig() = prefs.edit {
+        remove(KEY_LIQUID_CORNER_RADIUS)
+        remove(KEY_LIQUID_BLUR_RADIUS)
+        remove(KEY_LIQUID_REFRACTION_HEIGHT)
+        remove(KEY_LIQUID_REFRACTION_AMOUNT)
+        remove(KEY_LIQUID_CHROMATIC_ABERRATION)
+        remove(KEY_LIQUID_BUBBLE_WIDTH)
+        remove(KEY_LIQUID_DEPTH_EFFECT)
+        remove(KEY_LIQUID_SURFACE_ALPHA)
+        remove(KEY_LIQUID_APPLY_TO_BUTTONS)
+        remove(KEY_LIQUID_APPLY_TO_ICON_BUTTONS)
+        remove(KEY_LIQUID_APPLY_TO_BOTTOM_BAR)
+        remove(KEY_LIQUID_APPLY_TO_SLIDERS)
+        remove(KEY_LIQUID_APPLY_TO_CHIPS)
+        remove(KEY_LIQUID_APPLY_TO_DIALOGS)
+        remove(KEY_LIQUID_APPLY_TO_CONTROLS)
+        remove(KEY_LIQUID_APPLY_TO_TEXT_FIELDS)
+        remove(KEY_LIQUID_HIGHLIGHT_INTENSITY)
+        remove(KEY_LIQUID_SHADOWS_ENABLED)
+        remove(KEY_LIQUID_INNER_SHADOW_ENABLED)
+        remove(KEY_LIQUID_VIBRANCY_ENABLED)
+        remove(KEY_LIQUID_INTERACTIVE_BOUNCE)
+    }
+
+    fun liquidGlassConfigFlow(): kotlinx.coroutines.flow.Flow<LiquidGlassConfig> = kotlinx.coroutines.flow.callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key != null && key.startsWith("liquid_")) trySend(getLiquidGlassConfig())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(getLiquidGlassConfig())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     fun getBottomMenuStyle(): String = prefs.getString(KEY_BOTTOM_MENU_STYLE, "modern") ?: "modern"
     fun setBottomMenuStyle(style: String) = prefs.edit { putString(KEY_BOTTOM_MENU_STYLE, style) }

@@ -21,6 +21,7 @@ import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.ui.common.getSettingsShape
+import com.alananasss.kittytune.ui.design.Card
 
 @Composable
 fun DrmExplanationScreen(

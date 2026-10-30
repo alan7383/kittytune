@@ -40,6 +40,14 @@ import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import com.alananasss.kittytune.utils.makeTimeString
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.FilledTonalIconButton
+import com.alananasss.kittytune.ui.design.FilterChip
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.OutlinedTextField
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.Switch
+import com.alananasss.kittytune.ui.design.TextButton
 
 /**
  * Isolated, self-contained developer debug sheet for testing and validating the

@@ -31,6 +31,11 @@ import com.alananasss.kittytune.data.musicimport.MusicImportGraphQL.ExternalPlay
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.Checkbox
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.Surface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -42,6 +42,9 @@ import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.audio.providers.tidal.extractTidalRefreshToken
 import com.alananasss.kittytune.audio.providers.tidal.mergeTidalCookieInputs
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.ui.design.FilledTonalIconButton
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TopAppBar
 
 private const val TIDAL_LOGIN_URL = "https://tidal.com/"
 

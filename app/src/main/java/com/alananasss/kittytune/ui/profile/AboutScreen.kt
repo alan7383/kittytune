@@ -47,6 +47,9 @@ import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.utils.AppUtils
 import kotlinx.coroutines.launch
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.Surface
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable

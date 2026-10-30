@@ -13,6 +13,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.material3.Slider as Material3Slider
+import com.alananasss.kittytune.data.local.UiDesignStyle
+import com.alananasss.kittytune.ui.liquidglass.LocalBackdrop
+import com.alananasss.kittytune.ui.liquidglass.LocalLiquidGlassConfig
+import com.alananasss.kittytune.ui.liquidglass.LocalUiDesignStyle
+import com.alananasss.kittytune.ui.liquidglass.components.KittyLiquidSlider
+import com.kyant.backdrop.backdrops.rememberCanvasBackdrop
 
 /**
  * A [androidx.compose.material3.Slider] that behaves at its extremities the way
@@ -46,53 +52,73 @@ fun Slider(
     colors: SliderColors = SliderDefaults.colors(),
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
 ) {
-    val state = remember(steps, valueRange) { SliderState(value, steps, valueRange) }
-    state.value = value
+    val designStyle = LocalUiDesignStyle.current
+    val liquidConfig = LocalLiquidGlassConfig.current
+    if (designStyle == UiDesignStyle.LIQUID_GLASS && liquidConfig.applyToSliders) {
+        val fallbackBackdrop = rememberCanvasBackdrop {
+            drawRect(colors.inactiveTrackColor.copy(alpha = 0.25f))
+        }
+        val backdrop = LocalBackdrop.current ?: fallbackBackdrop
+        KittyLiquidSlider(
+            value = { value },
+            onValueChange = onValueChange,
+            onValueChangeFinished = onValueChangeFinished,
+            backdrop = backdrop,
+            modifier = modifier,
+            valueRange = valueRange,
+            steps = steps,
+            accentColor = colors.activeTrackColor,
+            enabled = enabled
+        )
+    } else {
+        val state = remember(steps, valueRange) { SliderState(value, steps, valueRange) }
+        state.value = value
 
-    val haptics = rememberAppHaptics()
-    // One tick per bucket, never per frame: a drag from 0 to 1 should feel like a detent,
-    // not like a motor being hammered. Stepped sliders tick once per step; continuous ones
-    // tick at roughly every 5% of travel.
-    val bucketCount = if (steps > 0) steps + 1 else 20
-    var lastBucket by remember(steps, valueRange) { mutableIntStateOf(Int.MIN_VALUE) }
+        val haptics = rememberAppHaptics()
+        // One tick per bucket, never per frame: a drag from 0 to 1 should feel like a detent,
+        // not like a motor being hammered. Stepped sliders tick once per step; continuous ones
+        // tick at roughly every 5% of travel.
+        val bucketCount = if (steps > 0) steps + 1 else 20
+        var lastBucket by remember(steps, valueRange) { mutableIntStateOf(Int.MIN_VALUE) }
 
-    Material3Slider(
-        state = state,
-        modifier = modifier,
-        enabled = enabled,
-        onValueChange = { newValue ->
-            onValueChange(newValue)
-            if (enabled) {
-                val span = valueRange.endInclusive - valueRange.start
-                val fraction = if (span > 0f) {
-                    ((newValue - valueRange.start) / span).coerceIn(0f, 1f)
-                } else {
-                    0f
+        Material3Slider(
+            state = state,
+            modifier = modifier,
+            enabled = enabled,
+            onValueChange = { newValue ->
+                onValueChange(newValue)
+                if (enabled) {
+                    val span = valueRange.endInclusive - valueRange.start
+                    val fraction = if (span > 0f) {
+                        ((newValue - valueRange.start) / span).coerceIn(0f, 1f)
+                    } else {
+                        0f
+                    }
+                    val bucket = (fraction * bucketCount).toInt()
+                    if (bucket != lastBucket) {
+                        lastBucket = bucket
+                        haptics.perform(HapticKind.SLIDER)
+                    }
                 }
-                val bucket = (fraction * bucketCount).toInt()
-                if (bucket != lastBucket) {
-                    lastBucket = bucket
-                    haptics.perform(HapticKind.SLIDER)
-                }
-            }
-        },
-        onValueChangeFinished = onValueChangeFinished,
-        colors = colors,
-        interactionSource = interactionSource,
-        thumb = {
-            SliderDefaults.Thumb(
-                interactionSource = interactionSource,
-                colors = colors,
-                enabled = enabled,
-            )
-        },
-        track = { sliderState ->
-            SliderDefaults.Track(
-                sliderState = sliderState,
-                trackCornerSize = Dp.Unspecified,
-                enabled = enabled,
-                colors = colors,
-            )
-        },
-    )
+            },
+            onValueChangeFinished = onValueChangeFinished,
+            colors = colors,
+            interactionSource = interactionSource,
+            thumb = {
+                SliderDefaults.Thumb(
+                    interactionSource = interactionSource,
+                    colors = colors,
+                    enabled = enabled,
+                )
+            },
+            track = { sliderState ->
+                SliderDefaults.Track(
+                    sliderState = sliderState,
+                    trackCornerSize = Dp.Unspecified,
+                    enabled = enabled,
+                    colors = colors,
+                )
+            },
+        )
+    }
 }

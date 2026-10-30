@@ -9,6 +9,7 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
@@ -18,10 +19,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
+import com.alananasss.kittytune.data.local.UiDesignStyle
+import com.alananasss.kittytune.ui.design.GlassEmphasis
+import com.alananasss.kittytune.ui.design.glassSurface
+import com.alananasss.kittytune.ui.liquidglass.LocalLiquidGlassConfig
+import com.alananasss.kittytune.ui.liquidglass.LocalUiDesignStyle
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
@@ -113,9 +121,35 @@ fun KittyOutlinedTextField(
         }
     }
 
+    val liquid = LocalUiDesignStyle.current == UiDesignStyle.LIQUID_GLASS && LocalLiquidGlassConfig.current.applyToTextFields
+    val glassTint = if (colors.unfocusedContainerColor.alpha > 0.01f) {
+        colors.unfocusedContainerColor
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    }
+    val fieldModifier = modifier.moveCaretWithArrowKeys(state, isFocused)
+    val materialModifier = if (liquid) {
+        fieldModifier.then(
+            Modifier.glassSurface(
+                shape = shape,
+                tint = glassTint,
+                emphasis = GlassEmphasis.Subtle,
+                shadowElevation = 0.dp
+            )
+        )
+    } else {
+        fieldModifier
+    }
+    val materialColors = if (liquid) colors.copy(
+        focusedContainerColor = Color.Transparent,
+        unfocusedContainerColor = Color.Transparent,
+        disabledContainerColor = Color.Transparent,
+        errorContainerColor = Color.Transparent
+    ) else colors
+
     OutlinedTextField(
         state = state,
-        modifier = modifier.moveCaretWithArrowKeys(state, isFocused),
+        modifier = materialModifier,
         enabled = enabled,
         readOnly = readOnly,
         textStyle = textStyle,
@@ -131,7 +165,7 @@ fun KittyOutlinedTextField(
         onKeyboardAction = actionHandler,
         lineLimits = lineLimits,
         shape = shape,
-        colors = colors,
+        colors = materialColors,
         interactionSource = interactions
     )
 }

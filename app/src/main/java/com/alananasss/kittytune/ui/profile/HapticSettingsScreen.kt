@@ -30,6 +30,8 @@ import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.ui.common.getSettingsShape
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import kotlin.math.roundToInt
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.Surface
 
 @Composable
 fun HapticSettingsScreen(

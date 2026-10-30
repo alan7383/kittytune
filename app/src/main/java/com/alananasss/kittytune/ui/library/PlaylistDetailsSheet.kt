@@ -54,6 +54,8 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.regex.Pattern
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.Surface
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

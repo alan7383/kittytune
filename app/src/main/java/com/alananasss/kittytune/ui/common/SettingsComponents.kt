@@ -43,6 +43,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
 import kotlinx.coroutines.delay
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.FilledTonalIconButton
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.Switch
 
 // Removed getSettingsShape
 
@@ -297,11 +301,14 @@ fun SettingsSwitch(
     interactionSource: MutableInteractionSource? = null,
 ) {
     val haptics = rememberAppHaptics()
+
     Switch(
         checked = checked,
         onCheckedChange = onCheckedChange?.let { callback ->
             { checkedNow ->
-                haptics.perform(HapticKind.UI)
+                if (enabled) {
+                    haptics.perform(HapticKind.UI)
+                }
                 callback(checkedNow)
             }
         },
