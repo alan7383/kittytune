@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.ClearAll
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.Repeat
@@ -154,6 +155,15 @@ fun ExpandedQueueScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = { viewModel.showQueueHistorySheet = true },
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.History,
+                            contentDescription = stringResource(R.string.queue_history)
+                        )
+                    }
                     if (queueState.isNotEmpty()) {
                         IconButton(
                             onClick = { viewModel.prepareBulkAdd(queueState) },
@@ -289,7 +299,14 @@ fun QueueContent(
         }
 
         // Queue Toolbar
-        QueueToolbar(viewModel = viewModel, upNextCount = upNextCount)
+        QueueToolbar(
+            viewModel = viewModel,
+            upNextCount = upNextCount,
+            onOpenHistory = {
+                onCloseQueue()
+                viewModel.showQueueHistorySheet = true
+            }
+        )
 
         // Queue List
         QueueListView(
@@ -302,10 +319,14 @@ fun QueueContent(
 }
 
 /**
- * Queue Toolbar displaying remaining time, shuffle toggle, repeat toggle, and clear upcoming.
+ * Queue Toolbar displaying remaining time, history button, shuffle toggle, repeat toggle, and clear upcoming.
  */
 @Composable
-private fun QueueToolbar(viewModel: PlayerViewModel, upNextCount: Int) {
+private fun QueueToolbar(
+    viewModel: PlayerViewModel,
+    upNextCount: Int,
+    onOpenHistory: (() -> Unit)? = null
+) {
     val context = LocalContext.current
     val queue = viewModel.uiQueueState
     val current = viewModel.uiCurrentQueueIndex
@@ -330,6 +351,24 @@ private fun QueueToolbar(viewModel: PlayerViewModel, upNextCount: Int) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
+
+        // Queue History Button
+        IconButton(
+            onClick = {
+                if (onOpenHistory != null) onOpenHistory() else viewModel.showQueueHistorySheet = true
+            },
+            shapes = IconButtonDefaults.shapes(),
+            modifier = Modifier.size(36.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.History,
+                contentDescription = stringResource(R.string.queue_history),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(Modifier.width(4.dp))
 
         // Shuffle Toggle Button
         IconButton(

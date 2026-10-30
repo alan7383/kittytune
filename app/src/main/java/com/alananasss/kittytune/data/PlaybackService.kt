@@ -83,6 +83,7 @@ class PlaybackService : MediaLibraryService() {
         SocialProofRepository.init(this)
         HistoryRepository.init(this)
         com.alananasss.kittytune.data.RecognitionHistoryRepository.init(this)
+        com.alananasss.kittytune.data.QueueHistoryRepository.init(this)
         RepostRepository.init(this)
         DownloadManager.init(this)
         BlockManager.init(this)

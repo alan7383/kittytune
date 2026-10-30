@@ -106,6 +106,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
             DownloadManager.init(applicationContext)
             HistoryRepository.init(applicationContext)
             com.alananasss.kittytune.data.RecognitionHistoryRepository.init(applicationContext)
+            com.alananasss.kittytune.data.QueueHistoryRepository.init(applicationContext)
             ListeningStatsRepository.init(applicationContext)
             AchievementManager.init(applicationContext)
             RepostRepository.init(applicationContext)
