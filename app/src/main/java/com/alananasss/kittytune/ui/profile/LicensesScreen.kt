@@ -63,7 +63,14 @@ import com.alananasss.kittytune.ui.common.hapticClickable
         val unknownString = stringResource(R.string.unknown)
         val unknownLicenseString = stringResource(R.string.license_unknown)
 
-        val libs = remember { Libs.Builder().withContext(context).build() }
+        val libs = remember {
+            try {
+                val json = context.resources.openRawResource(R.raw.aboutlibraries).bufferedReader().use { it.readText() }
+                Libs.Builder().withJson(json).build()
+            } catch (_: Throwable) {
+                Libs.Builder().withContext(context).build()
+            }
+        }
 
         val allLibraries = remember(libs) {
             libs.libraries.map { lib ->
