@@ -130,7 +130,14 @@
          * sent. Rows this device recorded carry their own id too, so its own log is equally safe to
          * replay.
          */
-        val syncEventId: String? = null
+        val syncEventId: String? = null,
+        /**
+         * The track's genre as its uploader tagged it, for the recaps' "most listened genres".
+         *
+         * Null on rows recorded before it was kept and on sources that have none; the recaps fill it
+         * in afterwards for the tracks that matter (see [com.alananasss.kittytune.data.ListeningStatsRepository.backfillGenres]).
+         */
+        val genre: String? = null,
     )
 
     /**

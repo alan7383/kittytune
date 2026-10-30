@@ -421,6 +421,8 @@ fun MainScreen(
                 currentRoute == "qobuz_login" ||
                 currentRoute.startsWith("yearly_playback") ||
                 currentRoute.startsWith("listening_stats") ||
+                currentRoute == "recaps" ||
+                currentRoute.startsWith("recap/") ||
                 currentRoute == "storage" ||
                 currentRoute.startsWith("storage_downloads") ||
                 currentRoute == "equalizer"
@@ -438,6 +440,8 @@ fun MainScreen(
                 currentRoute == "portable_import" ||
                 currentRoute.startsWith("yearly_playback") ||
                 currentRoute.startsWith("listening_stats") ||
+                currentRoute == "recaps" ||
+                currentRoute.startsWith("recap/") ||
                 currentRoute == "storage" ||
                 currentRoute.startsWith("storage_downloads") ||
                 currentRoute == "equalizer"
@@ -1338,34 +1342,63 @@ fun MainScreen(
                             AchievementsScreen { navController.popBackStack() }
                         }
 
+                        // A statistics track plays on its own; a statistics artist opens their page. Shared by
+                        // the statistics screen and the recaps.
+                        val playStatsTrack: (com.alananasss.kittytune.data.stats.ReportTrack) -> Unit = { track ->
+                            if (track.source == "soundcloud") {
+                                val stubTrack = com.alananasss.kittytune.domain.Track(
+                                    id = track.trackId,
+                                    title = track.title,
+                                    user = com.alananasss.kittytune.domain.User(0, track.artistName, null),
+                                    artworkUrl = track.artworkUrl,
+                                    durationMs = 0L
+                                )
+                                playerViewModel.playPlaylist(listOf(stubTrack), 0)
+                            }
+                        }
+                        val openStatsArtist: (com.alananasss.kittytune.data.stats.ReportArtist) -> Unit = { artist ->
+                            if (artist.source == "spotify" && !artist.permalink.isNullOrBlank()) {
+                                playerViewModel.navigateToSpotifyArtist(
+                                    artist.permalink.removePrefix("spotify:artist:")
+                                )
+                            } else {
+                                playerViewModel.resolveAndNavigateToArtist(artist.name, artist.artistId)
+                            }
+                        }
+
                         clippedComposable("listening_stats") {
                             val tokenManager = remember { TokenManager(context) }
                             val isGuest = tokenManager.isGuestMode()
                             ListeningStatsScreen(
                                 onBackClick = { navController.popBackStack() },
-                                onTrackClick = { track ->
-                                    if (track.source == "soundcloud") {
-                                        val stubTrack = com.alananasss.kittytune.domain.Track(
-                                            id = track.trackId,
-                                            title = track.title,
-                                            user = com.alananasss.kittytune.domain.User(0, track.artistName, null),
-                                            artworkUrl = track.artworkUrl,
-                                            durationMs = 0L
-                                        )
-                                        playerViewModel.playPlaylist(listOf(stubTrack), 0)
-                                    }
-                                },
-                                onArtistClick = { artist ->
-                                    if (artist.source == "spotify" && !artist.permalink.isNullOrBlank()) {
-                                        playerViewModel.navigateToSpotifyArtist(
-                                            artist.permalink.removePrefix("spotify:artist:")
-                                        )
-                                    } else {
-                                        playerViewModel.resolveAndNavigateToArtist(artist.name, artist.artistId)
-                                    }
-                                },
+                                onTrackClick = playStatsTrack,
+                                onArtistClick = openStatsArtist,
                                 onNavigateToYearlyPlayback = { navController.navigate("wrapped_hub") },
+                                onOpenRecap = { id -> navController.navigate("recap/$id") },
+                                onOpenRecaps = { navController.navigate("recaps") },
                                 isGuest = isGuest
+                            )
+                        }
+
+                        clippedComposable("recaps") {
+                            com.alananasss.kittytune.ui.profile.recap.RecapsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onOpenRecap = { id -> navController.navigate("recap/$id") }
+                            )
+                        }
+
+                        clippedComposable(
+                            route = "recap/{id}",
+                            arguments = listOf(navArgument("id") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            com.alananasss.kittytune.ui.profile.recap.RecapStoryScreen(
+                                recapId = backStackEntry.arguments?.getString("id").orEmpty(),
+                                onClose = { navController.popBackStack() },
+                                onTrackClick = playStatsTrack,
+                                onArtistClick = { artist ->
+                                    navController.popBackStack()
+                                    openStatsArtist(artist)
+                                }
                             )
                         }
 

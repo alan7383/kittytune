@@ -62,6 +62,7 @@ internal fun StoryStats(
     onOpen: (StatsListTarget) -> Unit,
     onTrackClick: (ReportTrack) -> Unit,
     onArtistClick: (ReportArtist) -> Unit,
+    header: (@Composable () -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     LazyColumn(
@@ -70,6 +71,7 @@ internal fun StoryStats(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        if (header != null) item(key = "recaps") { header() }
         item {
             StoryCard(
                 background = Brush.linearGradient(listOf(scheme.primaryContainer, scheme.tertiaryContainer)),
