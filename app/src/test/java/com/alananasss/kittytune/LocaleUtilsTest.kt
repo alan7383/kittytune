@@ -16,6 +16,7 @@ class LocaleUtilsTest {
         assertEquals("en", LocaleUtils.getLocaleForLanguage(AppLanguage.ENGLISH).language)
         assertEquals("hu", LocaleUtils.getLocaleForLanguage(AppLanguage.HUNGARIAN).language)
         assertEquals("ru", LocaleUtils.getLocaleForLanguage(AppLanguage.RUSSIAN).language)
+        assertEquals("tr", LocaleUtils.getLocaleForLanguage(AppLanguage.TURKISH).language)
     }
 
     @Test
@@ -48,5 +49,6 @@ class LocaleUtilsTest {
         assertEquals("en-US,en;q=0.9", LocaleUtils.getAcceptLanguageForLanguage(AppLanguage.ENGLISH))
         assertEquals("hu-HU,hu;q=0.9,en;q=0.8", LocaleUtils.getAcceptLanguageForLanguage(AppLanguage.HUNGARIAN))
         assertEquals("ru-RU,ru;q=0.9,en;q=0.8", LocaleUtils.getAcceptLanguageForLanguage(AppLanguage.RUSSIAN))
+        assertEquals("tr-TR,tr;q=0.9,en;q=0.8", LocaleUtils.getAcceptLanguageForLanguage(AppLanguage.TURKISH))
     }
 }
