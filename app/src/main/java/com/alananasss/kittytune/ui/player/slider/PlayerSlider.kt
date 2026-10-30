@@ -49,15 +49,34 @@ fun PlayerSlider(
 
     when (sliderStyle) {
         PlayerSliderStyle.BAR -> {
-            Slider(
-                value = clampedValue,
-                onValueChange = onValueChange,
-                onValueChangeFinished = onValueChangeFinished,
-                valueRange = valueRange,
-                colors = colors,
-                enabled = enabled,
-                modifier = behindGlow
-            )
+            val designStyle = com.alananasss.kittytune.ui.liquidglass.LocalUiDesignStyle.current
+            val liquidConfig = com.alananasss.kittytune.ui.liquidglass.LocalLiquidGlassConfig.current
+            if (designStyle == com.alananasss.kittytune.data.local.UiDesignStyle.LIQUID_GLASS && liquidConfig.applyToSliders) {
+                val fallbackBackdrop = com.kyant.backdrop.backdrops.rememberCanvasBackdrop {
+                    drawRect(colors.inactiveTrackColor.copy(alpha = 0.25f))
+                }
+                val backdrop = com.alananasss.kittytune.ui.liquidglass.LocalBackdrop.current ?: fallbackBackdrop
+                com.alananasss.kittytune.ui.liquidglass.components.KittyLiquidSlider(
+                    value = { clampedValue },
+                    onValueChange = onValueChange,
+                    onValueChangeFinished = onValueChangeFinished,
+                    backdrop = backdrop,
+                    valueRange = valueRange,
+                    accentColor = colors.activeTrackColor,
+                    enabled = enabled,
+                    modifier = behindGlow
+                )
+            } else {
+                Slider(
+                    value = clampedValue,
+                    onValueChange = onValueChange,
+                    onValueChangeFinished = onValueChangeFinished,
+                    valueRange = valueRange,
+                    colors = colors,
+                    enabled = enabled,
+                    modifier = behindGlow
+                )
+            }
         }
         PlayerSliderStyle.WAVY -> {
             WavySlider(

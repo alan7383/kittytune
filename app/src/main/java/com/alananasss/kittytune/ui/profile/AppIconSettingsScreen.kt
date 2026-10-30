@@ -39,6 +39,8 @@ import com.alananasss.kittytune.data.local.AppIconSwitcher
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.SettingsScaffold
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.Surface
 
 enum class AppIconCategory {
     OFFICIAL,

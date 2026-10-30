@@ -43,6 +43,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.max
 import kotlin.math.min
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.TextButton
 
 @Composable
 fun BannerCropDialog(

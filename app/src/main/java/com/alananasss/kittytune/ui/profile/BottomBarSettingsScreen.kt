@@ -46,6 +46,10 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.alananasss.kittytune.ui.navigation.Screen
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.RadioButton
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
 
 @Composable
 fun BottomBarSettingsScreen(

@@ -50,6 +50,15 @@ import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.ui.common.getSettingsShape
 import kotlinx.coroutines.launch
 import java.util.UUID
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.OutlinedButton
+import com.alananasss.kittytune.ui.design.OutlinedTextField
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable

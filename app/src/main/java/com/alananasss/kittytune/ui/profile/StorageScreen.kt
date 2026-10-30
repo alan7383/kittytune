@@ -53,6 +53,15 @@ import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.Checkbox
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.OutlinedButton
+import com.alananasss.kittytune.ui.design.OutlinedTextField
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
 
 data class DeleteAction(val message: String, val action: () -> Unit)
 

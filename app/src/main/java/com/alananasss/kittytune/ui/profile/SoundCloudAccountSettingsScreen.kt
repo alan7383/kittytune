@@ -48,6 +48,13 @@ import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.OutlinedButton
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable

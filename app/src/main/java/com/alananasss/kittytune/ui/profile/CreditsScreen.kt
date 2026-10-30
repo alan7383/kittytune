@@ -43,6 +43,9 @@ import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.SettingsScaffold
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.FilledTonalIconButton
+import com.alananasss.kittytune.ui.design.Surface
 
 enum class CreditFilter {
     ALL,

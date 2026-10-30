@@ -172,6 +172,7 @@ dependencies {
     implementation(libs.mlkit.language.id)
     testImplementation(libs.junit)
     testImplementation(kotlin("test"))
+    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
@@ -201,8 +202,10 @@ dependencies {
 
     // "Sign in with Google" for the Qobuz account: the same Google Identity
     // stack the official Qobuz app uses to get an id token.
-    implementation("androidx.credentials:credentials:1.3.0")
-    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    implementation(libs.androidx.credentials)
+    implementation(libs.googleid)
+    implementation(libs.backdrop.android)
+    implementation(libs.shapes.android)
 }
 
 kotlin {

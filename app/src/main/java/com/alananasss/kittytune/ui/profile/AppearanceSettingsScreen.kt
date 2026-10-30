@@ -50,6 +50,7 @@ import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.StartDestination
 import com.alananasss.kittytune.data.local.TrackRemovalMethod
+import com.alananasss.kittytune.data.local.UiDesignStyle
 import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.SettingsGroup
@@ -61,6 +62,11 @@ import com.alananasss.kittytune.ui.common.getSettingsShape
 import com.alananasss.kittytune.ui.theme.KittyTuneDefaultSeedColor
 import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicColorScheme
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.AssistChip
+import com.alananasss.kittytune.ui.design.RadioButton
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
 
 private enum class ThemeLook(
     val mode: AppThemeMode,
@@ -96,6 +102,7 @@ fun AppearanceSettingsScreen(
     onNavigateToBottomBarSettings: () -> Unit,
     onNavigateToAppIconSettings: () -> Unit,
     onNavigateToPlayerCustomization: () -> Unit,
+    onNavigateToInterfaceDesign: () -> Unit = {},
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -120,6 +127,7 @@ fun AppearanceSettingsScreen(
     var showHomeYourMix by remember { mutableStateOf(prefs.getShowHomeYourMix()) }
     var showHomeMyWave by remember { mutableStateOf(prefs.getShowHomeMyWave()) }
     var showHomeCharts by remember { mutableStateOf(prefs.getShowHomeCharts()) }
+    var uiDesignStyle by remember { mutableStateOf(prefs.getUiDesignStyle()) }
 
     var showFontConfigDialog by remember { mutableStateOf(false) }
     var showCategoryLayoutDialog by remember { mutableStateOf(false) }
@@ -143,6 +151,8 @@ fun AppearanceSettingsScreen(
                 themeMode = prefs.getThemeMode()
             } else if (key == PlayerPreferences.KEY_PURE_BLACK) {
                 pureBlack = prefs.getPureBlack()
+            } else if (key == PlayerPreferences.KEY_UI_DESIGN_STYLE) {
+                uiDesignStyle = prefs.getUiDesignStyle()
             }
         }
         sp.registerOnSharedPreferenceChangeListener(listener)
@@ -416,6 +426,29 @@ fun AppearanceSettingsScreen(
                 .fillMaxSize(),
             contentPadding = PaddingValues(bottom = 180.dp)
         ) {
+            // Section: Interface Design Style
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.pref_ui_design_style),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_ui_design_style),
+                                subtitle = stringResource(R.string.pref_ui_design_style_sub),
+                                trailingText = when (uiDesignStyle) {
+                                    UiDesignStyle.MATERIAL3 -> stringResource(R.string.style_material3)
+                                    UiDesignStyle.LIQUID_GLASS -> stringResource(R.string.style_liquid_glass)
+                                    UiDesignStyle.MIUIX -> stringResource(R.string.style_miuix)
+                                },
+                                icon = Icons.Rounded.Dashboard,
+                                onClick = onNavigateToInterfaceDesign
+                            )
+                        }
+                    )
+                )
+            }
+
             // Section: Dynamic Colors
             item {
                 SettingsGroup(

@@ -25,6 +25,11 @@ import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.GuestDataSummary
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.Checkbox
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

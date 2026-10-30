@@ -1,5 +1,8 @@
 [versions]
-agp = "9.4.1"
+agp = "9.5.0"
+googleid = "1.2.1"
+backdropAndroid = "2.0.1"
+credentials = "1.6.0"
 kotlin = "2.4.21"
 coreKtx = "1.19.1"
 junit = "4.13.2"
@@ -24,15 +27,16 @@ glance = "1.2.0"
 markdown = "0.3.1"
 newpipe = "v0.26.5"
 paho = "1.2.5"
-rhino = "1.9.1"
+rhino = "1.9.2"
 desugar = "2.1.5"
+shapesAndroid = "1.2.1"
 webkit = "1.18.0"
 browser = "1.10.0"
 kotlinxSerialization = "1.12.0"
 coroutinesGuava = "1.11.0"
 reorderable = "3.1.0"
 aboutlibraries = "15.3.0"
-ktor = "3.6.0"
+ktor = "3.6.1"
 json = "20260814"
 material3 = "1.5.0-beta02"
 materialKolor = "5.0.1"
@@ -44,13 +48,16 @@ brotli = "0.1.2"
 opencc4j = "1.14.0"
 zxing = "3.5.4"
 material = "1.14.0"
-litert = "2.3.0"
+litert = "2.3.2"
 smooth-corner-rect = "v1.0.0"
 documentfile = "1.1.0"
 
 [libraries]
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
 androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+backdrop-android = { module = "io.github.kyant0:backdrop-android", version.ref = "backdropAndroid" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -109,6 +116,7 @@ json = { group = "org.json", name = "json", version.ref = "json" }
 material-kolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "materialKolor" }
 accompanist-drawablepainter = { group = "com.google.accompanist", name = "accompanist-drawablepainter", version.ref = "accompanist" }
 rive-android = { module = "app.rive:rive-android", version.ref = "riveAndroid" }
+shapes-android = { module = "io.github.kyant0:shapes-android", version.ref = "shapesAndroid" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 mlkit-language-id = { module = "com.google.mlkit:language-id", version.ref = "mlkit-language-id" }
 brotli = { group = "org.brotli", name = "dec", version.ref = "brotli" }

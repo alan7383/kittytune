@@ -94,6 +94,14 @@ import com.alananasss.kittytune.ui.player.MenuTiles
 import com.alananasss.kittytune.ui.player.slider.PlayerSlider
 import com.alananasss.kittytune.ui.theme.ThemeState
 import kotlin.math.roundToInt
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.OutlinedTextField
+import com.alananasss.kittytune.ui.design.RadioButton
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
 
 @Composable
 fun PlayerCustomizationScreen(

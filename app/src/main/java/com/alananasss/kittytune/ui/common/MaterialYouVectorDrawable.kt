@@ -23,6 +23,7 @@ import com.google.accompanist.drawablepainter.rememberDrawablePainter
 fun MaterialYouVectorDrawable(
     modifier: Modifier = Modifier,
     @DrawableRes drawableResId: Int,
+    contentScale: ContentScale = ContentScale.Fit,
     isDarkTheme: Boolean = isSystemInDarkTheme()
 ) {
     val context = LocalContext.current
@@ -37,7 +38,7 @@ fun MaterialYouVectorDrawable(
         Image(
             painter = rememberDrawablePainter(it),
             contentDescription = null,
-            contentScale = ContentScale.FillBounds,
+            contentScale = contentScale,
             modifier = modifier
         )
     }

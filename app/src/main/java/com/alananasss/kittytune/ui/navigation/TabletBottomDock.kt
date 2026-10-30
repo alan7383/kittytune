@@ -33,9 +33,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.local.UiDesignStyle
 import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.rememberAppHaptics
+import com.alananasss.kittytune.ui.liquidglass.LocalBackdrop
+import com.alananasss.kittytune.ui.liquidglass.LocalLiquidGlassConfig
+import com.alananasss.kittytune.ui.liquidglass.LocalUiDesignStyle
+import com.alananasss.kittytune.ui.liquidglass.components.KittyLiquidBottomTab
+import com.alananasss.kittytune.ui.liquidglass.components.KittyLiquidBottomTabs
+import com.alananasss.kittytune.ui.liquidglass.components.KittyLiquidButton
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.Shadow
+import com.kyant.shapes.Capsule
+import com.kyant.shapes.RoundedRectangle
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.Surface
 
 @Composable
 fun TabletBottomDock(
@@ -52,6 +69,12 @@ fun TabletBottomDock(
     val context = androidx.compose.ui.platform.LocalContext.current
     val playerPrefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
     val haptics = rememberAppHaptics()
+    val uiDesignStyle = LocalUiDesignStyle.current
+    val liquidConfig = LocalLiquidGlassConfig.current
+    val backdrop = LocalBackdrop.current
+    val isLiquidGlass = uiDesignStyle == UiDesignStyle.LIQUID_GLASS && backdrop != null && liquidConfig.applyToBottomBar
+    val surfaceContainerColor = MaterialTheme.colorScheme.surfaceContainer
+
     val track = playerViewModel.uiCurrentTrack
     val isPlaying = playerViewModel.uiIsPlaying
     val showMiniPlayer = track != null && !playerViewModel.isSidePlayerOpen
@@ -68,47 +91,182 @@ fun TabletBottomDock(
         horizontalArrangement = if (showMiniPlayer) Arrangement.spacedBy(16.dp) else Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Extended Navigation Dock (Spotify tablet style)
-        Surface(
-            shape = RoundedCornerShape(36.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            tonalElevation = 6.dp,
-            shadowElevation = 8.dp,
-            border = BorderStroke(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-            ),
-            modifier = if (showMiniPlayer) {
-                Modifier
-                    .weight(1.25f)
-                    .height(72.dp)
-            } else {
-                Modifier
-                    .widthIn(min = 480.dp, max = 580.dp)
-                    .fillMaxWidth()
-                    .height(72.dp)
-            }
-        ) {
+        val visibleTabs = remember(tabs) { tabs.filter { it.visible } }
+        val selectedTabIndex = remember(visibleTabs, selectedRoute) {
+            val idx = visibleTabs.indexOfFirst { it.route == selectedRoute }
+            if (idx >= 0) idx else 0
+        }
+
+        if (isLiquidGlass) {
             Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = if (showMiniPlayer) {
+                    Modifier.weight(1.25f)
+                } else {
+                    Modifier
+                        .widthIn(min = 480.dp, max = 620.dp)
+                        .fillMaxWidth()
+                },
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                tabs.filter { it.visible }.forEach { tab ->
-                    val isSelected = selectedRoute == tab.route
-                    val iconColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    val textColor = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                KittyLiquidBottomTabs(
+                    selectedTabIndex = { selectedTabIndex },
+                    onTabSelected = { index ->
+                        visibleTabs.getOrNull(index)?.let { tab ->
+                            haptics.perform(HapticKind.UI)
+                            onTabSelected(tab)
+                        }
+                    },
+                    backdrop = backdrop,
+                    tabsCount = visibleTabs.size,
+                    showIndicator = selectedRoute != null,
+                    modifier = Modifier.weight(1f, fill = false),
+                    accentColor = MaterialTheme.colorScheme.primary
+                ) {
+                    visibleTabs.forEachIndexed { index, tab ->
+                        KittyLiquidBottomTab(
+                            onClick = {
+                                haptics.perform(HapticKind.UI)
+                                onTabSelected(tab)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = tab.title,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Text(
+                                text = tab.title,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
 
+                Spacer(modifier = Modifier.width(8.dp))
+
+                KittyLiquidButton(
+                    onClick = {
+                        haptics.perform(HapticKind.MEDIUM)
+                        onFabClick()
+                    },
+                    backdrop = backdrop,
+                    modifier = Modifier.size(64.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    surfaceColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                    tint = MaterialTheme.colorScheme.tertiary
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = fabIcon,
+                            contentDescription = fabLabel,
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = fabLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        } else {
+            // Extended Navigation Dock (Spotify tablet style)
+            Surface(
+                shape = RoundedCornerShape(36.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 6.dp,
+                shadowElevation = 8.dp,
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                ),
+                modifier = if (showMiniPlayer) {
+                    Modifier
+                        .weight(1.25f)
+                        .height(72.dp)
+                } else {
+                    Modifier
+                        .widthIn(min = 480.dp, max = 580.dp)
+                        .fillMaxWidth()
+                        .height(72.dp)
+                }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    tabs.filter { it.visible }.forEach { tab ->
+                        val isSelected = selectedRoute == tab.route
+                        val iconColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        val textColor = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(24.dp))
+                                .clickable {
+                                    haptics.perform(HapticKind.UI)
+                                    onTabSelected(tab)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = tab.title,
+                                    tint = iconColor,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = tab.title,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    ),
+                                    color = textColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+
+                    // Action FAB item (Profile / Settings / Recognition...)
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(24.dp))
                             .clickable {
-                                haptics.perform(HapticKind.UI)
-                                onTabSelected(tab)
+                                haptics.perform(HapticKind.MEDIUM)
+                                onFabClick()
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -118,60 +276,23 @@ fun TabletBottomDock(
                             modifier = Modifier.padding(vertical = 4.dp)
                         ) {
                             Icon(
-                                imageVector = tab.icon,
-                                contentDescription = tab.title,
-                                tint = iconColor,
+                                imageVector = fabIcon,
+                                contentDescription = fabLabel,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = tab.title,
+                                text = fabLabel,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 11.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    fontWeight = FontWeight.Medium
                                 ),
-                                color = textColor,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                    }
-                }
-
-                // Action FAB item (Profile / Settings / Recognition...)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(24.dp))
-                        .clickable {
-                            haptics.perform(HapticKind.MEDIUM)
-                            onFabClick()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    ) {
-                        Icon(
-                            imageVector = fabIcon,
-                            contentDescription = fabLabel,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = fabLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
                     }
                 }
             }
@@ -184,7 +305,7 @@ fun TabletBottomDock(
             exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)) + fadeOut(),
             modifier = Modifier
                 .weight(1f)
-                .height(72.dp)
+                .height(if (isLiquidGlass) 64.dp else 72.dp)
         ) {
             if (track != null) {
                 Surface(
@@ -192,16 +313,47 @@ fun TabletBottomDock(
                         haptics.perform(HapticKind.LIGHT)
                         onPlayerClick()
                     },
-                    shape = RoundedCornerShape(36.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    tonalElevation = 6.dp,
-                    shadowElevation = 8.dp,
-                    border = BorderStroke(
+                    shape = if (isLiquidGlass) RoundedRectangle((28f * liquidConfig.cornerRadiusFactor).dp) else RoundedCornerShape(36.dp),
+                    color = if (isLiquidGlass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer,
+                    tonalElevation = if (isLiquidGlass) 0.dp else 6.dp,
+                    shadowElevation = if (isLiquidGlass) 0.dp else 8.dp,
+                    border = if (isLiquidGlass) null else BorderStroke(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
                     ),
                     modifier = Modifier
                         .fillMaxSize()
+                        .then(
+                            if (isLiquidGlass) {
+                                Modifier.drawBackdrop(
+                                    backdrop = backdrop,
+                                    shape = { RoundedRectangle((28f * liquidConfig.cornerRadiusFactor).dp) },
+                                    effects = {
+                                        if (liquidConfig.vibrancyEnabled) {
+                                            vibrancy()
+                                        }
+                                        blur(liquidConfig.blurRadiusDp.dp.toPx())
+                                        lens(
+                                            refractionHeight = liquidConfig.refractionHeightDp.dp.toPx(),
+                                            refractionAmount = liquidConfig.refractionAmountDp.dp.toPx(),
+                                            depthEffect = liquidConfig.depthEffect,
+                                            chromaticAberration = liquidConfig.chromaticAberration > 0f
+                                        )
+                                    },
+                                    highlight = {
+                                        Highlight.Default.copy(alpha = (0.7f * liquidConfig.highlightIntensity).coerceIn(0f, 1f))
+                                    },
+                                    shadow = if (liquidConfig.shadowsEnabled) {
+                                        {
+                                            Shadow(radius = 8.dp, color = Color.Black.copy(alpha = 0.15f))
+                                        }
+                                    } else null,
+                                    onDrawSurface = {
+                                        drawRect(surfaceContainerColor.copy(alpha = liquidConfig.surfaceAlpha))
+                                    }
+                                )
+                            } else Modifier
+                        )
                         .clipToBounds()
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {

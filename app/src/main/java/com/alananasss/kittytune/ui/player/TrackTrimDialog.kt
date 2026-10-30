@@ -15,7 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ContentCut
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material3.FilledTonalButton
+import com.alananasss.kittytune.ui.design.FilledTonalButton
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,12 +25,16 @@ import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.audio.TrackTrim
 import com.alananasss.kittytune.audio.TrimMode
 import com.alananasss.kittytune.audio.TrimSegment
-import androidx.compose.material3.AlertDialog
+import com.alananasss.kittytune.ui.design.AlertDialog
 import androidx.compose.ui.res.stringResource
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.TextButton
 
 /**
  * Trimming the track that is playing, by ear (issue #33).

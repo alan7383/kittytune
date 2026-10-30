@@ -32,6 +32,9 @@ import com.alananasss.kittytune.domain.User
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import java.text.NumberFormat
 import java.util.Locale
+import com.alananasss.kittytune.ui.design.FilledTonalIconButton
+import com.alananasss.kittytune.ui.design.Surface
+import com.alananasss.kittytune.ui.design.LargeTopAppBar
 
 enum class UserFilterType {
     ALL,

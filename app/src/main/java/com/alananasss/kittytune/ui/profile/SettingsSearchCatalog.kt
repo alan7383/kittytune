@@ -80,6 +80,26 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
+                titleRes = R.string.pref_ui_design_style,
+                subtitleRes = R.string.pref_ui_design_style_sub,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Dashboard,
+                route = "interface_design_settings",
+                keywords = listOf("liquid glass", "material 3", "miuix", "blur", "refraction")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_liquid_settings_title,
+                subtitleRes = R.string.pref_liquid_settings_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.BlurOn,
+                route = "liquid_glass_settings",
+                keywords = listOf("liquid glass", "blur", "refraction", "chromatic aberration", "lens", "optics", "parameters")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
                 titleRes = R.string.settings_page_themes,
                 subtitleRes = R.string.settings_page_themes_sub,
                 categoryName = catInterface,
