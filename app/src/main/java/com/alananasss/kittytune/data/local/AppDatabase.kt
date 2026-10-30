@@ -515,9 +515,10 @@
             LibraryItemMeta::class,
             TrackTrimRow::class,
             BeatInfoEntity::class,
-            BlockedContent::class
+            BlockedContent::class,
+            QueueHistoryEntity::class
         ],
-        version = 26,
+        version = 27,
         exportSchema = false
     )
     abstract class AppDatabase : RoomDatabase() {
@@ -526,6 +527,7 @@
         abstract fun folderDao(): FolderDao
         abstract fun beatInfoDao(): BeatInfoDao
         abstract fun blockedContentDao(): BlockedContentDao
+        abstract fun queueHistoryDao(): QueueHistoryDao
 
         companion object {
             val MIGRATION_16_17 = object : Migration(16, 17) {
@@ -667,6 +669,32 @@
                 }
             }
 
+            /**
+             * Preserves historical listening queues when new ones are started (issue #68).
+             */
+            val MIGRATION_26_27 = object : Migration(26, 27) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS queue_history (
+                            id TEXT NOT NULL PRIMARY KEY,
+                            title TEXT NOT NULL,
+                            trackCount INTEGER NOT NULL,
+                            tracksJson TEXT NOT NULL,
+                            currentIndex INTEGER NOT NULL,
+                            currentPositionMs INTEGER NOT NULL,
+                            contextJson TEXT,
+                            firstTrackArtworkUrl TEXT,
+                            firstTrackTitle TEXT,
+                            firstTrackArtist TEXT,
+                            savedAt INTEGER NOT NULL
+                        )
+                        """.trimIndent()
+                    )
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_queue_history_savedAt ON queue_history(savedAt)")
+                }
+            }
+
             @Volatile private var INSTANCE: AppDatabase? = null
             fun getDatabase(context: Context): AppDatabase {
                 return INSTANCE ?: synchronized(this) {
@@ -675,7 +703,7 @@
                         AppDatabase::class.java,
                         "soundtune_db"
                     )
-                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26)
+                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27)
                         .fallbackToDestructiveMigration()
                         .build()
                     INSTANCE = instance

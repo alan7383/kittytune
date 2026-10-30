@@ -360,6 +360,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     var showAiDetectionSheet by mutableStateOf(false)
     var showConnectSheet by mutableStateOf(false)
     var showConnectDialog by mutableStateOf(false)
+    var showQueueHistorySheet by mutableStateOf(false)
+    var showQueueArchivedUndoBar by mutableStateOf(false)
+    var lastArchivedQueueId by mutableStateOf<String?>(null)
+    private var queueArchivedUndoJob: Job? = null
 
     /**
      * The track whose share card is being composed, or null while no card is open.
@@ -1378,6 +1382,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     }
 
     fun resetPlaybackState(closePlayer: Boolean = true) {
+        val tracksToArchive = if (_queue.isNotEmpty()) _queue.toList() else _originalQueue.toList()
+        if (tracksToArchive.isNotEmpty() && (tracksToArchive.size >= 2 || currentContext != null)) {
+            com.alananasss.kittytune.data.QueueHistoryRepository.saveQueue(
+                queue = tracksToArchive,
+                currentIndex = currentQueueIndex,
+                currentPositionMs = currentPosition,
+                context = currentContext
+            )
+        }
         playJob?.cancel()
         isLoading = false
         isPlaying = false
@@ -1448,6 +1461,28 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
     fun hideDismissUndoBar() {
         showDismissUndoBar = false
+    }
+
+    fun hideQueueArchivedUndoBar() {
+        showQueueArchivedUndoBar = false
+        queueArchivedUndoJob?.cancel()
+        queueArchivedUndoJob = null
+    }
+
+    fun undoQueueArchived() {
+        val id = lastArchivedQueueId ?: return
+        hideQueueArchivedUndoBar()
+        restoreQueueFromHistory(id)
+    }
+
+    private fun triggerQueueArchivedUndoBar(id: String) {
+        lastArchivedQueueId = id
+        showQueueArchivedUndoBar = true
+        queueArchivedUndoJob?.cancel()
+        queueArchivedUndoJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(4500L)
+            showQueueArchivedUndoBar = false
+        }
     }
 
     fun restoreDismissedPlayerStateIfNeeded(): Boolean {
@@ -4504,6 +4539,7 @@ query CommentsWithReactions(
             isPlayerExpanded = false
         }
         SoundCloudTelemetryTracker.onQueueReset()
+        archiveQueueIfNeeded(cleanTracks)
         _originalQueue.clear(); _originalQueue.addAll(cleanTracks)
         _queue.clear()
         playedTrackIds = emptySet()
@@ -4588,6 +4624,86 @@ query CommentsWithReactions(
             shuffleEnabled = true
         }
         playPlaylist(tracks, startIndex = tracks.indices.random(), context = context)
+    }
+
+    private fun areTrackListsEquivalent(list1: List<Track>, list2: List<Track>): Boolean {
+        if (list1.size != list2.size) return false
+        for (i in list1.indices) {
+            if (list1[i].id != list2[i].id) return false
+        }
+        return true
+    }
+
+    private fun archiveQueueIfNeeded(incomingTracks: List<Track>) {
+        val currentTracks = if (_queue.isNotEmpty()) _queue.toList() else _originalQueue.toList()
+        if (currentTracks.isNotEmpty() && !areTrackListsEquivalent(currentTracks, incomingTracks)) {
+            if (currentTracks.size >= 2 || currentContext != null) {
+                com.alananasss.kittytune.data.QueueHistoryRepository.saveQueue(
+                    queue = currentTracks,
+                    currentIndex = currentQueueIndex,
+                    currentPositionMs = currentPosition,
+                    context = currentContext
+                ) { savedId ->
+                    triggerQueueArchivedUndoBar(savedId)
+                }
+            }
+        }
+    }
+
+    fun restoreQueueFromHistory(historyId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val entry = com.alananasss.kittytune.data.QueueHistoryRepository.getQueueById(historyId) ?: return@launch
+            val tracks = com.alananasss.kittytune.data.QueueHistoryRepository.deserializeTracks(entry.tracksJson)
+            val cleanTracks = BlockManager.filterBlocked(tracks)
+            if (cleanTracks.isEmpty()) return@launch
+            val context = com.alananasss.kittytune.data.QueueHistoryRepository.deserializeContext(entry.contextJson)
+            val targetIndex = entry.currentIndex.coerceIn(0, cleanTracks.lastIndex)
+            val targetPosition = entry.currentPositionMs
+
+            withContext(Dispatchers.Main) {
+                val currentTracks = if (_queue.isNotEmpty()) _queue.toList() else _originalQueue.toList()
+                if (currentTracks.isNotEmpty() && !areTrackListsEquivalent(currentTracks, cleanTracks)) {
+                    if (currentTracks.size >= 2 || currentContext != null) {
+                        com.alananasss.kittytune.data.QueueHistoryRepository.saveQueue(
+                            queue = currentTracks,
+                            currentIndex = currentQueueIndex,
+                            currentPositionMs = currentPosition,
+                            context = currentContext
+                        )
+                    }
+                }
+
+                SoundCloudTelemetryTracker.onQueueReset()
+                _originalQueue.clear()
+                _originalQueue.addAll(cleanTracks)
+                _queue.clear()
+                _queue.addAll(cleanTracks)
+                playedTrackIds = emptySet()
+                currentContext = context
+                MusicManager.updateContext(context)
+
+                playTrackAtIndex(targetIndex, addToHistory = false, autoPlay = true)
+                if (targetPosition > 0L) {
+                    pendingSeekPosition = targetPosition
+                    seekTo(targetPosition)
+                }
+                updateQueueState()
+                saveStateAsync(saveQueue = true)
+                showQueueHistorySheet = false
+            }
+        }
+    }
+
+    fun saveCurrentQueueToHistory(customTitle: String? = null) {
+        val tracks = if (_queue.isNotEmpty()) _queue.toList() else _originalQueue.toList()
+        if (tracks.isEmpty()) return
+        com.alananasss.kittytune.data.QueueHistoryRepository.saveQueue(
+            queue = tracks,
+            currentIndex = currentQueueIndex,
+            currentPositionMs = currentPosition,
+            context = currentContext,
+            customTitle = customTitle
+        )
     }
 
     fun skipToQueueItem(index: Int, autoPlay: Boolean = true) {

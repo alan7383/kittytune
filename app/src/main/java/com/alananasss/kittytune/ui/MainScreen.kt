@@ -1909,12 +1909,18 @@ fun MainScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = (playerViewModel.showDismissUndoBar || playerViewModel.showAiSkipUndoBar) && showBottomUi && !isFullScreenRoute,
+                        visible = (playerViewModel.showDismissUndoBar || playerViewModel.showAiSkipUndoBar || playerViewModel.showQueueArchivedUndoBar) && showBottomUi && !isFullScreenRoute,
                         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                         exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
-                        if (playerViewModel.showAiSkipUndoBar) {
+                        if (playerViewModel.showQueueArchivedUndoBar) {
+                            com.alananasss.kittytune.ui.player.pixel.DismissUndoBar(
+                                text = stringResource(R.string.queue_archived_message),
+                                onUndo = { playerViewModel.undoQueueArchived() },
+                                onClose = { playerViewModel.hideQueueArchivedUndoBar() }
+                            )
+                        } else if (playerViewModel.showAiSkipUndoBar) {
                             val trackTitle = playerViewModel.aiSkippedTrack?.title
                             val baseMsg = stringResource(R.string.ai_skip_undo_message)
                             val displayText = if (!trackTitle.isNullOrBlank()) "$baseMsg • $trackTitle" else baseMsg
@@ -2073,6 +2079,13 @@ fun MainScreen(
             com.alananasss.kittytune.ui.player.audio.EqualizerScreen(
                 viewModel = playerViewModel,
                 onBackClick = { playerViewModel.showEqualizerScreen = false }
+            )
+        }
+
+        if (playerViewModel.showQueueHistorySheet) {
+            com.alananasss.kittytune.ui.player.QueueHistorySheet(
+                viewModel = playerViewModel,
+                onDismiss = { playerViewModel.showQueueHistorySheet = false }
             )
         }
 
