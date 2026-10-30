@@ -61,13 +61,7 @@ import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.profile.SectionTitle
 import com.alananasss.kittytune.ui.profile.SquareCard
 import java.util.Locale
-import com.alananasss.kittytune.ui.design.Button
-import com.alananasss.kittytune.ui.design.FilledIconButton
-import com.alananasss.kittytune.ui.design.FilledTonalButton
-import com.alananasss.kittytune.ui.design.FilledTonalIconButton
-import com.alananasss.kittytune.ui.design.IconButton
-import com.alananasss.kittytune.ui.design.Surface
-import com.alananasss.kittytune.ui.design.TopAppBar
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

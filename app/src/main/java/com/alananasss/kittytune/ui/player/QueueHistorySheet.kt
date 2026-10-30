@@ -77,7 +77,7 @@ import com.alananasss.kittytune.data.local.QueueHistorySummary
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import com.alananasss.kittytune.ui.common.SwipeToDeleteItem
-import com.alananasss.kittytune.ui.design.IconButton
+import androidx.compose.material3.IconButton
 import com.alananasss.kittytune.utils.makeTimeString
 import kotlinx.coroutines.launch
 
