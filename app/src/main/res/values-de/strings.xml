@@ -3629,4 +3629,6 @@
     <string name="recap_persona_eclectic">Vielseitig</string>
     <string name="recap_persona_eclectic_desc">Von allem etwas, zu jeder Zeit. Unmöglich, dich einzuordnen.</string>
     <string name="recap_summary_brand">KittyTune-Rückblick</string>
+    <string name="pref_gyroscope_covers">3D-Gyroskop-Albumcover</string>
+    <string name="pref_gyroscope_covers_desc">Neige dein Smartphone, um die Ebenen des Albumcovers mit einem 3D-Parallax-Effekt zu bewegen</string>
 </resources>

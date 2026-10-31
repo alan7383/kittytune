@@ -43,6 +43,7 @@ internal fun rememberSettingsSearchCatalog(
         var pureBlack = prefs.getPureBlack()
         var animatedCovers = prefs.getAnimatedCoversEnabled()
         var animatedCoversFadeUi = prefs.getAnimatedCoversFadeUiEnabled()
+        var gyroscopeCovers = prefs.getGyroscopeCoversEnabled()
         var animatedArtistProfiles = prefs.getAnimatedArtistProfilesEnabled()
         var lyricsUnderCover = prefs.getLyricsUnderCoverEnabled()
         var showRemainingTime = prefs.getShowRemainingTime()
@@ -340,6 +341,24 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     animatedCoversFadeUi = it
                     prefs.setAnimatedCoversFadeUiEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_gyroscope_covers,
+                subtitleRes = R.string.pref_gyroscope_covers_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Layers,
+                route = "appearance_settings",
+                highlightKey = "pref_gyroscope_covers",
+                keywords = listOf("gyroscope", "3d", "parallax", "tilt", "layer", "cover", "pochette"),
+                hasSwitch = true,
+                switchState = gyroscopeCovers,
+                onSwitchChange = {
+                    gyroscopeCovers = it
+                    prefs.setGyroscopeCoversEnabled(it)
                     onPreferenceChange()
                 }
             ),

@@ -124,6 +124,7 @@ fun PlayerCustomizationScreen(
     var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
     var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
     var fullPlayerSourceIndicator by remember { mutableStateOf(prefs.getFullPlayerSourceIndicatorEnabled()) }
+    var gyroscopeCovers by remember { mutableStateOf(prefs.getGyroscopeCoversEnabled()) }
 
     var waveformColorMode by remember { mutableStateOf(prefs.getWaveformColorMode()) }
     var waveformCustomColor by remember { mutableIntStateOf(prefs.getWaveformCustomColor()) }
@@ -602,6 +603,23 @@ fun PlayerCustomizationScreen(
                                 onUpdated()
                             },
                             highlightKey = "pref_full_player_source"
+                        )
+                    }
+
+                    add { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.pref_gyroscope_covers),
+                            subtitle = stringResource(R.string.pref_gyroscope_covers_desc),
+                            icon = Icons.Rounded.Layers,
+                            hasSwitch = true,
+                            switchState = gyroscopeCovers,
+                            onSwitchChange = {
+                                gyroscopeCovers = it
+                                prefs.setGyroscopeCoversEnabled(it)
+                                onUpdated()
+                            },
+                            highlightKey = "pref_gyroscope_covers"
                         )
                     }
 

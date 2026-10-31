@@ -75,6 +75,9 @@ import androidx.compose.ui.graphics.luminance
 import com.alananasss.kittytune.ui.theme.DarkContentColor
 import com.alananasss.kittytune.ui.theme.blendedContentColorOn
 import com.alananasss.kittytune.ui.player.cover.AnimatedArtwork
+import com.alananasss.kittytune.ui.player.cover.GyroscopeLayeredCoverContent
+import com.alananasss.kittytune.ui.player.cover.gyroscopeCoverContainer
+import com.alananasss.kittytune.ui.player.cover.rememberGyroscopeTilt
 import com.alananasss.kittytune.ui.player.cover.CanvasVideo
 import com.alananasss.kittytune.ui.common.WindowSizeInfo
 import com.alananasss.kittytune.ui.common.WindowHeightSizeClass
@@ -1271,6 +1274,7 @@ fun NewPlayerScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .aspectRatio(1f)
+                                            .gyroscopeCoverContainer()
                                             .shadow(
                                                 24.dp,
                                                 RoundedCornerShape(20.dp),
@@ -1295,6 +1299,7 @@ fun NewPlayerScreen(
                                         .padding(24.dp)
                                         .fillMaxWidth()
                                         .aspectRatio(1f)
+                                        .gyroscopeCoverContainer()
                                         .shadow(
                                             24.dp,
                                             RoundedCornerShape(20.dp),
@@ -11692,6 +11697,7 @@ fun OldPlayerScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .aspectRatio(1f)
+                                        .gyroscopeCoverContainer()
                                         .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = animatedColor)
                                         .clip(RoundedCornerShape(20.dp))
                                         .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -11712,6 +11718,7 @@ fun OldPlayerScreen(
                                     .padding(24.dp)
                                     .fillMaxWidth()
                                     .aspectRatio(1f)
+                                    .gyroscopeCoverContainer()
                                     .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = animatedColor)
                                     .clip(RoundedCornerShape(20.dp))
                                     .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -12405,6 +12412,7 @@ fun LandscapePlayerView(
                     .weight(1f, fill = false)
                     .padding(vertical = 8.dp)
                     .aspectRatio(1f)
+                    .gyroscopeCoverContainer()
                     .shadow(
                         16.dp,
                         RoundedCornerShape(16.dp),
@@ -13032,13 +13040,28 @@ private fun SoundCloudParallaxArtwork(
     val pageProgressFrac = if (isCurrentPage) effectivePanFrac else 0f
     val panBias = (pageProgressFrac * 2f - 1f) * 0.35f
 
-    AsyncImage(
-        model = model,
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        alignment = androidx.compose.ui.BiasAlignment(panBias, 0f),
-        modifier = modifier
-    )
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+    val gyroEnabled by prefs.getGyroscopeCoversFlow().collectAsState(initial = prefs.getGyroscopeCoversEnabled())
+    val tilt by rememberGyroscopeTilt(enabled = gyroEnabled && isCurrentPage)
+
+    if (gyroEnabled && isCurrentPage) {
+        GyroscopeLayeredCoverContent(
+            artworkUrl = model as? String,
+            tilt = tilt,
+            contentScale = ContentScale.Crop,
+            contentDescription = null,
+            modifier = modifier
+        )
+    } else {
+        AsyncImage(
+            model = model,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            alignment = androidx.compose.ui.BiasAlignment(panBias, 0f),
+            modifier = modifier
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)

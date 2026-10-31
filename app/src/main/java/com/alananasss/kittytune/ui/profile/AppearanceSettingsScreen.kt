@@ -113,6 +113,7 @@ fun AppearanceSettingsScreen(
     var lyricsUnderCover by remember { mutableStateOf(prefs.getLyricsUnderCoverEnabled()) }
     var animatedCovers by remember { mutableStateOf(prefs.getAnimatedCoversEnabled()) }
     var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
+    var gyroscopeCovers by remember { mutableStateOf(prefs.getGyroscopeCoversEnabled()) }
     var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
     var libraryCategoryLayout by remember { mutableStateOf(prefs.getLibraryCategoryLayout()) }
     var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
@@ -639,6 +640,21 @@ fun AppearanceSettingsScreen(
                                     highlightKey = "pref_animated_covers_fade_ui"
                                 )
                             }
+                        }
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_gyroscope_covers),
+                                subtitle = stringResource(R.string.pref_gyroscope_covers_desc),
+                                icon = Icons.Rounded.Layers,
+                                hasSwitch = true,
+                                switchState = gyroscopeCovers,
+                                onSwitchChange = {
+                                    gyroscopeCovers = it
+                                    prefs.setGyroscopeCoversEnabled(it)
+                                },
+                                highlightKey = "pref_gyroscope_covers"
+                            )
                         }
                         add { shape ->
                             SettingsItem(

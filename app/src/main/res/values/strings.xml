@@ -3636,4 +3636,6 @@
     <string name="recap_persona_eclectic">Eclectic</string>
     <string name="recap_persona_eclectic_desc">A bit of everything, at any time. Impossible to put you in a box.</string>
     <string name="recap_summary_brand">KittyTune recap</string>
+    <string name="pref_gyroscope_covers">3D gyroscope album covers</string>
+    <string name="pref_gyroscope_covers_desc">Tilt your phone to move album cover layers in 3D parallax</string>
 </resources>
