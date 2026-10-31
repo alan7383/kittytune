@@ -1196,6 +1196,8 @@
     <string name="about_role_translation_hu_desc">Traduction complète en hongrois sur Crowdin</string>
     <string name="about_role_translation_qa">Traductions &amp; QA</string>
     <string name="about_role_translation_qa_desc">Traductions, tests &amp; retours d\'expérience</string>
+    <string name="about_role_qa">QA &amp; Retours</string>
+    <string name="about_role_qa_desc">Tests de l\'application, retours tablette &amp; suggestions</string>
     <string name="about_role_community_contrib">Code &amp; Communauté</string>
     <string name="about_role_community_contrib_desc">Contributions, retours &amp; suggestions</string>
     <string name="about_credits_contribute_section">Envie de contribuer ?</string>

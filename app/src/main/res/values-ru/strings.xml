@@ -955,6 +955,8 @@
     <string name="about_role_translation_hu_desc">Полная венгерская локализация на Crowdin</string>
     <string name="about_role_translation_qa">Перевод и тестирование</string>
     <string name="about_role_translation_qa_desc">Переводы, тестирование и отзывы</string>
+    <string name="about_role_qa">Тестирование и отзывы</string>
+    <string name="about_role_qa_desc">Тестирование приложения, отзывы для планшетов и предложения</string>
     <string name="about_role_community_contrib">Код и сообщество</string>
     <string name="about_role_community_contrib_desc">Вклад в разработку, отзывы и предложения</string>
     <string name="about_credits_contribute_section">Хотите помочь?</string>

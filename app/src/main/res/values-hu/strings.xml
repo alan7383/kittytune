@@ -954,6 +954,8 @@
     <string name="about_role_translation_hu_desc">Teljes magyar lokalizáció a Crowdinon</string>
     <string name="about_role_translation_qa">Fordítások &amp; QA</string>
     <string name="about_role_translation_qa_desc">Fordítások, tesztelés és javaslatok</string>
+    <string name="about_role_qa">QA és visszajelzés</string>
+    <string name="about_role_qa_desc">Alkalmazástesztelés, táblagép visszajelzések és javaslatok</string>
     <string name="about_role_community_contrib">Kód &amp; Közösség</string>
     <string name="about_role_community_contrib_desc">Hozzájárulások, visszajelzések és javaslatok</string>
     <string name="about_credits_contribute_section">Szeretnél hozzájárulni?</string>
