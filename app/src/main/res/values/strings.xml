@@ -1445,6 +1445,8 @@
     <string name="about_role_translation_vi_desc">Vietnamese localization &amp; contributions</string>
     <string name="about_role_translation_de">German Translation</string>
     <string name="about_role_translation_de_desc">German localization &amp; UI adaptations</string>
+    <string name="about_role_translation_hu">Hungarian Translation</string>
+    <string name="about_role_translation_hu_desc">Full Hungarian localization on Crowdin</string>
     <string name="about_role_translation_qa">Translations &amp; QA</string>
     <string name="about_role_translation_qa_desc">Translations, testing &amp; suggestions</string>
     <string name="about_role_community_contrib">Code &amp; Community</string>

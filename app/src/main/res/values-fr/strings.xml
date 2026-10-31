@@ -1192,6 +1192,8 @@
     <string name="about_role_translation_vi_desc">Traduction vietnamienne &amp; contributions</string>
     <string name="about_role_translation_de">Traduction allemande</string>
     <string name="about_role_translation_de_desc">Traduction allemande complète &amp; ajustements d\'interface</string>
+    <string name="about_role_translation_hu">Traduction hongroise</string>
+    <string name="about_role_translation_hu_desc">Traduction complète en hongrois sur Crowdin</string>
     <string name="about_role_translation_qa">Traductions &amp; QA</string>
     <string name="about_role_translation_qa_desc">Traductions, tests &amp; retours d\'expérience</string>
     <string name="about_role_community_contrib">Code &amp; Communauté</string>

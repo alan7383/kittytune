@@ -1,0 +1,106 @@
+{
+  "//": "Everyone credited on the About screen. Read by CreditsRepository — the list is data, not code, so adding a translator is a one-line edit and needs no build.",
+  "schema": [
+    "github  — a GitHub login; the link and the avatar are derived from it",
+    "name    — what to show, when it is not just the login",
+    "url     — a link that is not a GitHub profile (Crowdin, a site)",
+    "avatar  — a profile picture that is not the GitHub one",
+    "role    — a key into the localized about_role_* strings, never free text",
+    "badge   — a short label, not translated",
+    "category— dev | translation | community",
+    "order   — where the row sits; defaults to the end"
+  ],
+  "version": 1,
+  "contributors": [
+    {
+      "github": "alan7383",
+      "name": "alananasss",
+      "role": "about_role_dev",
+      "badge": "Lead Dev",
+      "category": "dev",
+      "order": 1
+    },
+    {
+      "github": "imsawiq",
+      "role": "about_role_community_contrib",
+      "badge": "Core Desktop",
+      "category": "dev",
+      "order": 2
+    },
+    {
+      "github": "VeXEveryOne",
+      "name": "VeX (VeXEveryOne)",
+      "role": "about_role_community_contrib",
+      "badge": "Connect & Sync",
+      "category": "dev",
+      "order": 3
+    },
+    {
+      "github": "jason-fastner007",
+      "name": "Jason-Marshall Fastner (jason-fastner007)",
+      "role": "about_role_community_contrib",
+      "badge": "Dev • 🇩🇪 Deutsch",
+      "category": "dev",
+      "order": 4
+    },
+    {
+      "github": "sneoww98",
+      "role": "about_role_community_contrib",
+      "badge": "Contributor",
+      "category": "dev",
+      "order": 5
+    },
+    {
+      "github": "wynriu",
+      "role": "about_role_translation_vi",
+      "badge": "🇻🇳 Tiếng Việt",
+      "category": "translation",
+      "order": 6
+    },
+    {
+      "name": "Егор Белоусов (kivoyoso)",
+      "url": "https://crowdin.com/profile/kivoyoso",
+      "avatar": "https://github.com/kivoyoso.png",
+      "role": "about_role_translation_ru",
+      "badge": "🇷🇺 Русский",
+      "category": "translation",
+      "order": 7
+    },
+    {
+      "name": "mattdotcat",
+      "url": "https://t.me/b37246",
+      "badge": "🇭🇺 Magyar",
+      "role": "about_role_translation_hu",
+      "category": "translation",
+      "order": 8
+    },
+    {
+      "github": "meowsite",
+      "role": "about_role_translation_qa",
+      "badge": "🌐 QA & Feedback",
+      "category": "community",
+      "order": 9
+    },
+    {
+      "github": "dyr00l",
+      "role": "about_role_community_contrib",
+      "badge": "QA & Feedback",
+      "category": "community",
+      "order": 10
+    },
+    {
+      "github": "quntqunt",
+      "role": "about_role_community_contrib",
+      "badge": "Contributor",
+      "category": "community",
+      "order": 11
+    },
+    {
+      "github": "tankist939-afk",
+      "role": "about_role_community_contrib",
+      "badge": "Contributor",
+      "category": "community",
+      "order": 12
+    }
+  ]
+}
