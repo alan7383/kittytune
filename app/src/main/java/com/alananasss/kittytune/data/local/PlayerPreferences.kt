@@ -309,6 +309,7 @@ class PlayerPreferences(context: Context) {
         const val KEY_WAVEFORM_CUSTOM_COLOR = "waveform_custom_color"
         const val KEY_SOUNDCLOUD_REACTIONS_BAR = "soundcloud_reactions_bar_enabled"
         const val KEY_SOUNDCLOUD_PARALLAX = "soundcloud_parallax_enabled"
+        const val KEY_GYROSCOPE_COVERS_ENABLED = "gyroscope_covers_enabled"
         const val KEY_SOUNDCLOUD_SLOT_PREFIX = "soundcloud_slot_"
         const val KEY_CLASSIC_SLOT_PREFIX = "classic_slot_"
         const val KEY_PIXEL_SLOT_PREFIX = "pixel_slot_"
@@ -961,6 +962,20 @@ class PlayerPreferences(context: Context) {
 
     fun getAnimatedCoversFadeUiEnabled(): Boolean = prefs.getBoolean(KEY_ANIMATED_COVERS_FADE_UI, false)
     fun setAnimatedCoversFadeUiEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_ANIMATED_COVERS_FADE_UI, enabled) }
+
+    fun getGyroscopeCoversEnabled(): Boolean = prefs.getBoolean(KEY_GYROSCOPE_COVERS_ENABLED, false)
+    fun setGyroscopeCoversEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_GYROSCOPE_COVERS_ENABLED, enabled) }
+
+    fun getGyroscopeCoversFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getGyroscopeCoversEnabled())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_GYROSCOPE_COVERS_ENABLED) {
+                trySend(getGyroscopeCoversEnabled())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     fun getAnimatedCoversFadeUiFlow(): Flow<Boolean> = callbackFlow {
         trySend(getAnimatedCoversFadeUiEnabled())

@@ -3506,4 +3506,6 @@
     <string name="recap_persona_eclectic">Đa dạng</string>
     <string name="recap_persona_eclectic_desc">Mỗi thể loại một chút, bất cứ lúc nào. Không thể gò bó gu nhạc của bạn.</string>
     <string name="recap_summary_brand">Tổng kết KittyTune</string>
+    <string name="pref_gyroscope_covers">Ảnh bìa 3D con quay hồi chuyển</string>
+    <string name="pref_gyroscope_covers_desc">Nghiêng điện thoại để di chuyển các lớp ảnh bìa tạo hiệu ứng thị sai 3D sâu</string>
 </resources>

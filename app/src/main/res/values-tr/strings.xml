@@ -3636,4 +3636,6 @@
     <string name="recap_persona_eclectic">Eklektik</string>
     <string name="recap_persona_eclectic_desc">Her zaman her telden bir şeyler. Seni tek bir kalıba sığdırmak imkansız.</string>
     <string name="recap_summary_brand">KittyTune özeti</string>
+    <string name="pref_gyroscope_covers">3B jiroskop albüm kapakları</string>
+    <string name="pref_gyroscope_covers_desc">Derin bir 3B paralaks efekti için telefonu eğerek kapak katmanlarını hareket ettirin</string>
 </resources>

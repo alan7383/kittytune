@@ -3545,4 +3545,6 @@
     <string name="recap_persona_eclectic">Éclectique</string>
     <string name="recap_persona_eclectic_desc">Un peu de tout, à toute heure. Impossible de te mettre dans une case.</string>
     <string name="recap_summary_brand">Récap KittyTune</string>
+    <string name="pref_gyroscope_covers">Pochettes 3D au gyroscope</string>
+    <string name="pref_gyroscope_covers_desc">Inclinez le téléphone pour déplacer les calques de la pochette avec un effet parallaxe 3D</string>
 </resources>

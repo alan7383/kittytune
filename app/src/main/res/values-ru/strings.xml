@@ -3523,4 +3523,6 @@
     <string name="recap_persona_eclectic">Эклектик</string>
     <string name="recap_persona_eclectic_desc">Всего понемногу и в любое время. Вас невозможно загнать в рамки.</string>
     <string name="recap_summary_brand">Итоги KittyTune</string>
+    <string name="pref_gyroscope_covers">3D-обложки с гироскопом</string>
+    <string name="pref_gyroscope_covers_desc">Наклоняйте телефон, чтобы слои обложки двигались с глубоким 3D-эффектом параллакса</string>
 </resources>

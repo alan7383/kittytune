@@ -3530,4 +3530,6 @@
     <string name="recap_persona_eclectic">Eklektikus</string>
     <string name="recap_persona_eclectic_desc">Mindenből egy kicsi, bármikor. Lehetetlen beskatulyázni.</string>
     <string name="recap_summary_brand">KittyTune összefoglaló</string>
+    <string name="pref_gyroscope_covers">3D giroszkópos albumborítók</string>
+    <string name="pref_gyroscope_covers_desc">Döntsd meg a telefont, hogy a borító rétegei 3D parallaxis hatással mozogjanak</string>
 </resources>

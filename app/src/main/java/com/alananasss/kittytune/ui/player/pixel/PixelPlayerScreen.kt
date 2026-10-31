@@ -131,6 +131,7 @@ import com.alananasss.kittytune.ui.player.SleepTimerDialog
 import com.alananasss.kittytune.ui.player.TrackTrimDialog
 import com.alananasss.kittytune.ui.player.DjDevDebugSheet
 import com.alananasss.kittytune.ui.player.cover.AnimatedArtwork
+import com.alananasss.kittytune.ui.player.cover.gyroscopeCoverContainer
 import com.alananasss.kittytune.ui.player.cover.CanvasVideo
 import com.alananasss.kittytune.ui.theme.GoogleSansRounded
 import com.alananasss.kittytune.utils.makeTimeString
@@ -624,6 +625,7 @@ fun PixelPlayerScreen(
                                     scaleY = scale
                                     this.alpha = alpha
                                 }
+                                .gyroscopeCoverContainer()
                                 .shadow(
                                     elevation = 16.dp,
                                     shape = AbsoluteSmoothCornerShape(32.dp, 60),

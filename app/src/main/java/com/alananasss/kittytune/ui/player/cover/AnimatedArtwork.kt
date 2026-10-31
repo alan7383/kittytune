@@ -41,7 +41,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.alananasss.kittytune.data.local.PlayerPreferences
 
 @Composable
 fun AnimatedArtwork(
@@ -51,27 +56,59 @@ fun AnimatedArtwork(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
     contentDescription: String? = null,
+    enableGyroscope: Boolean? = null,
 ) {
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+    val prefGyroEnabled by prefs.getGyroscopeCoversFlow().collectAsState(initial = prefs.getGyroscopeCoversEnabled())
+    val gyroscopeActive = enableGyroscope ?: prefGyroEnabled
+    val tilt by rememberGyroscopeTilt(enabled = gyroscopeActive)
+    val density = LocalDensity.current
+
     Box(modifier = modifier) {
         // Underneath the image rather than as its error state, so it also covers the gap while the
         // cover loads. A local file with no embedded art, a cover-less Spotify track, or a failed
         // load used to leave a bare grey square here.
         ArtworkPlaceholder(Modifier.fillMaxSize())
 
-        // Base static artwork
-        AsyncImage(
-            model = artworkUrl,
-            contentDescription = contentDescription,
-            contentScale = contentScale,
-            modifier = Modifier.fillMaxSize()
-        )
+        if (gyroscopeActive) {
+            GyroscopeLayeredCoverContent(
+                artworkUrl = artworkUrl,
+                tilt = tilt,
+                contentScale = contentScale,
+                contentDescription = contentDescription,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            // Base static artwork
+            AsyncImage(
+                model = artworkUrl,
+                contentDescription = contentDescription,
+                contentScale = contentScale,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         // Animated cover video overlay
         if (!animatedCoverUrl.isNullOrBlank()) {
+            val videoShiftPx = with(density) { 10.dp.toPx() }
             CanvasVideo(
                 canvasUrl = animatedCoverUrl,
                 isPlaying = isPlaying,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .let { mod ->
+                        if (gyroscopeActive) {
+                            mod.graphicsLayer {
+                                scaleX = 1.06f
+                                scaleY = 1.06f
+                                translationX = tilt.tiltX * videoShiftPx
+                                translationY = tilt.tiltY * videoShiftPx
+                            }
+                        } else {
+                            mod
+                        }
+                    }
             )
         }
     }
