@@ -922,6 +922,7 @@
     <string name="lang_hungarian">Magyar</string>
     <string name="lang_russian">Русский</string>
     <string name="lang_vietnamese">Tiếng Việt</string>
+    <string name="lang_turkish">Türkçe</string>
     <!-- TYPOGRAPHY -->
     <string name="pref_font_custom_title">Google Sans Flex</string>
     <string name="pref_font_custom_subtitle">Use custom variable font</string>
@@ -1340,8 +1341,12 @@
     <string name="about_role_translation_vi_desc">Vietnamese localization &amp; contributions</string>
     <string name="about_role_translation_de">German Translation</string>
     <string name="about_role_translation_de_desc">German localization &amp; UI adaptations</string>
+    <string name="about_role_translation_hu">Hungarian Translation</string>
+    <string name="about_role_translation_hu_desc">Full Hungarian localization on Crowdin</string>
     <string name="about_role_translation_qa">Translations &amp; QA</string>
     <string name="about_role_translation_qa_desc">Translations, testing &amp; suggestions</string>
+    <string name="about_role_qa">QA &amp; Feedback</string>
+    <string name="about_role_qa_desc">App testing, tablet feedback &amp; suggestions</string>
     <string name="about_role_community_contrib">Code &amp; Community</string>
     <string name="about_role_community_contrib_desc">Contributions, feedback &amp; suggestions</string>
     <string name="about_credits_contribute_section">Want to contribute?</string>
@@ -3369,4 +3374,6 @@
     <string name="recap_persona_eclectic">Eclectic</string>
     <string name="recap_persona_eclectic_desc">A bit of everything, at any time. Impossible to put you in a box.</string>
     <string name="recap_summary_brand">KittyTune recap</string>
+    <string name="pref_gyroscope_covers">3D gyroscope album covers</string>
+    <string name="pref_gyroscope_covers_desc">Tilt your phone to move album cover layers in 3D parallax</string>
 </resources>
