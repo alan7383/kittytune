@@ -191,10 +191,11 @@ fun PlayerCustomizationScreen(
             "player_design_page" to 0,
             "pref_slider_style" to 1,
             "pref_show_remaining_time" to 2,
+            "pref_player_style" to 3,
+            "pref_track_source_badge" to 3,
+            "pref_full_player_source" to 3,
+            "pref_gyroscope_covers" to 3,
             "notif_player_extra_button" to 5,
-            "pref_player_style" to 4,
-            "pref_track_source_badge" to 4,
-            "pref_full_player_source" to 4,
             "share_card_code" to 6,
         )
     )

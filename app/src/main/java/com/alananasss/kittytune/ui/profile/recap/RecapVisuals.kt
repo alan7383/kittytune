@@ -52,8 +52,15 @@ import com.alananasss.kittytune.data.stats.Season
 import java.time.format.TextStyle
 import java.util.Locale
 
-/** A recap's colours: a container and what sits on it, plus an accent for figures. */
-internal data class RecapPalette(val container: Color, val onContainer: Color, val accent: Color)
+/**
+ * A recap's colours: a container and what sits on it, an accent for figures and shapes, and the
+ * colour that sits on the accent. Always Material pairs, so text and icons keep their contrast in
+ * every theme and wallpaper.
+ */
+internal data class RecapPalette(val container: Color, val onContainer: Color, val accent: Color, val onAccent: Color)
+
+/** What goes on the current slide's accent: the rank-1 badge, the intro and persona icons, the active day/night badge. */
+internal val LocalRecapOnAccent = androidx.compose.runtime.compositionLocalOf { Color.Unspecified }
 
 /**
  * Each kind of recap has its own colour role, so a row of them reads at a glance: months on the
@@ -61,14 +68,16 @@ internal data class RecapPalette(val container: Color, val onContainer: Color, v
  * Roles rather than fixed colours, so it follows the wallpaper and the dark theme like the rest of the app.
  */
 internal fun RecapPeriod.palette(scheme: ColorScheme): RecapPalette = when {
-    kind == RecapKind.YEAR -> RecapPalette(scheme.primary, scheme.onPrimary, scheme.primaryContainer)
-    kind == RecapKind.MONTH -> RecapPalette(scheme.primaryContainer, scheme.onPrimaryContainer, scheme.primary)
-    season == Season.SPRING -> RecapPalette(scheme.tertiaryContainer, scheme.onTertiaryContainer, scheme.tertiary)
-    season == Season.SUMMER -> RecapPalette(scheme.secondaryContainer, scheme.onSecondaryContainer, scheme.secondary)
-    season == Season.AUTUMN -> RecapPalette(scheme.tertiary, scheme.onTertiary, scheme.tertiaryContainer)
+    kind == RecapKind.YEAR -> RecapPalette(scheme.primary, scheme.onPrimary, scheme.primaryContainer, scheme.onPrimaryContainer)
+    kind == RecapKind.MONTH -> RecapPalette(scheme.primaryContainer, scheme.onPrimaryContainer, scheme.primary, scheme.onPrimary)
+    season == Season.SPRING -> RecapPalette(scheme.tertiaryContainer, scheme.onTertiaryContainer, scheme.tertiary, scheme.onTertiary)
+    // Summer on the full-strength secondary: its container sat too close to the dark background to
+    // read as a card at all.
+    season == Season.SUMMER -> RecapPalette(scheme.secondary, scheme.onSecondary, scheme.secondaryContainer, scheme.onSecondaryContainer)
+    season == Season.AUTUMN -> RecapPalette(scheme.tertiary, scheme.onTertiary, scheme.tertiaryContainer, scheme.onTertiaryContainer)
     // Winter: the inverse surface — crisp light on a near-black row, like snow on a dark morning.
     // surfaceContainerHighest washed out against the background and left the card hard to read.
-    else -> RecapPalette(scheme.inverseSurface, scheme.inverseOnSurface, scheme.inversePrimary)
+    else -> RecapPalette(scheme.inverseSurface, scheme.inverseOnSurface, scheme.inversePrimary, scheme.inverseSurface)
 }
 
 /** The expressive shape that stands for each kind: a flower for spring, a sun for summer… */
