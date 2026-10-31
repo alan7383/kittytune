@@ -333,7 +333,7 @@ private fun PortableImportContent(
 
         LazyColumn(
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 180.dp),
         ) {
             itemsIndexed(
                 items = viewModel.entries,

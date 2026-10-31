@@ -184,7 +184,7 @@ fun RecognitionHistoryScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 120.dp)
+                    contentPadding = PaddingValues(bottom = 180.dp)
                 ) {
                     groupedItems.forEach { (dateHeader, items) ->
                         item {

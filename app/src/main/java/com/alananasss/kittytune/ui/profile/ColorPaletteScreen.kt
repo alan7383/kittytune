@@ -242,7 +242,7 @@ fun ColorPaletteScreen(onBackClick: () -> Unit) {
                 }
             )
 
-            Spacer(Modifier.height(140.dp))
+            Spacer(Modifier.height(180.dp))
         }
     }
 }

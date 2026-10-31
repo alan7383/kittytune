@@ -152,7 +152,7 @@ fun EqualizerScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
-                .padding(top = 8.dp, bottom = 48.dp),
+                .padding(top = 8.dp, bottom = 180.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             val modes = listOf(EqualizerMode.MANUAL, EqualizerMode.AUTO)

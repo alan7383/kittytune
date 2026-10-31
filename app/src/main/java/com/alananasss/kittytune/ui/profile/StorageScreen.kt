@@ -587,7 +587,7 @@ fun StorageDownloadsScreen(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(top = 4.dp, bottom = 140.dp),
+                            contentPadding = PaddingValues(top = 4.dp, bottom = 180.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             items(filteredTracks, key = { it.id }) { track ->
@@ -628,7 +628,7 @@ fun StorageDownloadsScreen(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(top = 4.dp, bottom = 140.dp),
+                            contentPadding = PaddingValues(top = 4.dp, bottom = 180.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             items(filteredPlaylists, key = { it.id }) { playlist ->

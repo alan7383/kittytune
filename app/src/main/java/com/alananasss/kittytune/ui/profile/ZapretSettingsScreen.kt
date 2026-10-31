@@ -121,7 +121,7 @@ fun ZapretSettingsScreen(
                 .padding(top = innerPadding.calculateTopPadding())
                 .fillMaxSize(),
             contentPadding = PaddingValues(
-                bottom = innerPadding.calculateBottomPadding() + 48.dp,
+                bottom = innerPadding.calculateBottomPadding() + 180.dp,
                 top = 16.dp,
                 start = 0.dp,
                 end = 0.dp
