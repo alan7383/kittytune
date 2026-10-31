@@ -86,7 +86,7 @@ fun CreditsScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 80.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 180.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Discreet Subtitle Header
@@ -134,7 +134,7 @@ fun CreditsScreen(
             // Category Filter: Adaptive & Scrollable Expressive Connected Button Group (no text clipping)
             item {
                 BoxWithConstraints(Modifier.fillMaxWidth()) {
-                    val isCompact = maxWidth < 420.dp
+                    val isCompact = maxWidth < 600.dp
                     if (isCompact) {
                         Row(
                             modifier = Modifier
