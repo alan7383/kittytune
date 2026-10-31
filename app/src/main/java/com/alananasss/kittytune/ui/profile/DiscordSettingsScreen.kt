@@ -195,7 +195,7 @@ fun DiscordSettingsScreen(
         title = stringResource(R.string.discord_rpc_title),
         onBackClick = onBackClick
     ) { innerPadding ->
-        LazyColumn(modifier = Modifier.padding(innerPadding)) {
+        LazyColumn(modifier = Modifier.padding(innerPadding).fillMaxSize(), contentPadding = PaddingValues(bottom = 180.dp)) {
             item {
                 val connectionSubtitle = if (isLoggedIn) {
                     if (!username.isNullOrEmpty()) {

@@ -76,7 +76,7 @@ fun FabSettingsScreen(
                 .fillMaxSize()
                 .padding(top = padding.calculateTopPadding()),
             contentPadding = PaddingValues(
-                bottom = padding.calculateBottomPadding() + 150.dp,
+                bottom = padding.calculateBottomPadding() + 180.dp,
                 top = 8.dp
             )
         ) {

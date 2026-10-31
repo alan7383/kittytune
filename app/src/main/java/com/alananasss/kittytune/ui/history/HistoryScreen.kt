@@ -307,7 +307,7 @@ fun HistoryScreen(
                 }
             )
 
-            val miniPlayerPadding = if (playerViewModel.uiCurrentTrack != null) 180.dp else 100.dp
+            val miniPlayerPadding = 180.dp
 
             AnimatedContent(
                 targetState = currentTab,

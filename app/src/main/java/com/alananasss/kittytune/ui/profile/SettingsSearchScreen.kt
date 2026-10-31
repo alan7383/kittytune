@@ -282,7 +282,7 @@ fun SettingsSearchScreen(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp)
+                        contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp)
                     ) {
                         item(key = "search-results") {
                             SettingsGroup(
@@ -327,7 +327,7 @@ private fun RecentSettingsList(
     val haptics = rememberAppHaptics()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp)
+        contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp)
     ) {
         item(key = "recent-header") {
             Row(
