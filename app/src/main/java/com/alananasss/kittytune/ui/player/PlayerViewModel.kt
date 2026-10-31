@@ -1258,6 +1258,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
             if (isAuthError || isNetworkError || isSourceError) {
                 if (currentQueueIndex >= 0 && currentQueueIndex < _queue.size) {
+                    // Resume where the failing item itself was. The view model's position can still be the
+                    // previous song's when a preloaded stream fails right after an automatic transition, and
+                    // retrying from there started the new song at the old one's end (issue #72).
+                    val failedTrackId = MusicManager.player.currentMediaItem?.mediaId?.let { parseIdFromMediaId(it) }
+                    val retryPosition = if (failedTrackId != null && failedTrackId == _queue[currentQueueIndex].id) {
+                        MusicManager.player.currentPosition.coerceAtLeast(0L)
+                    } else 0L
                     viewModelScope.launch {
                         player.playWhenReady = false
                         isLoading = true
@@ -1266,7 +1273,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                             playRobustly(
                                 index = currentQueueIndex,
                                 autoPlay = true,
-                                startPosition = currentPosition,
+                                startPosition = retryPosition,
                                 allowSkipOnFailure = false
                             )
                         } else {
@@ -1340,7 +1347,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                         } catch (_: Exception) {
                         }
                     }
-                    preloadNextTrack(currentQueueIndex + 1)
+                    preloadNextTrack()
                 }
             }
 
@@ -1352,18 +1359,37 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
             val expectedTrackId = _queue.getOrNull(currentQueueIndex)?.id
             if (expectedTrackId != null && expectedTrackId != trackId) {
+                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                    // The player moved on to an item that is not the queue's next track any more, so the
+                    // sound, the title and the cover would each follow a different song (issue #72). The
+                    // queue is what the listener arranged: play the track it says.
+                    Log.w("PlayerViewModel", "Player advanced to $trackId but the queue expects $expectedTrackId; resyncing")
+                    flushListenSession("TRACK_CHANGE")
+                    playTrackAtIndex(currentQueueIndex, addToHistory = false, autoPlay = MusicManager.playWhenReadyRequested)
+                }
                 return
             }
 
-            if (currentTrack?.id != trackId) {
+            val trackChanged = currentTrack?.id != trackId
+            if (trackChanged) {
                 // Whatever was playing has ended, however it ended. The new track's session is opened by
                 // the progress loop, which knows the position it actually started from.
                 flushListenSession("TRACK_CHANGE")
-                loadTrimFor(MusicManager.currentTrack?.id)
+                loadTrimFor(trackId)
                 hasPushedRecentlyPlayed = false
+                pendingSeekPosition = null
+                // The position shown and saved until the next progress tick would otherwise still be the
+                // previous song's, and a save or a retry in that window started the new song there (issue #72).
+                currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
+                duration = MusicManager.player.duration.takeIf { it > 0L }
+                    ?: _queue.getOrNull(currentQueueIndex)?.actualDurationMs ?: 0L
             }
 
-            if (MusicManager.currentTrack?.id == trackId) {
+            val queuedTrack = _queue.getOrNull(currentQueueIndex)?.takeIf { it.id == trackId }
+            if (queuedTrack != null && currentTrack?.id != trackId) {
+                currentTrack = queuedTrack
+                MusicManager.currentTrack = queuedTrack
+            } else if (MusicManager.currentTrack?.id == trackId) {
                 currentTrack = MusicManager.currentTrack
             } else if (currentTrack?.id != trackId) {
                 val meta = mediaItem.mediaMetadata
@@ -4718,6 +4744,7 @@ query CommentsWithReactions(
 
     fun skipToQueueItem(index: Int, autoPlay: Boolean = true) {
         if (routeRemote("queue", index.toLong())) return
+        pendingSeekPosition = null
         val keepsUpcoming = isQueuePreserveUpcomingEnabled || shuffleEnabled
         if (keepsUpcoming && index > currentQueueIndex && currentQueueIndex >= 0 && index < _queue.size) {
             val targetIndex = currentQueueIndex + 1
@@ -4770,6 +4797,9 @@ query CommentsWithReactions(
         trackInitJob = null
         queueChunkingJob?.cancel()
         queueChunkingJob = null
+        // A preload still resolving belongs to the track being left; it would land after this one.
+        preloadJob?.cancel()
+        preloadJob = null
         isLoading = true
         duration = trackToPlay.actualDurationMs
         currentPosition = 0L
@@ -5025,6 +5055,10 @@ query CommentsWithReactions(
             )
             return
         }
+
+        // A start position saved for the track being left (a restore, a shared playlist) must not
+        // carry over to the next one, which would then start part-way through (issue #72).
+        pendingSeekPosition = null
 
         val nextIndex = currentQueueIndex + 1
 
@@ -5384,6 +5418,7 @@ query CommentsWithReactions(
             flushListenSession("SKIP_PREVIOUS")
         }
 
+        pendingSeekPosition = null
         val prevIndex = currentQueueIndex - 1
         if (prevIndex >= 0) {
             playTrackAtIndex(prevIndex, addToHistory = false, isCrossfade = isCrossfade, autoPlay = true)
@@ -5423,9 +5458,9 @@ query CommentsWithReactions(
         if (routeRemote("shuffle", if (uiShuffleEnabled) 0 else 1)) return
         com.alananasss.kittytune.audio.haptics.HapticUtil.performMediumHaptic(context)
         shuffleEnabled =
-            !shuffleEnabled; if (shuffleEnabled) applyShuffle() else revertShuffle(); updateQueueState(); saveStateAsync(
-            saveQueue = true
-        )
+            !shuffleEnabled; if (shuffleEnabled) applyShuffle() else revertShuffle(); updateQueueState()
+        refreshPreloadedNext()
+        saveStateAsync(saveQueue = true)
     }
 
     private fun applyShuffle(startIndex: Int = currentQueueIndex, sourceList: List<Track> = _originalQueue) {
@@ -5473,6 +5508,7 @@ query CommentsWithReactions(
             RepeatMode.ONE -> RepeatMode.NONE
         }
         applyRepeatMode()
+        refreshPreloadedNext()
         saveStateAsync(saveQueue = false)
     }
 
@@ -5498,24 +5534,23 @@ query CommentsWithReactions(
         if (from < _queue.size && to < _queue.size) {
             val item = _queue.removeAt(from)
             _queue.add(to, item)
+            // Follow the playing entry by position: looking it up by id picked the wrong one when the same
+            // track was in the queue twice, and playback then went on from there (issue #72).
+            val playing = currentQueueIndex
+            currentQueueIndex = when {
+                from == playing -> to
+                from < playing && to >= playing -> playing - 1
+                from > playing && to <= playing -> playing + 1
+                else -> playing
+            }
         }
 
-        if (!shuffleEnabled && from < _originalQueue.size && to < _originalQueue.size + 1) {
+        if (!shuffleEnabled && from < _originalQueue.size && to < _originalQueue.size) {
             val originalItem = _originalQueue.removeAt(from)
             _originalQueue.add(to, originalItem)
         }
 
-        if (currentTrack != null) {
-            currentQueueIndex = _queue.indexOfFirst { it.id == currentTrack?.id }.coerceAtLeast(0)
-        }
-
-        if (MusicManager.player.mediaItemCount > 1) {
-            try {
-                MusicManager.player.removeMediaItem(1)
-            } catch (_: Exception) {
-            }
-        }
-        preloadNextTrack(currentQueueIndex + 1)
+        refreshPreloadedNext()
 
         saveStateAsync(saveQueue = true)
     }
@@ -5536,16 +5571,14 @@ query CommentsWithReactions(
 
         _originalQueue.removeAll { it.id == trackToRemove.id }
 
-        if (currentTrack != null) {
+        // By position, not by id: the same track can be queued more than once (issue #72).
+        if (index < currentQueueIndex) {
+            currentQueueIndex--
+        } else if (index == currentQueueIndex && currentTrack != null) {
             currentQueueIndex = _queue.indexOfFirst { it.id == currentTrack?.id }.coerceAtLeast(0)
         }
-        if (MusicManager.player.mediaItemCount > 1) {
-            try {
-                MusicManager.player.removeMediaItem(1)
-            } catch (_: Exception) {
-            }
-        }
-        preloadNextTrack(currentQueueIndex + 1)
+        currentQueueIndex = currentQueueIndex.coerceIn(0, (_queue.size - 1).coerceAtLeast(0))
+        refreshPreloadedNext()
 
         saveStateAsync(saveQueue = true)
     }
@@ -5558,16 +5591,13 @@ query CommentsWithReactions(
         val uniqueTracks = cleanTracks.map { it.copy() }
 
         _queue.addAll(insertIndex, uniqueTracks)
-        _originalQueue.addAll(insertIndex, uniqueTracks)
+        // Shuffled, the original order has the playing track somewhere else entirely.
+        val playingInOriginal = _originalQueue.indexOfFirst { it.id == currentTrack?.id }
+        val originalInsertIndex = if (playingInOriginal >= 0) playingInOriginal + 1 else _originalQueue.size
+        _originalQueue.addAll(originalInsertIndex, uniqueTracks)
         updateQueueState()
 
-        if (MusicManager.player.mediaItemCount > 1) {
-            try {
-                MusicManager.player.removeMediaItem(1)
-            } catch (_: Exception) {
-            }
-        }
-        preloadNextTrack(currentQueueIndex + 1)
+        refreshPreloadedNext()
 
         saveStateAsync(saveQueue = true)
         emitUiEvent(getString(R.string.menu_play_next))
@@ -5760,13 +5790,7 @@ query CommentsWithReactions(
         _originalQueue.add(item)
         togetherNextOffset++
         updateQueueState()
-        if (MusicManager.player.mediaItemCount > 1) {
-            try {
-                MusicManager.player.removeMediaItem(1)
-            } catch (_: Exception) {
-            }
-        }
-        preloadNextTrack(currentQueueIndex + 1)
+        refreshPreloadedNext()
         saveStateAsync(saveQueue = true)
         com.alananasss.kittytune.data.together.Together.onHostPlaybackChanged()
     }
@@ -5798,12 +5822,7 @@ query CommentsWithReactions(
         }
         togetherNextOffset = 0
         updateQueueState()
-        if (MusicManager.player.mediaItemCount > 1) {
-            try {
-                MusicManager.player.removeMediaItem(1)
-            } catch (_: Exception) {
-            }
-        }
+        refreshPreloadedNext()
         saveStateAsync(saveQueue = true)
     }
 
@@ -5814,6 +5833,7 @@ query CommentsWithReactions(
         _queue.addAll(clean)
         _originalQueue.addAll(clean)
         updateQueueState()
+        refreshPreloadedNext()
         saveStateAsync(saveQueue = true)
     }
 
@@ -6980,14 +7000,12 @@ query CommentsWithReactions(
 
         val uniqueTracks = cleanTracks.map { it.copy() }
 
-        val mediaItems = uniqueTracks.map { track ->
-            buildMediaItem(track, null, null)
-        }
-        player.addMediaItems(mediaItems)
-
+        // The player only ever holds the track playing and the one after it; queued tracks used to be
+        // appended to it too, and the player then went on to them instead of the queue's next (issue #72).
         _queue.addAll(uniqueTracks)
         _originalQueue.addAll(uniqueTracks)
         updateQueueState()
+        refreshPreloadedNext()
         saveStateAsync(saveQueue = true)
         emitUiEvent(getString(R.string.menu_add_queue))
     }
@@ -7899,7 +7917,7 @@ query CommentsWithReactions(
                     currentPosition = startPosition
                     duration = if (MusicManager.player.duration > 0) MusicManager.player.duration else trackToPlay.actualDurationMs
                     MusicManager.applyEffects(effectsState)
-                    preloadNextTrack(index + 1)
+                    preloadNextTrack()
                 } catch (e: Exception) {
                     e.printStackTrace()
                     MusicManager.cancelCrossfade()
@@ -8130,7 +8148,7 @@ query CommentsWithReactions(
                     }
 
                     MusicManager.applyEffects(effectsState)
-                    preloadNextTrack(index + 1)
+                    preloadNextTrack()
                 } catch (e: Exception) {
                     e.printStackTrace()
                     MusicManager.cancelCrossfade()
@@ -8147,19 +8165,60 @@ query CommentsWithReactions(
         }
     }
 
-    private fun preloadNextTrack(nextIndex: Int) {
-        if (repeatMode == RepeatMode.ONE || playerPrefs.getCrossfadeEnabled()) {
-            return
+    private var preloadJob: Job? = null
+
+    /** Index of the queue track that plays after the current one, or null when nothing follows it. */
+    private fun upcomingQueueIndex(): Int? {
+        if (repeatMode == RepeatMode.ONE || _queue.isEmpty()) return null
+        val next = currentQueueIndex + 1
+        return when {
+            next < _queue.size -> next
+            repeatMode == RepeatMode.ALL -> 0
+            else -> null
         }
+    }
 
-        val targetIndex = if (nextIndex >= _queue.size) {
-            if (repeatMode == RepeatMode.ALL && _queue.isNotEmpty()) 0 else return
-        } else nextIndex
+    /**
+     * Removes whatever the player holds after the item playing, and cancels a preload still resolving, so
+     * nothing but the queue's real next track can follow on (issue #72).
+     */
+    private fun dropPreloadedNext() {
+        preloadJob?.cancel()
+        preloadJob = null
+        val player = MusicManager.player
+        try {
+            while (player.mediaItemCount > player.currentMediaItemIndex + 1) {
+                player.removeMediaItem(player.mediaItemCount - 1)
+            }
+        } catch (_: Exception) {
+        }
+    }
 
+    /** Call after the upcoming part of the queue changes: the player's next item is rebuilt from the queue. */
+    private fun refreshPreloadedNext() {
+        dropPreloadedNext()
+        preloadNextTrack()
+    }
+
+    /**
+     * Gives the player the queue's next track as its following item, for a gapless start.
+     *
+     * Resolving the stream takes a while, and queue edits made meanwhile ("play next" twice, then a drag)
+     * used to start one preload each. Whichever finished first was added, often a track that was no longer
+     * next, so the player went on to the wrong song: skipped, played twice, or heard under another title
+     * (issue #72). Only the latest preload may finish now, and only if its track is still the one due next.
+     */
+    private fun preloadNextTrack() {
+        preloadJob?.cancel()
+        preloadJob = null
+        if (playerPrefs.getCrossfadeEnabled()) return
+
+        val targetIndex = upcomingQueueIndex() ?: return
         val nextTrack = _queue[targetIndex]
         if (BlockManager.isBlocked(nextTrack)) return
+        val playingTrackId = currentTrack?.id ?: return
 
-        viewModelScope.launch(Dispatchers.IO) {
+        preloadJob = viewModelScope.launch(Dispatchers.IO) {
             try {
                 var resolvedUrl: String? = null
                 var offlineKeySetId: ByteArray? = null
@@ -8191,11 +8250,20 @@ query CommentsWithReactions(
                 if (resolvedUrl != null) {
                     val nextMediaItem = buildMediaItem(nextTrack, null, resolvedUrl, offlineKeySetId, resolvedMimeType)
                     withContext(Dispatchers.Main) {
-                        if (MusicManager.player.mediaItemCount == 1) {
-                            MusicManager.player.addMediaItem(nextMediaItem)
+                        if (!isActive || MusicManager.isLoadingTrack) return@withContext
+                        val stillNext = upcomingQueueIndex()?.let { _queue.getOrNull(it)?.id } == nextTrack.id
+                        val player = MusicManager.player
+                        val playerTrackId = player.currentMediaItem?.mediaId?.let { parseIdFromMediaId(it) }
+                        if (!stillNext || currentTrack?.id != playingTrackId || playerTrackId != playingTrackId) {
+                            return@withContext
+                        }
+                        if (player.mediaItemCount == player.currentMediaItemIndex + 1) {
+                            player.addMediaItem(nextMediaItem)
                         }
                     }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 e.printStackTrace()
             }
