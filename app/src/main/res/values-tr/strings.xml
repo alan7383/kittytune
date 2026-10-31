@@ -1449,6 +1449,8 @@
     <string name="about_role_translation_hu_desc">Crowdin üzerinde tam Macarca yerelleştirme</string>
     <string name="about_role_translation_qa">Çeviriler ve QA</string>
     <string name="about_role_translation_qa_desc">Çeviriler, testler ve öneriler</string>
+    <string name="about_role_qa">QA ve Geri Bildirim</string>
+    <string name="about_role_qa_desc">Uygulama testleri, tablet geri bildirimleri ve öneriler</string>
     <string name="about_role_community_contrib">Kod ve Topluluk</string>
     <string name="about_role_community_contrib_desc">Katkılar, geri bildirimler ve öneriler</string>
     <string name="about_credits_contribute_section">Katkıda bulunmak ister misiniz?</string>

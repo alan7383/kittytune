@@ -19,7 +19,7 @@ class CreditsRepositoryTest {
             File("src/main/resources/credits.json").exists() || File("src/main/assets/credits.json").exists()
         )
         assertTrue("The credits should not be empty", all.isNotEmpty())
-        assertEquals("Expected 12 contributors", 12, all.size)
+        assertEquals("Expected 13 contributors", 13, all.size)
     }
 
     @Test
@@ -55,6 +55,7 @@ class CreditsRepositoryTest {
         assertNotNull(all.firstOrNull { it.name.contains("VeX") })
         assertNotNull(all.firstOrNull { it.name.contains("jason-fastner007") })
         assertNotNull(all.firstOrNull { it.name.contains("mattdotcat") })
+        assertNotNull(all.firstOrNull { it.name.contains("The-S3NS3") })
         assertNotNull(all.firstOrNull { it.name.contains("kivoyoso") })
         assertNotNull(all.firstOrNull { it.name.contains("wynriu") })
         assertNotNull(all.firstOrNull { it.name.contains("dyr00l") })

@@ -1280,6 +1280,8 @@
     <string name="about_role_translation_hu_desc">Vollständige ungarische Lokalisierung auf Crowdin</string>
     <string name="about_role_translation_qa">Übersetzungen &amp; QA</string>
     <string name="about_role_translation_qa_desc">Übersetzungen, Tests &amp; Vorschläge</string>
+    <string name="about_role_qa">QA &amp; Feedback</string>
+    <string name="about_role_qa_desc">App-Tests, Tablet-Feedback &amp; Vorschläge</string>
     <string name="about_role_community_contrib">Code &amp; Community</string>
     <string name="about_role_community_contrib_desc">Beiträge, Feedback &amp; Vorschläge</string>
     <string name="about_credits_contribute_section">Mitmachen &amp; beitragen?</string>

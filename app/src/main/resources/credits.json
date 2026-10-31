@@ -75,32 +75,39 @@
       "order": 8
     },
     {
+      "github": "The-S3NS3",
+      "role": "about_role_qa",
+      "badge": "Tablet QA & Feedback",
+      "category": "community",
+      "order": 9
+    },
+    {
       "github": "meowsite",
       "role": "about_role_translation_qa",
       "badge": "🌐 QA & Feedback",
       "category": "community",
-      "order": 9
+      "order": 10
     },
     {
       "github": "dyr00l",
       "role": "about_role_community_contrib",
       "badge": "QA & Feedback",
       "category": "community",
-      "order": 10
+      "order": 11
     },
     {
       "github": "quntqunt",
       "role": "about_role_community_contrib",
       "badge": "Contributor",
       "category": "community",
-      "order": 11
+      "order": 12
     },
     {
       "github": "tankist939-afk",
       "role": "about_role_community_contrib",
       "badge": "Contributor",
       "category": "community",
-      "order": 12
+      "order": 13
     }
   ]
 }

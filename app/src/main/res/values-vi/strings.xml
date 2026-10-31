@@ -1195,6 +1195,8 @@
     <string name="about_role_translation_hu_desc">Bản dịch tiếng Hungary đầy đủ trên Crowdin</string>
     <string name="about_role_translation_qa">Bản dịch &amp; Đảm bảo chất lượng (QA)</string>
     <string name="about_role_translation_qa_desc">Dịch thuật, kiểm thử &amp; góp ý</string>
+    <string name="about_role_qa">QA &amp; Đóng góp ý kiến</string>
+    <string name="about_role_qa_desc">Kiểm thử ứng dụng, phản hồi giao diện máy tính bảng &amp; đề xuất</string>
     <string name="about_role_community_contrib">Mã nguồn &amp; Cộng đồng</string>
     <string name="about_role_community_contrib_desc">Đóng góp, phản hồi &amp; đề xuất</string>
     <string name="about_credits_contribute_section">Muốn đóng góp?</string>
