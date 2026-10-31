@@ -950,6 +950,8 @@
     <string name="about_role_translation_vi_desc">Vietnámi lokalizáció és közreműködés</string>
     <string name="about_role_translation_de">Német fordítás</string>
     <string name="about_role_translation_de_desc">Német lokalizáció és felületi adaptációk</string>
+    <string name="about_role_translation_hu">Magyar fordítás</string>
+    <string name="about_role_translation_hu_desc">Teljes magyar lokalizáció a Crowdinon</string>
     <string name="about_role_translation_qa">Fordítások &amp; QA</string>
     <string name="about_role_translation_qa_desc">Fordítások, tesztelés és javaslatok</string>
     <string name="about_role_community_contrib">Kód &amp; Közösség</string>

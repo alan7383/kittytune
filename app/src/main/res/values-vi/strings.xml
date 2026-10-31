@@ -1191,6 +1191,8 @@
     <string name="about_role_translation_vi_desc">Bản dịch tiếng Việt &amp; đóng góp</string>
     <string name="about_role_translation_de">Bản dịch tiếng Đức</string>
     <string name="about_role_translation_de_desc">Bản dịch tiếng Đức &amp; điều chỉnh giao diện UI</string>
+    <string name="about_role_translation_hu">Bản dịch tiếng Hungary</string>
+    <string name="about_role_translation_hu_desc">Bản dịch tiếng Hungary đầy đủ trên Crowdin</string>
     <string name="about_role_translation_qa">Bản dịch &amp; Đảm bảo chất lượng (QA)</string>
     <string name="about_role_translation_qa_desc">Dịch thuật, kiểm thử &amp; góp ý</string>
     <string name="about_role_community_contrib">Mã nguồn &amp; Cộng đồng</string>

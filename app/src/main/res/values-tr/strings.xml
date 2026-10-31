@@ -1445,6 +1445,8 @@
     <string name="about_role_translation_vi_desc">Vietnamca yerelleştirme ve katkılar</string>
     <string name="about_role_translation_de">Almanca Çeviri</string>
     <string name="about_role_translation_de_desc">Almanca yerelleştirme ve arayüz uyarlamaları</string>
+    <string name="about_role_translation_hu">Macarca Çeviri</string>
+    <string name="about_role_translation_hu_desc">Crowdin üzerinde tam Macarca yerelleştirme</string>
     <string name="about_role_translation_qa">Çeviriler ve QA</string>
     <string name="about_role_translation_qa_desc">Çeviriler, testler ve öneriler</string>
     <string name="about_role_community_contrib">Kod ve Topluluk</string>

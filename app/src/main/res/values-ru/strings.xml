@@ -951,6 +951,8 @@
     <string name="about_role_translation_vi_desc">Вьетнамский перевод и улучшения приложения</string>
     <string name="about_role_translation_de">Немецкий перевод</string>
     <string name="about_role_translation_de_desc">Немецкая локализация и адаптация интерфейса</string>
+    <string name="about_role_translation_hu">Венгерский перевод</string>
+    <string name="about_role_translation_hu_desc">Полная венгерская локализация на Crowdin</string>
     <string name="about_role_translation_qa">Перевод и тестирование</string>
     <string name="about_role_translation_qa_desc">Переводы, тестирование и отзывы</string>
     <string name="about_role_community_contrib">Код и сообщество</string>
