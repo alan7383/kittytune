@@ -137,7 +137,11 @@ fun Modifier.settingHighlight(
 
     LaunchedEffect(isHighlighted) {
         if (isHighlighted) {
-            // Short 50ms delay for initial layout pass to settle coordinates
+            // Wait for AutoScrollToHighlightedItem's LazyColumn scroll to finish first
+            while (SettingsHighlightManager.isScrollingToTarget) {
+                delay(16)
+            }
+            // Short 50ms delay for layout coordinates to settle after scroll
             delay(50)
             try {
                 bringIntoViewRequester.bringIntoViewCentered(itemCoordinates)

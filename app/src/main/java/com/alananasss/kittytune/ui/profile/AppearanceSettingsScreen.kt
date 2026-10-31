@@ -396,13 +396,16 @@ fun AppearanceSettingsScreen(
             "pref_app_icon" to 2,
             "pref_animated_covers" to 3,
             "pref_animated_covers_fade_ui" to 3,
+            "pref_gyroscope_covers" to 3,
             "pref_animated_artist_profiles" to 3,
             "pref_lyrics_under_cover" to 3,
             "pref_library_category_layout" to 4,
             "pref_track_removal" to 4,
             "pref_achievement_popups" to 4,
             "pref_home_listening_stats" to 5,
-            "pref_home_your_mix" to 5
+            "pref_home_your_mix" to 5,
+            "pref_home_my_wave" to 5,
+            "pref_home_charts" to 5
         )
     )
 

@@ -183,6 +183,7 @@ private fun Story(
     val container by animateColorAsState(palette.container, tween(500), label = "slideContainer")
     val content by animateColorAsState(palette.onContainer, tween(500), label = "slideContent")
     val accent by animateColorAsState(palette.accent, tween(500), label = "slideAccent")
+    val onAccent by animateColorAsState(palette.onAccent, tween(500), label = "slideOnAccent")
 
     Box(
         Modifier
@@ -203,7 +204,7 @@ private fun Story(
     ) {
         MorphingBackdrop(slide.polygon(recap), accent.copy(alpha = 0.18f))
 
-        CompositionLocalProvider(LocalContentColor provides content) {
+        CompositionLocalProvider(LocalContentColor provides content, LocalRecapOnAccent provides onAccent) {
             Column(Modifier.fillMaxSize().safeDrawingPadding()) {
                 StoryTopBar(
                     recap = recap,
@@ -262,6 +263,7 @@ private fun Story(
                 }
                 if (isLast) {
                     StoryActions(
+                        container = container,
                         onShare = {
                             scope.launch {
                                 val bitmap = runCatching { shareLayer.toImageBitmap() }.getOrNull()
@@ -357,7 +359,7 @@ private fun StoryTopBar(
 
 /** Share and replay, under the last slide. */
 @Composable
-private fun StoryActions(onShare: () -> Unit, onReplay: () -> Unit) {
+private fun StoryActions(container: Color, onShare: () -> Unit, onReplay: () -> Unit) {
     val content = LocalContentColor.current
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
@@ -377,7 +379,7 @@ private fun StoryActions(onShare: () -> Unit, onReplay: () -> Unit) {
         Button(
             onClick = hapticAction(HapticKind.CONFIRM) { onShare() },
             shapes = ButtonDefaults.shapes(),
-            colors = ButtonDefaults.buttonColors(containerColor = content, contentColor = MaterialTheme.colorScheme.surface),
+            colors = ButtonDefaults.buttonColors(containerColor = content, contentColor = container),
             contentPadding = ButtonDefaults.MediumContentPadding,
             modifier = Modifier.height(ButtonDefaults.MediumContainerHeight).weight(1f, fill = false),
         ) {
@@ -399,10 +401,12 @@ private fun MorphingBackdrop(target: RoundedPolygon, color: Color) {
     val morphProgress = remember { Animatable(1f) }
     LaunchedEffect(target) {
         if (target == to) return@LaunchedEffect
-        from = to
+        // Interrupted halfway: start from whichever end it is closer to rather than snapping back.
+        from = if (morphProgress.value >= 0.5f) to else from
         to = target
         morphProgress.snapTo(0f)
-        morphProgress.animateTo(1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessVeryLow))
+        // No overshoot: a Morph read past 1 extrapolates into a distorted blob.
+        morphProgress.animateTo(1f, tween(700, easing = androidx.compose.animation.core.FastOutSlowInEasing))
     }
     val morph = remember(from, to) { Morph(from, to) }
     val rotation = remember { Animatable(0f) }
@@ -418,7 +422,7 @@ private fun MorphingBackdrop(target: RoundedPolygon, color: Color) {
                 .size(side)
                 .offset(x = maxWidth - side * 0.62f, y = maxHeight * 0.18f)
                 .graphicsLayer { rotationZ = rotation.value }
-                .clip(MorphShape(morph, morphProgress.value))
+                .clip(MorphShape(morph, morphProgress.value.coerceIn(0f, 1f)))
                 .background(color)
         )
     }
