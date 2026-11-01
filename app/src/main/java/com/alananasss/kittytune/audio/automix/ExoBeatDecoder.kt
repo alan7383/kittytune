@@ -40,6 +40,8 @@ object ExoBeatDecoder {
         val samples: FloatArray,
         val sampleRate: Int,
         val actualStartUs: Long,
+        /** 1, or 2 when decoded with stereo = true (then [samples] is interleaved left/right). */
+        val channels: Int = 1,
     )
 
     fun decodeMono(
@@ -50,6 +52,7 @@ object ExoBeatDecoder {
         maxDurationMs: Long = 18_000L,
         timeoutMs: Long = 25_000L,
         shouldCancel: () -> Boolean = { false },
+        stereo: Boolean = false,
     ): DecodedMonoPcm? {
         if (streamUrl.isBlank() || shouldCancel()) return null
 
@@ -57,6 +60,7 @@ object ExoBeatDecoder {
         val targetDurationUs = maxDurationMs * 1_000L
 
         val sink = FastCaptureAudioSink(
+            keepStereo = stereo,
             targetDurationUs = targetDurationUs,
             shouldCancel = shouldCancel,
             onComplete = { latch.countDown() }
@@ -240,7 +244,8 @@ object ExoBeatDecoder {
         return DecodedMonoPcm(
             samples = captured.samples,
             sampleRate = captured.sampleRate,
-            actualStartUs = max(0L, captured.firstSampleTimeUs)
+            actualStartUs = max(0L, captured.firstSampleTimeUs),
+            channels = captured.channels,
         )
     }
 }
