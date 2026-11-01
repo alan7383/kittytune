@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <!-- Reading the pairing QR the desktop shows. Nothing else uses the camera. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Kitty pet: New Year countdown refreshed on the second (optional, falls back gracefully) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <!--
       Reaching the desktop over the local network. Android 16 introduced Local Network
       Protection: without this, a connection to a 192.168.x.x address is dropped silently and
@@ -1301,6 +1303,24 @@
                     android:resource="@xml/mini_music_widget_info" />
             </receiver>
     
+            <!-- Pet Widget Receiver (KittyTune's home-screen kitty) -->
+            <receiver
+                android:name=".ui.widget.PetWidgetReceiver"
+                android:exported="true"
+                android:label="@string/widget_pet_label">
+                <intent-filter>
+                    <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                </intent-filter>
+                <meta-data
+                    android:name="android.appwidget.provider"
+                    android:resource="@xml/pet_widget_info" />
+            </receiver>
+
+            <!-- Kitty pet: refreshes the widget on time for the New Year countdown -->
+            <receiver
+                android:name=".ui.widget.pet.PetNewYearReceiver"
+                android:exported="false" />
+
             <!-- Search Widget Receiver -->
             <receiver
                 android:name=".ui.widget.SearchWidgetReceiver"

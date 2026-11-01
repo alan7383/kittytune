@@ -121,6 +121,9 @@
                     } catch(e: Exception) { false }
                     val isLiked = if (track != null) LikeRepository.isTrackLiked(track.id) else false
 
+                    // The home-screen kitty reacts to every play/pause/track change.
+                    PetWidget.onPlaybackChanged(context)
+
                     // Skip redundant refreshes: playback state changes fire in bursts (each
                     // BUFFERING/READY transition, every like toggle), and each refresh costs a
                     // DataStore write + AppWidgetManager IPC + a remote view relayout. Nothing

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/pet_bg_day" />
+    <item android:drawable="@drawable/pet_room_day" android:top="30dp" android:bottom="30dp" android:left="10dp" android:right="10dp" />
+    <item android:drawable="@drawable/pet_preview_cat" android:top="30dp" android:bottom="30dp" android:left="10dp" android:right="10dp" />
+</layer-list>
