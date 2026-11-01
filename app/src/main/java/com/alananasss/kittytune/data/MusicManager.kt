@@ -44,7 +44,9 @@ import com.alananasss.kittytune.ui.player.audio.FxAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.ReverbAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.EarrapeAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.MonoAudioProcessor
-import com.alananasss.kittytune.ui.player.audio.R128AudioProcessor
+import com.alananasss.kittytune.audio.normalization.NormalizingAudioRenderer
+import com.alananasss.kittytune.audio.normalization.SafetyLimiterProcessor
+import com.alananasss.kittytune.audio.normalization.TrackNormalizerProcessor
 import com.alananasss.kittytune.ui.player.audio.VintageMp3AudioProcessor
 import com.alananasss.kittytune.ui.player.audio.VocalRemoverAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.VocalBoostAudioProcessor
@@ -410,7 +412,10 @@ object MusicManager {
     private val reverbProcessors = listOf(ReverbAudioProcessor(), ReverbAudioProcessor())
     private val earrapeProcessors = listOf(EarrapeAudioProcessor(), EarrapeAudioProcessor())
     private val monoProcessors = listOf(MonoAudioProcessor(), MonoAudioProcessor())
-    private val normalizerProcessors = listOf(R128AudioProcessor(), R128AudioProcessor())
+    // Volume normalization: the level is set per track at the head of the chain, and a limiter at its
+    // tail catches what the effects add back on top.
+    private val normalizerProcessors = listOf(TrackNormalizerProcessor(), TrackNormalizerProcessor())
+    private val safetyLimiterProcessors = listOf(SafetyLimiterProcessor(), SafetyLimiterProcessor())
     private val vintageMp3Processors = listOf(VintageMp3AudioProcessor(), VintageMp3AudioProcessor())
     private val vocalRemoverProcessors = listOf(VocalRemoverAudioProcessor(), VocalRemoverAudioProcessor())
     private val vocalBoostProcessors = listOf(VocalBoostAudioProcessor(), VocalBoostAudioProcessor())
@@ -447,6 +452,14 @@ object MusicManager {
         com.alananasss.kittytune.audio.automix.DjStemAudioProcessor()
     )
     private var hapticProcessors: List<com.alananasss.kittytune.audio.haptics.HapticAudioProcessor>? = null
+
+    /** Real-time beat tracking of what plays, one per player slot (the kitty pet dances on it). */
+    private val liveBeatTrackers = List(2) { com.alananasss.kittytune.audio.beat.LiveBeatTracker() }
+    private val liveBeatProcessors = liveBeatTrackers.map { com.alananasss.kittytune.audio.beat.LiveBeatAudioProcessor(it) }
+
+    /** The beat tracker of the player currently heard. */
+    val liveBeat: com.alananasss.kittytune.audio.beat.LiveBeatTracker
+        get() = liveBeatTrackers[if (activePlayerIndex == 1) 0 else 1]
     private var appContext: Context? = null
 
     var onNextClick: (() -> Unit)? = null
@@ -718,6 +731,8 @@ object MusicManager {
             .setAcceptsDelayedFocusGain(true)
             .build()
 
+        com.alananasss.kittytune.audio.normalization.LoudnessStore.init(context)
+
         val createExoPlayer = { index: Int ->
             ExoPlayer.Builder(context.applicationContext)
                 .setMediaSourceFactory(
@@ -732,10 +747,31 @@ object MusicManager {
                             val duckProc = automixDuckProcessors.getOrNull(index) ?: com.alananasss.kittytune.audio.automix.AutomixDuckAudioProcessor()
                             val stemProc = djStemProcessors.getOrNull(index) ?: com.alananasss.kittytune.audio.automix.DjStemAudioProcessor()
                             return DefaultAudioSink.Builder(context)
-                                .setAudioProcessors(arrayOf(aiDetectionProcessors[index], hapticProc, duckProc, stemProc, equalizerProcessors[index], vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index], subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index], phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index], tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index], emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index], reverseEchoProcessors[index], stadiumProcessors[index], cassetteWalkmanProcessors[index], asmrVocalProcessors[index], nightDriveProcessors[index], fxProcessors[index], reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], normalizerProcessors[index], vinylLoFiProcessors[index], gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index], vintageMp3Processors[index]))
+                                .setAudioProcessors(arrayOf(normalizerProcessors[index], aiDetectionProcessors[index], hapticProc, liveBeatProcessors[index], duckProc, stemProc, equalizerProcessors[index], vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index], subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index], phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index], tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index], emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index], reverseEchoProcessors[index], stadiumProcessors[index], cassetteWalkmanProcessors[index], asmrVocalProcessors[index], nightDriveProcessors[index], fxProcessors[index], reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], vinylLoFiProcessors[index], gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index], vintageMp3Processors[index], safetyLimiterProcessors[index]))
                                 .setEnableFloatOutput(enableFloatOutput)
                                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                                 .build()
+                        }
+
+                        // The stock audio renderer, which also tells the normalizer where each track's
+                        // audio begins, so a gapless switch gets the new track's gain on its first sample.
+                        override fun buildAudioRenderers(
+                            context: Context,
+                            extensionRendererMode: Int,
+                            mediaCodecSelector: androidx.media3.exoplayer.mediacodec.MediaCodecSelector,
+                            enableDecoderFallback: Boolean,
+                            audioSink: AudioSink,
+                            eventHandler: android.os.Handler,
+                            eventListener: androidx.media3.exoplayer.audio.AudioRendererEventListener,
+                            out: ArrayList<androidx.media3.exoplayer.Renderer>,
+                        ) {
+                            val normalizer = normalizerProcessors[index]
+                            out.add(
+                                NormalizingAudioRenderer(
+                                    context, codecAdapterFactory, mediaCodecSelector, enableDecoderFallback,
+                                    eventHandler, eventListener, audioSink,
+                                ) { mediaId -> normalizer.onTrackStarted(mediaId) }
+                            )
                         }
                     }
                 )
@@ -1507,6 +1543,9 @@ object MusicManager {
         }
         normalizerProcessors.forEach {
             it.setParameters(state.isNormalizationEnabled, state.normalizationLevel)
+        }
+        safetyLimiterProcessors.forEach {
+            it.setEnabled(state.isNormalizationEnabled)
         }
         vintageMp3Processors.forEach {
             it.setEnabled(state.isVintageMp3Enabled)

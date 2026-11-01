@@ -8211,6 +8211,24 @@ query CommentsWithReactions(
     private fun preloadNextTrack() {
         preloadJob?.cancel()
         preloadJob = null
+        // Measure loudness ahead: the track playing first, if it was never met (a drop later in it is
+        // then known before it comes), then the coming tracks, so each starts at its gain. Whether or
+        // not the next is preloaded below: crossfades need it as much as gapless switches do.
+        if (effectsState.isNormalizationEnabled) {
+            val upcoming = upcomingQueueIndex()?.let { first ->
+                (0 until 3).mapNotNull { offset ->
+                    val index = first + offset
+                    when {
+                        index < _queue.size -> _queue[index]
+                        repeatMode == RepeatMode.ALL && _queue.isNotEmpty() -> _queue[index % _queue.size]
+                        else -> null
+                    }
+                }
+            }.orEmpty()
+            com.alananasss.kittytune.audio.normalization.LoudnessPreAnalyzer.prepare(
+                context, listOfNotNull(_queue.getOrNull(currentQueueIndex)) + upcoming,
+            )
+        }
         if (playerPrefs.getCrossfadeEnabled()) return
 
         val targetIndex = upcomingQueueIndex() ?: return
