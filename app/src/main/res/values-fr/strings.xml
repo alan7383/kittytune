@@ -3547,4 +3547,26 @@
     <string name="recap_summary_brand">Récap KittyTune</string>
     <string name="pref_gyroscope_covers">Pochettes 3D au gyroscope</string>
     <string name="pref_gyroscope_covers_desc">Inclinez le téléphone pour déplacer les calques de la pochette avec un effet parallaxe 3D</string>
+
+    <!-- Music Passport -->
+    <string name="passport_title">Passeport musical</string>
+    <string name="passport_tagline">Toute ton histoire d\'écoute résumée sur une seule carte à partager.</string>
+    <string name="passport_default_holder">Voyageur musical</string>
+    <string name="passport_class_night">Voyageur nocturne</string>
+    <string name="passport_class_dawn">Chasseur d\'aube</string>
+    <string name="passport_class_explorer">Explorateur du monde</string>
+    <string name="passport_class_devoted">Pèlerin dévoué</string>
+    <string name="passport_class_wanderer">Vagabond libre</string>
+    <string name="passport_save_image">Enregistrer l\'image</string>
+    <string name="passport_saved">Passeport enregistré dans Photos</string>
+    <string name="passport_save_failed">Impossible d\'enregistrer l\'image</string>
+    <string name="passport_more_options">Plus d\'options</string>
+    <string name="passport_copy_image">Copier l\'image</string>
+    <string name="passport_image_copied">Passeport copié dans le presse-papiers</string>
+    <string name="passport_print">Imprimer</string>
+    <string name="passport_print_failed">Impossible d\'imprimer le passeport</string>
+    <string name="passport_open_image">Ouvrir l\'image</string>
+    <string name="passport_open_failed">Aucune application pour ouvrir l\'image</string>
+    <string name="passport_copy_mrz">Copier le code MRZ</string>
+    <string name="passport_mrz_copied">Code MRZ copié dans le presse-papiers</string>
 </resources>

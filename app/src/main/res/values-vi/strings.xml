@@ -3508,4 +3508,26 @@
     <string name="recap_summary_brand">Tổng kết KittyTune</string>
     <string name="pref_gyroscope_covers">Ảnh bìa 3D con quay hồi chuyển</string>
     <string name="pref_gyroscope_covers_desc">Nghiêng điện thoại để di chuyển các lớp ảnh bìa tạo hiệu ứng thị sai 3D sâu</string>
+
+    <!-- Music Passport -->
+    <string name="passport_title">Hộ chiếu âm nhạc</string>
+    <string name="passport_tagline">Toàn bộ lịch sử nghe nhạc của bạn trên một tấm thẻ để chia sẻ.</string>
+    <string name="passport_default_holder">Lữ khách âm nhạc</string>
+    <string name="passport_class_night">Lữ khách bóng đêm</string>
+    <string name="passport_class_dawn">Người đón bình minh</string>
+    <string name="passport_class_explorer">Nhà thám hiểm toàn cầu</string>
+    <string name="passport_class_devoted">Tín đồ tận tụy</string>
+    <string name="passport_class_wanderer">Kẻ lãng du tự do</string>
+    <string name="passport_save_image">Lưu hình ảnh</string>
+    <string name="passport_saved">Đã lưu hộ chiếu vào Ảnh</string>
+    <string name="passport_save_failed">Không thể lưu hình ảnh</string>
+    <string name="passport_more_options">Tùy chọn khác</string>
+    <string name="passport_copy_image">Sao chép hình ảnh</string>
+    <string name="passport_image_copied">Đã sao chép hộ chiếu vào khay nhớ tạm</string>
+    <string name="passport_print">In</string>
+    <string name="passport_print_failed">Không thể in hộ chiếu</string>
+    <string name="passport_open_image">Mở hình ảnh</string>
+    <string name="passport_open_failed">Không tìm thấy ứng dụng để mở hình ảnh</string>
+    <string name="passport_copy_mrz">Sao chép mã MRZ</string>
+    <string name="passport_mrz_copied">Đã sao chép mã MRZ vào khay nhớ tạm</string>
 </resources>

@@ -3638,4 +3638,26 @@
     <string name="recap_summary_brand">KittyTune özeti</string>
     <string name="pref_gyroscope_covers">3B jiroskop albüm kapakları</string>
     <string name="pref_gyroscope_covers_desc">Derin bir 3B paralaks efekti için telefonu eğerek kapak katmanlarını hareket ettirin</string>
+
+    <!-- Music Passport -->
+    <string name="passport_title">Müzik Pasaportu</string>
+    <string name="passport_tagline">Tüm dinleme geçmişin paylaşılabilir tek bir kartta.</string>
+    <string name="passport_default_holder">Müzik Gezgini</string>
+    <string name="passport_class_night">Gece Gezgini</string>
+    <string name="passport_class_dawn">Şafak Avcısı</string>
+    <string name="passport_class_explorer">Dünya Kâşifi</string>
+    <string name="passport_class_devoted">Sadık Yolcu</string>
+    <string name="passport_class_wanderer">Özgür Gezgin</string>
+    <string name="passport_save_image">Görseli kaydet</string>
+    <string name="passport_saved">Pasaport Fotoğraflar\'a kaydedildi</string>
+    <string name="passport_save_failed">Görsel kaydedilemedi</string>
+    <string name="passport_more_options">Daha fazla seçenek</string>
+    <string name="passport_copy_image">Görseli kopyala</string>
+    <string name="passport_image_copied">Pasaport panoya kopyalandı</string>
+    <string name="passport_print">Yazdır</string>
+    <string name="passport_print_failed">Pasaport yazdırılamadı</string>
+    <string name="passport_open_image">Görseli aç</string>
+    <string name="passport_open_failed">Görseli açacak uygulama bulunamadı</string>
+    <string name="passport_copy_mrz">MRZ kodunu kopyala</string>
+    <string name="passport_mrz_copied">MRZ kodu panoya kopyalandı</string>
 </resources>

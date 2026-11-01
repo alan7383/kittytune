@@ -79,6 +79,9 @@ object LikeRepository {
 
     private lateinit var playerPrefs: com.alananasss.kittytune.data.local.PlayerPreferences
 
+    /** Whether [init] ran in this process (likes loaded from storage). */
+    val isReady: Boolean get() = ::prefs.isInitialized
+
     fun init(context: Context) {
         appContext = context.applicationContext
         prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)

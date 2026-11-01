@@ -3631,4 +3631,26 @@
     <string name="recap_summary_brand">KittyTune-Rückblick</string>
     <string name="pref_gyroscope_covers">3D-Gyroskop-Albumcover</string>
     <string name="pref_gyroscope_covers_desc">Neige dein Smartphone, um die Ebenen des Albumcovers mit einem 3D-Parallax-Effekt zu bewegen</string>
+
+    <!-- Music Passport -->
+    <string name="passport_title">Musikpass</string>
+    <string name="passport_tagline">Dein gesamter Hörverlauf auf einer Karte zum Teilen.</string>
+    <string name="passport_default_holder">Musikreisender</string>
+    <string name="passport_class_night">Nachtreisender</string>
+    <string name="passport_class_dawn">Morgenjäger</string>
+    <string name="passport_class_explorer">Weltenbummler</string>
+    <string name="passport_class_devoted">Treuer Pilger</string>
+    <string name="passport_class_wanderer">Freier Wanderer</string>
+    <string name="passport_save_image">Bild speichern</string>
+    <string name="passport_saved">Musikpass in Fotos gespeichert</string>
+    <string name="passport_save_failed">Bild konnte nicht gespeichert werden</string>
+    <string name="passport_more_options">Weitere Optionen</string>
+    <string name="passport_copy_image">Bild kopieren</string>
+    <string name="passport_image_copied">Musikpass in die Zwischenablage kopiert</string>
+    <string name="passport_print">Drucken</string>
+    <string name="passport_print_failed">Pass konnte nicht gedruckt werden</string>
+    <string name="passport_open_image">Bild öffnen</string>
+    <string name="passport_open_failed">Keine App zum Öffnen des Bildes gefunden</string>
+    <string name="passport_copy_mrz">MRZ-Code kopieren</string>
+    <string name="passport_mrz_copied">MRZ-Code in die Zwischenablage kopiert</string>
 </resources>

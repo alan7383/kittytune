@@ -45,7 +45,13 @@ import com.zionhuang.innertube.models.YouTubeLocale
 
     class MainActivity : ComponentActivity() {
 
+        private var rawBaseContext: Context? = null
+
+        fun getPrintManager(): android.print.PrintManager? =
+            rawBaseContext?.getSystemService(android.print.PrintManager::class.java)
+
         override fun attachBaseContext(newBase: Context) {
+            rawBaseContext = newBase
             super.attachBaseContext(LocaleUtils.updateBaseContextLocale(newBase))
         }
 
