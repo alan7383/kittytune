@@ -20,6 +20,10 @@ conventional_commits = true
 filter_unconventional = true
 split_commits = false
 include_path = ["app/**"]
+commit_preprocessors = [
+  # Strip leading zero-width byte-order mark (BOM) if present in commit messages
+  { pattern = '^\uFEFF', replace = "" },
+]
 
 commit_parsers = [
   { message = "^.*\\(site\\)",     skip = true },
@@ -29,7 +33,7 @@ commit_parsers = [
   { message = "^fix",               group = "Bug Fixes" },
   { message = "^perf",              group = "Performance" },
   { message = "^refactor",          group = "Refactoring" },
-  { message = "^docs",              group = "Documentation" },
+  { message = "^docs|^assets",      group = "Documentation" },
   { message = "^chore|^ci|^build",  skip = true },
   { message = "^test",              skip = true },
   { message = "^style",             skip = true },
