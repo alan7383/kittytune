@@ -3525,4 +3525,26 @@
     <string name="recap_summary_brand">Итоги KittyTune</string>
     <string name="pref_gyroscope_covers">3D-обложки с гироскопом</string>
     <string name="pref_gyroscope_covers_desc">Наклоняйте телефон, чтобы слои обложки двигались с глубоким 3D-эффектом параллакса</string>
+
+    <!-- Music Passport -->
+    <string name="passport_title">Музыкальный паспорт</string>
+    <string name="passport_tagline">Вся ваша история прослушиваний на одной карточке, которой можно поделиться.</string>
+    <string name="passport_default_holder">Музыкальный путник</string>
+    <string name="passport_class_night">Ночной странник</string>
+    <string name="passport_class_dawn">Ловец рассвета</string>
+    <string name="passport_class_explorer">Исследователь мира</string>
+    <string name="passport_class_devoted">Преданный пилигрим</string>
+    <string name="passport_class_wanderer">Свободный скиталец</string>
+    <string name="passport_save_image">Сохранить изображение</string>
+    <string name="passport_saved">Паспорт сохранён в Фото</string>
+    <string name="passport_save_failed">Не удалось сохранить изображение</string>
+    <string name="passport_more_options">Дополнительные параметры</string>
+    <string name="passport_copy_image">Скопировать изображение</string>
+    <string name="passport_image_copied">Паспорт скопирован в буфер обмена</string>
+    <string name="passport_print">Печать</string>
+    <string name="passport_print_failed">Не удалось распечатать паспорт</string>
+    <string name="passport_open_image">Открыть изображение</string>
+    <string name="passport_open_failed">Не найдено приложение для открытия изображения</string>
+    <string name="passport_copy_mrz">Копировать код MRZ</string>
+    <string name="passport_mrz_copied">Код MRZ скопирован в буфер обмена</string>
 </resources>

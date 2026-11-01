@@ -423,6 +423,7 @@ fun MainScreen(
                 currentRoute.startsWith("listening_stats") ||
                 currentRoute == "recaps" ||
                 currentRoute.startsWith("recap/") ||
+                currentRoute == "music_passport" ||
                 currentRoute == "storage" ||
                 currentRoute.startsWith("storage_downloads") ||
                 currentRoute == "equalizer"
@@ -442,6 +443,7 @@ fun MainScreen(
                 currentRoute.startsWith("listening_stats") ||
                 currentRoute == "recaps" ||
                 currentRoute.startsWith("recap/") ||
+                currentRoute == "music_passport" ||
                 currentRoute == "storage" ||
                 currentRoute.startsWith("storage_downloads") ||
                 currentRoute == "equalizer"
@@ -805,6 +807,7 @@ fun MainScreen(
                                     id == "history" || id == Screen.History.route -> navController.navigate(Screen.History.route)
                                     id == "recognition" -> navController.navigate("recognition")
                                     id == "recognition_history" -> navController.navigate("recognition_history")
+                                        id == "music_passport" -> navController.navigate("music_passport")
                                     id == "likes" -> navController.navigate("playlist_detail/likes")
                                     id == "downloads" -> navController.navigate("playlist_detail/downloads")
                                     id.startsWith("spotify_artist:") -> {
@@ -1142,6 +1145,7 @@ fun MainScreen(
                                         id == "notifications" -> navController.navigate("notifications")
                                         id == "conversations" -> navController.navigate("conversations")
                                         id == "recognition_history" -> navController.navigate("recognition_history")
+                                        id == "music_passport" -> navController.navigate("music_passport")
                                         id == "likes" -> navController.navigate("playlist_detail/likes")
                                         id == "downloads" -> navController.navigate("playlist_detail/downloads")
                                         id.startsWith("spotify_artist:") -> navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
@@ -1377,6 +1381,12 @@ fun MainScreen(
                                 onOpenRecap = { id -> navController.navigate("recap/$id") },
                                 onOpenRecaps = { navController.navigate("recaps") },
                                 isGuest = isGuest
+                            )
+                        }
+
+                        clippedComposable("music_passport") {
+                            com.alananasss.kittytune.ui.profile.passport.MusicPassportScreen(
+                                onBackClick = { navController.popBackStack() }
                             )
                         }
 

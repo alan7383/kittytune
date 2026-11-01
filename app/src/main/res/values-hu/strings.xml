@@ -3532,4 +3532,26 @@
     <string name="recap_summary_brand">KittyTune összefoglaló</string>
     <string name="pref_gyroscope_covers">3D giroszkópos albumborítók</string>
     <string name="pref_gyroscope_covers_desc">Döntsd meg a telefont, hogy a borító rétegei 3D parallaxis hatással mozogjanak</string>
+
+    <!-- Music Passport -->
+    <string name="passport_title">Zenei útlevél</string>
+    <string name="passport_tagline">A teljes zenehallgatási előzményed egyetlen megosztható kártyán.</string>
+    <string name="passport_default_holder">Zenei utazó</string>
+    <string name="passport_class_night">Éjszakai utazó</string>
+    <string name="passport_class_dawn">Hajnalvadász</string>
+    <string name="passport_class_explorer">Világfelfedező</string>
+    <string name="passport_class_devoted">Elkötelezett zarándok</string>
+    <string name="passport_class_wanderer">Szabad vándor</string>
+    <string name="passport_save_image">Kép mentése</string>
+    <string name="passport_saved">Útlevél elmentve a Fotók közé</string>
+    <string name="passport_save_failed">Nem sikerült menteni a képet</string>
+    <string name="passport_more_options">További lehetőségek</string>
+    <string name="passport_copy_image">Kép másolása</string>
+    <string name="passport_image_copied">Útlevél a vágólapra másolva</string>
+    <string name="passport_print">Nyomtatás</string>
+    <string name="passport_print_failed">Nem sikerült kinyomtatni az útlevelet</string>
+    <string name="passport_open_image">Kép megnyitása</string>
+    <string name="passport_open_failed">Nem található alkalmazás a kép megnyitásához</string>
+    <string name="passport_copy_mrz">MRZ-kód másolása</string>
+    <string name="passport_mrz_copied">MRZ-kód a vágólapra másolva</string>
 </resources>

@@ -1626,6 +1626,10 @@ fun ModernProfileHeader(
                         )
                     }
                 }
+                Spacer(Modifier.height(8.dp))
+                com.alananasss.kittytune.ui.profile.passport.MusicPassportButton(
+                    onClick = { onNavigate("music_passport") }
+                )
                 Spacer(Modifier.height(14.dp))
                 OwnProfileStats(
                     tracks = user.trackCount,

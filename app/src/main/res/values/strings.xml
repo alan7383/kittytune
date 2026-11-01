@@ -3638,4 +3638,26 @@
     <string name="recap_summary_brand">KittyTune recap</string>
     <string name="pref_gyroscope_covers">3D gyroscope album covers</string>
     <string name="pref_gyroscope_covers_desc">Tilt your phone to move album cover layers in 3D parallax</string>
+
+    <!-- Music Passport -->
+    <string name="passport_title">Music Passport</string>
+    <string name="passport_tagline">Your whole listening history as one card to share.</string>
+    <string name="passport_default_holder">Music Traveler</string>
+    <string name="passport_class_night">Night Voyager</string>
+    <string name="passport_class_dawn">Dawn Chaser</string>
+    <string name="passport_class_explorer">Globe Explorer</string>
+    <string name="passport_class_devoted">Devoted Pilgrim</string>
+    <string name="passport_class_wanderer">Free Wanderer</string>
+    <string name="passport_save_image">Save image</string>
+    <string name="passport_saved">Passport saved to Photos</string>
+    <string name="passport_save_failed">Couldn\'t save the image</string>
+    <string name="passport_more_options">More options</string>
+    <string name="passport_copy_image">Copy image</string>
+    <string name="passport_image_copied">Passport copied to clipboard</string>
+    <string name="passport_print">Print</string>
+    <string name="passport_print_failed">Could not print passport</string>
+    <string name="passport_open_image">Open image</string>
+    <string name="passport_open_failed">No app found to open image</string>
+    <string name="passport_copy_mrz">Copy MRZ code</string>
+    <string name="passport_mrz_copied">MRZ code copied to clipboard</string>
 </resources>
