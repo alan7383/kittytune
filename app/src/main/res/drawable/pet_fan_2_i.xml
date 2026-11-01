@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="276dp" android:height="192dp"
+    android:viewportWidth="46" android:viewportHeight="32">
+    <path android:fillColor="#FF3D2B3D" android:pathData="M36,5h2v1h-2zM36,6h1v1h-1zM36,7h1v1h-1zM36,8h2v1h-2zM15,9h2v1h-2zM31,9h2v1h-2zM15,10h1v1h-1zM17,10h1v1h-1zM30,10h1v1h-1zM32,10h1v1h-1zM15,11h1v1h-1zM18,11h1v1h-1zM29,11h1v1h-1zM32,11h1v1h-1zM36,11h2v1h-2zM14,12h1v1h-1zM19,12h10v1h-10zM33,12h1v1h-1zM35,12h1v1h-1zM38,12h1v1h-1zM14,13h1v1h-1zM33,13h1v1h-1zM35,13h1v1h-1zM38,13h1v1h-1zM13,14h1v1h-1zM34,14h2v1h-2zM38,14h1v1h-1zM13,15h1v1h-1zM34,15h1v1h-1zM13,16h1v1h-1zM34,16h1v1h-1zM13,17h1v1h-1zM34,17h1v1h-1zM13,18h1v1h-1zM34,18h1v1h-1zM13,19h1v1h-1zM34,19h1v1h-1zM13,20h1v1h-1zM22,20h1v1h-1zM25,20h1v1h-1zM34,20h1v1h-1zM14,21h1v1h-1zM23,21h2v1h-2zM33,21h2v1h-2zM15,22h1v1h-1zM32,22h2v1h-2zM35,22h1v1h-1zM16,23h16v1h-16zM33,23h1v1h-1zM35,23h1v1h-1zM16,24h1v1h-1zM31,24h1v1h-1zM34,24h1v1h-1zM36,24h1v1h-1zM16,25h1v1h-1zM31,25h3v1h-3zM36,25h1v1h-1zM16,26h1v1h-1zM21,26h1v1h-1zM26,26h1v1h-1zM31,26h1v1h-1zM35,26h1v1h-1zM17,27h18v1h-18z" />
+    <path android:fillColor="#FFFFA3C0" android:pathData="M16,10h1v1h-1zM31,10h1v1h-1zM16,11h2v1h-2zM30,11h2v1h-2zM16,12h2v1h-2zM30,12h2v1h-2zM15,20h3v1h-3zM30,20h3v1h-3zM16,21h1v1h-1zM31,21h1v1h-1z" />
+    <path android:fillColor="#FFFF4F8B" android:pathData="M3,17h1v1h-1zM5,17h1v1h-1zM18,17h1v1h-1zM20,17h1v1h-1zM27,17h1v1h-1zM29,17h1v1h-1zM3,18h3v1h-3zM18,18h3v1h-3zM27,18h3v1h-3zM4,19h1v1h-1zM19,19h1v1h-1zM28,19h1v1h-1z" />
+    <path android:fillColor="#FFC2416B" android:pathData="M23,20h2v1h-2z" />
+    <path android:fillColor="#FFFFD84D" android:pathData="M36,2h2v1h-2zM36,3h1v1h-1zM36,4h2v1h-2zM42,12h1v1h-1zM42,13h1v1h-1zM40,14h2v1h-2zM43,14h2v1h-2zM42,15h1v1h-1zM42,16h1v1h-1z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M37,3h1v1h-1zM42,14h1v1h-1z" />
+    <path android:fillColor="#FFC98A52" android:pathData="M37,6h1v1h-1zM37,7h1v1h-1z" />
+</vector>

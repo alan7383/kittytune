@@ -15,6 +15,7 @@ import androidx.compose.material.icons.rounded.ImportExport
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Storage
@@ -58,6 +59,7 @@ internal enum class SettingsSubPage(
     PLAYER(R.string.settings_page_player, R.string.settings_page_player_sub, Icons.Rounded.PlayCircle),
     BOTTOM_BAR(R.string.pref_bottom_menu_title, R.string.pref_bottom_menu_subtitle, Icons.Rounded.Home),
     LYRICS(R.string.pref_lyrics_title, R.string.settings_page_lyrics_sub, Icons.Rounded.Lyrics),
+    PET(R.string.pet_settings_title, R.string.pet_settings_sub, Icons.Rounded.Pets),
 
     // Audio
     AUDIO_PLAYBACK(R.string.settings_cat_playback, R.string.settings_audio_playback_sub, Icons.Rounded.PlayCircle),
@@ -88,7 +90,7 @@ internal enum class SettingsSubPage(
     ;
 
     companion object {
-        val interfacePages: List<SettingsSubPage> = listOf(THEMES, PLAYER, BOTTOM_BAR, LYRICS)
+        val interfacePages: List<SettingsSubPage> = listOf(THEMES, PLAYER, BOTTOM_BAR, LYRICS, PET)
         val audioPages: List<SettingsSubPage> = listOf(AUDIO_PLAYBACK, AUDIO_QUALITY, AUDIO_TRANSITIONS, AUDIO_SLEEP_TIMER, AUDIO_HAPTICS)
         val sourcesPages: List<SettingsSubPage> = listOf(SOURCES_SERVICES, SOURCES_IMPORT)
         val storagePages: List<SettingsSubPage> = listOf(STORAGE_CACHE, STORAGE_LOCAL_FILES, STORAGE_BACKUP)
@@ -236,6 +238,7 @@ internal val SettingsSubPage.route: String
         SettingsSubPage.PLAYER -> "player_design_settings"
         SettingsSubPage.BOTTOM_BAR -> "bottom_bar_settings"
         SettingsSubPage.LYRICS -> "lyrics_settings"
+        SettingsSubPage.PET -> "pet_settings"
 
         SettingsSubPage.AUDIO_PLAYBACK -> "audio_playback_settings"
         SettingsSubPage.AUDIO_QUALITY -> "audio_quality_settings"

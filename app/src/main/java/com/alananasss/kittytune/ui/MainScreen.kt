@@ -414,6 +414,7 @@ fun MainScreen(
                 currentRoute == Screen.Recognition.route ||
                 currentRoute == "proxy_settings" ||
                 currentRoute == "zapret_settings" ||
+                currentRoute == "pet_settings" ||
                 currentRoute == "discord_login" ||
                 currentRoute == "vk_login" ||
                 currentRoute == "deezer_login" ||
@@ -433,6 +434,7 @@ fun MainScreen(
                 currentRoute.endsWith("_login") ||
                 currentRoute == Screen.Welcome.route ||
                 currentRoute == "update" ||
+                currentRoute == "pet_settings" ||
                 currentRoute == "discord_login" ||
                 currentRoute == "vk_login" ||
                 currentRoute == "deezer_login" ||
@@ -807,7 +809,6 @@ fun MainScreen(
                                     id == "history" || id == Screen.History.route -> navController.navigate(Screen.History.route)
                                     id == "recognition" -> navController.navigate("recognition")
                                     id == "recognition_history" -> navController.navigate("recognition_history")
-                                        id == "music_passport" -> navController.navigate("music_passport")
                                     id == "likes" -> navController.navigate("playlist_detail/likes")
                                     id == "downloads" -> navController.navigate("playlist_detail/downloads")
                                     id.startsWith("spotify_artist:") -> {
@@ -1654,6 +1655,10 @@ fun MainScreen(
                             )
                         }
 
+                        clippedComposable("pet_settings") {
+                            com.alananasss.kittytune.ui.profile.PetSettingsScreen(onBackClick = { navController.popBackStack() })
+                        }
+
                         clippedComposable("haptic_settings") {
                             com.alananasss.kittytune.ui.profile.HapticSettingsScreen(
                                 onBackClick = { navController.popBackStack() },
@@ -2256,6 +2261,26 @@ fun MainScreen(
 
         if (showCompletionScreen) {
             UltimateCompletionOverlay(onDismiss = { showCompletionScreen = false })
+        }
+
+        // One-time "new: kitty pet" announcement for people who updated (not fresh installs).
+        var showPetAnnouncement by remember {
+            mutableStateOf(com.alananasss.kittytune.ui.widget.pet.PetConfig.shouldAnnounce(context, prefs.isSetupCompleted()))
+        }
+        val petAnnouncementBlocked = currentRoute == Screen.Welcome.route || currentRoute == Screen.Login.route ||
+            currentRoute == "pet_settings" || updateStatus == UpdateStatus.AVAILABLE || updateStatus == UpdateStatus.DOWNLOADING
+        if (showPetAnnouncement && !petAnnouncementBlocked) {
+            com.alananasss.kittytune.ui.profile.pet.PetAnnouncementSheet(
+                onAdopt = {
+                    com.alananasss.kittytune.ui.widget.pet.PetConfig.markAnnounced(context)
+                    showPetAnnouncement = false
+                    navController.navigate("pet_settings")
+                },
+                onLater = {
+                    com.alananasss.kittytune.ui.widget.pet.PetConfig.markAnnounced(context)
+                    showPetAnnouncement = false
+                }
+            )
         }
 
         if (updateStatus == UpdateStatus.AVAILABLE || updateStatus == UpdateStatus.DOWNLOADING) {
