@@ -872,7 +872,8 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                         try {
                             val online = RetrofitClient.create(getApplication()).getPlaylist(playlist.id)
                             if (!online.tracks.isNullOrEmpty()) {
-                                allTracks.addAll(online.tracks!!)
+                                val hydrated = com.alananasss.kittytune.data.DownloadManager.hydrateTracksIfNeeded(online.tracks!!)
+                                allTracks.addAll(hydrated)
                             }
                         } catch (e: Exception) {
                             Log.e("LibraryVM", "Failed to load online playlist ${playlist.id}", e)

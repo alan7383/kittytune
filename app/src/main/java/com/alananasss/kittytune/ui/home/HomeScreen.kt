@@ -3295,7 +3295,7 @@ fun SearchResultsList(
                 val coroutineScope = rememberCoroutineScope()
                 fun playHelper(shuffle: Boolean = false, insertNext: Boolean = false, addToQueue: Boolean = false) {
                     coroutineScope.launch(Dispatchers.IO) {
-                        val tracks: List<Track> = if (!playlist.tracks.isNullOrEmpty()) {
+                        val rawTracks: List<Track> = if (!playlist.tracks.isNullOrEmpty()) {
                             playlist.tracks!!
                         } else if (playlist.id > 0) {
                             try {
@@ -3304,6 +3304,14 @@ fun SearchResultsList(
                                 online.tracks ?: emptyList()
                             } catch (e: Exception) {
                                 emptyList()
+                            }
+                        } else emptyList()
+
+                        val tracks = if (rawTracks.isNotEmpty()) {
+                            try {
+                                com.alananasss.kittytune.data.DownloadManager.hydrateTracksIfNeeded(rawTracks)
+                            } catch (_: Exception) {
+                                rawTracks
                             }
                         } else emptyList()
 

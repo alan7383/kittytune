@@ -300,6 +300,11 @@ object MusicManager {
         return drmTokenCache[trackId]
     }
 
+    /** Clear cached DRM license token for a track */
+    fun clearDrmToken(trackId: Long) {
+        drmTokenCache.remove(trackId)
+    }
+
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
     private var pausedForTransientFocusLoss = false
@@ -614,8 +619,13 @@ object MusicManager {
                                         else null
 
                                         val hasMediaInfo = trackToResolve?.media?.transcodings?.isNotEmpty() == true
+                                        val needsFullTrack = trackToResolve == null ||
+                                            !hasMediaInfo ||
+                                            trackToResolve.title.isNullOrBlank() ||
+                                            trackToResolve.user == null ||
+                                            ((trackToResolve.isGoPlus || trackToResolve.isSnipped || (trackToResolve.durationMs != null && trackToResolve.durationMs in 1..45000L)) && trackToResolve.fullDuration == null)
 
-                                        if ((trackToResolve == null || !hasMediaInfo) && trackId > 0) {
+                                        if (needsFullTrack && trackId > 0) {
                                             val api = RetrofitClient.create(context)
                                             val tracks = api.getTracksByIds(trackId.toString())
                                             val fetchedTrack = tracks.firstOrNull()
@@ -636,6 +646,8 @@ object MusicManager {
                                             if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
                                                 putDrmToken(trackId, resolved.licenseAuthToken)
                                                 Log.d("MusicManager", "DRM token cached for track $trackId")
+                                            } else {
+                                                clearDrmToken(trackId)
                                             }
                                         }
                                     } catch (e: Exception) {
@@ -701,9 +713,14 @@ object MusicManager {
                         .build(androidx.media3.exoplayer.drm.LocalMediaDrmCallback(ByteArray(0)))
                     manager.setMode(DefaultDrmSessionManager.MODE_PLAYBACK, finalKeySetId)
                     return manager
-                } else if (finalToken != null) {
+                } else if (finalToken != null ||
+                    (mediaItem.localConfiguration?.uri?.scheme == "soundtune" &&
+                        mediaItem.localConfiguration?.uri?.host == "track")) {
                     Log.d("MusicManager", "Creating streaming Widevine DRM session for track $trackId")
-                    val callback = SoundCloudDrmCallback(finalToken)
+                    val callback = SoundCloudDrmCallback(
+                        finalToken.orEmpty(),
+                        licenseAuthTokenProvider = { trackId?.let { getDrmToken(it) } }
+                    )
                     return DefaultDrmSessionManager.Builder()
                         .setUuidAndExoMediaDrmProvider(
                             androidx.media3.common.C.WIDEVINE_UUID,
@@ -772,6 +789,20 @@ object MusicManager {
                                     eventHandler, eventListener, audioSink,
                                 ) { mediaId -> normalizer.onTrackStarted(mediaId) }
                             )
+                        }
+
+                        override fun buildVideoRenderers(
+                            context: Context,
+                            extensionRendererMode: Int,
+                            mediaCodecSelector: androidx.media3.exoplayer.mediacodec.MediaCodecSelector,
+                            enableDecoderFallback: Boolean,
+                            eventHandler: android.os.Handler,
+                            eventListener: androidx.media3.exoplayer.video.VideoRendererEventListener,
+                            allowedVideoJoiningTimeMs: Long,
+                            out: ArrayList<androidx.media3.exoplayer.Renderer>,
+                        ) {
+                            // Audio-only player: omit video renderers to avoid MediaCodecVideoRenderer
+                            // codec/surface failures when streaming audio from muxed video fallback streams.
                         }
                     }
                 )

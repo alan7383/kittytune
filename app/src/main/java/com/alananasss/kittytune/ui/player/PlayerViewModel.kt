@@ -1109,6 +1109,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     private var queueChunkingJob: Job? = null
     private var trackInitJob: Job? = null
     private var playJob: Job? = null
+    private val playbackRecoveryBudget = PlaybackRecoveryBudget()
     private var progressJob: Job? = null
 
     private val syncReceiver = object : BroadcastReceiver() {
@@ -1256,22 +1257,54 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             val isNetworkError = cause is androidx.media3.datasource.HttpDataSource.HttpDataSourceException
             val isSourceError = cause is androidx.media3.exoplayer.source.UnrecognizedInputFormatException
 
-            if (isAuthError || isNetworkError || isSourceError) {
+            val isDecodeOrDrmError = error.errorCode in listOf(
+                androidx.media3.common.PlaybackException.ERROR_CODE_DECODING_FAILED,
+                androidx.media3.common.PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+                androidx.media3.common.PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED,
+                androidx.media3.common.PlaybackException.ERROR_CODE_DRM_CONTENT_ERROR,
+                androidx.media3.common.PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED,
+                androidx.media3.common.PlaybackException.ERROR_CODE_DRM_DISALLOWED_OPERATION,
+                androidx.media3.common.PlaybackException.ERROR_CODE_DRM_SYSTEM_ERROR,
+                androidx.media3.common.PlaybackException.ERROR_CODE_DRM_DEVICE_REVOKED,
+                androidx.media3.common.PlaybackException.ERROR_CODE_DRM_LICENSE_EXPIRED
+            ) || cause is androidx.media3.exoplayer.mediacodec.MediaCodecDecoderException ||
+               cause is androidx.media3.exoplayer.drm.DrmSession.DrmSessionException
+
+            if (isAuthError || isNetworkError || isSourceError || isDecodeOrDrmError) {
                 if (currentQueueIndex >= 0 && currentQueueIndex < _queue.size) {
-                    // Resume where the failing item itself was. The view model's position can still be the
-                    // previous song's when a preloaded stream fails right after an automatic transition, and
-                    // retrying from there started the new song at the old one's end (issue #72).
                     val failedTrackId = MusicManager.player.currentMediaItem?.mediaId?.let { parseIdFromMediaId(it) }
+                        ?: _queue.getOrNull(currentQueueIndex)?.id
+                    if (failedTrackId != null && (isAuthError || isDecodeOrDrmError)) {
+                        // A decoder failure is not an account entitlement verdict.
+                        com.alananasss.kittytune.data.MusicManager.clearDrmToken(failedTrackId)
+                    }
+                    if (failedTrackId == null || !playbackRecoveryBudget.tryRecover(failedTrackId)) {
+                        Log.w("PlayerViewModel", "Playback recovery exhausted for track $failedTrackId")
+                        playJob?.cancel()
+                        MusicManager.cancelCrossfade()
+                        MusicManager.releasePrebuffered()
+                        MusicManager.isLoadingTrack = false
+                        isLoading = false
+                        isPlaying = false
+                        playWhenReady = false
+                        MusicManager.playWhenReadyRequested = false
+                        player.playWhenReady = false
+                        emitUiEvent(getString(R.string.connect_feedback_prepare_failed))
+                        return
+                    }
                     val retryPosition = if (failedTrackId != null && failedTrackId == _queue[currentQueueIndex].id) {
                         MusicManager.player.currentPosition.coerceAtLeast(0L)
                     } else 0L
+                    val retryIndex = currentQueueIndex
                     viewModelScope.launch {
+                        if (currentQueueIndex != retryIndex || _queue.getOrNull(retryIndex)?.id != failedTrackId) return@launch
+                        MusicManager.isLoadingTrack = true
                         player.playWhenReady = false
                         isLoading = true
 
                         if (isActive) {
                             playRobustly(
-                                index = currentQueueIndex,
+                                index = retryIndex,
                                 autoPlay = true,
                                 startPosition = retryPosition,
                                 allowSkipOnFailure = false
@@ -4787,6 +4820,7 @@ query CommentsWithReactions(
         }
         currentQueueIndex = index
         val trackToPlay = _queue[index]
+        playbackRecoveryBudget.reset()
         playedTrackIds = playedTrackIds + trackToPlay.id
 
         playWhenReady = autoPlay
@@ -4860,7 +4894,15 @@ query CommentsWithReactions(
                     } catch (_: Exception) { false }
                 }
 
-            if (!isLocalOrDownloaded && finalTrack.source == "soundcloud" && trackToPlay.id > 0 && (trackToPlay.user?.id == 0L || trackToPlay.media == null || trackToPlay.playbackCount == 0)) {
+            val needsHydration = trackToPlay.user == null ||
+                trackToPlay.user?.id == 0L ||
+                trackToPlay.media == null ||
+                trackToPlay.playbackCount == 0 ||
+                trackToPlay.title.isNullOrBlank() ||
+                ((trackToPlay.isGoPlus || trackToPlay.isSnipped) && trackToPlay.fullDuration == null) ||
+                (trackToPlay.durationMs != null && trackToPlay.durationMs in 1..45000L && trackToPlay.fullDuration == null)
+
+            if (!isLocalOrDownloaded && (finalTrack.source == null || finalTrack.source == "soundcloud") && trackToPlay.id > 0 && needsHydration) {
                 try {
                     val fullTrackList = api.getTracksByIds(trackToPlay.id.toString())
                     if (fullTrackList.isNotEmpty()) {
@@ -4892,6 +4934,18 @@ query CommentsWithReactions(
 
             currentTrack = finalTrack
             MusicManager.currentTrack = finalTrack
+            if (finalTrack.actualDurationMs > 0L && (duration <= 45000L || duration != finalTrack.actualDurationMs)) {
+                duration = finalTrack.actualDurationMs
+            }
+            withContext(Dispatchers.IO) {
+                try {
+                    val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(context).downloadDao()
+                    val existing = db.getTrack(finalTrack.id)
+                    if (existing != null) {
+                        com.alananasss.kittytune.data.DownloadManager.updateStubTrackIfNeeded(db, existing, finalTrack)
+                    }
+                } catch (_: Exception) {}
+            }
             if (finalTrack.fullResArtwork != trackToPlay.fullResArtwork) {
                 updatePlayerColors(finalTrack)
             }
@@ -5201,7 +5255,13 @@ query CommentsWithReactions(
             if (!partialTracks.isNullOrEmpty()) {
                 val newTrackIds = partialTracks.map { it.id }.filter { trackId -> _queue.none { it.id == trackId } }
                 if (newTrackIds.isNotEmpty()) {
-                    val unorderedFullTracks = api.getTracksByIds(newTrackIds.joinToString(","))
+                    val unorderedFullTracks = newTrackIds.chunked(50).flatMap { chunk ->
+                        try {
+                            api.getTracksByIds(chunk.joinToString(","))
+                        } catch (_: Exception) {
+                            emptyList()
+                        }
+                    }
                     val trackMap = unorderedFullTracks.associateBy { it.id }
                     val orderedFullTracks = newTrackIds.mapNotNull { id -> trackMap[id] }.filter { !BlockManager.isBlocked(it) }
                     val existingSignatures = _queue.map { "${normalizeStationTitle(it.title)}|${it.displayArtist.lowercase().trim()}" }.toMutableSet()
@@ -5626,6 +5686,13 @@ query CommentsWithReactions(
             } catch (_: Exception) {}
             saveStateAsync(savePositionOnly = true)
         } else {
+            if (player.playerError != null && currentQueueIndex in _queue.indices) {
+                playbackRecoveryBudget.reset()
+                playWhenReady = true
+                MusicManager.playWhenReadyRequested = true
+                playRobustly(currentQueueIndex, autoPlay = true, startPosition = currentPosition, allowSkipOnFailure = false)
+                return
+            }
             playWhenReady = true
             MusicManager.playWhenReadyRequested = true
             try {
@@ -7791,48 +7858,85 @@ query CommentsWithReactions(
         prebufferJob?.cancel()
         prebufferJob = viewModelScope.launch(Dispatchers.IO) {
             try {
+                var hydratedNext = nextTrack
+                val nextNeedsHydration = hydratedNext.user == null ||
+                    hydratedNext.user?.id == 0L ||
+                    hydratedNext.media == null ||
+                    hydratedNext.playbackCount == 0 ||
+                    hydratedNext.title.isNullOrBlank() ||
+                    ((hydratedNext.isGoPlus || hydratedNext.isSnipped) && hydratedNext.fullDuration == null) ||
+                    (hydratedNext.durationMs != null && hydratedNext.durationMs in 1..45000L && hydratedNext.fullDuration == null)
+
+                if ((hydratedNext.source == null || hydratedNext.source == "soundcloud") && hydratedNext.id > 0 && nextNeedsHydration) {
+                    try {
+                        val fullTrackList = api.getTracksByIds(hydratedNext.id.toString())
+                        if (fullTrackList.isNotEmpty()) {
+                            hydratedNext = fullTrackList[0]
+                            val idx = _queue.indexOfFirst { it.id == hydratedNext.id }
+                            if (idx != -1) {
+                                withContext(Dispatchers.Main) {
+                                    if (idx in _queue.indices && _queue[idx].id == hydratedNext.id) {
+                                        _queue[idx] = hydratedNext
+                                    }
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+
                 var resolvedUrl: String? = null
                 var offlineKeySetId: ByteArray? = null
 
                 val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(context).downloadDao()
-                var localTrack = db.getTrack(nextTrack.id)
+                var localTrack = db.getTrack(hydratedNext.id)
                 if (localTrack == null || localTrack.localAudioPath.isEmpty()) {
-                    val fallbackTitle = nextTrack.title ?: ""
-                    val fallbackArtist = nextTrack.user?.username ?: ""
+                    val fallbackTitle = hydratedNext.title ?: ""
+                    val fallbackArtist = hydratedNext.user?.username ?: ""
                     if (fallbackTitle.isNotBlank()) {
                         localTrack = db.findDownloadedTrack(fallbackTitle, fallbackArtist)
                     }
                 }
-                if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
-                    if (localTrack.localAudioPath.startsWith("exo_cache://")) {
-                        val parts = localTrack.localAudioPath.removePrefix("exo_cache://").split("::", limit = 3)
-                        resolvedUrl = parts.getOrNull(1)
-                        val tokenStr = parts.getOrNull(2)
-                        if (!tokenStr.isNullOrEmpty()) {
-                            offlineKeySetId = android.util.Base64.decode(tokenStr, android.util.Base64.NO_WRAP)
-                            MusicManager.putDrmToken(nextTrack.id, tokenStr)
+                if (localTrack != null) {
+                    try {
+                        com.alananasss.kittytune.data.DownloadManager.updateStubTrackIfNeeded(db, localTrack, hydratedNext)
+                    } catch (_: Exception) {}
+                    if (localTrack.localAudioPath.isNotEmpty()) {
+                        if (localTrack.localAudioPath.startsWith("exo_cache://")) {
+                            val parts = localTrack.localAudioPath.removePrefix("exo_cache://").split("::", limit = 3)
+                            resolvedUrl = parts.getOrNull(1)
+                            val tokenStr = parts.getOrNull(2)
+                            if (!tokenStr.isNullOrEmpty()) {
+                                offlineKeySetId = android.util.Base64.decode(tokenStr, android.util.Base64.NO_WRAP)
+                                MusicManager.putDrmToken(hydratedNext.id, tokenStr)
+                            }
+                        } else {
+                            val fileExists = if (localTrack.localAudioPath.startsWith("content://")) true else File(localTrack.localAudioPath).exists()
+                            if (fileExists) resolvedUrl = localTrack.localAudioPath
                         }
-                    } else {
-                        val fileExists = if (localTrack.localAudioPath.startsWith("content://")) true else File(localTrack.localAudioPath).exists()
-                        if (fileExists) resolvedUrl = localTrack.localAudioPath
                     }
                 }
 
                 var resolvedMimeType: String? = null
+                var isDrmStream = false
                 if (resolvedUrl == null) {
-                    val resolved = StreamResolver.resolveStreamWithDrm(context, nextTrack)
+                    val resolved = StreamResolver.resolveStreamWithDrm(context, hydratedNext)
                     resolvedUrl = resolved?.url
                     resolvedMimeType = resolved?.mimeType
                     if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
-                        MusicManager.putDrmToken(nextTrack.id, resolved.licenseAuthToken)
+                        isDrmStream = true
+                        MusicManager.putDrmToken(hydratedNext.id, resolved.licenseAuthToken)
+                    } else {
+                        MusicManager.clearDrmToken(hydratedNext.id)
                     }
+                } else if (offlineKeySetId != null) {
+                    isDrmStream = true
                 }
 
                 if (resolvedUrl != null) {
-                    val bitmap = loadBitmap(nextTrack.fullResArtwork)
-                    val mediaItem = buildMediaItem(nextTrack, bitmap, resolvedUrl, offlineKeySetId, resolvedMimeType)
+                    val bitmap = loadBitmap(hydratedNext.fullResArtwork)
+                    val mediaItem = buildMediaItem(hydratedNext, bitmap, resolvedUrl, offlineKeySetId, resolvedMimeType, isDrmProtected = isDrmStream)
                     withContext(Dispatchers.Main) {
-                        MusicManager.prebufferTransition(mediaItem, nextTrack, plan)
+                        MusicManager.prebufferTransition(mediaItem, hydratedNext, plan)
                     }
                 }
             } catch (e: Exception) {
@@ -7990,6 +8094,8 @@ query CommentsWithReactions(
                 if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
                     MusicManager.putDrmToken(trackToPlay.id, resolved.licenseAuthToken)
                     Log.d("PlayerViewModel", "DRM token pre-cached for track ${trackToPlay.id}")
+                } else {
+                    MusicManager.clearDrmToken(trackToPlay.id)
                 }
             }
 
@@ -8008,6 +8114,8 @@ query CommentsWithReactions(
                     resolvedMimeType = retryResolved?.mimeType
                     if (retryResolved?.isDrmProtected == true && retryResolved.licenseAuthToken != null) {
                         MusicManager.putDrmToken(trackToPlay.id, retryResolved.licenseAuthToken)
+                    } else {
+                        MusicManager.clearDrmToken(trackToPlay.id)
                     }
                 } catch (e: Exception) {
                     Log.w("PlayerViewModel", "Retry resolution attempt $retryAttempt failed: ${e.message}")
@@ -8057,7 +8165,8 @@ query CommentsWithReactions(
                 return@launch
             }
 
-            val newMediaItem = buildMediaItem(trackToPlay, bitmap, resolvedUrl, offlineKeySetId, resolvedMimeType)
+            val isDrm = (resolvedStream?.isDrmProtected == true) || (offlineKeySetId != null)
+            val newMediaItem = buildMediaItem(trackToPlay, bitmap, resolvedUrl, offlineKeySetId, resolvedMimeType, isDrmProtected = isDrm)
 
             withContext(Dispatchers.Main) {
                 if (currentTrack?.id != trackToPlay.id || !isActive) {
@@ -8232,12 +8341,33 @@ query CommentsWithReactions(
         if (playerPrefs.getCrossfadeEnabled()) return
 
         val targetIndex = upcomingQueueIndex() ?: return
-        val nextTrack = _queue[targetIndex]
+        var nextTrack = _queue[targetIndex]
         if (BlockManager.isBlocked(nextTrack)) return
         val playingTrackId = currentTrack?.id ?: return
 
         preloadJob = viewModelScope.launch(Dispatchers.IO) {
             try {
+                val nextNeedsHydration = nextTrack.user == null ||
+                    nextTrack.user?.id == 0L ||
+                    nextTrack.media == null ||
+                    nextTrack.playbackCount == 0 ||
+                    nextTrack.title.isNullOrBlank() ||
+                    ((nextTrack.isGoPlus || nextTrack.isSnipped) && nextTrack.fullDuration == null) ||
+                    (nextTrack.durationMs != null && nextTrack.durationMs in 1..45000L && nextTrack.fullDuration == null)
+
+                if ((nextTrack.source == null || nextTrack.source == "soundcloud") && nextTrack.id > 0 && nextNeedsHydration) {
+                    try {
+                        val fullTrackList = api.getTracksByIds(nextTrack.id.toString())
+                        if (fullTrackList.isNotEmpty()) {
+                            nextTrack = fullTrackList[0]
+                            withContext(Dispatchers.Main) {
+                                if (targetIndex in _queue.indices && _queue[targetIndex].id == nextTrack.id) {
+                                    _queue[targetIndex] = nextTrack
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
                 var resolvedUrl: String? = null
                 var offlineKeySetId: ByteArray? = null
 
@@ -8256,17 +8386,23 @@ query CommentsWithReactions(
                 }
 
                 var resolvedMimeType: String? = null
+                var isDrmStream = false
                 if (resolvedUrl == null) {
                     val resolved = StreamResolver.resolveStreamWithDrm(context, nextTrack)
                     resolvedUrl = resolved?.url
                     resolvedMimeType = resolved?.mimeType
                     if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
+                        isDrmStream = true
                         MusicManager.putDrmToken(nextTrack.id, resolved.licenseAuthToken)
+                    } else {
+                        MusicManager.clearDrmToken(nextTrack.id)
                     }
+                } else if (offlineKeySetId != null) {
+                    isDrmStream = true
                 }
 
                 if (resolvedUrl != null) {
-                    val nextMediaItem = buildMediaItem(nextTrack, null, resolvedUrl, offlineKeySetId, resolvedMimeType)
+                    val nextMediaItem = buildMediaItem(nextTrack, null, resolvedUrl, offlineKeySetId, resolvedMimeType, isDrmProtected = isDrmStream)
                     withContext(Dispatchers.Main) {
                         if (!isActive || MusicManager.isLoadingTrack) return@withContext
                         val stillNext = upcomingQueueIndex()?.let { _queue.getOrNull(it)?.id } == nextTrack.id
@@ -8301,6 +8437,7 @@ query CommentsWithReactions(
         urlOverride: String? = null,
         offlineKeySetId: ByteArray? = null,
         mimeTypeOverride: String? = null,
+        isDrmProtected: Boolean = false,
     ): MediaItem {
         val uri = when {
             urlOverride == null -> "soundtune://track/${track.id}".toUri()
@@ -8352,7 +8489,7 @@ query CommentsWithReactions(
             builder.setMimeType(resolvedMimeType)
         }
 
-        val drmToken = MusicManager.getDrmToken(track.id)
+        val drmToken = if (isDrmProtected) MusicManager.getDrmToken(track.id) else null
         if (offlineKeySetId != null || drmToken != null) {
             builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
 

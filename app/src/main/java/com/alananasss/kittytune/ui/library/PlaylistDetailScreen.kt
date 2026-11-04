@@ -948,8 +948,13 @@ fun PlaylistDetailScreen(
                         }
                         if (brokenTracks.isNotEmpty() && com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)) {
                             try {
-                                val idsStr = brokenTracks.map { it.id }.joinToString(",")
-                                val onlineTracks = api.getTracksByIds(idsStr)
+                                val onlineTracks = brokenTracks.map { it.id }.chunked(50).flatMap { chunk ->
+                                    try {
+                                        api.getTracksByIds(chunk.joinToString(","))
+                                    } catch (_: Exception) {
+                                        emptyList()
+                                    }
+                                }
                                 val onlineMap = onlineTracks.associateBy { it.id }
 
                                 for (i in newTracks.indices) {
@@ -1522,28 +1527,8 @@ fun PlaylistDetailScreen(
                                 else if (isTrackStation) "https://soundcloud.com/discover/sets/track-stations:$currentIdLong"
                                 else null
                             val rawTracks = playlistObj.tracks ?: emptyList()
-                            val incompleteIds =
-                                rawTracks.filter { it.title.isNullOrBlank() || it.user == null }.map { it.id }
-
-                            if (incompleteIds.isNotEmpty()) {
-                                val fetchedTracksMap = mutableMapOf<Long, Track>()
-                                val chunks = incompleteIds.chunked(50)
-                                chunks.forEach { batchIds ->
-                                    try {
-                                        val fetched = api.getTracksByIds(batchIds.joinToString(","))
-                                        fetched.forEach { fetchedTracksMap[it.id] = it }
-                                    } catch (e: Exception) {
-                                        e.printStackTrace()
-                                    }
-                                }
-                                val hydratedList = rawTracks.map { track ->
-                                    if (track.title.isNullOrBlank() || track.user == null) fetchedTracksMap[track.id]
-                                        ?: track else track
-                                }
-                                newTracks.addAll(hydratedList)
-                            } else {
-                                newTracks.addAll(rawTracks)
-                            }
+                            val hydratedList = com.alananasss.kittytune.data.DownloadManager.hydrateTracksIfNeeded(rawTracks)
+                            newTracks.addAll(hydratedList)
                         }
                     }
                 }
@@ -1553,7 +1538,28 @@ fun PlaylistDetailScreen(
             if (stableId != 0L && playlistId != "likes" && playlistId != "downloads" && playlistId != "local_files" && !playlistId.startsWith("vk_playlist:")) {
                 val localDbTracks = db.getTracksForPlaylistSync(stableId)
                 if (localDbTracks.isNotEmpty()) {
-                    val localMappedTracks = localDbTracks.map { local -> local.toTrack() }
+                    for (lt in localDbTracks) {
+                        if (lt.duration <= 45000L && lt.localAudioPath.isNotEmpty() && !lt.localAudioPath.startsWith("exo_cache://")) {
+                            try {
+                                val file = java.io.File(lt.localAudioPath)
+                                if (file.exists() && file.length() > 0L) {
+                                    val retriever = android.media.MediaMetadataRetriever()
+                                    try {
+                                        retriever.setDataSource(file.absolutePath)
+                                        val durStr = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+                                        val dur = durStr?.toLongOrNull() ?: 0L
+                                        if (dur > 0L && (lt.duration <= 0L || dur > lt.duration)) {
+                                            db.updateTrack(lt.copy(duration = dur))
+                                        }
+                                    } finally {
+                                        retriever.release()
+                                    }
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
+                    val updatedDbTracks = db.getTracksForPlaylistSync(stableId)
+                    val localMappedTracks = updatedDbTracks.map { local -> local.toTrack() }
                     if (newTracks.isEmpty()) {
                         newTracks.addAll(localMappedTracks)
                     } else {
@@ -1563,6 +1569,17 @@ fun PlaylistDetailScreen(
                             }
                         }
                     }
+                }
+            }
+
+            if (stableId != 0L) {
+                for (t in newTracks) {
+                    try {
+                        val existing = db.getTrack(t.id)
+                        if (existing != null) {
+                            com.alananasss.kittytune.data.DownloadManager.updateStubTrackIfNeeded(db, existing, t)
+                        }
+                    } catch (_: Exception) {}
                 }
             }
 
