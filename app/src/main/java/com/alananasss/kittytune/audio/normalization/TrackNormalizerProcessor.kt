@@ -51,7 +51,11 @@ class TrackNormalizerProcessor : BaseAudioProcessor() {
     private val stats = FloatArray(5)
 
     init {
-        System.loadLibrary("kittytune_audio_dsp")
+        try {
+            System.loadLibrary("kittytune_audio_dsp")
+        } catch (e: UnsatisfiedLinkError) {
+            Log.e(TAG, "Failed to load kittytune_audio_dsp library", e)
+        }
     }
 
     fun setParameters(enabled: Boolean, level: NormalizationLevel) {

@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.audio.normalization
 
+import android.util.Log
 import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
@@ -24,7 +25,11 @@ class SafetyLimiterProcessor : BaseAudioProcessor() {
     private var handleSampleRate = 0
 
     init {
-        System.loadLibrary("kittytune_audio_dsp")
+        try {
+            System.loadLibrary("kittytune_audio_dsp")
+        } catch (e: UnsatisfiedLinkError) {
+            Log.e("SafetyLimiterProcessor", "Failed to load kittytune_audio_dsp library", e)
+        }
     }
 
     fun setEnabled(enabled: Boolean) {
