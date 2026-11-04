@@ -23,11 +23,32 @@ fun LocalTrack.toTrack(
 
     val effectiveSource = resolvedSource()
 
+    var effectiveDuration = duration
+    var isFromDisk = false
+    if (effectiveDuration <= 45000L && localAudioPath.isNotEmpty() && !localAudioPath.startsWith("exo_cache://")) {
+        try {
+            val file = File(localAudioPath)
+            if (file.exists() && file.length() > 0L) {
+                val mmr = android.media.MediaMetadataRetriever()
+                try {
+                    mmr.setDataSource(file.absolutePath)
+                    val durStr = mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+                    durStr?.toLongOrNull()?.takeIf { it > 0L && (effectiveDuration <= 0L || it > effectiveDuration) }?.let {
+                        effectiveDuration = it
+                        isFromDisk = true
+                    }
+                } finally {
+                    mmr.release()
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
     return Track(
         id = id,
         title = title,
         artworkUrl = resolvedArtwork,
-        durationMs = duration,
+        durationMs = effectiveDuration,
         user = User(
             id = ownerId,
             username = artist,
@@ -44,7 +65,7 @@ fun LocalTrack.toTrack(
         secretToken = secretToken,
         isLiked = isLiked,
         description = description,
-        fullDuration = duration
+        fullDuration = if (effectiveDuration > 45000L || isFromDisk) effectiveDuration else null
     )
 }
 

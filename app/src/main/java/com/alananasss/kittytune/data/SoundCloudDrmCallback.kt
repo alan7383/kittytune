@@ -24,7 +24,8 @@
      */
     class SoundCloudDrmCallback(
         private val licenseAuthToken: String,
-        private val isOffline: Boolean = false
+        private val isOffline: Boolean = false,
+        private val licenseAuthTokenProvider: (() -> String?)? = null
     ) : MediaDrmCallback {
 
         companion object {
@@ -46,7 +47,11 @@
             Log.d(TAG, "executeKeyRequest — acquiring Widevine license (isOffline=$isOffline)")
 
             val baseUrl = if (isOffline) WIDEVINE_PERSISTABLE_URL else WIDEVINE_PLAYBACK_URL
-            val licenseUrl = baseUrl + licenseAuthToken
+            // soundtune:// items resolve their stream after MediaSource creation.
+            // Read the token when MediaDrm actually needs it, not when preparing the queue.
+            val token = if (licenseAuthTokenProvider != null) licenseAuthTokenProvider.invoke() else licenseAuthToken
+            if (token.isNullOrBlank()) throw IOException("Missing SoundCloud DRM license token")
+            val licenseUrl = baseUrl + token
 
             val requestBody = request.data.toRequestBody(OCTET_STREAM)
 
