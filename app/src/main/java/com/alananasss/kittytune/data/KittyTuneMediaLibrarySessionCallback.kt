@@ -830,8 +830,11 @@ import androidx.media3.common.MediaItem
                 builder.setMimeType(MimeTypes.APPLICATION_MPD)
             }
 
-            // Configure Widevine DRM if a license token is cached for this track
-            val drmToken = MusicManager.getDrmToken(track.id)
+            // Configure Widevine DRM if a license token is cached for this track and URL is not a non-DRM fallback
+            val isNonDrmUrl = urlOverride?.contains("youtube") == true || urlOverride?.contains("youtu.be") == true ||
+                urlOverride?.contains(".mp3") == true || urlOverride?.contains(".m4a") == true ||
+                urlOverride?.startsWith("/data/") == true || urlOverride?.startsWith("file://") == true
+            val drmToken = if (isNonDrmUrl) null else MusicManager.getDrmToken(track.id)
             if (drmToken != null) {
                 builder.setMimeType(MimeTypes.APPLICATION_M3U8)
                 builder.setDrmConfiguration(

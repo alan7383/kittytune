@@ -242,7 +242,9 @@ fun LibraryScreen(
     val scope = rememberCoroutineScope()
 
     suspend fun resolvePlaylistTracks(playlist: Playlist): List<Track> {
-        if (!playlist.tracks.isNullOrEmpty()) return playlist.tracks!!
+        if (!playlist.tracks.isNullOrEmpty()) {
+            return com.alananasss.kittytune.data.DownloadManager.hydrateTracksIfNeeded(playlist.tracks!!)
+        }
         val local = AppDatabase.getDatabase(context).downloadDao().getTracksForPlaylistSync(playlist.id)
         if (local.isNotEmpty()) {
             return local.map { it.toTrack(artworkOverride = it.artworkUrl) }
@@ -253,11 +255,7 @@ fun LibraryScreen(
             return try {
                 val pl = api.getSystemPlaylist(playlist.urn!!)
                 val raw = pl.tracks ?: emptyList()
-                val incomplete = raw.filter { it.title.isNullOrBlank() || it.user == null }.map { it.id }
-                if (incomplete.isNotEmpty()) {
-                    val map = api.getTracksByIds(incomplete.joinToString(",")).associateBy { it.id }
-                    raw.map { map[it.id] ?: it }
-                } else raw
+                com.alananasss.kittytune.data.DownloadManager.hydrateTracksIfNeeded(raw)
             } catch (e: Exception) {
                 emptyList()
             }
@@ -267,18 +265,15 @@ fun LibraryScreen(
                 val fullUrl = if (permalink.startsWith("http")) permalink else "https://soundcloud.com/${permalink.removePrefix("/")}"
                 val pl = api.resolvePlaylist(fullUrl)
                 val raw = pl.tracks ?: emptyList()
-                val incomplete = raw.filter { it.title.isNullOrBlank() || it.user == null }.map { it.id }
-                if (incomplete.isNotEmpty()) {
-                    val map = api.getTracksByIds(incomplete.joinToString(",")).associateBy { it.id }
-                    raw.map { map[it.id] ?: it }
-                } else raw
+                com.alananasss.kittytune.data.DownloadManager.hydrateTracksIfNeeded(raw)
             } catch (e: Exception) {
                 emptyList()
             }
         }
         if (playlist.id > 0) {
             return try {
-                api.getPlaylist(playlist.id).tracks ?: emptyList()
+                val raw = api.getPlaylist(playlist.id).tracks ?: emptyList()
+                com.alananasss.kittytune.data.DownloadManager.hydrateTracksIfNeeded(raw)
             } catch (e: Exception) {
                 emptyList()
             }

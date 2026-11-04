@@ -18,9 +18,12 @@ import java.util.concurrent.TimeUnit
 import androidx.media3.common.Player
 import com.alananasss.kittytune.BuildConfig
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.audio.providers.AudioProviderOrderItem
+import com.alananasss.kittytune.data.DataSaver
 import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.data.MusicManager
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.domain.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -223,7 +226,7 @@ object AppLogManager {
                     if (prefs.getDisableProvidersOnMetered()) append(" | Data saver on mobile: ON")
                     if (prefs.getDataSaverEnabled()) {
                         append(" | Data saver: ")
-                        append(if (com.alananasss.kittytune.data.DataSaver.isActive(context)) "ACTIVE" else "paused (Wi-Fi)")
+                        append(if (DataSaver.isActive(context)) "ACTIVE" else "paused (Wi-Fi)")
                     }
                     append(" | Stream quality: ${prefs.getAudioQuality()}")
                 },
