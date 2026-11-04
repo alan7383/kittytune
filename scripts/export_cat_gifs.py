@@ -53,9 +53,15 @@ WALL_COLORS = {
     "night":   0xFF2A2C57,
     "rain":    0xFFE3E8F3,
     "sleep":   0xFF22244A,
+    "space":   0xFF101A33,
 }
 
+_LAYER_CACHE = {}
+
 def parse_layer(xml_name, tint=None):
+    key = (xml_name, tint)
+    if key in _LAYER_CACHE:
+        return _LAYER_CACHE[key].copy()
     xml_path = os.path.join(DRAWABLE_DIR, f"{xml_name}.xml")
     if not os.path.exists(xml_path):
         return None
@@ -82,7 +88,8 @@ def parse_layer(xml_name, tint=None):
                         b = int(col[2] * a_norm + prev[2] * inv_a)
                         a = min(255, int(col[3] + prev[3] * inv_a))
                         img.putpixel((xi + dx, yi), (r, g, b, a))
-    return img
+    _LAYER_CACHE[key] = img
+    return img.copy()
 
 def render_composite_frame(frame_name, palette, eye_color, pattern="classic", room=None):
     # Base canvas
@@ -149,11 +156,21 @@ def x4(a, b):
     return [a, b, a, b, a, b, a, b]
 
 ACTIVITIES = {
+    # Dances
     "dance_bob":      (x2("dance_bob_1", "dance_bob_2", "dance_bob_3", "dance_bob_4"), 500, "day"),
     "dance_bounce":   (x2("dance_bounce_1", "dance_bounce_2", "dance_bounce_3", "dance_bounce_4"), 500, "day"),
     "dance_paws":     (x2("dance_paws_1", "dance_paws_2", "dance_paws_3", "dance_paws_4"), 500, "day"),
-    "idle":           (["idle_open", "idle_open", "idle_blink", "idle_open", "idle_look_l", "idle_look_l", "idle_happy", "idle_happy"], 450, "day"),
+    "dance_headbang": (x2("dance_hb_1", "dance_hb_2", "dance_hb_3", "dance_hb_4"), 500, "day"),
+    "dance_sway":     (x2("dance_sway_1", "dance_sway_2", "dance_sway_3", "dance_sway_4"), 500, "day"),
+    "dance_guitar":   (x2("dance_guitar_1", "dance_guitar_2", "dance_guitar_3", "dance_guitar_4"), 500, "day"),
+    "dance_dj":       (x2("dance_dj_1", "dance_dj_2", "dance_dj_3", "dance_dj_4"), 500, "day"),
+
+    # Common activities & reactions
+    "boop":           (x4("boop_1", "boop_2"), 300, "day"),
+    "boop_dance":     (x4("boop_dance_1", "boop_dance_2"), 300, "day"),
+    "idle":           (["idle_open", "idle_look_l", "idle_blink", "idle_open", "idle_look_r", "idle_look_r", "idle_happy", "idle_happy"], 450, "day"),
     "wave":           (x4("wave_1", "wave_2"), 350, "day"),
+    "hello":          (["hello_1", "hello_2", "hello_1", "hello_2", "hello_3", "hello_3", "hello_1", "hello_2"], 420, "day"),
     "yawn":           (["idle_open", "yawn_1", "yawn_2", "yawn_2", "yawn_3", "idle_blink", "idle_open", "idle_open"], 500, "day"),
     "groom":          (x4("groom_1", "groom_2"), 400, "day"),
     "eat":            (["eat_1", "eat_2", "eat_1", "eat_2", "eat_1", "eat_2", "eat_3", "eat_3"], 400, "day"),
@@ -171,21 +188,40 @@ ACTIVITIES = {
     "hum":            (x4("hum_1", "hum_2"), 500, "day"),
     "stargaze":       (x4("stargaze_1", "stargaze_2"), 650, "night"),
     "nod":            (["nod_1", "nod_1", "nod_2", "nod_2", "nod_1", "nod_1", "nod_2", "nod_2"], 600, "night"),
+    "sleep":          (["sleep_1", "sleep_1", "sleep_2", "sleep_2", "sleep_3", "sleep_3", "sleep_2", "sleep_2"], 600, "sleep"),
+
+    # Event activities
     "sneeze":         (["idle_open", "sneeze_1", "sneeze_1", "sneeze_2", "sneeze_3", "sneeze_4", "sneeze_4", "idle_blink"], 400, "day"),
     "love":           (x4("love_1", "love_2"), 400, "day"),
     "treat":          (["treat_1", "treat_2", "treat_1", "treat_2", "treat_1", "treat_2", "treat_3", "treat_3"], 400, "day"),
     "gift":           (x4("gift_1", "gift_2"), 450, "day"),
+
+    # Rare activities
     "rainbow":        (x4("rainbow_1", "rainbow_2"), 500, "day"),
     "shooting_star":  (["star_1", "star_2", "star_3", "star_3", "star_1", "star_2", "star_3", "star_3"], 450, "night"),
     "ufo":            (["ufo_1", "ufo_2", "ufo_3", "ufo_3", "ufo_1", "ufo_2", "ufo_3", "ufo_3"], 450, "night"),
+    "logo_cameo":     (["cameo_1", "cameo_2", "cameo_3", "cameo_4", "cameo_5", "cameo_6", "cameo_4", "cameo_6"], 600, "day"),
     "ghost":          (["ghost_1", "ghost_1", "ghost_2", "ghost_2", "ghost_3", "ghost_3", "ghost_3", "ghost_1"], 450, "night"),
     "kitten":         (["kitten_1", "kitten_2", "kitten_1", "kitten_2", "kitten_3", "kitten_3", "kitten_1", "kitten_2"], 500, "day"),
     "goldfish":       (x4("goldfish_1", "goldfish_2"), 400, "day"),
     "royal":          (x4("royal_1", "royal_2"), 500, "day"),
     "disco":          (["disco_1", "disco_2", "disco_3", "disco_2", "disco_1", "disco_2", "disco_3", "disco_2"], 380, "night"),
+
+    # Sad moods
     "sad":            (["sad_1", "sad_1", "sad_2", "sad_2", "sad_look", "sad_look", "sad_1", "sad_2"], 500, "rain"),
-    "sleep":          (["sleep_1", "sleep_1", "sleep_2", "sleep_2", "sleep_3", "sleep_3", "sleep_2", "sleep_2"], 600, "sleep"),
-    "boop":           (x4("boop_1", "boop_2"), 300, "day"),
+    "sad_window":     (x4("sadwin_1", "sadwin_2"), 700, "rain"),
+    "sad_phones":     (x4("sadphones_1", "sadphones_2"), 650, "rain"),
+    "sad_loaf":       (x4("sadloaf_1", "sadloaf_2"), 700, "rain"),
+    "sad_call":       (["sadcall_1", "sadcall_1", "sadcall_2", "sadcall_2", "sadcall_1", "sadcall_1", "sadcall_2", "sadcall_2"], 600, "rain"),
+
+    # Exclusive & seasonal
+    "dig":            (["dig_1", "dig_2", "dig_1", "dig_2", "dig_3", "dig_4", "dig_3", "dig_4"], 500, "day"),
+    "judge":          (["judge_1", "judge_2", "judge_2", "judge_1", "judge_3", "judge_3", "judge_1", "judge_2"], 550, "day"),
+    "fan":            (x4("fan_1", "fan_2"), 450, "day"),
+    "ny_eve":         (x4("eve_1", "eve_2"), 650, "night"),
+    "ny_countdown":   (["count_10", "count_9", "count_8", "count_7", "count_6", "count_5", "count_4", "count_3", "count_2", "count_1", "count_0"], 1000, "night"),
+    "ny_fireworks":   (["ny_2027_1", "ny_2027_2", "ny_2027_3", "ny_2027_2", "ny_2027_1", "ny_2027_2", "ny_2027_3", "ny_2027_3"], 450, "night"),
+    "ivy_space":      (["ivy_float_1", "ivy_float_2", "ivy_float_3", "ivy_float_2", "ivy_float_1", "ivy_float_2", "ivy_float_3", "ivy_float_2"], 550, "space"),
 }
 
 def export_gif(act_name, scale=8, transparent=True, color="ginger", pattern="classic", eye="onyx", out_dir=OUTPUT_DIR):
