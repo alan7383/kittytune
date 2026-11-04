@@ -482,25 +482,66 @@ object DownloadManager {
         return finalId
     }
 
+    internal suspend fun updateStubTrackIfNeeded(dao: com.alananasss.kittytune.data.local.DownloadDao, existingTrack: LocalTrack, track: Track) {
+        var updated: LocalTrack = existingTrack
+        var needsUpdate = false
+        if ((existingTrack.duration <= 0L && track.actualDurationMs > 0L) ||
+            (existingTrack.duration in 1..45000L && track.actualDurationMs > existingTrack.duration) ||
+            (existingTrack.duration != track.actualDurationMs && track.actualDurationMs > 45000L)) {
+            updated = updated.copy(duration = track.actualDurationMs)
+            needsUpdate = true
+        }
+        if (existingTrack.title.isBlank() || existingTrack.title == context.getString(R.string.untitled_track)) {
+            track.title?.takeIf { it.isNotBlank() }?.let {
+                updated = updated.copy(title = it)
+                needsUpdate = true
+            }
+        }
+        if (existingTrack.artist.isBlank() || existingTrack.artist == context.getString(R.string.unknown_artist)) {
+            val newArtist = track.displayArtist.ifBlank { track.user?.username ?: "" }
+            if (newArtist.isNotBlank()) {
+                updated = updated.copy(artist = newArtist)
+                needsUpdate = true
+            }
+        }
+        if (existingTrack.artworkUrl.isBlank() && !track.fullResArtwork.isNullOrBlank()) {
+            updated = updated.copy(artworkUrl = track.fullResArtwork)
+            needsUpdate = true
+        }
+        if (needsUpdate) {
+            dao.updateTrack(updated)
+        }
+    }
+
     fun addTrackToPlaylist(playlistId: Long, track: Track) {
         scope.launch {
+            val trackToSave = if ((track.source == null || track.source == "soundcloud") && track.id > 0 &&
+                (track.title.isNullOrBlank() || track.user == null || ((track.isGoPlus || track.isSnipped || (track.durationMs != null && track.durationMs in 1..45000L)) && track.fullDuration == null))) {
+                try {
+                    val fetched = api.getTracksByIds(track.id.toString())
+                    if (fetched.isNotEmpty()) fetched[0] else track
+                } catch (_: Exception) { track }
+            } else track
+
             val dao = database.downloadDao()
-            val existingTrack = dao.getTrack(track.id)
+            val existingTrack = dao.getTrack(trackToSave.id)
             if (existingTrack == null) {
                 val localTrack = LocalTrack(
-                    id = track.id,
-                    title = track.title ?: context.getString(R.string.untitled_track),
-                    artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) },
-                    artworkUrl = track.fullResArtwork,
-                    duration = track.durationMs ?: 0L,
+                    id = trackToSave.id,
+                    title = trackToSave.title ?: context.getString(R.string.untitled_track),
+                    artist = trackToSave.displayArtist.ifBlank { trackToSave.user?.username ?: context.getString(R.string.unknown_artist) },
+                    artworkUrl = trackToSave.fullResArtwork,
+                    duration = trackToSave.actualDurationMs,
                     localAudioPath = "",
                     localArtworkPath = "",
-                    source = track.source ?: "soundcloud",
-                    permalinkUrl = track.permalinkUrl,
-                    ownerId = track.user?.id ?: 0L,
-                    secretToken = track.secretToken
+                    source = trackToSave.source ?: "soundcloud",
+                    permalinkUrl = trackToSave.permalinkUrl,
+                    ownerId = trackToSave.user?.id ?: 0L,
+                    secretToken = trackToSave.secretToken
                 )
                 dao.insertTrack(localTrack)
+            } else {
+                updateStubTrackIfNeeded(dao, existingTrack, trackToSave)
             }
             var playlist = dao.getPlaylist(playlistId)
             if (playlist == null) {
@@ -854,6 +895,7 @@ object DownloadManager {
         isUserCreated: Boolean? = null,
         likePlaylist: Boolean = false
     ) {
+        val hydratedTracks = hydrateTracksIfNeeded(tracks)
         // Radio cards created by home/history carry their own track id, which is
         // not the id the radio route resolves to. Normalize every save to the
         // route id so one radio is one library row and its liked flag survives.
@@ -892,7 +934,7 @@ object DownloadManager {
             artist = targetPlaylist.user?.username ?: context.getString(R.string.unknown_artist),
             artworkUrl = targetPlaylist.fullResArtwork,
             localCoverPath = localCover,
-            trackCount = tracks.size,
+            trackCount = hydratedTracks.size,
             isUserCreated = isUserCreatedFinal,
             permalinkUrl = targetPlaylist.permalinkUrl,
             isAlbum = targetPlaylist.isRealAlbum,
@@ -900,7 +942,7 @@ object DownloadManager {
         )
         dao.insertPlaylist(localPlaylist)
 
-        tracks.forEachIndexed { index, track ->
+        hydratedTracks.forEachIndexed { index, track ->
             val existingTrack = dao.getTrack(track.id)
 
             if (existingTrack == null) {
@@ -909,7 +951,7 @@ object DownloadManager {
                     title = track.title ?: context.getString(R.string.untitled_track),
                     artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) },
                     artworkUrl = track.fullResArtwork,
-                    duration = track.durationMs ?: 0L,
+                    duration = track.actualDurationMs,
                     localAudioPath = "",
                     localArtworkPath = "",
                     source = track.source ?: "soundcloud",
@@ -918,6 +960,8 @@ object DownloadManager {
                     secretToken = track.secretToken
                 )
                 dao.insertTrack(localTrack)
+            } else {
+                updateStubTrackIfNeeded(dao, existingTrack, track)
             }
 
             dao.insertPlaylistTrackRef(
@@ -1320,10 +1364,43 @@ object DownloadManager {
         }
     }
 
+    suspend fun hydrateTracksIfNeeded(tracks: List<Track>): List<Track> {
+        val incompleteIds = tracks.filter {
+            (it.source == null || it.source == "soundcloud") &&
+            it.id > 0 &&
+            (it.title.isNullOrBlank() || it.user == null || it.media == null ||
+             (it.durationMs != null && it.durationMs in 1..45000L && it.fullDuration == null) ||
+             ((it.isGoPlus || it.isSnipped) && it.fullDuration == null))
+        }.map { it.id }.distinct()
+
+        if (incompleteIds.isEmpty()) return tracks
+
+        val fetchedMap = mutableMapOf<Long, Track>()
+        val chunks = incompleteIds.chunked(50)
+        for (chunk in chunks) {
+            try {
+                val fetched = api.getTracksByIds(chunk.joinToString(","))
+                for (t in fetched) {
+                    fetchedMap[t.id] = t
+                }
+            } catch (e: Exception) {
+                Log.w("DownloadManager", "Failed hydrating chunk of ${chunk.size} tracks: ${e.message}")
+            }
+        }
+        return if (fetchedMap.isNotEmpty()) {
+            tracks.map { fetchedMap[it.id] ?: it }
+        } else {
+            tracks
+        }
+    }
+
     fun downloadPlaylist(playlist: Playlist, tracks: List<Track>) {
-        importPlaylistToLibrary(playlist, tracks, isDownloaded = true)
-        val folderName = sanitizeFilename(playlist.title ?: "Playlist_${playlist.id}")
-        downloadBatch(tracks, playlist.id, folderName)
+        scope.launch {
+            val hydrated = hydrateTracksIfNeeded(tracks)
+            importPlaylistToLibrary(playlist, hydrated, isDownloaded = true)
+            val folderName = sanitizeFilename(playlist.title ?: "Playlist_${playlist.id}")
+            downloadBatch(hydrated, playlist.id, folderName)
+        }
     }
 
     @OptIn(kotlinx.coroutines.FlowPreview::class)
@@ -1332,13 +1409,14 @@ object DownloadManager {
         if (existingJob != null && existingJob.isActive) return
 
         val batchJob = scope.launch {
-            val trackIdsToDownload = tracks.map { it.id }.toSet()
+            val hydratedTracks = hydrateTracksIfNeeded(tracks)
+            val trackIdsToDownload = hydratedTracks.map { it.id }.toSet()
             batchTrackIds[batchId] = trackIdsToDownload
             try {
                 _playlistDownloadProgress.update { it + (batchId to 0f) }
 
                 supervisorScope {
-                    val individualJobs = tracks.map { track ->
+                    val individualJobs = hydratedTracks.map { track ->
                         launch {
                             downloadSemaphore.withPermit {
                                 val existing = database.downloadDao().getTrack(track.id)
@@ -1408,7 +1486,8 @@ object DownloadManager {
             if (existing != null && existing.localAudioPath.isNotEmpty()) {
                 return@launch
             }
-            startDownloadJob(track, null, null)
+            val trackToDownload = hydrateTracksIfNeeded(listOf(track)).firstOrNull() ?: track
+            startDownloadJob(trackToDownload, null, null)
         }
     }
 
@@ -1564,7 +1643,7 @@ object DownloadManager {
                         title = track.title ?: context.getString(R.string.untitled_track),
                         artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) },
                         artworkUrl = finalArtworkUrl,
-                        duration = track.durationMs ?: 0L,
+                        duration = track.actualDurationMs,
                         localAudioPath = exoPath,
                         localArtworkPath = finalLocalArtworkPath,
                         downloadedAt = creationTimestamp,
@@ -1600,7 +1679,7 @@ object DownloadManager {
 
                 val isDeezerStream = streamUrl.startsWith("deezer-audio://") || streamUrl.startsWith("metrofuse-deezer://")
                 val isDeezerFlac = isDeezerStream && (streamUrl.contains("format=FLAC", ignoreCase = true) || streamUrl.contains(".flac", ignoreCase = true) || streamUrl.contains("quality=FLAC", ignoreCase = true))
-                val isYoutubeStream = streamUrl.contains("googlevideo.com") || track.source == "youtube"
+                val isYoutubeStream = resolvedStream?.source == "youtube" || streamUrl.contains("googlevideo.com") || track.source == "youtube"
                 val ext = when {
                     isDeezerFlac -> "flac"
                     isYoutubeStream -> "m4a"
@@ -1674,12 +1753,26 @@ object DownloadManager {
                 val finalLocalArtworkPath = if (internalArtFile.exists() && internalArtFile.length() > 0) internalArtFile.absolutePath else ""
                 val finalArtworkUrl = if (resolvedArtUrl.startsWith("http")) resolvedArtUrl else (existingTrack?.artworkUrl?.takeIf { it.startsWith("http") } ?: track.artworkUrl ?: "")
 
+                val fileDuration = try {
+                    val mmr = android.media.MediaMetadataRetriever()
+                    mmr.setDataSource(taggedAudioFile.absolutePath)
+                    val durStr = mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+                    mmr.release()
+                    durStr?.toLongOrNull() ?: 0L
+                } catch (_: Exception) { 0L }
+
+                val effectiveDuration = if (fileDuration > 0L) {
+                    fileDuration
+                } else {
+                    track.actualDurationMs
+                }
+
                 val localTrack = LocalTrack(
                     id = track.id,
                     title = track.title ?: context.getString(R.string.untitled_track),
                     artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) },
                     artworkUrl = finalArtworkUrl,
-                    duration = track.durationMs ?: 0L,
+                    duration = effectiveDuration,
                     localAudioPath = audioPath,
                     localArtworkPath = finalLocalArtworkPath,
                     downloadedAt = creationTimestamp,
@@ -1847,9 +1940,10 @@ object DownloadManager {
 
     fun addTracksToPlaylistBulk(playlistId: Long, tracks: List<Track>) {
         scope.launch {
+            val hydratedTracks = hydrateTracksIfNeeded(tracks)
             val dao = database.downloadDao()
 
-            tracks.forEach { track ->
+            hydratedTracks.forEach { track ->
                 val existingTrack = dao.getTrack(track.id)
                 if (existingTrack == null) {
                     val localTrack = LocalTrack(
@@ -1857,7 +1951,7 @@ object DownloadManager {
                         title = track.title ?: context.getString(R.string.untitled_track),
                         artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) },
                         artworkUrl = track.fullResArtwork,
-                        duration = track.durationMs ?: 0L,
+                        duration = track.actualDurationMs,
                         localAudioPath = "",
                         localArtworkPath = "",
                         source = track.source ?: "soundcloud",
@@ -1866,6 +1960,8 @@ object DownloadManager {
                         secretToken = track.secretToken
                     )
                     dao.insertTrack(localTrack)
+                } else {
+                    updateStubTrackIfNeeded(dao, existingTrack, track)
                 }
                 dao.insertPlaylistTrackRef(PlaylistTrackCrossRef(playlistId, track.id))
             }
