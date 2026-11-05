@@ -40,3 +40,5 @@ site/.astro/
 /*.json
 .cxx/
 app/.cxx/
+
+.agents/
