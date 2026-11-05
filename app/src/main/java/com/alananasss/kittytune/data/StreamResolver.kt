@@ -758,9 +758,18 @@
             songs: List<SongItem>,
             wantedSec: Long,
             isRestricted: Boolean = false,
-            isSnippetDuration: Boolean = (isRestricted && wantedSec in 1..45)
+            isSnippetDuration: Boolean = (isRestricted && wantedSec in 1..45),
+            track: Track? = null
         ): SongItem? {
             if (songs.isEmpty()) return null
+            if (track != null) {
+                val selected = YoutubeFallbackMatcher.match(
+                    fallbackRecording(track),
+                    songs.map { YoutubeFallbackMatcher.Candidate(it.id, it.title, it.artists.map { artist -> artist.name },
+                        it.duration?.toLong() ?: 0L, it.album?.name.orEmpty()) }
+                ) ?: return null
+                return songs.firstOrNull { it.id == selected.id }
+            }
             if (wantedSec <= 0 || isSnippetDuration) {
                 return songs.firstOrNull { (it.duration ?: 0) > 45 } ?: songs.first()
             }
@@ -778,9 +787,16 @@
             videoResults: List<StreamInfoItem>,
             wantedSec: Long,
             isRestricted: Boolean = false,
-            isSnippetDuration: Boolean = (isRestricted && wantedSec in 1..45)
+            isSnippetDuration: Boolean = (isRestricted && wantedSec in 1..45),
+            track: Track? = null
         ): StreamInfoItem? {
             if (videoResults.isEmpty()) return null
+            if (track != null) {
+                val selected = YoutubeFallbackMatcher.match(fallbackRecording(track), videoResults.map {
+                    YoutubeFallbackMatcher.Candidate(it.url, it.name, listOf(it.uploaderName.orEmpty()), it.duration)
+                }) ?: return null
+                return videoResults.firstOrNull { it.url == selected.id }
+            }
             if (wantedSec <= 0 || isSnippetDuration) {
                 return videoResults.firstOrNull { it.duration > 45 } ?: videoResults.first()
             }
@@ -811,49 +827,58 @@
                 .trim()
         }
 
+        private fun fallbackRecording(track: Track): YoutubeFallbackMatcher.Recording {
+            val snippet = (isRestricted(track) || track.isSnipped || isKnownRestricted(track) ||
+                (track.durationMs != null && track.durationMs in 1..45000L)) && track.fullDuration == null
+            return YoutubeFallbackMatcher.Recording(
+                track.title.orEmpty(), track.displayArtist.ifBlank { track.user?.username.orEmpty() },
+                track.actualDurationMs / 1000, isRestricted(track) || track.isSnipped || isKnownRestricted(track) || snippet, snippet
+            )
+        }
+
+        /** Both query variants participate: an empty or unrelated first page must not mask an exact song. */
+        internal suspend fun findYoutubeFallbackSong(
+            track: Track,
+            search: suspend (String) -> List<SongItem> = { query ->
+                YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrThrow().items.filterIsInstance<SongItem>()
+            },
+        ): SongItem? {
+            val recording = fallbackRecording(track)
+            val songs = YoutubeFallbackMatcher.queries(recording).flatMap { query ->
+                try { search(query) }
+                catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                catch (_: Exception) { emptyList() }
+            }.distinctBy { it.id }
+            return matchSongCandidate(songs, recording.durationSec, recording.restricted, recording.snippetDuration, track)
+        }
+
         private suspend fun resolveViaNewPipe(context: Context, track: Track): String? {
             ensureNewPipeClientVersion()
             return try {
-                val cleanTitle = cleanSearchTitle(track.title)
-                if (cleanTitle.isBlank()) {
-                    Log.w(TAG, "[YouTube/NewPipe] Track title is blank, cannot resolve via search")
-                    return null
-                }
-                val artistName = track.displayArtist.ifBlank { track.user?.username ?: "" }
-                val query = "$cleanTitle $artistName audio".trim()
-                val fallbackQuery = "$cleanTitle $artistName".trim()
-                val wantedSec = track.actualDurationMs / 1000
-                val isSnippetDuration = (isRestricted(track) || track.isSnipped || isKnownRestricted(track) ||
-                    (track.durationMs != null && track.durationMs in 1..45000L)) && track.fullDuration == null
-                val isRestrictedTrack = isRestricted(track) || track.isSnipped || isKnownRestricted(track) || isSnippetDuration
-
-                Log.d(TAG, "[YouTube/NewPipe] Searching for: $query (wanted duration: ${wantedSec}s, restricted: $isRestrictedTrack, snippet: $isSnippetDuration)")
-
-                // Try InnerTube first as it uses the official JSON API (bypassing NewPipe scraping regex breakages)
-                val innertubeUrl = runCatching {
-                    val searchResult = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()
-                        ?: YouTube.search(fallbackQuery, YouTube.SearchFilter.FILTER_SONG).getOrNull()
-                    val songs = searchResult?.items?.filterIsInstance<SongItem>().orEmpty()
-                    if (songs.isNotEmpty()) {
-                        val matched = matchSongCandidate(songs, wantedSec, isRestricted = isRestrictedTrack, isSnippetDuration = isSnippetDuration)
-                        matched?.let { "https://www.youtube.com/watch?v=${it.id}" }
-                    } else null
-                }.getOrNull()
+                val recording = fallbackRecording(track)
+                val queries = YoutubeFallbackMatcher.queries(recording)
+                if (queries.isEmpty()) return null
+                val wantedSec = recording.durationSec
+                val isSnippetDuration = recording.snippetDuration
+                val isRestrictedTrack = recording.restricted
+                val innertubeUrl = findYoutubeFallbackSong(track)?.let { "https://www.youtube.com/watch?v=${it.id}" }
 
                 val firstResultUrl = innertubeUrl ?: runCatching {
                     val youtubeService = ServiceList.YouTube
-                    var searchInfo = SearchInfo.getInfo(youtubeService, youtubeService.searchQHFactory.fromQuery(query, listOf("videos"), ""))
-                    var videoResults = searchInfo.relatedItems.filterIsInstance<StreamInfoItem>()
-                    if (videoResults.isEmpty() && fallbackQuery.isNotBlank() && fallbackQuery != query) {
-                        searchInfo = SearchInfo.getInfo(youtubeService, youtubeService.searchQHFactory.fromQuery(fallbackQuery, listOf("videos"), ""))
-                        videoResults = searchInfo.relatedItems.filterIsInstance<StreamInfoItem>()
-                    }
+                    val videoResults = queries.flatMap { query ->
+                        try {
+                            SearchInfo.getInfo(youtubeService, youtubeService.searchQHFactory.fromQuery(query, listOf("videos"), ""))
+                                .relatedItems.filterIsInstance<StreamInfoItem>()
+                        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) { emptyList() }
+                    }.distinctBy { it.url }
                     if (videoResults.isEmpty()) {
                         Log.w(TAG, "[NewPipe] No results found.")
                         return@runCatching null
                     }
 
-                    val matched = matchVideoCandidate(videoResults, wantedSec, isRestricted = isRestrictedTrack, isSnippetDuration = isSnippetDuration)
+                    val matched = matchVideoCandidate(videoResults, wantedSec, isRestricted = isRestrictedTrack, isSnippetDuration = isSnippetDuration, track = track)
                     if (matched == null) {
                         Log.w(
                             TAG,
