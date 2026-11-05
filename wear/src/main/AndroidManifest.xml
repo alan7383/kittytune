@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Watch hardware requirement: signals Wear OS form-factor to Google Play and OS package manager -->
+    <uses-feature android:name="android.hardware.type.watch" />
+
+    <!-- Network permissions for direct desktop Connect (LAN WS 47654) and Together Relay (MQTT) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Wake lock for background state synchronization and command dispatch -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Haptic feedback for rotary crown scroll events and playback button taps -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.KittyTune.Wear">
+
+        <!-- Standalone capability flag: enables independent watch installation and execution -->
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="true" />
+
+        <!-- Main Wear OS launcher activity -->
+        <activity
+            android:name="com.alananasss.kittytune.wear.presentation.MainActivity"
+            android:exported="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.KittyTune.Wear">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
