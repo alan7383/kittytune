@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Application title -->
+    <string name="app_name">KittyTune</string>
+    <string name="wear_companion_title">KittyTune Companion</string>
+
+    <!-- Playback control actions -->
+    <string name="action_play">Play</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_previous">Previous</string>
+    <string name="action_next">Next</string>
+    <string name="action_volume_up">Volume Up</string>
+    <string name="action_volume_down">Volume Down</string>
+
+    <!-- Target selector devices -->
+    <string name="target_phone">Phone</string>
+    <string name="target_desktop">Desktop</string>
+
+    <!-- Status descriptions -->
+    <string name="status_connecting">Connecting…</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_no_playback">Nothing playing</string>
+</resources>
