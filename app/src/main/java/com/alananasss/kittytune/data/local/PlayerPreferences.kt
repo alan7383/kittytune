@@ -1715,13 +1715,15 @@ class PlayerPreferences(context: Context) {
         queue: List<Track>,
         context: PlaybackContext?,
         shuffleEnabled: Boolean,
-        repeatMode: RepeatMode
+        repeatMode: RepeatMode,
+        currentQueueIndex: Int = -1
     ) {
         if (!getPersistentQueueEnabled()) {
             prefs.edit {
                 putBoolean(KEY_SHUFFLE_MODE, shuffleEnabled)
                 putString(KEY_REPEAT_MODE, repeatMode.name)
                 remove(KEY_TRACK_JSON)
+                remove("last_queue_index")
                 if (queueFile.exists()) queueFile.delete()
                 remove(KEY_POSITION)
                 remove(KEY_CONTEXT_JSON)
@@ -1738,11 +1740,15 @@ class PlayerPreferences(context: Context) {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        } else {
+            queueFile.delete()
+            prefs.edit { remove("last_queue_full_json") }
         }
 
         val safeTrack = if (track is Track && track.id != 0L) track else null
         prefs.edit {
             if (safeTrack != null) putString(KEY_TRACK_JSON, gson.toJson(safeTrack)) else remove(KEY_TRACK_JSON)
+            putInt("last_queue_index", currentQueueIndex)
             putString(KEY_CONTEXT_JSON, gson.toJson(context))
             if (getSavePositionEnabled()) putLong(KEY_POSITION, position) else remove(KEY_POSITION)
             putBoolean(KEY_SHUFFLE_MODE, shuffleEnabled)
@@ -1837,6 +1843,7 @@ class PlayerPreferences(context: Context) {
     }
 
     fun getLastPosition(): Long = if (getSavePositionEnabled()) prefs.getLong(KEY_POSITION, 0L) else 0L
+    fun getLastQueueIndex(): Int = if (getPersistentQueueEnabled()) prefs.getInt("last_queue_index", -1) else -1
     fun getLastQueue(): List<Track> {
         if (!getPersistentQueueEnabled()) return emptyList()
         // Deliberately parse a concrete Track[] instead of using TypeToken<List<Track>>.
