@@ -47,6 +47,9 @@ material = "1.14.0"
 litert = "2.3.2"
 smooth-corner-rect = "v1.0.0"
 documentfile = "1.1.0"
+wearCompose = "1.5.6"
+playServicesWearable = "20.0.1"
+kotlinxCoroutines = "1.11.0"
 
 [libraries]
 androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
@@ -122,10 +125,17 @@ accompanist-lyrics-ui = { module = "com.mocharealm.accompanist:lyrics-ui", versi
 accompanist-lyrics-core = { module = "com.mocharealm.accompanist:lyrics-core", version = "0.5.0" }
 litert = { module = "com.google.ai.edge.litert:litert", version.ref = "litert" }
 smooth-corner-rect = { module = "com.github.racra:smooth-corner-rect-android-compose", version.ref = "smooth-corner-rect" }
-
+play-services-wearable = { group = "com.google.android.gms", name = "play-services-wearable", version.ref = "playServicesWearable" }
+wear-compose-material3 = { group = "androidx.wear.compose", name = "compose-material3", version.ref = "wearCompose" }
+wear-compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation", version.ref = "wearCompose" }
+wear-compose-navigation = { group = "androidx.wear.compose", name = "compose-navigation", version.ref = "wearCompose" }
+wear-compose-ui-tooling = { group = "androidx.wear.compose", name = "compose-ui-tooling", version.ref = "wearCompose" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
@@ -133,3 +143,8 @@ aboutlibraries = { id = "com.mikepenz.aboutlibraries.plugin.android", version.re
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
 [bundles]
+wear-compose = [
+    "wear-compose-material3",
+    "wear-compose-foundation",
+    "wear-compose-navigation"
+]

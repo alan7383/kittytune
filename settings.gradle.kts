@@ -26,3 +26,5 @@
     include(":innertube")
     include(":lrclib")
     include(":kugou")
+    include(":wear-common")
+    include(":wear")
