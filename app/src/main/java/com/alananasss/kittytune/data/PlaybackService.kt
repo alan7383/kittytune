@@ -262,6 +262,9 @@ class PlaybackService : MediaLibraryService() {
 
         // Widget update
         MusicWidget.update(this)
+
+        // Wear OS companion state sync
+        com.alananasss.kittytune.wear.WearableStatePublisher.publishCurrentState(this)
     }
 
     @OptIn(UnstableApi::class)

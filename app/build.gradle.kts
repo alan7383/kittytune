@@ -169,6 +169,8 @@ dependencies {
     implementation(libs.ktor.client.encoding)
     implementation(project(":kizzy"))
     implementation(project(":shazamkit"))
+    implementation(project(":wear-common"))
+    implementation(libs.play.services.wearable)
     implementation(libs.mlkit.language.id)
     testImplementation(libs.junit)
     testImplementation(kotlin("test"))
