@@ -78,15 +78,6 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 
-private sealed interface QueueListItem {
-    data class PastHeader(val count: Int, val isExpanded: Boolean) : QueueListItem
-    data class UpNextHeader(val count: Int) : QueueListItem
-    data class TrackItem(val queueIndex: Int, val track: Track) : QueueListItem
-}
-
-/** Beyond this many heard tracks, they collapse under an arrow so the queue stays tidy. */
-private const val PAST_COLLAPSE_THRESHOLD = 3
-
 /**
  * Full-screen queue view with top app bar, search or bulk-add actions, and queue list.
  */
@@ -435,33 +426,12 @@ private fun QueueListView(
     val currentIndex = viewModel.uiCurrentQueueIndex
     val keys = remember(queue) { queueItemKeys(queue) }
 
-    val played = viewModel.playedTrackIds
-    val pastIndices = remember(queue, currentIndex, played) {
-        if (currentIndex <= 0) emptyList()
-        else queue.indices.filter { it < currentIndex - 1 && queue[it].id in played }
-    }
-    val pastCount = pastIndices.size
-    val firstPast = pastIndices.firstOrNull()
-    val upNextCount = (queue.size - currentIndex - 1).coerceAtLeast(0)
+    val pastCount = currentIndex.coerceIn(0, queue.size)
+    var pastExpandedByUser by remember { mutableStateOf(false) }
+    val isPastExpanded = pastExpandedByUser || pastCount <= RECENT_QUEUE_TRACKS
 
-    var pastExpandedByUser by remember { mutableStateOf<Boolean?>(null) }
-    val isPastExpanded = pastExpandedByUser ?: (pastCount <= PAST_COLLAPSE_THRESHOLD)
-
-    val listItems = remember(queue, currentIndex, pastIndices, isPastExpanded, upNextCount) {
-        buildList {
-            for (index in queue.indices) {
-                if (index == firstPast && pastCount > 0) {
-                    add(QueueListItem.PastHeader(count = pastCount, isExpanded = isPastExpanded))
-                }
-                if (currentIndex >= 0 && index == currentIndex + 1 && upNextCount > 0) {
-                    add(QueueListItem.UpNextHeader(count = upNextCount))
-                }
-                val isPast = index in pastIndices
-                if (!isPast || isPastExpanded) {
-                    add(QueueListItem.TrackItem(queueIndex = index, track = queue[index]))
-                }
-            }
-        }
+    val listItems = remember(queue, currentIndex, isPastExpanded) {
+        queueListItems(queue, currentIndex, isPastExpanded)
     }
 
     val reorderableState = rememberReorderableLazyListState(
@@ -513,7 +483,7 @@ private fun QueueListView(
                     QueueSectionRule(
                         label = stringResource(R.string.queue_played),
                         count = item.count,
-                        isCollapsible = true,
+                        isCollapsible = pastCount > RECENT_QUEUE_TRACKS,
                         isExpanded = item.isExpanded,
                         onToggle = { pastExpandedByUser = !item.isExpanded }
                     )
@@ -527,7 +497,7 @@ private fun QueueListView(
                 is QueueListItem.TrackItem -> {
                     val index = item.queueIndex
                     val isCurrent = index == currentIndex
-                    val isPast = index in pastIndices
+                    val isPast = index < currentIndex
 
                     ReorderableItem(
                         state = reorderableState,
@@ -540,7 +510,7 @@ private fun QueueListView(
                             index = index,
                             itemKey = keys[index],
                             isCurrent = isCurrent,
-                            isPast = isPast,
+                            isPast = isPast && index < currentIndex - RECENT_QUEUE_TRACKS,
                             isDragging = isDragging,
                             scope = this@ReorderableItem,
                         )

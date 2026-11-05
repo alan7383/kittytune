@@ -160,9 +160,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         get() = remotePeer?.snapshot?.repeatMode?.let { runCatching { RepeatMode.valueOf(it) }.getOrDefault(RepeatMode.NONE) } ?: repeatMode
         set(value) { repeatMode = value }
 
-    var playedTrackIds by mutableStateOf<Set<Long>>(emptySet())
-        private set
-
     private fun routeRemote(action: String, value: Long = 0, value2: Long = 0): Boolean {
         if (applyingConnectCommand) return false
         val id = ConnectManager.selectedDevice.value ?: return false
@@ -1928,7 +1925,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                     finalTrack = newTrack.copy(id = realId)
                 }
             }
-            val foundInQueue = _queue.find { it.id == finalTrack.id }
+            val foundInQueue = _queue.getOrNull(currentQueueIndex)?.takeIf { it.id == finalTrack.id }
             if (foundInQueue != null) {
                 finalTrack = foundInQueue
             }
@@ -2097,7 +2094,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
             if (cleanTrack != null) {
                 isLiked = LikeRepository.isTrackLiked(cleanTrack.id)
-                currentQueueIndex = _queue.indexOfFirst { it.id == cleanTrack.id }.coerceAtLeast(0)
+                currentQueueIndex = resolveQueueIndex(cleanQueue, cleanTrack.id,
+                    filteredQueueIndex(lastQueue, playerPrefs.getLastQueueIndex()) { !BlockManager.isBlocked(it) })
             }
 
             try {
@@ -4610,12 +4608,11 @@ query CommentsWithReactions(
         archiveQueueIfNeeded(cleanTracks)
         _originalQueue.clear(); _originalQueue.addAll(cleanTracks)
         _queue.clear()
-        playedTrackIds = emptySet()
         this.currentContext = context
         MusicManager.updateContext(context)
 
-        val targetTrack = tracks.getOrNull(startIndex)
-        val effectiveStartIndex = cleanTracks.indexOfFirst { it.id == targetTrack?.id }.takeIf { it != -1 } ?: (if (startIndex in cleanTracks.indices) startIndex else 0)
+        val effectiveStartIndex = filteredQueueIndex(tracks, startIndex) { !BlockManager.isBlocked(it) }
+            .takeIf { it >= 0 } ?: 0
 
         val isHistoryContext =
             context?.navigationId == "history" || context?.navigationId?.startsWith("history") == true
@@ -4747,7 +4744,6 @@ query CommentsWithReactions(
                 _originalQueue.addAll(cleanTracks)
                 _queue.clear()
                 _queue.addAll(cleanTracks)
-                playedTrackIds = emptySet()
                 currentContext = context
                 MusicManager.updateContext(context)
 
@@ -4821,7 +4817,6 @@ query CommentsWithReactions(
         currentQueueIndex = index
         val trackToPlay = _queue[index]
         playbackRecoveryBudget.reset()
-        playedTrackIds = playedTrackIds + trackToPlay.id
 
         playWhenReady = autoPlay
         progressJob?.cancel()
@@ -5523,7 +5518,7 @@ query CommentsWithReactions(
         saveStateAsync(saveQueue = true)
     }
 
-    private fun applyShuffle(startIndex: Int = currentQueueIndex, sourceList: List<Track> = _originalQueue) {
+    private fun applyShuffle(startIndex: Int = currentQueueIndex, sourceList: List<Track> = _queue.toList()) {
         if (sourceList.isEmpty() || startIndex !in sourceList.indices) return
 
         val played = sourceList.subList(0, startIndex + 1)
@@ -5538,9 +5533,10 @@ query CommentsWithReactions(
     }
 
     private fun revertShuffle() {
-        val currentTrackId =
-            currentTrack?.id ?: return; _queue.clear(); _queue.addAll(_originalQueue); currentQueueIndex =
-            _queue.indexOfFirst { it.id == currentTrackId }.coerceAtLeast(0)
+        val originalIndex = matchingQueueIndex(_queue, currentQueueIndex, _originalQueue)
+        _queue.clear()
+        _queue.addAll(_originalQueue)
+        currentQueueIndex = originalIndex
     }
 
     private fun applyRepeatMode() {
@@ -5582,7 +5578,7 @@ query CommentsWithReactions(
 
     fun moveQueueItem(from: Int, to: Int) {
         if (routeRemote("move", from.toLong(), to.toLong())) return
-        if (from == to) return
+        if (from == to || from !in _queue.indices || to !in _queue.indices) return
 
         if (from < queueState.size && to < queueState.size) {
             val mut = queueState.toMutableList()
@@ -5619,7 +5615,8 @@ query CommentsWithReactions(
         if (routeRemote("remove", index.toLong())) return
         if (index !in _queue.indices) return
 
-        val trackToRemove = _queue[index]
+        val originalIndex = matchingQueueIndex(_queue, index, _originalQueue)
+        val wasCurrent = index == currentQueueIndex
 
         _queue.removeAt(index)
 
@@ -5629,15 +5626,21 @@ query CommentsWithReactions(
             queueState = mut
         }
 
-        _originalQueue.removeAll { it.id == trackToRemove.id }
+        if (originalIndex >= 0) _originalQueue.removeAt(originalIndex)
 
         // By position, not by id: the same track can be queued more than once (issue #72).
         if (index < currentQueueIndex) {
             currentQueueIndex--
-        } else if (index == currentQueueIndex && currentTrack != null) {
-            currentQueueIndex = _queue.indexOfFirst { it.id == currentTrack?.id }.coerceAtLeast(0)
         }
-        currentQueueIndex = currentQueueIndex.coerceIn(0, (_queue.size - 1).coerceAtLeast(0))
+        currentQueueIndex = if (_queue.isEmpty()) -1 else currentQueueIndex.coerceIn(0, _queue.lastIndex)
+        if (wasCurrent) {
+            if (_queue.isEmpty()) {
+                MusicManager.player.stop()
+                resetPlaybackState()
+            } else {
+                playTrackAtIndex(currentQueueIndex, addToHistory = false, autoPlay = playWhenReady)
+            }
+        }
         refreshPreloadedNext()
 
         saveStateAsync(saveQueue = true)
@@ -5652,7 +5655,7 @@ query CommentsWithReactions(
 
         _queue.addAll(insertIndex, uniqueTracks)
         // Shuffled, the original order has the playing track somewhere else entirely.
-        val playingInOriginal = _originalQueue.indexOfFirst { it.id == currentTrack?.id }
+        val playingInOriginal = matchingQueueIndex(_queue, currentQueueIndex, _originalQueue)
         val originalInsertIndex = if (playingInOriginal >= 0) playingInOriginal + 1 else _originalQueue.size
         _originalQueue.addAll(originalInsertIndex, uniqueTracks)
         updateQueueState()
@@ -5879,13 +5882,10 @@ query CommentsWithReactions(
 
     /** Drops everything after the song playing, in both the live queue and the unshuffled original. */
     fun clearUpcoming() {
+        val originalIndex = matchingQueueIndex(_queue, currentQueueIndex, _originalQueue)
         while (_queue.size > currentQueueIndex + 1) _queue.removeAt(_queue.size - 1)
-        val playing = currentTrack?.id
-        if (playing != null) {
-            val idx = _originalQueue.indexOfFirst { it.id == playing }
-            if (idx >= 0 && idx + 1 < _originalQueue.size) {
-                _originalQueue.subList(idx + 1, _originalQueue.size).clear()
-            }
+        if (originalIndex >= 0 && originalIndex + 1 < _originalQueue.size) {
+            _originalQueue.subList(originalIndex + 1, _originalQueue.size).clear()
         }
         togetherNextOffset = 0
         updateQueueState()
@@ -7197,7 +7197,7 @@ query CommentsWithReactions(
                 val track = remote.queue[remote.currentIndex]
                 require(track.source != "local") { "Local files are unavailable on another device" }
                 val portable = remote.queue.filter { it.source != "local" }
-                val index = portable.indexOfFirst { it.id == track.id }
+                val index = filteredQueueIndex(remote.queue, remote.currentIndex) { it.source != "local" }
                 require(index >= 0)
                 shuffleEnabled = false
                 pendingSeekPosition = remote.positionMs
@@ -7228,7 +7228,7 @@ query CommentsWithReactions(
         if (syncPlaybackReady) {
             val q = (queueState as? List<*>)?.filterIsInstance<Track>() ?: emptyList()
             val currentId = currentTrack?.id
-            val index = if (currentId != null) q.indexOfFirst { it.id == currentId } else -1
+            val index = resolveQueueIndex(q, currentId, currentQueueIndex)
             if (index >= 0) {
                 val position = currentPosition
                 val playing = isPlaying
@@ -7268,10 +7268,11 @@ query CommentsWithReactions(
             val freshC = currentContext
             val freshS = shuffleEnabled
             val freshR = repeatMode
+            val freshIndex = currentQueueIndex
             val qSnapshot = (_queue.toList() as? List<*>)?.filterIsInstance<Track>() ?: emptyList()
             withContext(Dispatchers.IO) {
                 runCatching {
-                    playerPrefs.savePlaybackState(freshT, freshP, qSnapshot, freshC, freshS, freshR)
+                    playerPrefs.savePlaybackState(freshT, freshP, qSnapshot, freshC, freshS, freshR, freshIndex)
                 }
             }
         }
@@ -7658,7 +7659,8 @@ query CommentsWithReactions(
                         currentTrack = cleanTrack
                         MusicManager.currentTrack = cleanTrack; isLiked =
                             LikeRepository.isTrackLiked(cleanTrack.id); loadLyrics(cleanTrack)
-                        currentQueueIndex = _queue.indexOfFirst { it.id == cleanTrack.id }
+                        currentQueueIndex = resolveQueueIndex(cleanQueue, cleanTrack.id,
+                            filteredQueueIndex(lastQueue, playerPrefs.getLastQueueIndex()) { !BlockManager.isBlocked(it) })
                         if (currentQueueIndex == -1) {
                             _queue.add(0, cleanTrack); _originalQueue.add(
                                 0,
@@ -7715,7 +7717,7 @@ query CommentsWithReactions(
                 val track = safeQueue.getOrNull(remote.currentIndex)
                 if (track != null && track.source != "local" && !BlockManager.isBlocked(track)) {
                     val portable = safeQueue.filter { it.source != "local" && !BlockManager.isBlocked(it) }
-                    val index = portable.indexOfFirst { it.id == track.id }
+                    val index = filteredQueueIndex(remote.queue, remote.currentIndex) { it.source != "local" && !BlockManager.isBlocked(it) }
                     if (index >= 0) {
                         val shouldPlay = false // Live playback moves only through an explicit device selection.
                         val position = if (shouldPlay) remote.projectedPosition(System.currentTimeMillis())
@@ -7757,6 +7759,7 @@ query CommentsWithReactions(
                 val savedContext = playerPrefs.getLastContext()
 
                 withContext(Dispatchers.Main) {
+                    if (_queue.isNotEmpty()) return@withContext
                     if (cleanQueue.isNotEmpty()) {
                         _queue.clear()
                         _queue.addAll(cleanQueue)
@@ -7768,7 +7771,8 @@ query CommentsWithReactions(
                             if (BlockManager.isBlocked(currentTrack!!)) {
                                 playNext(manual = false)
                             } else {
-                                currentQueueIndex = _queue.indexOfFirst { it.id == currentTrack!!.id }.coerceAtLeast(0)
+                                currentQueueIndex = resolveQueueIndex(cleanQueue, currentTrack!!.id,
+                                    filteredQueueIndex(savedQueue, playerPrefs.getLastQueueIndex()) { !BlockManager.isBlocked(it) })
                             }
                         }
                     }
