@@ -19,7 +19,7 @@ class CreditsRepositoryTest {
             File("src/main/resources/credits.json").exists() || File("src/main/assets/credits.json").exists()
         )
         assertTrue("The credits should not be empty", all.isNotEmpty())
-        assertEquals("Expected 13 contributors", 13, all.size)
+        assertEquals("Expected 14 contributors", 14, all.size)
     }
 
     @Test

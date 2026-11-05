@@ -108,6 +108,13 @@
       "badge": "Contributor",
       "category": "community",
       "order": 13
+    },
+    {
+      "github": "TheFoxCraft",
+      "role": "about_role_community_contrib",
+      "badge": "Bug Reports & Feedback",
+      "category": "community",
+      "order": 14
     }
   ]
 }
