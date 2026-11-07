@@ -40,6 +40,7 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
         )
 
         com.alananasss.kittytune.data.network.ProxyManager.init(this)
+        com.alananasss.kittytune.data.SessionManager.start(this)
 
         // In-app DPI bypass (zapret): no folder, no VPN, no proxy. Installs the fragmenting
         // socket factories and restores the bypass domain list into the dynamic policy.
