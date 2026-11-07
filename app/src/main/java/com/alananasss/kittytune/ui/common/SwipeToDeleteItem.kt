@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -54,18 +55,6 @@ fun SwipeToDeleteItem(
     showDeleteIcon: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    if (!enabled) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = horizontalPadding)
-                .then(if (clipContent) Modifier.clip(shape) else Modifier)
-        ) {
-            content()
-        }
-        return
-    }
-
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
     val haptics = rememberAppHaptics()
@@ -73,7 +62,11 @@ fun SwipeToDeleteItem(
     val dismissThresholdPx = with(density) { 96.dp.toPx() }
 
     val offsetX = remember(key) { Animatable(0f) }
-    val progress = (abs(offsetX.value) / dismissThresholdPx).coerceIn(0f, 1f)
+    LaunchedEffect(enabled) {
+        if (!enabled) offsetX.snapTo(0f)
+    }
+    val visibleOffsetX = if (enabled) offsetX.value else 0f
+    val progress = (abs(visibleOffsetX) / dismissThresholdPx).coerceIn(0f, 1f)
 
     val bgColor by animateColorAsState(
         targetValue = if (showDeleteIcon && progress > 0f)
@@ -96,7 +89,10 @@ fun SwipeToDeleteItem(
         label = "swipe_card_bg"
     )
 
-    val pointerModifier = Modifier.pointerInput(key, endZoneIgnoreWidth) {
+    // Keep the content at the same composition location when a nested reorder handle
+    // disables swiping. Replacing the container would dispose the handle mid-drag.
+    val pointerModifier = Modifier.pointerInput(key, endZoneIgnoreWidth, enabled) {
+        if (!enabled) return@pointerInput
         val touchSlop = viewConfiguration.touchSlop
         val endZoneThresholdPx = if (endZoneIgnoreWidth > 0.dp) endZoneIgnoreWidth.toPx() else 0f
 
@@ -182,7 +178,7 @@ fun SwipeToDeleteItem(
         }
     }
 
-    val isSwipingLeft = offsetX.value < 0f
+    val isSwipingLeft = visibleOffsetX < 0f
 
     Box(
         modifier = Modifier
@@ -217,7 +213,7 @@ fun SwipeToDeleteItem(
         }
 
         val itemAlpha = if (!showDeleteIcon && progress > 0f) {
-            (1f - (abs(offsetX.value) / (dismissThresholdPx * 1.8f))).coerceIn(0f, 1f)
+            (1f - (abs(visibleOffsetX) / (dismissThresholdPx * 1.8f))).coerceIn(0f, 1f)
         } else {
             1f
         }
@@ -225,9 +221,9 @@ fun SwipeToDeleteItem(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                .offset { IntOffset(visibleOffsetX.roundToInt(), 0) }
                 .graphicsLayer { alpha = itemAlpha }
-                .clip(shape)
+                .then(if (clipContent) Modifier.clip(shape) else Modifier)
                 .background(cardBgColor)
         ) {
             content()
