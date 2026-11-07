@@ -4774,7 +4774,7 @@ query CommentsWithReactions(
     fun skipToQueueItem(index: Int, autoPlay: Boolean = true) {
         if (routeRemote("queue", index.toLong())) return
         pendingSeekPosition = null
-        val keepsUpcoming = isQueuePreserveUpcomingEnabled || shuffleEnabled
+        val keepsUpcoming = isQueuePreserveUpcomingEnabled
         if (keepsUpcoming && index > currentQueueIndex && currentQueueIndex >= 0 && index < _queue.size) {
             val targetIndex = currentQueueIndex + 1
             moveQueueItem(index, targetIndex)
@@ -5644,6 +5644,28 @@ query CommentsWithReactions(
         refreshPreloadedNext()
 
         saveStateAsync(saveQueue = true)
+    }
+
+    fun playQueueItemNext(index: Int) {
+        when (val action = queueNextAction(_queue.size, currentQueueIndex, index)) {
+            is QueueNextAction.Move -> moveQueueItem(action.from, action.to)
+            is QueueNextAction.Replay -> insertNext(listOf(_queue[action.index]))
+            QueueNextAction.None -> Unit
+        }
+    }
+
+    /** Resolve the selected occurrence again if the queue changed while its menu was open. */
+    fun playMenuTrackNext() {
+        val track = trackForMenu ?: return
+        val index = menuContextQueueIndex
+        if (index == null) {
+            insertNext(listOf(track))
+        } else {
+            val selected = if (_queue.getOrNull(index) === track) index
+                else _queue.indexOfFirst { it === track }
+            playQueueItemNext(selected)
+        }
+        showMenuSheet = false
     }
 
     fun insertNext(tracks: List<Track>) {

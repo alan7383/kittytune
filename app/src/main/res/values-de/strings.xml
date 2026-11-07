@@ -3894,4 +3894,6 @@
     <string name="passport_open_failed">Keine App zum Öffnen des Bildes gefunden</string>
     <string name="passport_copy_mrz">MRZ-Code kopieren</string>
     <string name="passport_mrz_copied">MRZ-Code in die Zwischenablage kopiert</string>
+    <string name="pref_queue_preserve_upcoming">Kommende Warteschlange beim Springen beibehalten</string>
+    <string name="pref_queue_preserve_upcoming_sub">Verschiebt den angeklickten Titel als nächsten, statt dazwischenliegende Titel zu überspringen</string>
 </resources>

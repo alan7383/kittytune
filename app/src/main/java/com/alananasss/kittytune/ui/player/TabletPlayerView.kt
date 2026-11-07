@@ -1265,6 +1265,7 @@ private fun TabletQueueList(
     val view = LocalView.current
     val listState = rememberLazyListState()
     val queue = viewModel.uiQueueState
+    val keys = remember(queue) { queueItemKeys(queue) }
     val currentIndex = viewModel.uiCurrentQueueIndex
     val currentTrack = viewModel.uiCurrentTrack
 
@@ -1276,23 +1277,13 @@ private fun TabletQueueList(
         }
     )
 
-    var lastScrolledTrackId by remember { mutableStateOf<Long?>(null) }
-    LaunchedEffect(currentTrack?.id) {
-        val trackId = currentTrack?.id
-        if (trackId != null && trackId != lastScrolledTrackId && queue.isNotEmpty()) {
-            lastScrolledTrackId = trackId
-            val index = queue.indexOfFirst { it.id == trackId }
-            if (index >= 0) {
-                // Only when the row is not already on screen. lastScrolledTrackId deduplicated the
-                // same track coming back, but not a tap on a different row, so the panel still
-                // scrolled on every tap and put the row third from the top.
-                val alreadyVisible = listState.layoutInfo.visibleItemsInfo.any { it.index == index }
-                if (!alreadyVisible) {
-                    listState.animateScrollToItem(kotlin.math.max(0, index - 2))
-                }
-            }
-        }
-    }
+    AnchorCurrentQueueItem(
+        listState = listState,
+        currentIndex = currentIndex,
+        currentTrackId = currentTrack?.id,
+        currentKey = keys.getOrNull(currentIndex),
+        targetIndex = (currentIndex - 2).coerceAtLeast(0)
+    )
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -1389,14 +1380,14 @@ private fun TabletQueueList(
             ) {
                 itemsIndexed(
                     items = queue,
-                    key = { _, trackItem -> trackItem.id }
+                    key = { index, _ -> keys[index] }
                 ) { index, trackItem ->
                     ReorderableItem(
                         state = reorderableState,
-                        key = trackItem.id,
+                        key = keys[index],
                         animateItemModifier = Modifier,
                     ) { isDragging ->
-                        val isCurrent = index == currentIndex || trackItem.id == currentTrack?.id
+                        val isCurrent = index == currentIndex
                         val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
                         val backgroundColor = when {
                             isDragging -> MaterialTheme.colorScheme.surfaceContainerHighest

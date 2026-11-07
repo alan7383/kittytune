@@ -3795,4 +3795,6 @@
     <string name="passport_open_failed">Nem található alkalmazás a kép megnyitásához</string>
     <string name="passport_copy_mrz">MRZ-kód másolása</string>
     <string name="passport_mrz_copied">MRZ-kód a vágólapra másolva</string>
+    <string name="pref_queue_preserve_upcoming">Következő számok megtartása ugráskor</string>
+    <string name="pref_queue_preserve_upcoming_sub">A kiválasztott számot következőként játssza le a köztes számok kihagyása nélkül</string>
 </resources>

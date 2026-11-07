@@ -3771,4 +3771,6 @@
     <string name="passport_open_failed">Không tìm thấy ứng dụng để mở hình ảnh</string>
     <string name="passport_copy_mrz">Sao chép mã MRZ</string>
     <string name="passport_mrz_copied">Đã sao chép mã MRZ vào khay nhớ tạm</string>
+    <string name="pref_queue_preserve_upcoming">Bảo toàn hàng đợi tiếp theo khi nhảy bài</string>
+    <string name="pref_queue_preserve_upcoming_sub">Di chuyển bài hát được nhấp lên kế tiếp thay vì bỏ qua các bài trung gian</string>
 </resources>
