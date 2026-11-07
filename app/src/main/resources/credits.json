@@ -45,8 +45,9 @@
     },
     {
       "github": "sneoww98",
+      "name": "sneow",
       "role": "about_role_community_contrib",
-      "badge": "Contributor",
+      "badge": "Code • Bugs • Ideas",
       "category": "dev",
       "order": 5
     },
