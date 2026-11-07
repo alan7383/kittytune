@@ -3640,4 +3640,6 @@
     <string name="passport_open_failed">No app found to open image</string>
     <string name="passport_copy_mrz">Copy MRZ code</string>
     <string name="passport_mrz_copied">MRZ code copied to clipboard</string>
+    <string name="pref_queue_preserve_upcoming">Preserve upcoming queue on jump</string>
+    <string name="pref_queue_preserve_upcoming_sub">Moves clicked track next instead of skipping intermediate tracks</string>
 </resources>
