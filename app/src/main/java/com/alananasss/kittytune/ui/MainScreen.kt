@@ -282,6 +282,15 @@ fun MainScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        SessionManager.sessionEndedEvent.collect {
+            navController.navigate(Screen.Welcome.route) {
+                popUpTo(0) { inclusive = true }
+            }
+            homeViewModel.loadData()
+        }
+    }
+
     LaunchedEffect(shouldOpenSearch, currentDestination) {
         if (shouldOpenSearch && currentDestination != null) {
             navController.navigate(Screen.Home.route) {

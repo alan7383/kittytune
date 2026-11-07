@@ -2,6 +2,7 @@ package com.alananasss.kittytune.data
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log
 import android.webkit.CookieManager
 import com.alananasss.kittytune.utils.Config
 import com.google.gson.annotations.SerializedName
@@ -44,6 +45,12 @@ object SessionManager {
         @SerializedName("scope") val scope: String?
     )
 
+    private sealed interface TokenResult {
+        data class Issued(val tokens: OAuthTokenResponse) : TokenResult
+        data class Refused(val code: Int, val body: String) : TokenResult
+        data object Unreachable : TokenResult
+    }
+
     @Volatile private var appContext: Context? = null
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -64,11 +71,25 @@ object SessionManager {
 
     private val gson = com.alananasss.kittytune.utils.AppUtils.gson
 
+    private val _sessionEndedEvent = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1)
+
+    /** The server ended the session; the UI goes back to the welcome screen. */
+    val sessionEndedEvent = _sessionEndedEvent.asSharedFlow()
+
     private val _isClientIdValid = MutableStateFlow(true)
     val isClientIdValid = _isClientIdValid.asStateFlow()
 
     private val _sessionReadyEvent = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1)
     val sessionReadyEvent = _sessionReadyEvent.asSharedFlow()
+
+    /** Called once per process: moves a legacy session onto the expiring client. */
+    fun start(context: Context) {
+        val safeContext = context.applicationContext
+        appContext = safeContext
+        scope.launch(Dispatchers.IO) {
+            singleFlight { migrateLegacySession(safeContext) }
+        }
+    }
 
     fun harvestStoredSession(context: Context): String? {
         val safeContext = context.applicationContext
@@ -122,6 +143,10 @@ object SessionManager {
         // No-op: ghost WebView removed.
     }
 
+    /**
+     * [staleToken] is the token the server just refused, when there is one. The refresh runs in
+     * [scope], so a caller's timeout only stops the wait: a rotated token still gets saved.
+     */
     suspend fun awaitFreshAccessToken(
         context: Context,
         staleToken: String? = null,
@@ -140,14 +165,11 @@ object SessionManager {
             return currentToken
         }
 
-        if (force && !staleToken.isNullOrEmpty() && !currentToken.isNullOrEmpty() && currentToken != staleToken) {
-            return currentToken
-        }
-
         val refreshedByApi = withTimeoutOrNull(timeoutMs) {
-            refreshAccessTokenFromApi(safeContext)
+            refreshAccessTokenFromApi(safeContext, staleToken)
         }
 
+        // Read back rather than falling back to currentToken: the session may have just ended.
         return refreshedByApi ?: tokenManager.getAccessToken()
     }
 
@@ -191,82 +213,186 @@ object SessionManager {
 
 
 
-    private suspend fun refreshAccessTokenFromApi(context: Context): String? {
+    private suspend fun refreshAccessTokenFromApi(context: Context, staleToken: String? = null): String? {
         val safeContext = context.applicationContext
-        val tokenManager = TokenManager(safeContext)
-        val refreshToken = tokenManager.getRefreshToken() ?: return null
+        return singleFlight { refreshSession(safeContext, staleToken) }
+    }
 
-        var shouldStartRefresh = false
-        val refreshDeferred = synchronized(apiRefreshLock) {
+    /**
+     * One token operation at a time: refresh tokens rotate, so a second request carrying the same
+     * one would be refused. Whatever the operation needs is read inside [block], never before.
+     */
+    private suspend fun singleFlight(block: () -> String?): String? {
+        var shouldStart = false
+        val deferred = synchronized(apiRefreshLock) {
             pendingApiRefresh?.takeIf { !it.isCompleted } ?: CompletableDeferred<String?>().also {
                 pendingApiRefresh = it
-                shouldStartRefresh = true
+                shouldStart = true
             }
         }
 
-        if (shouldStartRefresh) {
+        if (shouldStart) {
             scope.launch(Dispatchers.IO) {
-                val refreshedToken = executeRefreshTokenRequest(safeContext, refreshToken)
-                refreshDeferred.complete(refreshedToken)
-                synchronized(apiRefreshLock) {
-                    if (pendingApiRefresh === refreshDeferred) {
-                        pendingApiRefresh = null
+                try {
+                    deferred.complete(block())
+                } finally {
+                    deferred.complete(null)
+                    synchronized(apiRefreshLock) {
+                        if (pendingApiRefresh === deferred) pendingApiRefresh = null
                     }
                 }
             }
         }
 
-        return refreshDeferred.await()
+        return deferred.await()
     }
 
-    private fun executeRefreshTokenRequest(context: Context, refreshToken: String): String? {
-        return oauthTokenUrls().firstNotNullOfOrNull { tokenUrl ->
-            val request = Request.Builder()
-                .url(tokenUrl)
-                .header("User-Agent", Config.USER_AGENT)
-                .header("Accept", "application/json")
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .header("Origin", "https://soundcloud.com")
-                .header("Referer", "https://soundcloud.com/")
-                .header("Authorization", Config.OFFICIAL_CLIENT_SIGNATURE)
-                .post(
-                    FormBody.Builder()
-                        .add("grant_type", "refresh_token")
-                        .add("client_id", Config.OFFICIAL_CLIENT_ID)
-                        .add("refresh_token", refreshToken)
-                        .build()
-                )
-                .build()
+    private fun refreshSession(context: Context, staleToken: String?): String? {
+        val tokenManager = TokenManager(context)
+        val accessToken = tokenManager.getAccessToken()
+        // A burst of 401s all carry the same old token: only the first one may refresh.
+        if (staleToken != null && accessToken != null && accessToken != staleToken) return accessToken
 
-            runCatching {
-                authClient.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) return@use null
+        val refreshToken = tokenManager.getRefreshToken()
+        if (refreshToken != null) return redeemRefreshToken(context, refreshToken)
 
-                    val body = response.body?.string().orEmpty()
-                    val tokenResponse = gson.fromJson(body, OAuthTokenResponse::class.java)
-                    val accessToken = tokenResponse.accessToken.cleanOAuthValue() ?: return@use null
-                    val nextRefreshToken = tokenResponse.refreshToken.cleanOAuthValue() ?: refreshToken
+        // Nothing to redeem. Only a token the server refused can end the session here, and one
+        // endpoint refusing it proves little (a stream can 401 for reasons of its own), so ask /me.
+        if (accessToken != null && accessToken == staleToken && isRejectedByServer(accessToken)) {
+            endSession(context, "access token rejected, no refresh token")
+        }
+        return null
+    }
 
-                    TokenManager(context).saveTokens(
-                        accessToken = accessToken,
-                        refreshToken = nextRefreshToken,
-                        expiresInSeconds = tokenResponse.expiresInSeconds,
-                        scope = tokenResponse.scope
-                    )
+    private fun redeemRefreshToken(context: Context, refreshToken: String): String? {
+        val tokenManager = TokenManager(context)
+        val form = FormBody.Builder()
+            .add("grant_type", "refresh_token")
+            .add("client_id", Config.OFFICIAL_CLIENT_ID)
+            .add("refresh_token", refreshToken)
+            .build()
 
-                    _sessionReadyEvent.tryEmit(Unit)
-                    accessToken
+        return when (val result = requestTokens(form)) {
+            is TokenResult.Issued ->
+                // A logout during the request must not bring the session back.
+                if (tokenManager.getRefreshToken() == refreshToken) {
+                    saveIssuedTokens(tokenManager, result.tokens, refreshToken)
+                } else {
+                    null
                 }
-            }.getOrNull()
+            is TokenResult.Refused -> {
+                Log.w(TAG, "Token refresh refused (HTTP ${result.code})")
+                if (tokenManager.getRefreshToken() == refreshToken &&
+                    OAuthTokens.isRefreshTokenDead(result.code, result.body)
+                ) {
+                    endSession(context, "refresh token invalidated")
+                }
+                null
+            }
+            TokenResult.Unreachable -> null
         }
     }
 
-    private fun oauthTokenUrls(): List<String> = listOf(
-        "${AUTH_API_BASE_URL.trimEnd('/')}/oauth/token",
-        "${Config.BASE_URL.trimEnd('/')}/oauth/token"
-    ).distinct()
+    /**
+     * Moves a non-expiring token onto the expiring client, like the official app's
+     * TokenExchangeCoordinator. Sessions logged in with the legacy client since the credentials
+     * change of 2026-10-29 hold such a token and no refresh token. A failure keeps the token as is;
+     * the next launch retries.
+     */
+    private fun migrateLegacySession(context: Context): String? {
+        val tokenManager = TokenManager(context)
+        val accessToken = tokenManager.getAccessToken() ?: return null
+        if (tokenManager.isGuestMode() || tokenManager.hasExpiringSession()) return null
 
+        val form = FormBody.Builder()
+            .add("grant_type", "token_exchange")
+            .add("token", accessToken)
+            .add("client_id", Config.LEGACY_CLIENT_ID)
+            .add("client_secret", Config.LEGACY_CLIENT_SECRET)
+            .add("issue_for_client_id", Config.OFFICIAL_CLIENT_ID)
+            .build()
 
+        return when (val result = requestTokens(form)) {
+            is TokenResult.Issued ->
+                if (tokenManager.getAccessToken() == accessToken) {
+                    saveIssuedTokens(tokenManager, result.tokens, null)
+                } else {
+                    null
+                }
+            is TokenResult.Refused -> {
+                Log.w(TAG, "Token exchange refused (HTTP ${result.code})")
+                null
+            }
+            TokenResult.Unreachable -> null
+        }
+    }
+
+    /** Like the official app: no Authorization header, api-auth only. The other headers are ours. */
+    private fun requestTokens(form: FormBody): TokenResult {
+        val request = Request.Builder()
+            .url("${AUTH_API_BASE_URL}oauth/token")
+            .header("User-Agent", Config.USER_AGENT)
+            .header("Accept", "application/json")
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Origin", "https://soundcloud.com")
+            .header("Referer", "https://soundcloud.com/")
+            .post(form)
+            .build()
+
+        return try {
+            authClient.newCall(request).execute().use { response ->
+                val body = response.body?.string().orEmpty()
+                if (!response.isSuccessful) return TokenResult.Refused(response.code, body)
+
+                val tokens = gson.fromJson(body, OAuthTokenResponse::class.java)
+                if (tokens?.accessToken.cleanOAuthValue() == null) TokenResult.Unreachable else TokenResult.Issued(tokens)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Token request failed: ${e.message}")
+            TokenResult.Unreachable
+        }
+    }
+
+    private fun saveIssuedTokens(
+        tokenManager: TokenManager,
+        tokens: OAuthTokenResponse,
+        currentRefreshToken: String?
+    ): String? {
+        val accessToken = tokens.accessToken.cleanOAuthValue() ?: return null
+        tokenManager.saveTokens(
+            accessToken = accessToken,
+            refreshToken = tokens.refreshToken.cleanOAuthValue() ?: currentRefreshToken,
+            expiresInSeconds = tokens.expiresInSeconds,
+            scope = tokens.scope
+        )
+        _sessionReadyEvent.tryEmit(Unit)
+        return accessToken
+    }
+
+    private fun isRejectedByServer(accessToken: String): Boolean {
+        val request = Request.Builder()
+            .url("${Config.BASE_URL}me?client_id=${Config.OFFICIAL_CLIENT_ID}")
+            .header("User-Agent", Config.USER_AGENT)
+            .header("Accept", "application/json")
+            .header("Authorization", "OAuth $accessToken")
+            .build()
+
+        return runCatching {
+            authClient.newCall(request).execute().use { it.code == 401 }
+        }.getOrDefault(false)
+    }
+
+    /** Sends the user back to the welcome screen instead of leaving a dead session looking alive. */
+    private fun endSession(context: Context, reason: String) {
+        Log.w(TAG, "SoundCloud session ended: $reason")
+        // Right away: requests already queued must see the session gone, not end it again.
+        TokenManager(context).clearTokens()
+        // scope runs on Main: logout() goes through CookieManager and the repositories' UI state.
+        scope.launch {
+            TokenManager(context).logout()
+            _sessionEndedEvent.tryEmit(Unit)
+        }
+    }
 
     private fun extractValue(cookies: String, key: String): String? {
         return cookies.split(";").map { it.trim() }.find { it.startsWith("$key=") }
