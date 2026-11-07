@@ -34,6 +34,7 @@ internal fun rememberSettingsSearchCatalog(
     return remember(
         preferenceVersion,
         playerViewModel.isHapticsEnabled,
+        playerViewModel.isQueuePreserveUpcomingEnabled,
         playerViewModel.equalizerState.isEnabled,
         playerViewModel.effectsState.isNormalizationEnabled,
         playerViewModel.effectsState.isMonoEnabled
@@ -706,6 +707,22 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     stopOnTaskClear = it
                     prefs.setStopOnTaskClear(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_queue_preserve_upcoming,
+                subtitleRes = R.string.pref_queue_preserve_upcoming_sub,
+                categoryName = catAudio,
+                icon = Icons.AutoMirrored.Rounded.QueueMusic,
+                route = "audio_playback_settings",
+                highlightKey = "pref_queue_preserve_upcoming",
+                hasSwitch = true,
+                switchState = playerViewModel.isQueuePreserveUpcomingEnabled,
+                onSwitchChange = {
+                    playerViewModel.toggleQueuePreserveUpcoming(it)
                     onPreferenceChange()
                 }
             ),

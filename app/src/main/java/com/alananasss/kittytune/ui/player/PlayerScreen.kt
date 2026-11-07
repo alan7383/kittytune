@@ -2201,7 +2201,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
     val isOfflineMode = isLocalFile || isDownloadedContext || isOffline
 
     val gridItems = mutableListOf<DockOptionItem>().apply {
-        if (!isLocalFile && !viewModel.isMenuContextFromPlayer) {
+        if (!isLocalFile) {
             add(
                 DockOptionItem(
                     if (isTrackLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
@@ -2226,13 +2226,14 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     id = "repeat"
                 ) { viewModel.toggleRepeatMode() })
         }
-        if (!viewModel.isMenuContextFromPlayer) {
+        if ((!viewModel.isMenuContextFromPlayer || viewModel.menuContextQueueIndex != null) &&
+                viewModel.menuContextQueueIndex != viewModel.currentQueueIndex) {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.PlaylistPlay,
                     stringResource(R.string.menu_play_next),
                     id = "play_next"
-                ) { viewModel.insertNext(listOf(track)); viewModel.showMenuSheet = false })
+                ) { viewModel.playMenuTrackNext() })
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.QueueMusic,

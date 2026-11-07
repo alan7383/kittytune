@@ -3788,4 +3788,6 @@
     <string name="passport_open_failed">Не найдено приложение для открытия изображения</string>
     <string name="passport_copy_mrz">Копировать код MRZ</string>
     <string name="passport_mrz_copied">Код MRZ скопирован в буфер обмена</string>
+    <string name="pref_queue_preserve_upcoming">Сохранять очередь при выборе</string>
+    <string name="pref_queue_preserve_upcoming_sub">Перемещает выбранный трек на следующее место без пропуска промежуточных треков</string>
 </resources>

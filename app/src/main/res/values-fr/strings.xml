@@ -3810,4 +3810,6 @@
     <string name="passport_open_failed">Aucune application pour ouvrir l\'image</string>
     <string name="passport_copy_mrz">Copier le code MRZ</string>
     <string name="passport_mrz_copied">Code MRZ copié dans le presse-papiers</string>
+    <string name="pref_queue_preserve_upcoming">Préserver la file à venir lors d\'un saut</string>
+    <string name="pref_queue_preserve_upcoming_sub">Place le morceau sélectionné à la suite sans perdre les pistes intermédiaires</string>
 </resources>

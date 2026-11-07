@@ -3901,4 +3901,6 @@
     <string name="passport_open_failed">Görseli açacak uygulama bulunamadı</string>
     <string name="passport_copy_mrz">MRZ kodunu kopyala</string>
     <string name="passport_mrz_copied">MRZ kodu panoya kopyalandı</string>
+    <string name="pref_queue_preserve_upcoming">Atlama sırasında yaklaşan sırayı koru</string>
+    <string name="pref_queue_preserve_upcoming_sub">Aradaki parçaları atlamak yerine tıklanan parçayı sıradaki konuma taşır</string>
 </resources>
