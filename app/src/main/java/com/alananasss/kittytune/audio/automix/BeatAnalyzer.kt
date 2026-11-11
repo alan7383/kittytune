@@ -82,12 +82,11 @@ object BeatAnalyzer {
     private const val MIN_CANONICAL_BPM = 90f
     private const val MAX_CANONICAL_BPM = 180f
 
-    /**
-     * Perceptual tempo prior. Listeners tap along near 120–130 BPM, so when autocorrelation
-     * cannot separate a tempo from its half or double (a 160 BPM track with a halftime snare
-     * correlates exactly like 80 BPM), the octave closest to this centre wins.
-     */
-    private const val PREFERRED_BPM = 125f
+    // Perceptual tempo prior. Listeners tap along near 120–130 BPM (the centre of the
+    // tapping distribution is ~124), so when autocorrelation cannot separate a tempo
+    // from its half or double (a 160 BPM track with a halftime snare correlates exactly
+    // like 80 BPM), the octave closest to this centre wins.
+    private const val PREFERRED_BPM = 124f
     private const val TEMPO_PRIOR_OCTAVES = 0.85f
 
     /** Beats per bar and bars per phrase. 4/4 with 4-bar phrases covers effectively all club music. */
@@ -566,7 +565,7 @@ object BeatAnalyzer {
                 if (!inputDone) {
                     val inIndex = codec.dequeueInputBuffer(10_000)
                     if (inIndex >= 0) {
-                        val buffer = codec.getInputBuffer(inIndex)!!
+                        val buffer = codec.getInputBuffer(inIndex) ?: continue
                         val size = extractor.readSampleData(buffer, 0)
                         if (size < 0) {
                             codec.queueInputBuffer(inIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
@@ -589,7 +588,7 @@ object BeatAnalyzer {
                             outFormat.getInteger(MediaFormat.KEY_PCM_ENCODING)
                         } else AudioFormat.ENCODING_PCM_16BIT
 
-                        val buf = codec.getOutputBuffer(outIndex)!!
+                        val buf = codec.getOutputBuffer(outIndex) ?: run { codec.releaseOutputBuffer(outIndex, false); continue }
                         buf.position(info.offset)
                         buf.limit(info.offset + info.size)
                         buf.order(java.nio.ByteOrder.LITTLE_ENDIAN)
@@ -765,8 +764,9 @@ object BeatAnalyzer {
     /** Assumed rate when a caller only wants the sample-rate-independent full-band flux. */
     private const val DEFAULT_ANALYSIS_RATE = 44100
 
-    /** Band edges in Hz: kick body, snare body, snare crack / hats. */
-    private const val LOW_BAND_HZ = 150f
+    // Band edges in Hz: kick body (20–120 Hz, rumble below 20 excluded), snare body, snare crack / hats.
+    private const val LOW_BAND_LO_HZ = 20f
+    private const val LOW_BAND_HZ = 120f
     private const val MID_BAND_LO_HZ = 150f
     private const val MID_BAND_HI_HZ = 800f
     private const val HIGH_BAND_LO_HZ = 2000f
@@ -787,6 +787,7 @@ object BeatAnalyzer {
         val binHz = rate.toFloat() / FFT_SIZE
 
         fun binOf(hz: Float) = (hz / binHz).toInt().coerceIn(0, bins - 1)
+        val lowLo = binOf(LOW_BAND_LO_HZ)
         val lowHi = binOf(LOW_BAND_HZ)
         val midLo = binOf(MID_BAND_LO_HZ)
         val midHi = binOf(MID_BAND_HI_HZ)
@@ -818,7 +819,7 @@ object BeatAnalyzer {
                 prevMag[b] = mag
                 if (diff <= 0) continue
                 sum += diff
-                if (b <= lowHi) lowSum += diff
+                if (b >= lowLo && b <= lowHi) lowSum += diff
                 if (b in midLo..midHi) midSum += diff
                 if (b in highLo..highHi) highSum += diff
             }
@@ -886,8 +887,9 @@ object BeatAnalyzer {
             return sum / energy
         }
 
-        // Halves, doubles and the triplet relation cover every octave error that matters.
-        val factors = floatArrayOf(0.25f, 1f / 3f, 0.5f, 2f / 3f, 1f, 1.5f, 2f, 3f, 4f)
+        // Octaves plus the 3/4 and 4/3 (dotted) relations: a shuffled 6/8 groove reads as
+        // 0.75×/1.33× of its tapped tempo, and blind octave folding calls those wrong every time.
+        val factors = floatArrayOf(0.25f, 1f / 3f, 0.5f, 2f / 3f, 0.75f, 1f, 4f / 3f, 1.5f, 2f, 3f, 4f)
         var bestPeriod = periodFrames
         var bestScore = Float.NEGATIVE_INFINITY
         for (factor in factors) {
@@ -969,45 +971,71 @@ object BeatAnalyzer {
     private val MAJOR_PROFILE = floatArrayOf(6.35f, 2.23f, 3.48f, 2.33f, 4.38f, 4.09f, 2.52f, 5.19f, 2.39f, 3.66f, 2.29f, 2.88f)
     private val MINOR_PROFILE = floatArrayOf(6.33f, 2.68f, 3.52f, 5.38f, 2.60f, 3.53f, 2.54f, 4.75f, 3.98f, 2.69f, 3.34f, 3.17f)
 
-    /**
-     * Chroma vector (12-bin pitch-class energy) correlated against the Krumhansl-Schmuckler
-     * major/minor profiles across all 12 rotations. Returns (pitch class 0=C..11=B, isMinor),
-     * or null when there isn't enough tonal energy to call a key (e.g. mostly percussive).
-     */
+    // Target frequency resolution of the key chroma FFT (Hz per bin).
+    private const val KEY_TARGET_BIN_HZ = 5f
+    private const val KEY_MIN_FFT = 2048
+    private const val KEY_MAX_FFT = 8192
+
+    // Below this the bins are wider than a semitone-and-a-half: pure smear, no pitch info.
+    private const val KEY_MIN_HZ = 100f
+    private const val KEY_MAX_HZ = 2000f
+
+    // FFT size for the chroma: the beat/flux FFT_SIZE (1024) gives ~43 Hz bins at 44.1 kHz,
+    // wider than a semitone below ~700 Hz, so every track collapsed onto the same few keys.
+    // Pick the largest power of two with bins of at least [KEY_TARGET_BIN_HZ], then shrink
+    // until the buffer holds enough frames. Returns 0 when the buffer is too short.
+    private fun keyFftSize(sampleRate: Int, numSamples: Int): Int {
+        var n = KEY_MIN_FFT
+        while (n * 2 <= KEY_MAX_FFT && n * 2 <= sampleRate / KEY_TARGET_BIN_HZ) n *= 2
+        while (n > KEY_MIN_FFT && numSamples < n * 4) n /= 2
+        return if (numSamples < n * 4) 0 else n
+    }
+
+    // Chroma vector (12-bin pitch-class energy) correlated against the Krumhansl-Schmuckler
+    // major/minor profiles across all 12 rotations (Pearson, so a flat chroma scores ~0
+    // instead of being decided by whichever profile has the larger sum). Returns
+    // (pitch class 0=C..11=B, isMinor), or null when there isn't enough tonal energy to call
+    // a key (e.g. mostly percussive).
     fun estimateKey(samples: FloatArray, sampleRate: Int): Pair<Int, Boolean>? {
-        if (samples.size < FFT_SIZE * 4) return null
-        val window = FloatArray(FFT_SIZE) { 0.5f - 0.5f * cos(2.0 * Math.PI * it / FFT_SIZE).toFloat() }
-        val hop = FFT_SIZE / 2
-        val numFrames = (samples.size - FFT_SIZE) / hop
+        if (sampleRate <= 0) return null
+        val n = keyFftSize(sampleRate, samples.size)
+        if (n == 0) return null
+        val window = FloatArray(n) { 0.5f - 0.5f * cos(2.0 * Math.PI * it / n).toFloat() }
+        val hop = n / 2
+        val numFrames = (samples.size - n) / hop
         if (numFrames < 4) return null
 
         val chroma = FloatArray(12)
-        val re = FloatArray(FFT_SIZE)
-        val im = FloatArray(FFT_SIZE)
-        val binHz = sampleRate.toFloat() / FFT_SIZE
+        val re = FloatArray(n)
+        val im = FloatArray(n)
+        val binHz = sampleRate.toFloat() / n
         // Musically relevant range: skip sub-bass rumble and high-frequency noise.
-        val minBin = (65f / binHz).toInt().coerceAtLeast(1)
-        val maxBin = (2000f / binHz).toInt().coerceAtMost(FFT_SIZE / 2 - 1)
+        val minBin = (KEY_MIN_HZ / binHz).toInt().coerceAtLeast(1)
+        val maxBin = (KEY_MAX_HZ / binHz).toInt().coerceAtMost(n / 2 - 1)
+        if (maxBin <= minBin) return null
+
+        // bin -> pitch class, computed once (it does not depend on the frame).
+        val pitchClassOfBin = IntArray(maxBin + 1)
+        for (b in minBin..maxBin) {
+            val midi = 69.0 + 12.0 * (ln(b * binHz / 440.0) / ln(2.0))
+            pitchClassOfBin[b] = ((midi.roundToInt() % 12) + 12) % 12
+        }
 
         for (frame in 0 until numFrames) {
             val offset = frame * hop
-            for (i in 0 until FFT_SIZE) {
+            for (i in 0 until n) {
                 re[i] = samples[offset + i] * window[i]
                 im[i] = 0f
             }
             fft(re, im)
             for (b in minBin..maxBin) {
-                val mag = sqrt(re[b] * re[b] + im[b] * im[b])
-                if (mag <= 0f) continue
-                val freq = b * binHz
-                val midi = 69.0 + 12.0 * (ln(freq / 440.0) / ln(2.0))
-                val pitchClass = ((midi.roundToInt() % 12) + 12) % 12
-                chroma[pitchClass] += mag
+                // Power, not magnitude: emphasises spectral peaks over broadband noise.
+                chroma[pitchClassOfBin[b]] += re[b] * re[b] + im[b] * im[b]
             }
         }
 
         val sum = chroma.sum()
-        if (sum <= 0f) return null
+        if (!(sum > 0f) || sum.isInfinite()) return null // also rejects NaN
         for (i in chroma.indices) chroma[i] /= sum
 
         var bestScore = Float.NEGATIVE_INFINITY
@@ -1023,13 +1051,29 @@ object BeatAnalyzer {
                 bestScore = minorScore; bestPitchClass = tonic; bestIsMinor = true
             }
         }
+        // No positive correlation = no tonal centre: say "unknown" rather than a random key.
+        if (!(bestScore > 0f)) return null
         return bestPitchClass to bestIsMinor
     }
 
+    // Pearson correlation of the chroma, rotated so index 0 = [tonic], with [profile].
     private fun correlateChroma(chroma: FloatArray, profile: FloatArray, tonic: Int): Float {
-        var sum = 0f
-        for (degree in 0 until 12) sum += chroma[(degree + tonic) % 12] * profile[degree]
-        return sum
+        var meanX = 0f
+        var meanP = 0f
+        for (i in 0 until 12) { meanX += chroma[i]; meanP += profile[i] }
+        meanX /= 12f
+        meanP /= 12f
+        var num = 0f
+        var dx = 0f
+        var dp = 0f
+        for (degree in 0 until 12) {
+            val x = chroma[(degree + tonic) % 12] - meanX
+            val p = profile[degree] - meanP
+            num += x * p
+            dx += x * x
+            dp += p * p
+        }
+        return if (dx <= 0f || dp <= 0f) 0f else num / sqrt(dx * dp)
     }
 
     /** Comb filter: phase (in frames) maximizing summed flux at phase + k*period. */

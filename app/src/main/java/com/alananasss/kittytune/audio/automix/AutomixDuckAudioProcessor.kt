@@ -94,18 +94,38 @@ class AutomixDuckAudioProcessor(
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
-        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT || inputAudioFormat.channelCount > 2) {
-            return AudioProcessor.AudioFormat.NOT_SET
-        }
+        // Format fields and shelf coefficients are computed BEFORE the Bit-Perfect
+        // bypass: computeShelfCoefficients() is idempotent and sampleRate-guarded, and
+        // a hot-unplug (DAC off mid-playback) must find the shelf ready to engage the
+        // moment the bypass lifts - not stuck on the passthrough dry defaults.
         sampleRate = inputAudioFormat.sampleRate
         channelCount = inputAudioFormat.channelCount
         computeShelfCoefficients()
+
+        // Bit-Perfect: identity configuration for ANY PCM encoding - the chain format
+        // must stay 1:1 so the queueInput byte passthrough is bit-exact (never NOT_SET
+        // and never a negotiated conversion while the DAC owns the output).
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.AUTOMIX_DUCK)) {
+            return inputAudioFormat
+        }
+        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT || inputAudioFormat.channelCount > 2) {
+            return AudioProcessor.AudioFormat.NOT_SET
+        }
         return inputAudioFormat
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
+
+        // Bit-Perfect on a USB DAC: bit-transparent copy - the shelf stays dry and the
+        // PCM bytes reach the DAC untouched. Per-buffer check, no per-sample cost.
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.AUTOMIX_DUCK)) {
+            val passthrough = replaceOutputBuffer(remaining)
+            passthrough.put(inputBuffer)
+            passthrough.flip()
+            return
+        }
 
         // Fast path: no duck requested and the eased blend has fully settled back to dry.
         // With mix == 0 the output is bit-identical to the input (out = in + (filtered-in)*0),
@@ -147,7 +167,7 @@ class AutomixDuckAudioProcessor(
                 x2L = x1L; x1L = inL; y2L = y1L; y1L = filteredL
 
                 val filteredR = b0 * inR + b1 * x1R + b2 * x2R - a1 * y1R - a2 * y2R
-                x2R = x1R; x1R = inR; y2R = y1R; y2R = filteredR
+                x2R = x1R; x1R = inR; y2R = y1R; y1R = filteredR
 
                 val outL = inL + (filteredL - inL) * currentMix
                 val outR = inR + (filteredR - inR) * currentMix
@@ -160,13 +180,27 @@ class AutomixDuckAudioProcessor(
             }
         }
 
+        // Absorb a trailing partial frame (an odd byte on mono, a half frame on stereo)
+        // instead of leaving it behind: Media3's audio thread loops on
+        // while(inputBuffer.hasRemaining()) - an unread tail would spin it forever.
+        if (inputBuffer.hasRemaining()) {
+            inputBuffer.position(inputBuffer.limit())
+        }
+
         outputBuffer.flip()
     }
 
     @Deprecated("Deprecated in Java")
     override fun onFlush() {
-        x1L = 0.0; x2L = 0.0; y1L = 0.0; y2L = 0.0
-        x1R = 0.0; x2R = 0.0; y1R = 0.0; y2R = 0.0
+        // Flush arrives on seeks - including the phase-lock correction seeks made
+        // mid-transition while the duck shelf is engaged. The biquad memory (z1/z2
+        // equivalents: x1/x2/y1/y2) carries the running filter state; zeroing it then
+        // is a step discontinuity = a click right inside the blend. Only a dry shelf
+        // (no duck requested) keeps the old always-clean-restart contract.
+        if (targetMix <= 0f) {
+            x1L = 0.0; x2L = 0.0; y1L = 0.0; y2L = 0.0
+            x1R = 0.0; x2R = 0.0; y1R = 0.0; y2R = 0.0
+        }
     }
 
     override fun onReset() {
