@@ -15,17 +15,31 @@ import java.nio.ByteBuffer
 class LiveBeatAudioProcessor(val tracker: LiveBeatTracker) : BaseAudioProcessor() {
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+        // The tracker's sample rate is set BEFORE the Bit-Perfect bypass: after a
+        // hot-unplug (DAC off mid-playback) analysis resumes on the next buffer, and
+        // the beat grid must already be anchored to the right rate.
+        tracker.configure(inputAudioFormat.sampleRate)
+        // Bit-Perfect: identity configuration for ANY PCM encoding - the chain format
+        // must stay 1:1 so the queueInput byte passthrough is bit-exact (never NOT_SET
+        // and never a negotiated conversion while the DAC owns the output).
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.LIVE_BEAT)) {
+            return inputAudioFormat
+        }
         if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT && inputAudioFormat.encoding != C.ENCODING_PCM_FLOAT) {
             return AudioProcessor.AudioFormat.NOT_SET
         }
-        tracker.configure(inputAudioFormat.sampleRate)
         return inputAudioFormat
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
-        analyze(inputBuffer)
+        // Bit-Perfect on a USB DAC: live beat tracking is suspended along with the
+        // other analyzers. This processor is watch-only (never alters samples), but
+        // its CPU cost belongs to the suspended effect set.
+        if (com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.LIVE_BEAT)) {
+            analyze(inputBuffer)
+        }
         val out = replaceOutputBuffer(remaining)
         out.put(inputBuffer)
         out.flip()
