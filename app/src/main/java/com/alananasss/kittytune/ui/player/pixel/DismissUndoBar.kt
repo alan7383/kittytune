@@ -25,6 +25,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.graphicsLayer
+
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -49,7 +52,8 @@ fun DismissUndoBar(
 ) {
     val progress = remember { Animatable(1f) }
 
-    LaunchedEffect(key1 = onUndo, key2 = text) {
+    val currentOnClose by androidx.compose.runtime.rememberUpdatedState(onClose)
+    LaunchedEffect(key1 = text) {
         progress.snapTo(1f)
         progress.animateTo(
             targetValue = 0f,
@@ -58,7 +62,7 @@ fun DismissUndoBar(
                 easing = LinearEasing
             )
         )
-        onClose()
+        currentOnClose()
     }
 
     Surface(
@@ -80,8 +84,12 @@ fun DismissUndoBar(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .fillMaxWidth(fraction = progress.value.coerceIn(0f, 1f))
+                    .fillMaxWidth()
                     .fillMaxHeight()
+                    .graphicsLayer {
+                        scaleX = progress.value.coerceIn(0f, 1f)
+                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                    }
                     .background(
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
                         shape = AbsoluteSmoothCornerShape(
