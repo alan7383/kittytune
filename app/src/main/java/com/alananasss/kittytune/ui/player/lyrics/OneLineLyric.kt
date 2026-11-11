@@ -3,6 +3,7 @@ package com.alananasss.kittytune.ui.player.lyrics
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -15,6 +16,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -24,6 +26,7 @@ import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -33,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.ui.player.LyricsMode
 import com.alananasss.kittytune.ui.player.PlayerViewModel
@@ -92,7 +96,9 @@ fun FloatingLyricChip(vm: PlayerViewModel, modifier: Modifier = Modifier) {
                 val line = lines.getOrNull(index)
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.padding(horizontal = if (line == null) 12.dp else 16.dp, vertical = 8.dp),
+                    modifier = Modifier
+                        .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
+                        .padding(horizontal = if (line == null) 12.dp else 16.dp, vertical = 8.dp),
                 ) {
                     if (line == null) {
                         Icon(
@@ -127,23 +133,62 @@ private fun pacedPlainLines(text: String, speed: Float): List<LyricLine> {
 @Composable
 private fun SungLine(vm: PlayerViewModel, line: LyricLine, position: () -> Float, isEven: Boolean) {
     val scheme = MaterialTheme.colorScheme
-    val main = remember(line) { separateBackingVocals(line).first }
     val style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
-    LyricLineText(
-        line = main,
-        isActive = true,
-        positionMs = position,
-        wordSync = vm.isWordSyncEnabled || isEven,
-        fillEffect = vm.isAppleMusicEffectEnabled || isEven,
-        activeStyle = style,
-        inactiveStyle = style,
-        activeColor = scheme.onSurface,
-        inactiveColor = scheme.onSurfaceVariant,
-        unsungColor = scheme.onSurfaceVariant.copy(alpha = 0.55f),
-        textAlign = TextAlign.Center,
-        fillWidth = false,
-        modifier = Modifier.widthIn(max = MAX_LINE_WIDTH),
-    )
+    // The chip's sub-lines: backing vocals/ad-libs and the translation (including word glosses -
+    // WordGloss arrives as the translation row). SungLine used to show ONLY the main phrase:
+    // the Surface card clipped them, and the karaoke fill never lit them. Now the whole
+    // block lives inside a single card, and the active line's sub-lines light up in sync
+    // with it - 88% of the base colour's alpha.
+    val (mainLine, backingLine) = remember(line) { separateBackingVocals(line) }
+    val cleanTranslation = remember(line.translation) {
+        line.translation?.let { LyricsUtils.decodeHtmlEntities(it) }
+            ?.takeUnless { it.isBlank() || it.trim().equals(mainLine.text.trim(), ignoreCase = true) }
+    }
+    val subColor = scheme.onSurface.copy(alpha = 0.88f)
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        LyricLineText(
+            line = mainLine,
+            isActive = true,
+            positionMs = position,
+            wordSync = vm.isWordSyncEnabled || isEven,
+            fillEffect = vm.isAppleMusicEffectEnabled || isEven,
+            activeStyle = style,
+            inactiveStyle = style,
+            activeColor = scheme.onSurface,
+            inactiveColor = scheme.onSurfaceVariant,
+            unsungColor = scheme.onSurfaceVariant.copy(alpha = 0.55f),
+            textAlign = TextAlign.Center,
+            fillWidth = false,
+            modifier = Modifier.widthIn(max = MAX_LINE_WIDTH),
+        )
+        if (backingLine != null) {
+            Text(
+                text = backingLine.text,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = subColor,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .widthIn(max = MAX_LINE_WIDTH)
+                    .padding(top = 1.dp)
+            )
+        }
+        if (vm.isLyricsTranslationEnabled && cleanTranslation != null) {
+            Text(
+                text = cleanTranslation,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                color = subColor,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .widthIn(max = MAX_LINE_WIDTH)
+                    .padding(top = 1.dp)
+            )
+        }
+    }
 }
 
 private val CHIP_GAP = 10.dp

@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
@@ -105,15 +106,34 @@ internal object LyricLineStyling {
     }
 }
 
-/**
- * The words of one line, drawn the way the reader asked for.
- *
- * Three renderings, in order of how much the source gives us:
- * 1. **Word timings and the fill effect** — the line is drawn twice, dim underneath and bright on top, and
- *    the bright copy is clipped to a path that grows through the characters with a soft playhead edge.
- * 2. **Word timings alone** — one pass, each word coloured by whether it has been reached.
- * 3. **Neither** — the plain line.
- */
+// Mini-style top-to-bottom fill for a line-by-line lyric line.
+//
+// While the line is current, a narrow vertical gradient band sweeps down the measured text
+// height at the pace of playback: pixels above the band are fully lit, pixels below sit at
+// [dimColor]. Together with a glow that intensifies as the line progresses, this is the
+// "text enters from the top" effect from the reference mini-style renderer, adapted to line timings.
+//
+// [blockSpanPx] is the FULL block height of the line (main text + backing vocals / romanization /
+// translation under it) in px; 0 means "main text only". The fill band is scaled to that height:
+// the main text lights up first, then the fill reaches the subordinate rows - before this they
+// stayed half-grey forever, because the band only travelled the height of the main text.
+internal data class LyricSweepSpec(
+    val brightColor: Color,
+    val dimColor: Color,
+    val progress: () -> Float,
+    val blockSpanPx: () -> Float = { 0f },
+)
+
+// The words of one line, drawn the way the reader asked for.
+//
+// Three renderings, in order of how much the source gives us:
+// 1. **Word timings and the fill effect** - the line is drawn twice, dim underneath and bright on top, and
+//    the bright copy is clipped to a path that grows through the characters with a soft playhead edge.
+// 2. **Word timings alone** - one pass, each word coloured by whether it has been reached.
+// 3. **Neither** - the plain line.
+//
+// A fourth coat goes over the plain rendering: the optional mini-style [sweep] gradient, which only
+// makes sense for line-by-line (not word-by-word) lyrics and is ignored when word timings exist.
 @Composable
 internal fun LyricLineText(
     line: LyricLine,
@@ -131,11 +151,49 @@ internal fun LyricLineText(
     textModifier: Modifier = Modifier,
     onTextLayout: (TextLayoutResult) -> Unit = {},
     fillWidth: Boolean = true,
+    sweep: LyricSweepSpec? = null,
 ) {
     val words = if (wordSync && isActive) line.words else emptyList()
     val fullWidth = if (fillWidth) Modifier.fillMaxWidth() else Modifier
 
     if (words.isEmpty()) {
+        if (sweep != null && isActive) {
+            // Mini-style sweep: the gradient band's position is derived from playback inside a
+            // derivedStateOf, so only the active line recomposes as the position ticks.
+            var textHeightPx by remember { mutableFloatStateOf(1f) }
+            val sweepProgress by remember(sweep) {
+                derivedStateOf { sweep.progress().coerceIn(0f, 1f) }
+            }
+            // The band travels the ENTIRE line block: the block height (text + translation/backing
+            // under it) is at least the height of the text itself. While blockSpanPx is empty (0),
+            // the behaviour is as before - the band is scaled to the text only.
+            val sweepSpanPx = sweep.blockSpanPx().coerceAtLeast(textHeightPx)
+            val bandOrigin = sweepProgress * sweepSpanPx
+            // Once the line has finished, it must be FULLY bright - the moving soft band
+            // otherwise leaves the last few pixels of the text half-dim forever.
+            val sweepDone = sweepProgress >= 1f
+            val brush = if (sweepDone) null else Brush.verticalGradient(
+                colors = listOf(sweep.brightColor, sweep.dimColor),
+                startY = bandOrigin - 10f,
+                endY = bandOrigin + 10f
+            )
+            val glow = sweep.brightColor.copy(alpha = 0.5f)
+            Text(
+                text = line.text,
+                style = activeStyle.copy(
+                    brush = brush,
+                    shadow = Shadow(color = glow, blurRadius = sweepProgress * 20f)
+                ),
+                color = if (sweepDone) sweep.brightColor else Color.White, // ignored when a brush is set
+                textAlign = textAlign,
+                modifier = modifier.then(fullWidth).then(textModifier),
+                onTextLayout = {
+                    textHeightPx = it.size.height.toFloat().coerceAtLeast(1f)
+                    onTextLayout(it)
+                },
+            )
+            return
+        }
         Text(
             text = line.text,
             style = if (isActive) activeStyle else inactiveStyle,
