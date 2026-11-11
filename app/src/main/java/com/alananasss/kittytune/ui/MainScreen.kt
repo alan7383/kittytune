@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.SharedPreferences
+import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.ui.text.font.FontWeight
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -17,12 +18,26 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.alananasss.kittytune.data.local.MiniPlayerSwipeAction
+import com.alananasss.kittytune.ui.player.pixel.miniPlayerDismissHorizontalGesture
+import com.alananasss.kittytune.ui.player.pixel.rememberMiniPlayerDismissGestureHandler
+import kotlin.math.abs
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
@@ -32,10 +47,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -116,7 +132,6 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.ui.draw.clipToBounds
 import com.alananasss.kittytune.utils.Config
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -150,8 +165,6 @@ fun MainScreen(
     val homeViewModel: HomeViewModel = viewModel()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -165,6 +178,8 @@ fun MainScreen(
             keyboardController?.hide()
         }
     }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
 
     val prefs = remember { PlayerPreferences(context) }
 
@@ -282,15 +297,6 @@ fun MainScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        SessionManager.sessionEndedEvent.collect {
-            navController.navigate(Screen.Welcome.route) {
-                popUpTo(0) { inclusive = true }
-            }
-            homeViewModel.loadData()
-        }
-    }
-
     LaunchedEffect(shouldOpenSearch, currentDestination) {
         if (shouldOpenSearch && currentDestination != null) {
             navController.navigate(Screen.Home.route) {
@@ -379,10 +385,6 @@ fun MainScreen(
         playerViewModel.showEqualizerScreen = false
     }
 
-    BackHandler(enabled = playerViewModel.isSidePlayerOpen && !playerViewModel.isPlayerExpanded) {
-        playerViewModel.isSidePlayerOpen = false
-    }
-
     val updateStatus by UpdateManager.status.collectAsState()
     val downloadProgress by UpdateManager.downloadProgress.collectAsState()
     val totalDownloadSize by UpdateManager.downloadSize.collectAsState()
@@ -405,10 +407,77 @@ fun MainScreen(
         }
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            // Hardware keyboard shortcuts (tablets with keyboards, Chromebooks, TV remotes).
+            // Bubble phase: a focused text field consumes character keys first, so typing
+            // in search is never hijacked.
+            .onKeyEvent { event ->
+                if (playerViewModel.uiCurrentTrack == null) return@onKeyEvent false
+                val nativeEvent = event.nativeKeyEvent
+                when (nativeEvent.keyCode) {
+                    AndroidKeyEvent.KEYCODE_SPACE -> {
+                        if (nativeEvent.action == AndroidKeyEvent.ACTION_UP && nativeEvent.repeatCount == 0) {
+                            playerViewModel.togglePlayPause()
+                        }
+                        true
+                    }
+                    AndroidKeyEvent.KEYCODE_K -> {
+                        if (nativeEvent.action == AndroidKeyEvent.ACTION_UP && nativeEvent.repeatCount == 0) {
+                            playerViewModel.togglePlayPause()
+                        }
+                        true
+                    }
+                    AndroidKeyEvent.KEYCODE_N -> {
+                        if (nativeEvent.action == AndroidKeyEvent.ACTION_UP && nativeEvent.repeatCount == 0) {
+                            playerViewModel.requestSkipNext()
+                        }
+                        true
+                    }
+                    AndroidKeyEvent.KEYCODE_P -> {
+                        if (nativeEvent.action == AndroidKeyEvent.ACTION_UP && nativeEvent.repeatCount == 0) {
+                            playerViewModel.smartPrevious()
+                        }
+                        true
+                    }
+                    AndroidKeyEvent.KEYCODE_J -> {
+                        if (nativeEvent.action == AndroidKeyEvent.ACTION_DOWN) {
+                            playerViewModel.seekTo(
+                                (playerViewModel.uiCurrentPosition - 10_000L).coerceAtLeast(0L)
+                            )
+                        }
+                        true
+                    }
+                    AndroidKeyEvent.KEYCODE_L -> {
+                        if (nativeEvent.action == AndroidKeyEvent.ACTION_DOWN) {
+                            val duration = playerViewModel.uiDuration
+                            val target = playerViewModel.uiCurrentPosition + 10_000L
+                            playerViewModel.seekTo(
+                                if (duration > 0) target.coerceAtMost(duration) else target
+                            )
+                        }
+                        true
+                    }
+                    else -> false
+                }
+            }
+    ) {
         val windowSizeInfo = rememberWindowSizeInfo(maxWidth, maxHeight)
-        val actualBottomMenuBlurEnabled = (bottomMenuStyle == "modern" || windowSizeInfo.showTabletDock) && rawBottomMenuBlurEnabled
-        val showBottomUi = !playerViewModel.isPlayerExpanded
+        // Blur is a signature of the MODERN floating dock; the classic bar is an opaque surface.
+        val actualBottomMenuBlurEnabled = bottomMenuStyle == "modern" && rawBottomMenuBlurEnabled
+        val showBottomUi = !playerViewModel.isPlayerExpanded && !playerViewModel.isTransitionEditorActive
+
+        // Tablet navigation placement: the bottom dock (default) or a left rail,
+        // for both the classic and the modern styles. Works in BOTH orientations —
+        // the rail is a first-class tablet layout, not a landscape-only trick.
+        val tabletNavPlacement by prefs.tabletNavPlacementFlow().collectAsState(initial = prefs.getTabletNavPlacement())
+        val showTabletLeftRail = windowSizeInfo.isTablet &&
+                tabletNavPlacement == com.alananasss.kittytune.data.local.TabletNavPlacement.LEFT
+        // One switch for both styles: ON = icons only (no text under the classic icons and
+        // no expanding label next to the selected modern pill / rail item).
+        val hideNavLabels by prefs.navHideLabelsFlow().collectAsState(initial = prefs.getNavHideLabels())
+        val showNavLabels = !hideNavLabels
 
         val currentRoute = currentDestination?.route ?: startDestination
         val isFullScreenRoute = currentRoute == Screen.Login.route ||
@@ -438,28 +507,8 @@ fun MainScreen(
                 currentRoute.startsWith("storage_downloads") ||
                 currentRoute == "equalizer"
 
-        val hideNavRail = currentRoute == Screen.Login.route ||
-                currentRoute.startsWith("login") ||
-                currentRoute.endsWith("_login") ||
-                currentRoute == Screen.Welcome.route ||
-                currentRoute == "update" ||
-                currentRoute == "pet_settings" ||
-                currentRoute == "discord_login" ||
-                currentRoute == "vk_login" ||
-                currentRoute == "deezer_login" ||
-                currentRoute == "tidal_login" ||
-                currentRoute == "qobuz_login" ||
-                currentRoute == "portable_import" ||
-                currentRoute.startsWith("yearly_playback") ||
-                currentRoute.startsWith("listening_stats") ||
-                currentRoute == "recaps" ||
-                currentRoute.startsWith("recap/") ||
-                currentRoute == "music_passport" ||
-                currentRoute == "storage" ||
-                currentRoute.startsWith("storage_downloads") ||
-                currentRoute == "equalizer"
 
-        val isMiniPlayerVisible = playerViewModel.uiCurrentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
+        val isMiniPlayerVisible = playerViewModel.uiCurrentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute && !playerViewModel.isTransitionEditorActive
 
         val snackbarPadding by animateDpAsState(
             targetValue = if (isMiniPlayerVisible) 90.dp else 16.dp,
@@ -638,23 +687,11 @@ fun MainScreen(
                     }
                 }
             }
-            val isSidePlayerVisible = windowSizeInfo.showTabletDock && playerViewModel.isSidePlayerOpen && !playerViewModel.isPlayerExpanded && playerViewModel.uiCurrentTrack != null
-            val sidePanelWidth = 420.dp
-            val animatedSidePanelWidth by animateDpAsState(
-                targetValue = if (isSidePlayerVisible) sidePanelWidth else 0.dp,
-                animationSpec = spring(
-                    dampingRatio = 0.85f,
-                    stiffness = 380f
-                ),
-                label = "sidePanelWidth"
-            )
-
             Row(modifier = Modifier.fillMaxSize()) {
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = windowSizeInfo.showNavRail && showBottomUi && !hideNavRail,
-                    enter = slideInHorizontally(initialOffsetX = { -it }) + expandHorizontally(expandFrom = Alignment.Start),
-                    exit = slideOutHorizontally(targetOffsetX = { -it }) + shrinkHorizontally(shrinkTowards = Alignment.Start)
-                ) {
+                // The left rail renders directly (no AnimatedVisibility): on some tablets the
+                // animated expand used to settle into a clipped, empty-looking strip. Direct
+                // composition keeps the rail width and its icons rock solid in both orientations.
+                if ((windowSizeInfo.showNavRail || showTabletLeftRail) && showBottomUi && !isFullScreenRoute) {
                     KittyNavigationRail(
                         tabs = tabs,
                         selectedRoute = selectedRoute,
@@ -663,7 +700,21 @@ fun MainScreen(
                         fabIcon = fabIcon,
                         fabLabel = fabLabel,
                         playerViewModel = playerViewModel,
-                        onPlayerClick = { playerViewModel.isPlayerExpanded = true }
+                        onPlayerClick = { playerViewModel.isPlayerExpanded = true },
+                        style = bottomMenuStyle,
+                        // The labels switch is a TABLET setting: on a phone the rail and
+                        // the bottom bar always show their labels, exactly as they did
+                        // before the switch existed.
+                        showLabels = showNavLabels,
+                        // The rail shares the EXACT window metrics MainScreen used to decide
+                        // to show it: recomputing them from LocalConfiguration inside the rail
+                        // could disagree with the caller on some tablets and pick the wrong
+                        // branch / width. One source of truth, no mismatch.
+                        windowSizeInfo = windowSizeInfo,
+                        // The navigation panel is the FIRST (top) layer of the main layout:
+                        // nothing may ever draw over it, which is what the tablet z-order
+                        // complaint was about.
+                        modifier = Modifier.zIndex(1f)
                     )
                 }
 
@@ -672,7 +723,7 @@ fun MainScreen(
                         .weight(1f)
                         .fillMaxHeight()
                         .then(
-                            if (windowSizeInfo.showNavRail && showBottomUi && !hideNavRail) {
+                            if ((windowSizeInfo.showNavRail || showTabletLeftRail) && showBottomUi && !isFullScreenRoute) {
                                 Modifier.consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start))
                             } else {
                                 Modifier
@@ -683,7 +734,9 @@ fun MainScreen(
                     val statusBarHeightPx = with(density) {
                         WindowInsets.statusBars.asPaddingValues().calculateTopPadding().toPx()
                     }
-                    val bottomBarHeightPx = with(density) { if (windowSizeInfo.showTabletDock) 130.dp.toPx() else 150.dp.toPx() }
+                    val bottomBarHeightPx = with(density) {
+                        if (windowSizeInfo.showTabletDock && !showTabletLeftRail) 130.dp.toPx() else 150.dp.toPx()
+                    }
 
                     AyuBackGestureBridge(
                         navController,
@@ -1994,8 +2047,9 @@ fun MainScreen(
                         }
                     }
 
+                    // Regular bottom bar for phones (or tablets with a bottom dock)
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = windowSizeInfo.showPhoneBottomBar && showBottomUi && !isFullScreenRoute,
+                        visible = (windowSizeInfo.showPhoneBottomBar || (windowSizeInfo.showTabletDock && !showTabletLeftRail)) && showBottomUi && !isFullScreenRoute,
                         enter = slideInVertically(initialOffsetY = { it }),
                         exit = slideOutVertically(targetOffsetY = { it }),
                     ) {
@@ -2008,66 +2062,125 @@ fun MainScreen(
                             playerViewModel = playerViewModel,
                             onPlayerClick = { playerViewModel.isPlayerExpanded = true },
                             style = bottomMenuStyle,
-                            blurEnabled = actualBottomMenuBlurEnabled
+                            blurEnabled = actualBottomMenuBlurEnabled,
+                            showSkipInMiniPlayer = true,
+                            showLabels = showNavLabels,
                         )
                     }
 
+                    // ONLY FOR TABLETS WITH A SIDE PANEL: floating mini player at the bottom, centered.
+                    // The classic mini player is now the full width of the content area, with the same
+                    // gestures as on the phone: a horizontal swipe dismisses it (with an "Undo"
+                    // button) or switches the track — per the "Mini player swipe" setting.
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = windowSizeInfo.showTabletDock && showBottomUi && !isFullScreenRoute,
-                        enter = slideInVertically(initialOffsetY = { it }),
-                        exit = slideOutVertically(targetOffsetY = { it }),
+                        visible = showTabletLeftRail && isMiniPlayerVisible && showBottomUi && !isFullScreenRoute,
+                        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
                     ) {
-                        com.alananasss.kittytune.ui.navigation.TabletBottomDock(
-                            tabs = tabs,
-                            selectedRoute = selectedRoute,
-                            onTabSelected = onTabSelected,
-                            onFabClick = onFabClick,
-                            fabIcon = fabIcon,
-                            fabLabel = fabLabel,
-                            playerViewModel = playerViewModel,
-                            onPlayerClick = {
-                                if (windowSizeInfo.showTabletDock) {
-                                    playerViewModel.isSidePlayerOpen = true
-                                    playerViewModel.isPlayerExpanded = false
-                                } else {
-                                    playerViewModel.isPlayerExpanded = true
+                        val miniPlayerStyle by prefs.miniPlayerStyleFlow().collectAsState(initial = prefs.getMiniPlayerStyle())
+                        val miniSwipeAction by prefs.miniPlayerSwipeActionFlow().collectAsState(initial = prefs.getMiniPlayerSwipeAction())
+                        val miniConfiguration = LocalConfiguration.current
+                        val miniHaptics = LocalHapticFeedback.current
+                        val miniDensity = LocalDensity.current
+                        val miniScreenWidthPx = remember(miniConfiguration, miniDensity) {
+                            with(miniDensity) { miniConfiguration.screenWidthDp.dp.toPx() }
+                        }
+                        val miniOffset = remember { Animatable(0f) }
+                        val miniDismissGestureHandler = rememberMiniPlayerDismissGestureHandler(
+                            scope = scope,
+                            density = miniDensity,
+                            hapticFeedback = miniHaptics,
+                            offsetAnimatable = miniOffset,
+                            screenWidthPx = miniScreenWidthPx,
+                            swipeAction = miniSwipeAction,
+                            onDismiss = { playerViewModel.dismissMiniPlayerAndShowUndo() },
+                            onDismissStarted = { playerViewModel.isMiniPlayerDismissing = true },
+                            onSwipeNext = { playerViewModel.requestSkipNext() },
+                            onSwipePrevious = { playerViewModel.smartPrevious() }
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 12.dp)
+                        ) {
+                            if (miniPlayerStyle == com.alananasss.kittytune.data.local.MiniPlayerStyle.MODERN) {
+                                com.alananasss.kittytune.ui.player.KittyModernMiniPlayer(
+                                    viewModel = playerViewModel,
+                                    onPlayerClick = { playerViewModel.isPlayerExpanded = true },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    tonalElevation = 4.dp,
+                                    shadowElevation = 6.dp,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .graphicsLayer {
+                                            translationX = miniOffset.value
+                                            alpha = if (miniSwipeAction == MiniPlayerSwipeAction.DISMISS) {
+                                                (1f - (abs(miniOffset.value) / (miniScreenWidthPx * 0.85f))).coerceIn(0f, 1f)
+                                            } else {
+                                                (1f - (abs(miniOffset.value) / miniScreenWidthPx) * 0.35f).coerceIn(0.65f, 1f)
+                                            }
+                                        }
+                                        .miniPlayerDismissHorizontalGesture(
+                                            enabled = true,
+                                            handler = miniDismissGestureHandler
+                                        )
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .clickable { playerViewModel.isPlayerExpanded = true }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        AsyncImage(
+                                            model = playerViewModel.uiCurrentTrack?.thumbnailUrl,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                        )
+                                        Spacer(Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = playerViewModel.uiCurrentTrack?.title ?: "",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = playerViewModel.uiCurrentTrack?.displayArtist ?: "",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        IconButton(onClick = { playerViewModel.togglePlayPause() }) {
+                                            Icon(
+                                                imageVector = if (playerViewModel.uiIsPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                                contentDescription = "Play/Pause",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(28.dp)
+                                            )
+                                        }
+                                        IconButton(onClick = { playerViewModel.requestSkipNext() }) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.SkipNext,
+                                                contentDescription = "Next",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
-                        )
-                    }
-                }
-            }
-
-            if (animatedSidePanelWidth > 0.dp) {
-                val panelAlpha = (animatedSidePanelWidth / sidePanelWidth).coerceIn(0f, 1f)
-                Box(
-                    modifier = Modifier
-                        .width(animatedSidePanelWidth)
-                        .fillMaxHeight()
-                        .clipToBounds()
-                        .alpha(panelAlpha)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(sidePanelWidth)
-                            .fillMaxHeight()
-                    ) {
-                        com.alananasss.kittytune.ui.player.TabletSidePlayerPanel(
-                            viewModel = playerViewModel,
-                            onExpandFullScreen = {
-                                playerViewModel.isPlayerExpanded = true
-                                playerViewModel.isSidePlayerOpen = false
-                            },
-                            onClose = {
-                                playerViewModel.isSidePlayerOpen = false
-                            },
-                            onOpenFullLyrics = {
-                                playerViewModel.showLyricsSheet = true
-                            },
-                            onNavigateToArtist = { artistId: Long ->
-                                navController.navigate("profile/$artistId")
-                            }
-                        )
+                        }
                     }
                 }
             }
@@ -2185,6 +2298,7 @@ fun MainScreen(
                 trackId = cardTrack.id,
                 trackUrl = cardTrack.permalinkUrl,
                 lyrics = playerViewModel.shareCardLyrics,
+                allLyrics = playerViewModel.shareCardAllLyrics,
                 onDismiss = { playerViewModel.dismissShareCard() },
             )
         }
@@ -2276,8 +2390,9 @@ fun MainScreen(
         var showPetAnnouncement by remember {
             mutableStateOf(com.alananasss.kittytune.ui.widget.pet.PetConfig.shouldAnnounce(context, prefs.isSetupCompleted()))
         }
-        val petAnnouncementBlocked = currentRoute == Screen.Welcome.route || currentRoute == Screen.Login.route ||
-            currentRoute == "pet_settings" || updateStatus == UpdateStatus.AVAILABLE || updateStatus == UpdateStatus.DOWNLOADING
+        val petRoute = navController.currentDestination?.route
+        val petAnnouncementBlocked = petRoute == Screen.Welcome.route || petRoute == Screen.Login.route ||
+            petRoute == "pet_settings" || updateStatus == UpdateStatus.AVAILABLE || updateStatus == UpdateStatus.DOWNLOADING
         if (showPetAnnouncement && !petAnnouncementBlocked) {
             com.alananasss.kittytune.ui.profile.pet.PetAnnouncementSheet(
                 onAdopt = {
@@ -2326,9 +2441,13 @@ fun MainScreen(
             }
         }
 
-        // « Tout aimer » demande confirmation, d'où que la demande vienne (album ou playlist) :
-        // un seul hôte ici, au-dessus de la fenêtre.
+        // "Like everything" asks for confirmation no matter where the request comes from (album or playlist):
+        // a single host here, above the window.
         com.alananasss.kittytune.ui.library.LikeAllPromptHost()
+
+        // "Eat this playlist": the snake game, asked from any playlist menu or the wave card,
+        // one host above the window.
+        com.alananasss.kittytune.ui.game.SnakeGameHost(playerViewModel)
 
         if (playerViewModel.captchaUrl != null) {
             Dialog(
