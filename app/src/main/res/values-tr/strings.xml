@@ -1,10 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="Typos,Grammar,TypographyDashes">
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- APP & CORE                                                                       -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:ns0="http://schemas.android.com/tools" ns0:ignore="Typos,Grammar,TypographyDashes">
     <string name="app_name">KittyTune</string>
     <string name="msg_retrying">Yeniden deneniyor…</string>
     <string name="success_generic">Başarılı</string>
@@ -13,11 +8,6 @@
     <string name="security_check">Güvenlik Kontrolü</string>
     <string name="no_results">Sonuç bulunamadı</string>
     <string name="unknown">Bilinmiyor</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- BUTTONS & ACTIONS                                                                -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="btn_ok">Tamam</string>
     <string name="btn_cancel">İptal</string>
     <string name="btn_confirm">Onayla</string>
@@ -47,32 +37,19 @@
     <string name="btn_share">Paylaş</string>
     <string name="btn_follow">Takip et</string>
     <string name="all_filters">Tümü</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- NAVIGATION & AUTH                                                                -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="nav_home">Ana Sayfa</string>
     <string name="nav_library">Kitaplık</string>
     <string name="nav_welcome">Hoş Geldiniz</string>
     <string name="nav_login">Giriş Yap</string>
     <string name="nav_search">Ara</string>
     <string name="nav_upload">Yükle</string>
-
     <string name="welcome_title">KittyTune\'a\nHoş Geldiniz</string>
-    
     <string name="login_title">SoundCloud Girişi</string>
     <string name="login_soundcloud">SoundCloud ile Bağlan</string>
-    
     <string name="login_auth_in_progress">Kimlik doğrulanıyor…</string>
     <string name="login_waiting_browser">Tarayıcı bekleniyor…</string>
     <string name="login_no_browser_hint">Tarayıcı açılmadıysa aşağıdaki butona dokunun.</string>
     <string name="login_reopen_browser">Tarayıcıyı tekrar aç</string>
-    
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- HOME & DISCOVERY                                                                 -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="search_hint">Parça, sanatçı ara…</string>
     <string name="search_verified_filter">Doğrulanmış</string>
     <string name="search_verified_track">Doğrulanmış parça</string>
@@ -80,11 +57,9 @@
     <string name="search_verified_no_matches">Doğrulanmış eşleşme bulunamadı. Tüm sonuçları görmek için Doğrulanmış filtresini kapatın.</string>
     <string name="search_verified_unavailable">Diğer platformlarla karşılaştırılamadı. Tüm sonuçlar gösteriliyor.</string>
     <string name="search_verified_inconclusive">Bazı sonuçlar için doğrulama netleştirilemedi.</string>
-
     <string name="home_discovery_title">Günün Keşfi</string>
     <string name="home_discovery_subtitle">Zevkine göre yeni parçalar</string>
     <string name="home_discovery_context_genre">%1$s sevenler için</string>
-
     <string name="home_recently_played">Son Çalınanlar</string>
     <string name="home_trending">Trendler</string>
     <string name="home_charts">Zirvedekiler</string>
@@ -92,7 +67,6 @@
     <string name="radio">Radyo</string>
     <string name="home_albums_for_you">Senin için albümler</string>
     <string name="home_reposts_from_friends">Takip ettiğin kişilerin yeniden paylaşımları</string>
-
     <string name="home_section_similar">%1$s Benzerleri</string>
     <string name="home_section_similar_sub">Bu parçayı dinlediğin için</string>
     <string name="home_section_new_crew">Yeni Yetenekler</string>
@@ -118,20 +92,12 @@
     <string name="home_artists_to_watch">Takip Edilmesi Gereken Sanatçılar</string>
     <string name="home_made_for_you">Senin İçin Hazırlandı</string>
     <string name="home_curated_by_soundcloud">SoundCloud Tarafından Derlendi</string>
-
-
-    <!-- Offline Home Screen -->
     <string name="home_offline_title">Tüh, bağlantı yok</string>
     <string name="home_offline_desc">KittyTune\'un yeni parçaları yüklemek için internete ihtiyacı var. Bu sırada indirilen parçalarını dinleyebilirsin.</string>
     <string name="home_offline_btn_retry">Yeniden dene</string>
     <string name="home_offline_btn_downloads">İndirilenlere git</string>
     <string name="home_offline_banner">Çevrimdışı mod aktif</string>
     <string name="offline_banner_action_downloads">İndirilenlerine gitmek ister misin? Buraya dokun</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- EXPLORER & SEARCH                                                                -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="explorer_title">Keşfet</string>
     <string name="explorer_new_releases">Yeni Çıkanlar</string>
     <string name="explorer_charts">Listeler</string>
@@ -145,10 +111,7 @@
     <string name="search_source_deezer">Deezer</string>
     <string name="search_source_tidal">Tidal</string>
     <string name="search_source_qobuz">Qobuz</string>
-
     <string name="search_section_genres">Türler</string>
-
-    <!-- MOODS -->
     <string name="category_mood_feelgood">İyi Hisset</string>
     <string name="category_mood_calm">Sakin</string>
     <string name="category_mood_focus">Odaklanma</string>
@@ -161,8 +124,6 @@
     <string name="category_mood_party">Parti</string>
     <string name="category_mood_sleep">Uyku</string>
     <string name="category_mood_sad">Hüzünlü</string>
-
-    <!-- GENRES -->
     <string name="category_genre_afro">Afro</string>
     <string name="category_genre_alt">Alternatif ve Bağımsız</string>
     <string name="category_genre_arabic">Arapça</string>
@@ -226,33 +187,24 @@
     <string name="category_genre_eurobeat">Eurobeat</string>
     <string name="category_genre_cloudrap">Cloud Rap</string>
     <string name="category_genre_dreamcore">Dreamcore</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- LIBRARY                                                                          -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="search_library_hint">Kitaplıkta filtrele</string>
     <string name="search_playlist_hint">Çalma listesinde filtrele</string>
     <string name="lib_offline_mode">Çevrimdışı Mod • Yalnızca yerel erişim</string>
     <string name="lib_guest_mode">Misafir Modu • Eşitlemek için giriş yap</string>
-    
     <string name="lib_sort_recently_added">Son eklenenler</string>
     <string name="lib_sort_manual">Özel sıralama</string>
     <string name="lib_reorder_mode">Yeniden sırala</string>
-    
     <string name="lib_playlists">Çalma Listeleri</string>
     <string name="lib_artists">Sanatçılar</string>
     <string name="lib_albums">Albümler</string>
     <string name="lib_stations">İstasyonlar</string>
     <string name="lib_liked_tracks">Beğenilen Parçalar</string>
-    
     <string name="lib_liked_subtitle_local">Yerel • Bu cihazda</string>
     <string name="lib_liked_subtitle_syncing">Eşitleniyor…</string>
     <string name="lib_downloads">İndirilenler</string>
     <string name="lib_downloads_subtitle">Çevrimdışı • Otomatik</string>
     <string name="lib_local_media">Yerel Dosyalar</string>
     <string name="lib_local_media_subtitle">Bu cihazdaki ses dosyaları</string>
-
     <string name="lib_create_playlist_title">Yeni Çalma Listesi</string>
     <string name="lib_create_playlist_hint">Çalma listesi adı</string>
     <string name="playlist_num_tracks">%1$d parça</string>
@@ -272,15 +224,12 @@
     <string name="pref_track_removal_subtitle">Parçaların çalma listelerinden nasıl kaldırılacağını seçin</string>
     <string name="track_removal_swipe_and_menu">Kaydırma ve menü</string>
     <string name="track_removal_menu_only">Yalnızca üç nokta menüsü</string>
-
     <string name="dialog_delete_playlist_title">Çalma listesi silinsin mi?</string>
     <string name="dialog_delete_playlist_msg">Bu işlem geri alınamaz</string>
     <string name="dialog_delete_playlist_from_lib_title">Kitaplıktan kaldırılsın mı?</string>
     <string name="menu_delete_playlist">Çalma listesini sil</string>
-
     <string name="lib_create_folder_title">Yeni klasör</string>
     <string name="lib_create_folder_hint">Klasör adı</string>
-    
     <string name="lib_folder_empty">Boş klasör</string>
     <string name="lib_folder_counts_playlist_singular">%1$d çalma listesi</string>
     <string name="lib_folder_counts_playlist_plural">%1$d çalma listesi</string>
@@ -302,16 +251,10 @@
     <string name="dialog_rename_folder_title">Klasörü yeniden adlandır</string>
     <string name="dialog_rename_folder_hint">Klasör adı</string>
     <string name="select_folder_title">Bir klasör seçin</string>
-    
     <string name="lib_folder_play_ordered">Sırayla çal</string>
     <string name="lib_folder_play_shuffle">Karışık çal</string>
     <string name="lib_folder_play_recursive_ordered">Tümünü çal (alt klasörlerle)</string>
     <string name="lib_folder_play_recursive_shuffle">Tümünü karışık çal (alt klasörlerle)</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- PLAYER                                                                           -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="player_playing_now">ŞU AN ÇALIYOR</string>
     <string name="player_queue">Sıra</string>
     <string name="queue_shuffle">Karıştır</string>
@@ -319,9 +262,7 @@
     <string name="playback_count_formatted">dinlenme</string>
     <string name="player_like_action">Beğen</string>
     <string name="download_comment">KittyTune ile</string>
-
     <string name="player_audio_settings">Ses Ayarları</string>
-    
     <string name="player_effects">Efektler</string>
     <string name="player_special_effects">Ses Efektleri</string>
     <string name="audio_fx_long_press_hint">Ayarlarını özelleştirmek için bir kutucuğa uzun basın</string>
@@ -333,12 +274,10 @@
     <string name="pref_precise_speed_sub">0.1x yerine 0.05x adımlar</string>
     <string name="dialog_speed_value_title">Hız</string>
     <string name="dialog_speed_label_hint">Etiket (örn. Nightcore)</string>
-
     <string name="effect_bass_boost">Bas Güçlendirme</string>
     <string name="effect_8d">8D Ses</string>
     <string name="effect_muffled">Boğuk Ses</string>
     <string name="effect_reverb">Reverb</string>
-    
     <string name="effect_vintage_mp3">Nostaljik MP3</string>
     <string name="fx_vintage_mp3_desc">2000\'ler Lo-Fi MP3 çalar ve düşük bitrate sıkıştırması</string>
     <string name="label_vintage_mp3_compression">Sıkıştırma: %1$d%% (%2$s)</string>
@@ -483,7 +422,6 @@
     <string name="preset_reverse_psych">Saykodelik Dalgalanma</string>
     <string name="preset_reverse_ghost">Hayalet Dalgalar</string>
     <string name="preset_reverse_tame">Yumuşak Dalgalanma</string>
-
     <string name="effect_stadium">Canlı Stadyum</string>
     <string name="fx_stadium_desc">50.000 kişilik dev canlı arena konseri yansımaları ve akustik kalabalık genişliği</string>
     <string name="label_stadium_size">Arena büyüklüğü: %1$d%%</string>
@@ -491,7 +429,6 @@
     <string name="preset_stadium_50k">50 Binlik Stadyum</string>
     <string name="preset_stadium_arena">Canlı Arena</string>
     <string name="preset_stadium_festival">Açık Hava</string>
-
     <string name="effect_cassette_walkman">Walkman</string>
     <string name="fx_walkman_desc">Manyetik kaset doygunluğu, demir oksit EQ keskinliği ve kaset tıslamasıyla 80\'ler taşınabilir kaset çaları</string>
     <string name="label_walkman_drive">Kaset doygunluğu: %1$d%%</string>
@@ -499,7 +436,6 @@
     <string name="preset_walkman_1984">Walkman 1984</string>
     <string name="preset_walkman_chrome">Type II Chrome</string>
     <string name="preset_walkman_lofi">Lo-Fi Kaset</string>
-
     <string name="effect_asmr_vocal">Vokal ASMR</string>
     <string name="fx_asmr_vocal_desc">12,5 kHz hava ışıltısı ve binaural yakınlıkla vokalleri doğrudan kulağınızın yanına getirir</string>
     <string name="label_asmr_proximity">Vokal yakınlığı: %1$d%%</string>
@@ -507,7 +443,6 @@
     <string name="preset_asmr_whisper">Kulağın Dibinde</string>
     <string name="preset_asmr_studio">Samimi Stüdyo</string>
     <string name="preset_asmr_sheen">Hava Işıltısı</string>
-
     <string name="effect_night_drive">Gece Sürüşü</string>
     <string name="fx_night_drive_desc">Araç içi akustiği ve derin subwoofer vuruşuyla gece 02.00 otoyol sürüşü havası</string>
     <string name="label_night_drive_cabin">Kabin akustiği: %1$d%%</string>
@@ -515,7 +450,6 @@
     <string name="preset_night_sedan">Sedan 02:00</string>
     <string name="preset_night_highway">Otoyol Gezintisi</string>
     <string name="preset_night_coupe">Gece Yarısı Coupe</string>
-
     <string name="effect_ambient_sound">Ambiyans</string>
     <string name="fx_ambient_desc">Müziğinizin yanında çalan dinlendirici arka plan ortam sesleri</string>
     <string name="ambient_rain">Yağmur</string>
@@ -523,16 +457,13 @@
     <string name="ambient_ocean">Okyanus</string>
     <string name="ambient_cafe">Kafe</string>
     <string name="label_ambient_volume">Ambiyans ses düzeyi: %1$d%%</string>
-
     <string name="btn_explore_all_effects">Tüm efektleri keşfet</string>
     <string name="edit_tiles_title">Kutucukları düzenle</string>
     <string name="edit_tiles_subtitle">Hızlı panele sabitlemek istediğiniz kutucukları seçin</string>
-    
     <string name="category_power_eq">Güç ve EQ</string>
     <string name="category_spatial">Mekânsal ve 3D</string>
     <string name="category_ambience_filters">Ambiyans ve Odalar</string>
     <string name="category_retro_vintage">Nostalji ve Dokular</string>
-    
     <string name="player_lyrics">Şarkı Sözleri</string>
     <string name="lyrics_no_data">Şarkı sözü bulunamadı</string>
     <string name="lyrics_manual_search">Manuel Arama</string>
@@ -558,11 +489,6 @@
     <string name="lyrics_sync_single">Tek zaman farkına geri dön</string>
     <string name="lyrics_sync_end_too_close">Bitişi başlangıçtan en az 20 saniye sonraya sabitleyin</string>
     <string name="dialog_upload_yaml_title">Özel şarkı sözü yükle</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- MENUS & CONTEXT                                                                  -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="menu_play_next">Sonrakini çal</string>
     <string name="menu_make_public">Herkese açık yap</string>
     <string name="menu_make_private">Gizli yap</string>
@@ -591,7 +517,6 @@
     <string name="social_proof_liked_by">beğenenler:</string>
     <string name="social_proof_and">ve</string>
     <string name="social_proof_others">diğer kişi</string>
-    
     <string name="vibe_hiphop">Hip-Hop</string>
     <string name="vibe_electronic">Elektronik</string>
     <string name="vibe_pop">Pop</string>
@@ -602,14 +527,12 @@
     <string name="vibe_euphoric">Coşkulu</string>
     <string name="vibe_happy">Neşeli</string>
     <string name="vibe_majestic">Görkemli</string>
-
     <string name="menu_remove_local_q">Dosya gizlensin mi?</string>
     <string name="menu_remove_local_body">Bu dosya uygulamada gizlenecek ancak cihazınızdan silinmeyecektir</string>
     <string name="menu_remove_download_q">İndirilen dosya silinsin mi?</string>
     <string name="menu_remove_download_body">Ses dosyası depolama alanından kaldırılacak</string>
     <string name="dialog_remove_download_title">İndirilen dosya silinsin mi?</string>
     <string name="dialog_remove_download_msg">Ses dosyaları silinecektir ancak çalma listesi kitaplığınızda kalmaya devam eder</string>
-
     <string name="dialog_repost_title">Yeniden Paylaş</string>
     <string name="dialog_repost_caption_hint">Bir açıklama ekleyin (isteğe bağlı)</string>
     <string name="dialog_repost_confirm">Yeniden Paylaş</string>
@@ -620,15 +543,9 @@
     <string name="sort_newest">En Yeni</string>
     <string name="sort_timestamp">Zaman damgasına göre</string>
     <string name="sort_oldest">En eski</string>
-
     <string name="context_playlist">Çalma Listesi • %1$s</string>
     <string name="context_station">İstasyon • %1$s</string>
     <string name="context_album">Albüm • %1$s</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- DETAILS & METADATA                                                               -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="detail_track_title">Bilgi</string>
     <string name="detail_likers">Beğeniler</string>
     <string name="detail_reposters">Yeniden Paylaşımlar</string>
@@ -640,7 +557,6 @@
     <string name="no_details_available">Henüz etkileşim yok</string>
     <string name="detail_see_similar">Benzer parçaları ve hayranları gör</string>
     <string name="detail_see_comments">Yorumları gör (%1$s)</string>
-
     <string name="detail_stats_plays">Çalma Sayısı</string>
     <string name="detail_stats_likes">Beğeni</string>
     <string name="detail_stats_reposts">Yeniden Paylaşım</string>
@@ -670,7 +586,6 @@
     <string name="share_via">Şununla paylaş</string>
     <string name="generic_title">Başlık</string>
     <string name="generic_artist">Sanatçı</string>
-
     <string name="detail_file_info">Kaynak Dosya</string>
     <string name="format_default">Ses</string>
     <string name="format_fallback">MP3/Ses</string>
@@ -684,16 +599,10 @@
     <string name="detail_unknown">Bilinmiyor</string>
     <string name="detail_file_size_formatted">%.2f MB</string>
     <string name="description_local_file">Yerel dosya: %1$s</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- USER PROFILE                                                                     -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="profile_name">Kullanıcı</string>
     <string name="unknown_user">Bilinmeyen Kullanıcı</string>
     <string name="guest_user">Misafir</string>
     <string name="me_artist">Ben</string>
-
     <string name="profile_followers">Takipçiler</string>
     <string name="profile_followings">Takip Edilenler</string>
     <string name="profile_tracks">Parçalar</string>
@@ -708,7 +617,6 @@
     <string name="profile_banner_upload_desc">En iyi sonuç için en az 2480×520 piksel boyutunda PNG veya JPG görsel yükle. 2 MB dosya boyutu sınırı</string>
     <string name="profile_latest_tracks">Son parçalar</string>
     <string name="profile_similar_artists">Şunları da beğenebilirsin</string>
-
     <string name="profile_tab_popular">Popüler</string>
     <string name="profile_tab_tracks">Parçalar</string>
     <string name="profile_tab_albums">Albümler</string>
@@ -717,19 +625,16 @@
     <string name="profile_tab_comments">Yorumlar</string>
     <string name="profile_comment_on_track">%1$s parçasında</string>
     <string name="profile_about">Hakkında</string>
-
     <string name="profile_playlists_by_user">%1$s tarafından oluşturulan çalma listeleri</string>
     <string name="profile_likes_by_user">%1$s kullanıcısının beğenileri</string>
     <string name="profile_update_success">Profil başarıyla güncellendi!</string>
     <string name="profile_update_error">Profil güncellenirken hata oluştu: %1$s</string>
-
     <string name="dialog_delete_avatar_title">Profil Resmi Silinsin mi?</string>
     <string name="dialog_delete_avatar_msg">Profil resmini kaldırmak istediğinden emin misin?</string>
     <string name="dialog_delete_header_title">Başlık Görseli Silinsin mi?</string>
     <string name="dialog_delete_header_msg">Profil başlık görselini kaldırmak istediğinden emin misin?</string>
     <string name="profile_avatar_deleted">Profil resmi kaldırıldı!</string>
     <string name="profile_banner_deleted">Başlık görseli kaldırıldı!</string>
-
     <string name="profile_menu_login">Giriş Yap</string>
     <string name="profile_menu_achievements">Başarımlar</string>
     <string name="profile_menu_settings">Ayarlar</string>
@@ -740,11 +645,6 @@
     <string name="profile_menu_messages">Mesajlar</string>
     <string name="profile_menu_guest_desc">Yalnızca yerel veriler</string>
     <string name="profile_menu_badge_new">Yeni</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- SOCIAL                                                                           -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="add_comment_hint">Yorum ekle…</string>
     <string name="comment_no_comments">Henüz yorum yok</string>
     <string name="comment_anonymous">Anonim</string>
@@ -757,11 +657,9 @@
     <string name="login_to_comment">Yorum yapmak için giriş yap</string>
     <string name="dialog_delete_comment_title">Yorum Silinsin mi?</string>
     <string name="dialog_delete_comment_msg">Bu yorumu silmek istediğinden emin misin?</string>
-
     <string name="messages_title">Sohbetler</string>
     <string name="chat_hint">Bir mesaj yaz…</string>
     <string name="chat_send">Gönder</string>
-
     <string name="notifications_title">Etkinlik</string>
     <string name="notif_type_follow">%1$s seni takip etti</string>
     <string name="notif_type_like_track">%1$s, %2$s parçasını beğendi</string>
@@ -771,7 +669,6 @@
     <string name="notif_type_comment">%1$s, %2$s parçasına yorum yaptı</string>
     <string name="notif_type_mention">%1$s bir yorumda senden bahsetti</string>
     <string name="notif_unknown">Yeni etkinlik</string>
-
     <string name="time_now">Az önce</string>
     <string name="time_minutes_ago">%1$ddk</string>
     <string name="time_hours_ago">%1$dsa</string>
@@ -780,11 +677,6 @@
     <string name="time_months_ago">%1$day</string>
     <string name="time_years_ago">%1$dy</string>
     <string name="time_one_year_ago">1 yıl önce</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- SETTINGS                                                                         -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="settings_cat_interface_sub">Temalar, oynatıcı ve şarkı sözleri</string>
     <string name="settings_cat_interface">Arayüz</string>
     <string name="settings_cat_network">Ağ</string>
@@ -798,19 +690,14 @@
     <string name="settings_cat_general">Genel</string>
     <string name="settings_cat_general_sub">Dil, başlangıç ekranı ve güncellemeler</string>
     <string name="settings_cat_appearance">Görünüm</string>
-    
     <string name="settings_cat_playback">Çalma</string>
     <string name="settings_cat_audio">Ses</string>
     <string name="settings_cat_source">Kitaplık</string>
-
     <string name="pref_privacy_title">Gizlilik ve Takip</string>
     <string name="pref_privacy_subtitle">Dinleme istatistiklerini ve geçmişini yönet</string>
     <string name="pref_privacy_tracking_title">Dinleme Geçmişini Etkinleştir</string>
     <string name="pref_privacy_tracking_subtitle">En çok dinlediğin parçaları ve sanatçıları takip et.</string>
-
-    <!-- APPEARANCE -->
     <string name="pref_appearance_title">Görünüm</string>
-    
     <string name="pref_color_palette_title">Renkler ve Tema</string>
     <string name="pref_color_palette_subtitle">Paleti, renkleri ve özellikleri özelleştir</string>
     <string name="color_palette_screen_title">Tema</string>
@@ -834,8 +721,6 @@
     <string name="color_spec_2021_label">SPEC 2021 (Eski)</string>
     <string name="color_hex_copied">Hex kodu kopyalandı</string>
     <string name="color_palette_system_dynamic">Sistem Dinamik</string>
-
-    <!-- Colors (Seed Palette) -->
     <string name="color_seed_electric_blue">Elektrik mavisi</string>
     <string name="color_seed_cyan">Camgöbeği</string>
     <string name="color_seed_gold">Altın</string>
@@ -849,10 +734,8 @@
     <string name="pref_theme_track_dynamic_sub">Şu an çalan parçanın kapak resmiyle eşleştir</string>
     <string name="pref_theme_pure_black">Saf Siyah (AMOLED)</string>
     <string name="pref_theme_pure_black_sub">OLED ekranlarda pil tasarrufu sağlar</string>
-    
     <string name="pref_player_style">Oynatıcı Stili</string>
     <string name="pref_language">Dil</string>
-    
     <string name="pref_app_icon_title">Uygulama simgesi</string>
     <string name="pref_app_icon_subtitle">Ana ekranındaki uygulama simgesini değiştir</string>
     <string name="icon_name_default">KittyTune</string>
@@ -917,8 +800,6 @@
     <string name="icon_name_united_states">Amerika Birleşik Devletleri</string>
     <string name="icon_name_uruguay">Uruguay</string>
     <string name="icon_name_uzbekistan">Özbekistan</string>
-
-    <!-- Community App Icons by shiro -->
     <string name="icon_category_official">Resmî</string>
     <string name="icon_category_community">Topluluk</string>
     <string name="icon_by_artist">%1$s tarafından</string>
@@ -930,7 +811,6 @@
     <string name="icon_name_shiro_kt_logo">KT Logosu</string>
     <string name="icon_name_shiro_cozy_nap">Huzurlu Melodi</string>
     <string name="icon_name_shiro_cool_cat">Havalı Kedi</string>
-
     <string name="theme_system">Sistem</string>
     <string name="theme_light">Açık</string>
     <string name="theme_dark">Koyu</string>
@@ -1001,8 +881,6 @@
     <string name="lang_russian">Русский</string>
     <string name="lang_vietnamese">Tiếng Việt</string>
     <string name="lang_turkish">Türkçe</string>
-
-    <!-- TYPOGRAPHY -->
     <string name="pref_font_custom_title">Google Sans Flex</string>
     <string name="pref_font_custom_subtitle">Özel değişken yazı tipini kullan</string>
     <string name="pref_font_variations_title">Yazı Tipi Varyasyonları</string>
@@ -1016,8 +894,6 @@
     <string name="font_preset_rounded">Yuvarlatılmış</string>
     <string name="font_preset_chunky">Kalın</string>
     <string name="font_preset_elegant">Zarif</string>
-
-    <!-- AUDIO & PLAYBACK -->
     <string name="pref_audio_title">Ses ve Çalma</string>
     <string name="pref_audio_subtitle">Ekolayzer, çalma, geçişler ve titreşimler</string>
     <string name="pref_autoplay">Otomatik Çalma</string>
@@ -1037,22 +913,16 @@
     <string name="pref_download_drm">Yerel DRM İndir</string>
     <string name="pref_download_drm_sub">Uygulama içi çalma amacıyla DRM içeriğini yerel olarak önbelleğe almak için etkin bırakın. YouTube alternatifiyle şifrelenmemiş MP3 indirmeye zorlamak için devre dışı bırakın.</string>
     <string name="drm_explanation_text">DRM korumalı parçalar, kopyalanmasını önlemek ve telif haklarını korumak amacıyla hak sahipleri tarafından şifrelenir.\n\n• Etkin (Önerilen): Parça, orijinal yüksek kalitesinde KittyTune\'un güvenli dâhili önbelleğine indirilir. Yalnızca uygulama içinde çalınabilir ve ayarladığın indirme klasöründe görünmez.\n\n• Devre Dışı: KittyTune şifrelenmiş sürümü yok sayar ve şarkıyı YouTube üzerinden bulup indirmeyi dener. Dosya standart bir MP3\'e dönüştürülerek belirttiğin klasöre kaydedilir. Uyarı: Arama otomatik yapıldığından, parça çok bilinmiyorsa yanlış içerik (müzik klibi veya cover gibi) indirebilir.</string>
-
-    <!-- AUDIO DSP & PERSISTENCE -->
     <string name="pref_audio_mono">Mono Ses</string>
     <string name="pref_audio_mono_sub">Her iki kanalı tek bir kanalda birleştirir; işitme güçlüğü çekenler için kullanışlıdır</string>
     <string name="pref_norm_title">Ses Düzeyi Normalizasyonu</string>
     <string name="pref_norm_sub">Spotify gibi parçalar arasındaki ses düzeyini eşitler</string>
-    
     <string name="pref_norm_level_quiet">Kısık</string>
     <string name="pref_norm_level_normal">Normal</string>
     <string name="pref_norm_level_loud">Yüksek</string>
     <string name="pref_save_position">Çalma konumunu hatırla</string>
     <string name="pref_save_position_sub">Yeniden başlatıldığında kaldığın yerden devam eder</string>
-
-    <!-- LYRICS -->
     <string name="pref_lyrics_title">Şarkı Sözleri</string>
-    
     <string name="pref_lyrics_local">Yerel dosyaları tercih et</string>
     <string name="pref_lyrics_local_sub">Mümkünse gömülü ID3 etiketlerini kullan</string>
     <string name="pref_lyrics_align">Hizalama</string>
@@ -1064,7 +934,7 @@
     <string name="pref_lyrics_under_cover">Albüm kapağının altında şarkı sözleri</string>
     <string name="pref_lyrics_under_cover_sub">Albüm kapağının altında senkronize mevcut söz satırını göster</string>
     <string name="pref_lyrics_multi_state">Çok durumlu şarkı sözü geçişi</string>
-    <string name="pref_lyrics_multi_state_sub">Döngü: Kapak -> Kapak altı -> Kapağın yerini al</string>
+    <string name="pref_lyrics_multi_state_sub">Döngü: Kapak -&gt; Kapak altı -&gt; Kapağın yerini al</string>
     <string name="pref_lyrics_under_cover_placement">Kapak altı düzeni</string>
     <string name="pref_lyrics_under_cover_replace">Başlık ve sanatçının yerini al</string>
     <string name="pref_lyrics_under_cover_above">Başlık ve sanatçının üstünde</string>
@@ -1078,7 +948,6 @@
     <string name="pref_lyrics_paxsenix_key_sub">Apple Music, Spotify ve Paxsenix Musixmatch için gereklidir</string>
     <string name="pref_lyrics_order">Sağlayıcı Öncelik Sırası</string>
     <string name="pref_lyrics_order_sub">Sağlayıcı önceliğini ve kullanılabilirliğini yönet</string>
-    
     <string name="pref_lyrics_translation_title">Şarkı sözlerini çevir</string>
     <string name="pref_lyrics_translation_sub">Mevcutsa her satırın altında satır satır çeviriyi göster</string>
     <string name="pref_lyrics_translation_lang">Çeviri dili</string>
@@ -1101,7 +970,6 @@
     <string name="pref_animated_artist_profiles">Hareketli sanatçı profilleri</string>
     <string name="pref_animated_artist_profiles_desc">Sanatçı profili ekranlarında hareketli video görsellerini göster</string>
     <string name="pref_player_design">Oynatıcı tasarımı</string>
-    
     <string name="player_now_playing">Şu An Çalınan</string>
     <string name="custom_lyrics_title">Lyricsfile İçe Aktar (YAML)</string>
     <string name="custom_lyrics_desc_1">Lyricsfile biçimi, satır satır veya kelime kelime (Karaoke) senkronize şarkı sözleri için açık bir YAML biçimidir. Her kelime için mükemmel hassasiyet sağlar.</string>
@@ -1113,8 +981,6 @@
     <string name="align_center_simple">Orta</string>
     <string name="align_right">Sağa</string>
     <string name="pref_lyrics_reset">Varsayılan</string>
-
-    <!-- LOCAL FILES -->
     <string name="pref_local_title">Yerel Dosyalar</string>
     <string name="pref_local_subtitle">Bu cihazdaki müzikler</string>
     <string name="pref_local_enable">Yerel Dosyaları Göster</string>
@@ -1125,7 +991,6 @@
     <string name="pref_local_scanning">Taranıyor…</string>
     <string name="pref_local_info">Alt klasörler dâhildir</string>
     <string name="pref_local_no_folder">Hiçbir klasör seçilmedi</string>
-
     <string name="pref_local_scan_status_prep">Hazırlanıyor…</string>
     <string name="pref_local_scan_status_searching">Aranıyor…</string>
     <string name="pref_local_scan_status_no_folder">Bir klasör seç</string>
@@ -1135,8 +1000,6 @@
     <string name="pref_local_scan_status_saving">Kaydediliyor…</string>
     <string name="pref_local_scan_status_done">Tamamlandı!</string>
     <string name="pref_local_scan_status_error">Hata: %1$s</string>
-
-    <!-- STORAGE -->
     <string name="pref_storage_title">Depolama</string>
     <string name="pref_storage_subtitle">Önbellek ve indirilenler</string>
     <string name="storage_used">kullanılıyor</string>
@@ -1183,8 +1046,6 @@
     <string name="storage_search_downloads_hint">İndirmelerde ara…</string>
     <string name="storage_no_search_results">\"%1$s\" için indirme bulunamadı</string>
     <string name="storage_freed_space_hint">%1$s alan boşalt</string>
-
-    <!-- BACKUP -->
     <string name="pref_backup_title">Yedekle ve Geri Yükle</string>
     <string name="pref_backup_subtitle">Çalma listelerini ve ayarları dışa aktar</string>
     <string name="backup_action">Yedekle</string>
@@ -1195,8 +1056,6 @@
     <string name="backup_info_guest">Misafir modunda da çalışır</string>
     <string name="backup_success">Yedekleme tamamlandı!</string>
     <string name="restore_success">Geri yükleme tamamlandı. Lütfen uygulamayı yeniden başlat</string>
-
-    <!-- MUSIC IMPORT (Transfer your gems) -->
     <string name="music_import_title">Müzik hazinelerini aktar</string>
     <string name="music_import_settings_subtitle">Başka bir müzik platformundan çalma listelerini ve beğenileri içe aktar</string>
     <string name="music_import_subtitle">Çalma listelerini ve beğendiğin şarkıları başka bir müzik servisinden SoundCloud\'a taşı.</string>
@@ -1217,7 +1076,6 @@
     <string name="music_import_transfer_title">Aktarım sürüyor</string>
     <string name="music_import_transfer_in_progress">Müziklerini SoundCloud\'a taşıyoruz. Bu işlem birkaç dakika sürebilir.</string>
     <string name="music_import_transfer_percent">%1$d%% tamamlandı</string>
-    
     <string name="music_import_transfer_done">Müziklerin yola çıktı!</string>
     <string name="music_import_transfer_done_subtitle">Çalma listelerin ve beğenilerin kısa süre içinde kitaplığında görünecektir.</string>
     <string name="music_import_transfer_error">Aktarım sırasında bir sorun oluştu. Lütfen tekrar dene.</string>
@@ -1225,8 +1083,6 @@
     <string name="music_import_auth_warning_title">Önemli</string>
     <string name="music_import_auth_warning_message">Giriş yaptıktan sonra tarayıcın bağlantının nasıl açılacağını sorarsa SoundCloud uygulamasını değil, KittyTune\'u seçtiğinden emin ol.</string>
     <string name="music_import_auth_warning_ok">Tamam</string>
-
-    <!-- Portable guest import (TXT/CSV) -->
     <string name="portable_import_title">TXT/CSV\'den İçe Aktar</string>
     <string name="portable_import_subtitle">Hesap gerekmez — Spotify, Deezer, TIDAL, Qobuz veya YouTube dışa aktarımını okur</string>
     <string name="portable_import_choose_file">Bir dosya seç</string>
@@ -1252,14 +1108,12 @@
     <string name="portable_import_error_unreadable">Seçilen dosya okunamadı</string>
     <string name="portable_import_error_empty_selection">Eşleşen hiçbir parça seçilmedi</string>
     <string name="portable_import_error_import">İçe aktarma başarısız oldu</string>
-
     <string name="music_provider_spotify">Spotify</string>
     <string name="music_provider_apple_music">Apple Music</string>
     <string name="music_provider_youtube_music">YouTube Music</string>
     <string name="music_provider_deezer">Deezer</string>
     <string name="music_provider_tidal">Tidal</string>
     <string name="music_provider_amazon_music">Amazon Music</string>
-    
     <string name="music_provider_boomplay">Boomplay</string>
     <string name="backup_error">Hata: %1$s</string>
     <string name="backup_in_progress">İşleniyor…</string>
@@ -1273,10 +1127,7 @@
     <string name="error_open_external_stream">Akış hatası</string>
     <string name="error_empty_body">Boş yanıt</string>
     <string name="error_not_enough_space">Yetersiz depolama alanı</string>
-
-    <!-- DISCORD -->
     <string name="pref_discord_title">Discord Entegrasyonu</string>
-    
     <string name="discord_login_title">Discord Girişi</string>
     <string name="discord_rpc_title">Discord RPC</string>
     <string name="discord_status_header">Durum</string>
@@ -1312,9 +1163,6 @@
     <string name="discord_login_captcha_desc">Discord, girişinizi tamamlamadan önce hızlı bir güvenlik doğrulaması gerektiriyor.</string>
     <string name="discord_login_captcha_loading">Güvenlik doğrulaması tamamlanıyor…</string>
     <string name="discord_login_captcha_error">Güvenlik doğrulaması başarısız oldu. Lütfen tekrar deneyin.</string>
-
-    <!-- ABOUT -->
-    <!-- Content filtering / blocked content -->
     <string name="pref_content_filter_title">Filtrelenen İçerik</string>
     <string name="pref_content_filter_subtitle">Gizlenen parçalar, engellenen sanatçılar, yapay zeka tespiti</string>
     <string name="block_section_ai">Yapay Zeka Müzik Tespiti</string>
@@ -1327,9 +1175,7 @@
     <string name="block_model_card_title">ArtifactNet Sinir Ağı Dedektörü</string>
     <string name="block_model_card_subtitle">Cihaz içi sinir ağı modeli (~17 MB)</string>
     <string name="block_model_desc_what">Ham sesi, yapay zeka müzik üreticilerinin (Suno, Udio vb.) bıraktığı mikroskobik adli imzalar için tamamen cihaz içinde analiz eder.</string>
-    
     <string name="block_model_status_ready">Model yüklendi (17,2 MB) · Çevrimdışı hazır</string>
-    
     <string name="block_model_downloading">Model indiriliyor… %d%%</string>
     <string name="block_model_download_btn">Modeli İndir (17 MB)</string>
     <string name="block_model_delete_btn">Modeli Kaldır</string>
@@ -1351,8 +1197,6 @@
     <string name="block_clear_all_title">Tümünü temizle</string>
     <string name="block_clear_all_body">Tüm gizlenen parçalar ve engellenen sanatçılar geri yüklenecek. Bu işlem geri alınamaz.</string>
     <string name="block_clear_all_confirm">Tümünü temizle</string>
-
-    <!-- AI Detection Player Badge & Sheet -->
     <string name="pref_ai_show_badge">Oynatıcıda YZ rozetini göster</string>
     <string name="pref_ai_show_badge_sub">Çalma sırasında yapay zeka tespit etiketini ve güven puanını göster</string>
     <string name="pref_ai_show_human_badge">İnsan yapımı parçalar için rozet göster</string>
@@ -1383,7 +1227,6 @@
     <string name="block_ai_spare_favorites">Beğenilen parçaları atlama</string>
     <string name="block_ai_spare_favorites_sub">Beğendiğin parçaları asla otomatik olarak atlama</string>
     <string name="block_ai_window_title">Analiz penceresi</string>
-    
     <string name="block_ai_window_dialog_title">YZ Analiz Penceresi</string>
     <string name="block_ai_window_4s_title">4 saniye (Önerilen)</string>
     <string name="block_ai_window_4s_desc">Artıları: Maksimum doğruluk, tekrarsız doğal sürekli analiz.\nEksileri: Tespit yaklaşık 4 sn çalma süresi alır (atlamadan önce hafif gecikme).</string>
@@ -1416,7 +1259,6 @@
     <string name="notif_added_to_playlist_unnamed">Çalma listesine eklendi</string>
     <string name="notif_no_track_playing">Çalan parça yok</string>
     <string name="notif_no_playlist_available">Henüz kullanılabilir çalma listesi yok</string>
-
     <string name="pref_about_title">Hakkında</string>
     <string name="pref_about_subtitle">Sürüm ve katkıda bulunanlar</string>
     <string name="about_github">Kaynak Kodu (GitHub)</string>
@@ -1438,7 +1280,6 @@
     <string name="about_credits_filter_community">Topluluk</string>
     <string name="about_role_dev">Yaratıcı ve Baş Geliştirici</string>
     <string name="about_role_dev_desc">Uygulama mimarisi, özellikler ve arayüz tasarımı</string>
-    
     <string name="about_role_translation_ru">Rusça Çeviri</string>
     <string name="about_role_translation_ru_desc">Crowdin üzerinde tam Rusça yerelleştirme</string>
     <string name="about_role_translation_vi">Vietnamca Çeviri</string>
@@ -1460,11 +1301,9 @@
     <string name="about_credits_github_desc">Hataları bildirin, PR gönderin ve özellik önerin</string>
     <string name="about_credits_kofi_title">Ko-fi Üzerinden Destek Olun</string>
     <string name="about_credits_kofi_desc">Geliştirmeyi ve sunucu bakımını destekleyin</string>
-    
     <string name="about_translate_title">Uygulamayı çevirin</string>
     <string name="about_translate_desc">Crowdin\'de çeviriye yardımcı olun!</string>
     <string name="about_made_with">Alan &gt;.&lt; tarafından geliştirildi</string>
-
     <string name="update_available_title">Güncelleme Mevcut</string>
     <string name="update_btn_download">İndir ve Yükle</string>
     <string name="update_btn_install">Yükle</string>
@@ -1489,11 +1328,6 @@
     <string name="pref_verified_filter_sub">Arama sonuçlarını resmi platformlarla karşılaştırın ve yeniden yüklemeleri gizleyin. Varsayılan olarak kapalıdır.</string>
     <string name="pref_show_playlist_total_duration">Çalma listesi toplam süresini göster</string>
     <string name="pref_show_playlist_total_duration_sub">Çalma listelerinde parça sayısının yanında toplam süreyi göster</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- ACHIEVEMENTS                                                                     -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="achievements_title">Başarımlar</string>
     <string name="achievements_subtitle">%1$d / %2$d kilit açıldı</string>
     <string name="achievements_current_level">Seviye</string>
@@ -1507,7 +1341,6 @@
     <string name="ach_secret_desc">\?</string>
     <string name="pref_achievement_popups">Başarım Bildirimleri</string>
     <string name="pref_achievement_popups_sub">Kilidi açıldığında bildir</string>
-
     <string name="ach_cat_time">Dayanıklılık ( ˘_˘) …</string>
     <string name="ach_cat_volume">Müzik Hacmi ♪└( ＾ω＾ )」</string>
     <string name="ach_cat_loyalty">Seri ( 🔥_🔥 )</string>
@@ -1515,8 +1348,6 @@
     <string name="ach_cat_player">Teknoloji [ ◉_◉ ]</string>
     <string name="ach_cat_hardcore">Hardcore ( ✖_✖ )</string>
     <string name="ach_cat_secret">Gizemler ( ¬‿¬ )</string>
-
-    <!-- TIME -->
     <string name="ach_time_1h_title">Isınma</string>
     <string name="ach_time_1h_desc">1 saat dinleme</string>
     <string name="ach_time_24h_title">7/24</string>
@@ -1533,8 +1364,6 @@
     <string name="ach_time_5000h_desc">5000 saat dinleme</string>
     <string name="ach_time_10000h_title">Aşkınlık</string>
     <string name="ach_time_10000h_desc">10.000 saat. Ustalık seviyesi</string>
-
-    <!-- PLAYS -->
     <string name="ach_plays_1_title">İlk Adım</string>
     <string name="ach_plays_1_desc">1 parça dinle</string>
     <string name="ach_plays_100_title">Meraklı</string>
@@ -1551,8 +1380,6 @@
     <string name="ach_plays_50000_desc">50.000 çalma</string>
     <string name="ach_plays_100000_title">Ses Tanrısı</string>
     <string name="ach_plays_100000_desc">100.000 çalma</string>
-
-    <!-- STREAK -->
     <string name="ach_streak_7_title">Tam Bir Hafta</string>
     <string name="ach_streak_7_desc">Art arda 7 gün</string>
     <string name="ach_streak_30_title">Müdavim</string>
@@ -1571,8 +1398,6 @@
     <string name="ach_night_owl_desc">Gece 03:00 ile 05:00 arasında 10 çalma</string>
     <string name="ach_lunch_break_title">Öğle Molası</string>
     <string name="ach_lunch_break_desc">Öğlen 12:00 ile 13:00 arasında 10 çalma</string>
-
-    <!-- ACTIONS -->
     <string name="ach_liker_50_title">Hevesli</string>
     <string name="ach_liker_50_desc">50 parçayı beğen</string>
     <string name="ach_liker_1000_title">Altın Kalp</string>
@@ -1594,11 +1419,9 @@
     <string name="ach_bass_addict_title">Bas Bağımlısı</string>
     <string name="ach_bass_addict_desc">Bass Boost ile 10 saat</string>
     <string name="ach_speed_demon_title">Nightcore Hayranı</string>
-    <string name="ach_speed_demon_desc">> 1.2x hızında 1 saat dinleme</string>
+    <string name="ach_speed_demon_desc">&gt; 1.2x hızında 1 saat dinleme</string>
     <string name="ach_social_star_title">Viral</string>
     <string name="ach_social_star_desc">50 parça paylaş</string>
-
-    <!-- SPECIAL -->
     <string name="ach_obsessed_50_title">Takıntılı</string>
     <string name="ach_obsessed_50_desc">AYNI parçayı 50 kez dinle</string>
     <string name="ach_obsessed_200_title">Çılgınlık</string>
@@ -1614,7 +1437,6 @@
     <string name="ach_ghost_title">Hayalet</string>
     <string name="ach_lucky7_title">Büyük İkramiye</string>
     <string name="ach_glitch_title">Matrix\'te Hata</string>
-
     <string name="dialog_reset_achievements_title">Sıfırlansın mı?</string>
     <string name="dialog_reset_achievements_msg">Tüm başarımları ve ilerlemeni kaybedeceksin. Bu işlem geri alınamaz</string>
     <string name="dialog_reset_achievements_confirm">Devam Et</string>
@@ -1626,21 +1448,14 @@
     <string name="completion_thanks">Teşekkürler</string>
     <string name="completion_thanks_message">"Tüm başarımları kazanmak hiç de kolay bir iş değil. Müziğe olan tutkun, bu uygulamanın var olma sebebi.\n\nBu yolculuk için teşekkürler.\n\n~ Alan :3"</string>
     <string name="completion_continue">Devam etmek için dokun</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- SYSTEM & NOTIFICATIONS                                                           -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="achievement_unlocked">Başarım Açıldı!</string>
     <string name="achievement_xp">+%1$d XP</string>
     <string name="streak_popup_title">Seri</string>
     <string name="streak_popup_subtitle">%1$d Gün</string>
     <string name="test_notification_triggered">Test bildirimi gönderildi</string>
-
     <string name="channel_name">Oynatıcı</string>
     <string name="desc_previous">Önceki</string>
     <string name="action_unlike">Beğenmekten Vazgeç</string>
-
     <string name="widget_default_title">KittyTune</string>
     <string name="widget_default_artist">Hazır</string>
     <string name="widget_unknown">Bilinmiyor</string>
@@ -1892,11 +1707,6 @@
     <string name="pet_wall_peach">Şeftali</string>
     <string name="pet_wall_rose">Gül</string>
     <string name="pet_wall_sky">Gökyüzü</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- ACCESSIBILITY & EMPTY STATES                                                     -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="desc_play">Çal</string>
     <string name="desc_pause">Duraklat</string>
     <string name="desc_next">Sonraki</string>
@@ -1904,7 +1714,6 @@
     <string name="desc_like">Beğen</string>
     <string name="desc_artwork">Albüm Kapağı</string>
     <string name="desc_selected">Seçildi</string>
-
     <string name="empty_downloads_title">Henüz burada hiçbir şey yok…</string>
     <string name="empty_downloads_subtitle">Çevrimdışı dinlemek için parçaları indir!</string>
     <string name="empty_downloads_kaomoji">(¬_¬ )</string>
@@ -1920,7 +1729,6 @@
     <string name="empty_folder_title">Bu klasör boş</string>
     <string name="empty_folder_subtitle">Kitaplığını düzenlemek için bu klasöre çalma listeleri ekle</string>
     <string name="empty_folder_kaomoji">( ˶• ᴗ •˶ )</string>
-
     <string name="history_untitled_track">Başlıksız</string>
     <string name="history_unknown_artist">Bilinmeyen Sanatçı</string>
     <string name="history_type_artist">Sanatçı</string>
@@ -1931,7 +1739,6 @@
     <string name="history_source_library">Kitaplık</string>
     <string name="history_title_likes">Beğenilen Parçalar</string>
     <string name="history_title_downloads">İndirilenler</string>
-
     <string name="search_libraries_hint">Kitaplıklarda ara…</string>
     <string name="filter_all">Tümü</string>
     <string name="filter_created">Oluşturulan</string>
@@ -1939,12 +1746,6 @@
     <string name="libraries_count_format">%1$d Kitaplık</string>
     <string name="no_libraries_found">Hiçbir kitaplık bulunamadı</string>
     <string name="license_unknown">Bilinmeyen lisans</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- SLEEP TIMER & CROSSFADE                                                        -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
-    <!-- Sleep Timer -->
     <string name="sleep_timer_title">Uyku Zamanlayıcısı</string>
     <string name="sleep_timer_end_of_track">Çalan parçanın sonunda</string>
     <string name="sleep_timer_cancel">Zamanlayıcıyı İptal Et</string>
@@ -1964,11 +1765,6 @@
     <string name="sleep_timer_island_finished_subtitle">Zamanlayıcı sona erdi</string>
     <string name="sleep_timer_seconds_format">%1$d saniye</string>
     <string name="sleep_timer_minutes_seconds_format">%1$d dk %2$d sn</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- LISTENING STATS                                                                  -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="profile_menu_listening_stats">Dinleme İstatistikleri</string>
     <string name="listening_stats_show_all">Tümünü göster</string>
     <string name="listening_stats_all_tracks">Tüm Parçalar</string>
@@ -2008,38 +1804,24 @@
     <string name="listening_stats_active_days_count">Müzik dinlenen %1$d gün</string>
     <string name="listening_stats_title">Dinleme İstatistikleri</string>
     <string name="listening_stats_subtitle">Dinleme alışkanlıkların</string>
-
     <string name="listening_stats_period_week">Bu Hafta</string>
-    
     <string name="listening_stats_period_all">Tüm Zamanlar</string>
-    
-    <!-- Comparison against the equivalent span before this one -->
-    
-    <!-- New section built from the one-pass report -->
-    
     <string name="listening_stats_night">Gece</string>
     <string name="listening_stats_morning">Sabah</string>
     <string name="listening_stats_afternoon">Öğleden Sonra</string>
     <string name="listening_stats_evening">Akşam</string>
-    
     <string name="listening_stats_avg_play">Çalma başına ort.</string>
-
     <string name="listening_stats_time_listened">Dinleme Süresi</string>
     <string name="listening_stats_plays">Çalma Sayısı</string>
     <string name="listening_stats_unique_tracks">Parçalar</string>
     <string name="listening_stats_unique_artists">Sanatçılar</string>
-
     <string name="listening_stats_top_tracks">En Çok Dinlenen Parçalar</string>
     <string name="listening_stats_top_artists">En Çok Dinlenen Sanatçılar</string>
-    
     <string name="listening_stats_skip_rate">Atlama Oranı</string>
-    
     <string name="listening_stats_completion_rate">Tamamlama</string>
     <string name="listening_stats_completion_rate_desc">Baştan sona dinlenen şarkılar</string>
-    
     <string name="listening_stats_empty_title">Henüz istatistik yok</string>
     <string name="listening_stats_empty_desc">İstatistiklerini burada görmek için müzik dinlemeye başla!</string>
-
     <string name="listening_stats_duration_days_hrs">%1$dg %2$dsa</string>
     <string name="listening_stats_duration_hr_min">%1$dsa %2$ddk</string>
     <string name="listening_stats_duration_min_sec">%1$ddk %2$dsn</string>
@@ -2054,7 +1836,6 @@
     <string name="playlist_duration_years_months">%1$dyıl %2$day</string>
     <string name="playlist_duration_year_days">%1$dyıl %2$dg</string>
     <string name="playlist_duration_years_days">%1$dyıl %2$dg</string>
-
     <string name="stats_style_overview">Genel Bakış</string>
     <string name="stats_style_compact">Kompakt</string>
     <string name="stats_style_story">Özet</string>
@@ -2067,16 +1848,12 @@
     <string name="stats_story_habits">Dinleme tarzın</string>
     <string name="stats_story_active_days">müzikle geçen gün</string>
     <string name="listening_stats_disclaimer">Bu istatistikler KittyTune\'un çalma algoritmasına dayanır ve harici dinleme geçmişinizin tamamını yansıtmayabilir.</string>
-
     <string name="label_intensity">Yoğunluk: %d%%</string>
     <string name="label_speed_8d">Dönüş Hızı: %d%%</string>
     <string name="label_cutoff">Filtre: %d%%</string>
     <string name="btn_earrape">Earrape</string>
     <string name="warning_title">Uyarı</string>
-
     <string name="earrape_warning">Bu efekt aşırı yüksek sesli ve doygundur. İşitme hasarını önlemek için dikkatli kullanın.</string>
-
-    <!-- Sleep Timer Fade-Out -->
     <string name="sleep_timer_fade_title">Kademeli Ses Kısma</string>
     <string name="sleep_timer_fade_subtitle">Ses seviyesi %1$d saniye içinde kademeli olarak azalacak</string>
     <string name="label_duration">Geçiş süresi</string>
@@ -2116,7 +1893,6 @@
     <string name="pref_crossfade_indicator_desc">Parça geçişi sırasında oynatıcıda \'Crossfade yapılıyor\' rozetini göster</string>
     <string name="pref_automix_indicator_title">AutoMix göstergesini göster</string>
     <string name="pref_automix_indicator_desc">DJ geçişleri sırasında oynatıcıda geri sayımı ve \'AutoMix yapılıyor\' rozetini göster</string>
-
     <string name="pref_bottom_menu_title">Gezinme Çubuğu</string>
     <string name="pref_library_category_layout_title">Kitaplık kategori düzeni</string>
     <string name="pref_library_category_layout_subtitle">Bitişik düğmeler veya masaüstü tarzı tek bir açılır düğme arasında seçim yap</string>
@@ -2146,15 +1922,13 @@
 \n    <string name="fab_settings_no_playlists">No playlist found in your library.</string>
     <string name="fab_settings_hint">İpucu: Burada yalnızca kitaplığına eklenen çalma listeleri görünür. Kısayol olarak kullanmak için çalma listelerini beğenmekten çekinme!</string>
     <string name="fab_settings_radio">Radyo • YouTube</string>
-    
     <string name="sort_first_added">İlk Eklenen</string>
     <string name="sort_recently_added">Son Eklenen</string>
     <string name="sort_title_az">Başlık (A-Z)</string>
     <string name="sort_artist_az">Sanatçı (A-Z)</string>
     <string name="action_play">Çal</string>
-    <string name="action_pause">Pause</string>    <!-- Shazam integration -->
+    <string name="action_pause">Pause</string>
     <string name="recognize_music">Müziği Tanı</string>
-    <!-- Music Recognition & Recognition History -->
     <string name="recognition_history_title">Geçmiş</string>
     <string name="dialog_clear_history_title">Geçmiş temizlensin mi?</string>
     <string name="dialog_clear_history_msg">Tüm müzik tanıma geçmişini temizlemek istediğinden emin misin?</string>
@@ -2166,7 +1940,6 @@
     <string name="date_yesterday">Dün</string>
     <string name="recognition_tap_to_identify">Müziği tanımak için dokun</string>
     <string name="recognition_listening">Şarkı tanınıyor…</string>
-    
     <string name="recognition_listening_desc">Çevrendeki müziği dinle</string>
     <string name="recognition_listen_on_kittytune">KittyTune\'da dinle</string>
     <string name="btn_retry">Tekrar dene</string>
@@ -2187,7 +1960,6 @@
     <string name="stat_likes">Beğeni</string>
     <string name="stat_reposts">Yeniden Paylaşım</string>
     <string name="stat_comments">Yorum</string>
-    <!-- About Screen Redesign -->
     <string name="about_kofi_title">KittyTune\'u Destekle</string>
     <string name="about_kofi_desc">Bu proje tamamen ücretsiz ve açık kaynaklıdır. Çalışmalarımı beğeniyorsan, Ko-fi üzerinden bana bir kahve ısmarlayarak geliştirmeyi desteklemeyi düşünebilirsin!</string>
     <string name="about_kofi_btn">Ko-fi</string>
@@ -2195,13 +1967,11 @@
     <string name="about_website_title">Web Sitesi</string>
     <string name="about_downloads_title">Diğer platformlar</string>
     <string name="about_downloads_desc">Windows, Linux, macOS</string>
-    <!-- Volume Normalization Info Dialog -->
     <string name="pref_norm_info_title">Ses Seviyesi Normalleştirmesini Anlama</string>
     <string name="pref_norm_info_body_1">Farklı şarkılar genellikle farklı ses yüksekliği seviyelerinde kaydedilir. Ses normalleştirme, her şarkının sürekli ayar yapmana gerek kalmadan tutarlı ve rahat bir ses seviyesinde çalması için parçalarını otomatik olarak dengeler.</string>
     <string name="pref_norm_info_body_2">Nasıl çalışır:\n• KittyTune her şarkının gerçek ses yüksekliğini (LUFS cinsinden) ölçer.\n• Çalma sırasında ses seviyesi, seçtiğin hedef seviyeye uyacak şekilde dinamik olarak ayarlanır.\n• Entegre bir sınırlayıcı her türlü bozulmayı veya kırpılmayı önler.\n\nSeviyeler:\n• Sessiz (-19 LUFS): Gece dinleme veya kulaklıklar için idealdir.\n• Normal (-14 LUFS): Spotify ve YouTube tarafından kullanılan standart.\n• Yüksek (-11 LUFS): Gürültülü ortamlar veya dış mekan hoparlörleri için en iyisi.</string>
     <string name="pref_sc_sync_title">SoundCloud Geçmiş Senkronizasyonu</string>
     <string name="pref_sc_sync_sub">Dinlenen parçaları, çalma listelerini, istasyonları ve görüntülenme sayılarını SoundCloud hesabınla senkronize eder. Gizli dinleme için kapatabilirsin.</string>
-    <!-- SoundCloud History Screen -->
     <string name="history_title">Geçmiş</string>
     <string name="history_tab_tracks">Dinleme Geçmişi</string>
     <string name="history_tab_contexts">Son Çalınanlar</string>
@@ -2215,8 +1985,6 @@
     <string name="history_guest_desc">Dinleme geçmişini tüm cihazlarında senkronize etmek ve yönetmek için SoundCloud\'da oturum aç.</string>
     <string name="history_type_playlist">Çalma Listesi</string>
     <string name="history_type_likes">Beğenilen Parçalar</string>
-
-    <!-- SoundCloud Upload Feature -->
     <string name="upload_screen_title">Parça yükle</string>
     <string name="upload_login_required_title">Yüklemek için oturum aç</string>
     <string name="upload_login_required_subtitle">Parça yükleme yalnızca oturum açmış kullanıcılara özeldir.</string>
@@ -2225,7 +1993,6 @@
     <string name="upload_picker_hero_subtitle">Desteklenen formatlar: MP3, WAV, FLAC, AAC, OGG, M4A, AIFF</string>
     <string name="upload_picker_btn">Bir ses dosyası seç</string>
     <string name="upload_picker_max_size">Maksimum dosya boyutu: 5 GB</string>
-    
     <string name="upload_artwork_label">Kapak</string>
     <string name="upload_artwork_change">Kapağı değiştir</string>
     <string name="upload_field_title">Başlık *</string>
@@ -2238,8 +2005,6 @@
     <string name="upload_genre_all_music">Tüm Müzik Türleri</string>
     <string name="upload_genre_search_placeholder">Türlerde ara…</string>
     <string name="upload_genre_clear">Türü kaldır</string>
-
-    <!-- SoundCloud Music Genres -->
     <string name="genre_all_music">Tüm Müzik Türleri</string>
     <string name="genre_alternative_rock">Alternatif Rock</string>
     <string name="genre_ambient">Ambient</string>
@@ -2272,8 +2037,6 @@
     <string name="genre_triphop">Trip Hop</string>
     <string name="genre_world">Dünya Müziği ve Global</string>
     <string name="genre_other">Diğer</string>
-
-    <!-- SoundCloud Audio Genres -->
     <string name="genre_audiobooks">Sesli Kitaplar</string>
     <string name="genre_business">İş Dünyası</string>
     <string name="genre_comedy">Komedi</string>
@@ -2290,16 +2053,12 @@
     <string name="upload_visibility_title">Görünürlük</string>
     <string name="upload_visibility_public">Herkese Açık</string>
     <string name="upload_visibility_private">Liste Dışı (Gizli)</string>
-    
     <string name="upload_toggle_explicit">Uygunsuz içerik (Explicit)</string>
-    
     <string name="upload_field_caption">Gönderi metni</string>
     <string name="upload_field_caption_hint">Bir gönderi metni ekle…</string>
     <string name="upload_field_caption_helper">Gönderine bir metin ekleyerek SoundCloud topluluğuyla sohbet başlat. Bu metin, takipçilerinin akışında görünecektir.</string>
-    
     <string name="upload_field_release_date">Yayın tarihi (YYYY-AA-GG)</string>
     <string name="upload_field_isrc">ISRC</string>
-    
     <string name="upload_field_purchase_title">Satın alma bağlantısı başlığı</string>
     <string name="upload_field_purchase_url">Satın alma bağlantısı URL\'si</string>
     <string name="upload_btn_submit">Parçayı yükle</string>
@@ -2331,17 +2090,12 @@
     <string name="upload_eligibility_limit_reached">SoundCloud\'daki parça yükleme sınırına ulaştın.</string>
     <string name="upload_replace_file_next_pro_notice">SoundCloud Artist Pro gerektirir</string>
     <string name="upload_error_replace_file_next_pro">Ses dosyasını değiştirme işlemi SoundCloud tarafından reddedildi. API bu işlemi yalnızca SoundCloud Artist Pro aboneleriyle sınırlandırmaktadır.</string>
-    
     <string name="upload_schedule_section_title">Zamanlama</string>
     <string name="upload_schedule_toggle_title">Parçanı herkese açık hale getirmek için tarih ve saat ayarla.</string>
     <string name="upload_schedule_toggle_subtitle">Parçan yayınlanana kadar gizli kalacaktır.</string>
     <string name="upload_schedule_date_picker_title">Yayın tarihini seç</string>
-    
     <string name="upload_schedule_free_notice">Herkes için kullanılabilir: Arayüzü yalnızca Artist Pro aboneleriyle sınırlayan resmi uygulamanın aksine, SoundCloud API\'si herhangi bir abonelik gerektirmeden tüm hesaplar için yayın zamanlamasını kabul eder.</string>
     <string name="upload_error_schedule_next_pro">Yayın zamanlaması SoundCloud tarafından reddedildi. Bu özellik bir Artist Pro aboneliği gerektirir.</string>
-
-    <!-- Storefront / Products -->
-    
     <string name="upload_storefront_banner_subtitle">Ürünlerine, etkinlik biletlerine, müziklerine ve daha fazlasına bağlantılar ekle.</string>
     <string name="upload_storefront_btn_add">Bir bağlantı ekle</string>
     <string name="upload_storefront_btn_edit">Vitrini düzenle</string>
@@ -2357,14 +2111,10 @@
     <string name="upload_storefront_delete_confirmation">Bu parça için vitrini silmek istediğinden emin misin?</string>
     <string name="upload_error_storefront_next_pro">Ürün vitrini oluşturma SoundCloud tarafından reddedildi. API bu özelliği yalnızca SoundCloud Artist Pro aboneleriyle sınırlandırmaktadır.</string>
     <string name="upload_field_url_invalid">Lütfen geçerli bir URL girin (ör. https://example.com)</string>
-
-    <!-- Upload Category Tabs & Metadata -->
     <string name="upload_tab_basic_info">Bilgiler</string>
     <string name="upload_tab_metadata">Ayrıntılar</string>
     <string name="upload_tab_permissions">Haklar</string>
-    
     <string name="upload_tab_advanced">Gelişmiş</string>
-    
     <string name="upload_advanced_snippet_title">Önizleme klibi</string>
     <string name="upload_advanced_snippet_desc">Dinleyiciler parçanı keşfettiğinde hangi 20 saniyenin çalacağını seç. Tercih ettiğin önizlemeyi ayarlamak için seçim penceresini sürükle.</string>
     <string name="upload_advanced_snippet_current">Mevcut önizleme</string>
@@ -2398,7 +2148,6 @@
     <string name="upload_license_share_alike_desc">Diğer kullanıcıların türev eserleri yalnızca senin eserini yöneten lisansla aynı bir lisans altında dağıtmasına izin ver.</string>
     <string name="upload_section_codes_ids">Kodlar ve Kimlik Bilgileri</string>
     <string name="upload_section_copyright">Telif Hakkı ve Sahiplik</string>
-    
     <string name="upload_commerce_choice_buy_link">Satın alma bağlantısı</string>
     <string name="upload_commerce_choice_storefront">Sanatçı vitrini</string>
     <string name="upload_section_commerce_title">Satın Alma Bağlantısı ve Vitrin</string>
@@ -2421,8 +2170,6 @@
     <string name="upload_error_audio_stream_load">Ses önizleme akışı yüklenemedi</string>
     <string name="upload_error_storefront_save">Vitrin kaydedilemedi</string>
     <string name="upload_error_storefront_delete">Vitrin silinemedi</string>
-
-    <!-- Permissions Tab (Accès & Mode silencieux) -->
     <string name="upload_perm_section_access">Erişim</string>
     <string name="upload_perm_direct_downloads">Doğrudan indirmeleri etkinleştir</string>
     <string name="upload_perm_direct_downloads_desc_on">Bu parça, yüklendiği orijinal formatta doğrudan indirilebilir olacaktır.</string>
@@ -2449,8 +2196,6 @@
     <string name="upload_perm_display_stats">İstatistikleri göster</string>
     <string name="upload_perm_display_stats_desc_on">Bu parçanın istatistikleri herkese açık olarak gösterilecektir.</string>
     <string name="upload_perm_display_stats_desc_off">Bu parçanın istatistikleri gizlidir.</string>
-
-    <!-- Track Info Checklist & Header -->
     <string name="track_details_file_name">Dosya adı</string>
     <string name="track_details_replace_file">Dosyayı değiştir</string>
     <string name="track_details_pick_image_content_description">Kapak resmi</string>
@@ -2464,7 +2209,6 @@
     <string name="track_info_checklist_bottomsheet_button">Tamam, anlaşıldı</string>
     <string name="track_info_checklist_completed_step">Tamamlandı</string>
     <string name="track_info_checklist_not_completed_step">Tamamlanmadı</string>
-    
     <string name="upload_crop_artwork_title">Kapak resmini kırp</string>
     <string name="upload_crop_artwork_desc">Parçan için resmi ayarla ve kırp</string>
     <string name="playlist_crop_artwork_desc">Çalma listen için resmi ayarla ve kırp</string>
@@ -2481,22 +2225,16 @@
     <string name="upload_field_artist">Sanatçı *</string>
     <string name="upload_field_artist_required">Lütfen geçerli bir sanatçı adı gir</string>
     <string name="upload_field_hint_artist">Birden fazla sanatçı adı eklemek için virgül kullan.</string>
-
-    <!-- Track Edit & Delete -->
     <string name="menu_edit_track">Parçayı düzenle</string>
     <string name="edit_track_title">Parçayı düzenle</string>
     <string name="edit_track_save_button">Değişiklikleri kaydet</string>
     <string name="edit_track_delete_button">Parçayı sil</string>
     <string name="edit_track_delete_dialog_title">Parça silinsin mi?</string>
     <string name="edit_track_delete_dialog_message">Bu parçayı SoundCloud\'dan kalıcı olarak silmek istediğinden emin misin? Bu işlem geri alınamaz.</string>
-    
-    <!-- Library Uploads Category -->
     <string name="lib_your_uploads">Yüklemelerin</string>
     <string name="empty_uploads_title">Henüz yükleme yok</string>
     <string name="empty_uploads_subtitle">Burada görmek için parçalarını SoundCloud\'a yükle.</string>
     <string name="empty_uploads_kaomoji">( ˶• ᴗ •˶ )</string>
-
-    <!-- Uploads Filter Sheet -->
     <string name="uploads_filter_dialog_title">Filtrele ve ara</string>
     <string name="uploads_filter_save_btn">Kaydet</string>
     <string name="uploads_sort_section_title">Sıralama ölçütü</string>
@@ -2509,8 +2247,6 @@
     <string name="uploads_filter_public">Herkese Açık</string>
     <string name="uploads_filter_private">Gizli</string>
     <string name="search_uploads_hint">Yüklemelerinde ara…</string>
-
-    <!-- Guest Data Transfer -->
     <string name="transfer_guest_title">SoundCloud\'a Aktar</string>
     <string name="transfer_guest_desc">Misafir modunda kaydedilmiş müziklerin var. Bunları SoundCloud hesabınla senkronize etmek ister misin?</string>
     <string name="transfer_guest_likes">Beğenilen parçalar (%1$d)</string>
@@ -2529,9 +2265,6 @@
     <string name="transfer_guest_warn_desc_2">Son uyarı: Temiz SoundCloud kitaplığını yüklemek için tüm Misafir modu verileri (geçici çalma listeleri, yerel beğeniler ve önbellek) kalıcı olarak silinecektir.\n\nHer şeyi silmek istediğinden emin misin?</string>
     <string name="transfer_guest_warn_btn_delete_confirm">Sil ve devam et</string>
     <string name="transfer_guest_warn_btn_cancel">İptal</string>
-
-    <!-- Geographic Availability (Géo-blocage) -->
-    
     <string name="upload_perm_geo_title">Coğrafi erişilebilirlik</string>
     <string name="upload_perm_geo_subtitle">Parçanın dünya genelinde nerelerde dinlenebileceğini ayarla</string>
     <string name="upload_perm_geo_mode_everywhere">Dünya Çapında</string>
@@ -2543,11 +2276,9 @@
     <string name="upload_perm_geo_exclusive_explanation">Bu parça yalnızca seçilen ülkelerde çalınabilecektir.</string>
     <string name="upload_perm_geo_blocked_explanation">Bu parça seçilen ülkelerde engellenecek ve erişilemeyecektir.</string>
     <string name="upload_perm_geo_suggestions_label">Hızlı öneriler</string>
-
     <string name="player_style_classic_short">Klasik</string>
     <string name="player_style_hybrid_short">Hibrit</string>
     <string name="player_style_group">OYNATICI TARZI</string>
-    
     <string name="player_visual_options_group">EKRAN VE GÖRSEL EFEKTLER</string>
     <string name="player_opt_comment_bubbles_title">Yorum balonları</string>
     <string name="player_opt_comment_bubbles_subtitle">Doğru zaman damgasında kullanıcı avatarını ve metnini gösterir</string>
@@ -2581,7 +2312,6 @@
     <string name="player_slot_n">Düğme %1$d</string>
     <string name="player_slot_change">Değiştir</string>
     <string name="player_slot_active">Etkin</string>
-    
     <string name="slot_like">Beğen</string>
     <string name="slot_comments">Yorumlar</string>
     <string name="slot_share">Paylaş</string>
@@ -2605,8 +2335,6 @@
     <string name="the_artist">sanatçı</string>
     <string name="comment_replying_to">%1$s adlı kişiye yanıt veriliyor</string>
     <string name="comments_count_label">%1$s yorum</string>
-
-    <!-- Proxy Settings -->
     <string name="pref_proxy_title">Proxy</string>
     <string name="pref_proxy_subtitle">Sansürü aş ve HTTP/SOCKS5 proxy yapılandır</string>
     <string name="proxy_settings_title">Proxy Ayarları</string>
@@ -2619,7 +2347,6 @@
     <string name="proxy_host_hint">127.0.0.1 veya proxy.example.com</string>
     <string name="proxy_port">Bağlantı noktası</string>
     <string name="proxy_port_hint">8080 veya 1080</string>
-    
     <string name="proxy_auth_enable">Proxy kimlik doğrulaması</string>
     <string name="proxy_auth_enable_desc">Proxy kullanıcı adı ve şifre gerektiriyorsa etkinleştir</string>
     <string name="proxy_username">Kullanıcı adı</string>
@@ -2636,10 +2363,8 @@
     <string name="proxy_info_title">Neden proxy kullanılır?</string>
     <string name="proxy_info_desc">SoundCloud ve medya akış sunucuları bazı ülkelerde (örneğin Rusya) kısıtlanmış veya engellenmiştir. Yerel bir proxy (V2Ray, Clash, Shadowsocks, Tor vb.) veya uzak bir proxy kurmak, KittyTune\'un müzik akışı yapmasına, parça meta verilerini almasına, albüm kapaklarını yüklemesine ve DRM korumalı parçaları kesintisiz çalmasına olanak tanır.</string>
     <string name="proxy_status_enabled">%1$s • %2$s:%3$d</string>
-    
     <string name="proxy_port_invalid">Geçersiz bağlantı noktası numarası</string>
     <string name="proxy_host_empty">Ana bilgisayar boş olamaz</string>
-    
     <string name="proxy_import_clipboard">Panodan içe aktar</string>
     <string name="proxy_import_success">Proxy yapılandırması panodan içe aktarıldı!</string>
     <string name="proxy_import_error">Panoda geçerli bir proxy bağlantısı bulunamadı</string>
@@ -2650,16 +2375,12 @@
     <string name="proxy_profile_delete">Profili sil</string>
     <string name="proxy_profile_active">Etkin</string>
     <string name="proxy_profile_saved_toast">Profil başarıyla kaydedildi!</string>
-    
     <string name="proxy_playback_error">Çalma başarısız oldu: lütfen proxy ayarlarını kontrol et</string>
     <string name="network_playback_error">Çalma başarısız oldu: lütfen internet bağlantını kontrol et</string>
     <string name="restricted_playback_error">Bu parça yalnızca SoundCloud Go+ aboneliğiyle dinlenebilir ve alternatif bir kaynak bulunamadı</string>
-
-    <!-- Spotify Integration -->
     <string name="spotify_verified">Spotify tarafından doğrulandı</string>
     <string name="spotify_monthly_listeners">Aylık %1$s dinleyici</string>
     <string name="spotify_world_rank">Dünyada #%1$d</string>
-    
     <string name="spotify_discography">Diskografi</string>
     <string name="spotify_popular_releases">Popüler yayınlar</string>
     <string name="spotify_singles_eps">Tekliler ve EP\'ler</string>
@@ -2669,7 +2390,6 @@
     <string name="spotify_fans_also_like">Hayranlar Bunu da Sevdi</string>
     <string name="menu_go_album">Albüme git</string>
     <string name="select_artist_title">Bir sanatçı seç</string>
-    
     <string name="spotify_credits_performers">İcracılar</string>
     <string name="spotify_credits_writers">Şarkı Yazarları</string>
     <string name="spotify_credits_producers">Yapımcılar</string>
@@ -2678,7 +2398,6 @@
     <string name="spotify_credits_featured_artist">Konuk Sanatçı</string>
     <string name="spotify_credits_composer">Besteci</string>
     <string name="spotify_credits_lyricist">Söz Yazarı</string>
-    
     <string name="spotify_streams_formatted">dinlenme</string>
     <string name="spotify_radio_title">%1$s Radyosu</string>
     <string name="tidal_radio_title">%1$s Radyosu</string>
@@ -2686,15 +2405,12 @@
     <string name="qobuz_radio_title">%1$s Radyosu</string>
     <string name="playlist_details_saves">%1$s kaydetme</string>
     <string name="playlist_creator_badge">Çalma Listesi Oluşturucusu</string>
-    
     <string name="profile_member_since">%1$s tarihinden beri üye</string>
     <string name="user_type_artist">Sanatçı</string>
     <string name="user_type_profile">Profil</string>
     <string name="user_type_verified_artist">Doğrulanmış Sanatçı</string>
     <string name="filter_artists">Sanatçılar</string>
     <string name="filter_profiles">Profiller</string>
-
-    <!-- Accounts Settings & SoundCloud Account -->
     <string name="settings_cat_accounts">Hesaplar</string>
     <string name="pref_accounts_title">Hesapları Yönet</string>
     <string name="pref_accounts_subtitle">Yayın servisleri, sağlayıcı sırası ve içe aktarmalar</string>
@@ -2711,26 +2427,21 @@
     <string name="account_section_identity">Hesap Ayrıntıları</string>
     <string name="account_label_username">Kullanıcı Adı</string>
     <string name="account_label_display_name">Görünen Ad</string>
-    
     <string name="account_label_user_id">Kullanıcı Kimliği (ID)</string>
     <string name="account_label_user_urn">Kullanıcı URN</string>
     <string name="account_label_permalink">Kalıcı Bağlantı</string>
     <string name="account_label_profile_url">Profil URL\'si</string>
-    
     <string name="account_label_location">Konum</string>
     <string name="account_label_location_empty">Belirtilmedi</string>
     <string name="account_label_bio">Biyografi</string>
     <string name="account_label_bio_empty">Biyografi eklenmemiş</string>
-    
     <string name="account_label_verified">Doğrulanmış Hesap</string>
-    
     <string name="account_section_stats">Kitaplık ve Etkinlik</string>
     <string name="account_stat_tracks">Yüklenen Parçalar</string>
     <string name="account_stat_playlists">Çalma Listeleri</string>
     <string name="account_stat_likes">Beğeniler</string>
     <string name="account_stat_followers">Takipçiler</string>
     <string name="account_stat_following">Takip Edilenler</string>
-    
     <string name="account_stat_reposts">Yeniden Paylaşımlar</string>
     <string name="account_stat_quota">Yükleme Kotası</string>
     <string name="account_quota_unlimited">Sınırsız Yükleme</string>
@@ -2743,11 +2454,8 @@
     <string name="account_info_loading">Hesap ayrıntıları yükleniyor…</string>
     <string name="account_info_error">Hesap bilgileri yüklenemedi</string>
     <string name="account_connected_status">Bağlandı</string>
-    
     <string name="accounts_screen_title">Hesaplar</string>
     <string name="accounts_connected_section">Bağlı Platformlar</string>
-    
-    <!-- VKontakte (VK) Account -->
     <string name="pref_account_vk_title">VKontakte (VK)</string>
     <string name="pref_account_vk_subtitle_connected">%1$s olarak bağlandı</string>
     <string name="pref_account_vk_subtitle_guest">Bağlı değil (Misafir modu)</string>
@@ -2771,11 +2479,9 @@
     <string name="account_vk_manual_dialog_title">Manuel VK Kimlik Doğrulama</string>
     <string name="account_vk_manual_dialog_desc">VK remixsid çerezini veya Kate Mobile OAuth erişim jetonunu gir.</string>
     <string name="account_vk_label_remixsid">remixsid çerezi / Jeton</string>
-    
     <string name="account_vk_label_user_id">VK Kullanıcı Kimliği (örn. 123456789)</string>
     <string name="account_vk_manual_save">Kaydet ve Bağlan</string>
     <string name="account_vk_login_success">VKontakte\'ye başarıyla bağlandı!</string>
-    
     <string name="account_vk_section_stats">VK Müzik Kitaplığı</string>
     <string name="account_vk_stat_tracks">Kaydedilen Parçalar</string>
     <string name="account_vk_stat_playlists">Çalma Listeleri</string>
@@ -2788,14 +2494,10 @@
     <string name="lib_vk_not_connected">VKontakte Bağlı Değil</string>
     <string name="lib_vk_connect_desc">Kaydedilen müziklerini ve çalma listelerini görüntülemek ve dinlemek için VK hesabını bağla.</string>
     <string name="lib_vk_connect_action">VK Hesabını Bağla</string>
-    
-    <!-- Subscriptions & Extended Info -->
     <string name="account_section_subscriptions">Abonelikler ve Planlar</string>
     <string name="account_label_creator_sub">Sanatçı / İçerik Üretici Planı</string>
     <string name="account_label_consumer_sub">Dinleyici / Tüketici Planı</string>
-    
     <string name="account_plan_creator_free">Standart İçerik Üretici (Ücretsiz)</string>
-    
     <string name="account_btn_manage_subscription">Abonelikleri Yönet</string>
     <string name="account_status_active">Etkin</string>
     <string name="account_active_subscriptions_title">Etkin Abonelikler</string>
@@ -2809,7 +2511,6 @@
     <string name="account_label_default_license">Varsayılan Yükleme Lisansı</string>
     <string name="account_label_spotlight_limit">Öne Çıkarma (Spotlight) Sınırı</string>
     <string name="account_label_spotlight_desc">%1$d öne çıkan parçaya izin verilir</string>
-    
     <string name="account_label_station">Sanatçı Radyo İstasyonu</string>
     <string name="account_license_all_rights">Tüm Hakları Saklıdır</string>
     <string name="account_license_cc">Creative Commons</string>
@@ -2817,14 +2518,12 @@
     <string name="account_email_primary_tag">Birincil</string>
     <string name="account_email_resend_confirm">Onayı tekrar göndermek için dokun</string>
     <string name="account_email_confirm_sent">Onay e-postası gönderildi</string>
-    
     <string name="account_label_dob">Doğum Tarihi</string>
     <string name="account_label_gender">Cinsiyet</string>
     <string name="account_gender_male">Erkek</string>
     <string name="account_gender_female">Kadın</string>
     <string name="account_gender_other">Diğer</string>
     <string name="account_gender_unspecified">Belirtilmemiş</string>
-    
     <string name="account_action_copy">Adresi Kopyala</string>
     <string name="account_vk_diagnose">Bağlantıyı tanıla</string>
     <string name="account_vk_diagnose_subtitle">VK oturumunu ve aramayı test et</string>
@@ -2832,7 +2531,6 @@
     <string name="account_vk_diagnose_copied">Rapor kopyalandı</string>
     <string name="account_vk_diagnose_copy">Kopyala</string>
     <string name="sync_devices">Cihazlar</string>
-    
     <string name="sync_pair_device">Bir bilgisayarla eşle</string>
     <string name="sync_state_syncing">Eşitleniyor…</string>
     <string name="sync_state_not_paired">Henüz cihaz yok</string>
@@ -2851,11 +2549,9 @@
     <string name="sync_listener_sub">Bu telefonun başlatmasını beklemek yerine bilgisayarının kendisinin eşitleme başlatmasına izin verir. Yalnızca KittyTune çalışırken geçerlidir.</string>
     <string name="sync_address">Bu cihaz</string>
     <string name="sync_events_held_title">Eşitleme günlüğü</string>
-    
     <string name="sync_pair">Eşle</string>
     <string name="sync_only_inbound">Bu cihaz gelen bağlantıyla eşitlenir.</string>
     <string name="sync_forget_all">Tüm cihazları unut</string>
-    
     <string name="trim_title">Bu parçayı kırp</string>
     <string name="trim_sub">Şarkı çalarken belirli kısımları atla. Dosya asla değiştirilmez ve kırpmayı temizlemek orijinali geri getirir.</string>
     <string name="trim_mode_cut">Kırpıp çıkar</string>
@@ -2877,11 +2573,9 @@
     <string name="sync_peer_code">Bilgisayarındaki eşleme kodu</string>
     <string name="sync_now">Şimdi eşitle</string>
     <string name="sync_bad_code">Bu geçerli bir eşleme kodu değil.</string>
-    
     <string name="sync_unauthorized">Kod reddedildi. Bilgisayarında yeni bir kod oluşturup buraya yapıştır.</string>
     <string name="sync_failed">Ulaşılamadı: %1$s</string>
     <string name="sync_events_held">Günlükte %1$d olay var.</string>
-    
     <string name="sync_scan_aim">Kamerayı bilgisayarındaki koda doğrult</string>
     <string name="sync_scan_found">Kod bulundu, eşleniyor…</string>
     <string name="sync_scan_no_camera">KittyTune\'un eşleme kodunu okumak için kameraya ihtiyacı var. Kodu bunun yerine manuel olarak da yapıştırabilirsin.</string>
@@ -2890,14 +2584,11 @@
     <string name="sync_local_network_allow">Yerel ağa izin ver</string>
     <string name="account_vk_qr_same_device">Bu telefonda onayla</string>
     <string name="account_vk_qr_same_device_hint">Girişi ikinci bir cihaza gerek kalmadan onaylayabilmen için VK uygulamasını açar.</string>
-
     <string name="sync_likes_title">Favorileri ve Çalma Listelerini Eşitle</string>
     <string name="sync_likes_sub">Beğenilen parçaları ve çalma listelerini telefon ile PC arasında anında paylaş</string>
     <string name="sync_disclaimer_title">SoundCloud Hesap Eşitlemesi</string>
     <string name="sync_disclaimer_body">SoundCloud parçaları için mobilde ve PC\'de aynı SoundCloud hesabına giriş yapmak, beğenilerini ve çalma listelerini eşitlemenin en kararlı ve kusursuz yoludur. Bununla birlikte, bu doğrudan Wi-Fi eşitlemesi SoundCloud\'da barındırılmayan YouTube, VK, Spotify parçaları veya yerel dosyalar için özel olarak tasarlanmıştır ve son derece kullanışlıdır.</string>
     <string name="sync_disclaimer_dont_show_again">Tekrar gösterme</string>
-
-    <!-- Haptic Vibrations (Haptic Vibes) -->
     <string name="pref_haptics_title">Dokunsal Titreşimler</string>
     <string name="pref_haptics_subtitle">Ritim ve vuruşlarla senkronize müzik titreşimleri</string>
     <string name="pref_haptics_app_section">Uygulama ve Arayüz Dokunsal Geri Bildirimi</string>
@@ -2930,8 +2621,6 @@
     <string name="pref_haptics_queue">Sıra Düzenlemede Dokunsal Geri Bildirim</string>
     <string name="pref_haptics_queue_sub">Sıradaki öğeleri sürüklerken titret</string>
     <string name="slot_haptics">Dokunsal Geri Bildirim</string>
-
-    <!-- Audio Providers & Integrations -->
     <string name="audio_providers_title">Ses Kaynakları ve Entegrasyonlar</string>
     <string name="provider_order">Ses Sağlayıcı Sırası</string>
     <string name="provider_order_summary">Oynatma ve indirmeler sırasında önce denenmeleri için sağlayıcıları yukarı sürükle.</string>
@@ -2941,7 +2630,6 @@
     <string name="audio_provider_deezer">Deezer</string>
     <string name="audio_provider_youtube_music">YouTube Music</string>
     <string name="audio_provider_qobuz">Qobuz</string>
-
     <string name="qobuz_integration">Qobuz</string>
     <string name="qobuz_country">Qobuz ülkesi</string>
     <string name="qobuz_country_desc">Qobuz istekleri için 2 harfli ülke kodunu gir (örn. US, FR, GB).</string>
@@ -2979,7 +2667,6 @@
     <string name="qobuz_account_login_success">Qobuz\'a başarıyla giriş yapıldı!</string>
     <string name="qobuz_token_not_found">Henüz bir oturum jetonu bulunamadı. Lütfen önce sayfadan giriş yap.</string>
     <string name="qobuz_logging_in">Qobuz\'a giriş yapılıyor…</string>
-    
     <string name="qobuz_custom_instances_placeholder">https://qobuz-dll.vercel.app/</string>
     <string name="qobuz_custom_instances_helper">Qobuz çözücü temel URL\'lerini ekle (her satıra bir tane). Bunlar sırayla denenir.</string>
     <string name="qobuz_custom_instances_desc_default">Varsayılan sunucu (https://qobuz-dll.vercel.app/)</string>
@@ -2989,13 +2676,11 @@
     <string name="qobuz_quality_hires_96">Hi-Res FLAC / 24 bit 96 kHz</string>
     <string name="qobuz_quality_cd">CD FLAC / 16 bit 44.1 kHz</string>
     <string name="qobuz_quality_mp3_320">MP3 320 kbps</string>
-
     <string name="deezer_integration">Deezer</string>
     <string name="deezer_resolver_url">Deezer çözücü URL\'si</string>
     <string name="deezer_resolver_url_desc">Mevcut uç nokta: %1$s</string>
     <string name="deezer_resolver_url_placeholder">https://yesitworkssomehow-funny-deeza-api-and-yeah.hf.space/get_url</string>
     <string name="deezer_resolver_url_helper">dzmedia uyumlu bir /get_url uç noktası kullan.</string>
-    
     <string name="deezer_proxy_mode">Deezer vekil sunucu modu</string>
     <string name="deezer_proxy_direct">Doğrudan</string>
     <string name="deezer_proxy_render">Render sunucusu</string>
@@ -3020,7 +2705,6 @@
     <string name="deezer_cookie_configured">Çerez yapılandırıldı</string>
     <string name="deezer_cookie_not_configured">Çerez yapılandırılmadı</string>
     <string name="deezer_clear_cookie">Deezer çerezini temizle</string>
-
     <string name="tidal_integration">TIDAL</string>
     <string name="tidal_audio_quality">TIDAL ses kalitesi</string>
     <string name="tidal_resolver_endpoints">TIDAL API uç noktaları</string>
@@ -3037,7 +2721,6 @@
     <string name="tidal_quality_aac_320">AAC 320 kbps</string>
     <string name="tidal_quality_flac">FLAC / 16 bit</string>
     <string name="tidal_quality_hires">HiRes / 24 bit</string>
-
     <string name="deezer_web_login">Deezer Web girişi</string>
     <string name="deezer_web_login_desc">WebView üzerinden Deezer ile giriş yap. KittyTune, yüksek kaliteli yayın ve indirmeler için Deezer oturum çerezini kaydeder.</string>
     <string name="deezer_cookie_saved">Deezer girişi kaydedildi.</string>
@@ -3046,12 +2729,9 @@
     <string name="deezer_login_notice_subtitle">Bu güncellemede yeni</string>
     <string name="deezer_login_notice_body">KittyTune artık doğrudan kendi Deezer hesabından çalabilir. Giriş yapmak sana en güvenilir oynatmayı sunar ve yükleme süresini neredeyse anındaya indirir; çünkü parçalar paylaşımlı bir sunucudan geçmek yerine doğrudan Deezer\'dan çözülür.</string>
     <string name="deezer_login_notice_action">Deezer\'a Giriş Yap</string>
-
     <string name="tidal_web_login">TIDAL Web girişi</string>
     <string name="tidal_web_login_desc">WebView üzerinden TIDAL ile giriş yap. KittyTune, yüksek kaliteli yayın için kullanılan TIDAL çerezlerini ve tarayıcı kimlik doğrulama jetonlarını kaydeder.</string>
     <string name="tidal_cookie_saved">TIDAL girişi kaydedildi.</string>
-
-    <!-- Lyrics UI and Animation Settings -->
     <string name="pref_lyrics_ui_style_title">Şarkı Sözü Arayüz Tarzı</string>
     <string name="pref_lyrics_ui_style_enhanced">Apple Music (Mocharealm, Varsayılan)</string>
     <string name="pref_lyrics_ui_style_classic">Klasik</string>
@@ -3064,9 +2744,7 @@
     <string name="pref_lyrics_glow_factor_title">Parlama Yoğunluğu</string>
     <string name="pref_lyrics_fill_transition_title">Akışkan Dolgu Yumuşaklığı</string>
     <string name="pref_lyrics_line_spacing_title">Satır Aralığı</string>
-    
     <string name="pref_lyrics_font_title">Şarkı Sözü Yazı Tipi</string>
-    
     <string name="pref_lyrics_font_apple">Apple (SF Pro Display)</string>
     <string name="pref_lyrics_font_apple_short">Apple</string>
     <string name="pref_lyrics_font_app_default">Uygulama Varsayılanı (Google Sans Flex / Sistem)</string>
@@ -3081,8 +2759,6 @@
     <string name="common_undo">Geri Al</string>
     <string name="common_close">Kapat</string>
     <string name="common_next">İleri</string>
-
-    <!-- Setup / Onboarding Strings -->
     <string name="setup_lets_go">Hadi Başlayalım!</string>
     <string name="setup_step_format">%1$d / %2$d. Adım</string>
     <string name="setup_welcome_prefix">Hoş Geldin</string>
@@ -3094,11 +2770,9 @@
     <string name="setup_auth_soundcloud_title">SoundCloud ile Bağlan</string>
     <string name="setup_auth_soundcloud_badge">Tam Deneyim</string>
     <string name="setup_auth_soundcloud_desc">Beğenilerini, çalma listelerini, yeniden paylaşımlarını ve sanatçılarını doğrudan SoundCloud hesabınla eşitle.</string>
-    
     <string name="setup_auth_guest_title">Misafir Olarak Devam Et</string>
     <string name="setup_auth_guest_badge">Anında Erişim</string>
     <string name="setup_auth_guest_desc">Giriş yapmadan herhangi bir şarkıyı anında dinle. Tüm favorilerin ve geçmişin yerel olarak saklanır.</string>
-    
     <string name="setup_auth_footer_hint">İstediğin zaman Ayarlar\'dan hesap bağlayabilir veya değiştirebilirsin.</string>
     <string name="setup_permission_media_title">Ses Dosyaları İzni</string>
     <string name="setup_permission_media_description">KittyTune, yerel müzikleri ve önbelleğe alınmış parçaları bulmak için ses dosyalarına erişim iznine ihtiyaç duyar.</string>
@@ -3136,7 +2810,6 @@
     <string name="setup_all_set_body">KittyTune zevkine göre ayarlandı ve senin için hazır. Müzik yolculuğunun tadını çıkar!</string>
     <string name="setup_finish_btn">Dinlemeye Başla</string>
     <string name="setup_support_title">KittyTune\'a Destek Ol</string>
-    
     <string name="setup_support_desc_short">Ko-fi üzerinden %100 ücretsiz ve açık kaynak</string>
     <string name="home_support_banner_title">KittyTune hoşuna gitti mi?</string>
     <string name="home_support_banner_desc">KittyTune %100 ücretsiz, reklamsız ve açık kaynaklıdır. Bir yıldız vererek veya bir kahve ısmarlayarak projeye destek ol!</string>
@@ -3144,8 +2817,6 @@
     <string name="home_support_banner_donate_kofi">Ko-fi\'de Destek Ol</string>
     <string name="home_support_banner_dismiss">Kapat</string>
     <string name="home_support_banner_remind_later">Daha sonra hatırlat</string>
-
-    <!-- Equalizer -->
     <string name="equalizer_title">Ekolayzer</string>
     <string name="equalizer_subtitle">16 bantlı grafik ekolayzer, ön amfi ve Auto EQ</string>
     <string name="equalizer_response_curve">Frekans Tepkisi</string>
@@ -3174,7 +2845,6 @@
     <string name="equalizer_auto_import">EQ İçe Aktar</string>
     <string name="equalizer_auto_error">Profiller yüklenemedi. Bağlantını kontrol edip tekrar dene.</string>
     <string name="equalizer_auto_retry">Tekrar Dene</string>
-    <!-- DJ Flow / DJ assistant -->
     <string name="dj_flow_title">DJ Akışı</string>
     <string name="dj_flow_subtitle_on">Kesintisiz miksleme</string>
     <string name="dj_flow_subtitle_off">Kapalı</string>
@@ -3184,7 +2854,6 @@
     <string name="dj_flow_unknown">—</string>
     <string name="dj_flow_bpm_value">%1$d BPM</string>
     <string name="dj_flow_bar_beat">Ölçü %1$d/4 · Vuruş %2$d/16</string>
-    
     <string name="dj_flow_next_up">Sıradaki</string>
     <string name="dj_flow_unknown_track">Bilinmeyen</string>
     <string name="dj_flow_match_summary">%%%1$d uyum</string>
@@ -3193,20 +2862,15 @@
     <string name="dj_flow_mixing_now">Şimdi miksleniyor</string>
     <string name="dj_flow_mix_now">Şimdi miksle</string>
     <string name="dj_flow_empty_queue">DJ\'in önceden planlayabilmesi için sıraya parça ekle.</string>
-
     <string name="pref_haptics_contrast">Vuruş Etkisi</string>
     <string name="pref_haptics_contrast_sub">Titreşimin ses seviyesinden ziyade kontrasta ne kadar uyacağını belirler. Daha yüksek ayar geçişleri hafif tutar, böylece drop anı tam hissedilir.</string>
     <string name="pref_haptics_contrast_off">Kapalı</string>
     <string name="pref_haptics_contrast_full">Tam</string>
-
-    <!-- App Logs & Diagnostics -->
     <string name="logs_title">Uygulama Günlükleri ve Tanılama</string>
     <string name="logs_subtitle">Sorunları gidermeye yardımcı olmak için günlükleri görüntüle, dışa aktar veya paylaş</string>
     <string name="logs_save_all">Dosyaya Kaydet</string>
     <string name="logs_save_logcat">Logcat\'i Kaydet</string>
-    
     <string name="logs_copy_summary">Tanılamayı Kopyala</string>
-    
     <string name="logs_share">Günlükleri Paylaş</string>
     <string name="logs_copied_toast">Günlükler panoya kopyalandı!</string>
     <string name="logs_saved_toast">Günlükler başarıyla kaydedildi!</string>
@@ -3222,17 +2886,12 @@
     <string name="logs_sec_memory">Bellek ve Depolama</string>
     <string name="logs_sec_playback">Çalma ve Ses</string>
     <string name="logs_sec_network">Ağ ve Sağlayıcılar</string>
-    <!-- Settings Parity & Search -->
     <string name="homepage_search">Ayarlarda ara</string>
-    
     <string name="settings_search_no_results">Ayar bulunamadı</string>
     <string name="search_no_recent_results">Son arama sonucu yok</string>
-    
     <string name="search_suggestion_no_match">\"%1$s\" için sonuç bulunamadı</string>
     <string name="settings_search_recent_header">Son arama sonuçları</string>
     <string name="settings_search_clear_recent">Temizle</string>
-    
-    <!-- Theme Presets -->
     <string name="theme_presets_title">Hazır temalar</string>
     <string name="theme_preset_ocean">Okyanus</string>
     <string name="theme_preset_forest">Orman</string>
@@ -3240,28 +2899,17 @@
     <string name="theme_preset_rose">Gül</string>
     <string name="theme_preset_lavender">Lavanta</string>
     <string name="theme_preset_mint">Nane</string>
-    
     <string name="theme_custom_short">Özel</string>
     <string name="theme_amoled">AMOLED</string>
     <string name="logs_refresh">Yenile</string>
-
     <string name="pref_show_remaining_time">Kalan süre</string>
     <string name="pref_show_remaining_time_desc">Çalma çubuğunda toplam süre yerine kalan süreyi (-00:14) göster</string>
     <string name="pref_volume_slider_title">Ses seviyesi kaydırıcısı</string>
-    
     <string name="volume_vertical">Dikey</string>
-    
-    <!-- Menu Tiles (3 dots sheet) -->
-    
     <string name="menu_tiles_desc">Taşımak için parça veya çalma listesi menüsündeki bir düğmeyi basılı tut, gizlemek için sağ tıkla. Gizlenenleri buradan geri getirebilirsin.</string>
     <string name="menu_tiles_reset">Sıralamayı sıfırla</string>
     <string name="menu_tiles_track">Parça menüsü</string>
     <string name="menu_tiles_reorder_desc">Yeniden sıralamak için sürükle. Parça menüsü bu sırayı takip eder.</string>
-    
-    <!-- Player Shape -->
-    
-    <!-- Floating Bar Details -->
-    
     <string name="settings_group_window">Pencere ve metin</string>
     <string name="settings_group_covers">Kapaklar ve Görseller</string>
     <string name="player_advanced_title">Denetimler ve Duyarlılık</string>
@@ -3269,17 +2917,12 @@
     <string name="screensaver_tap_to_wake">Uyandırmak için herhangi bir yere dokun</string>
     <string name="screensaver_since_sleep">Uykudan bu yana</string>
     <string name="track_sorted_by_followers">Takipçilere göre sıralandı</string>
-
-    <!-- YEARLY PLAYBACK / SOUNDCLOUD WRAPPED -->
     <string name="yearly_playback_title">SoundCloud Wrapped</string>
     <string name="yearly_playback_menu_title">SoundCloud Wrapped</string>
-    
     <string name="yearly_playback_hub_subtitle">Müzikal dönüm noktaların ve yıllık özetlerin</string>
-    
     <string name="yearly_playback_in_prep_title">SoundCloud Wrapped %1$s</string>
     <string name="yearly_playback_in_prep_desc">%1$s Wrapped özetin hazırlanıyor. Müzik dinlemeye devam et, özetin yıl sonunda gelecek ( ˘ ᵕ ˘ ) ♬</string>
     <string name="yearly_playback_in_prep_status">Yıl sonunda geliyor</string>
-    
     <string name="yearly_playback_archives_title">Arşivler</string>
     <string name="yearly_playback_archives_subtitle">Önceki SoundCloud Wrapped sürümlerini yeniden yaşa</string>
     <string name="yearly_playback_locked_badge">Uygun değil</string>
@@ -3294,8 +2937,6 @@
     <string name="yearly_playback_unavailable_toast">SoundCloud %1$s yılında hesabın için bir Playback çalma listesi oluşturmadı.</string>
     <string name="yearly_playback_playlist_404_title">Playback Kullanılamıyor</string>
     <string name="yearly_playback_playlist_404_desc">Bu Playback çalma listesi mevcut değil veya SoundCloud tarafından hesabın için oluşturulmadı.</string>
-
-    <!-- SHARE SCREENSHOT & SOCIAL OPTIONS -->
     <string name="share_screenshot_title">Ekran görüntünü paylaş</string>
     <string name="share_screenshot_subtitle">Arkadaşlarının da dinleyebilmesi için bu parçanın bağlantısıyla birlikte görseli paylaş.</string>
     <string name="share_option_whatsapp">WhatsApp</string>
@@ -3317,12 +2958,8 @@
     <string name="share_screenshot_save_failed_toast">Görsel kaydedilemedi</string>
     <string name="share_tracktitle_artist_link">%2$s sanatçısının %1$s parçasını #SoundCloud\'da dinle\n%3$s</string>
     <string name="share_tracktitle_link">%1$s parçasını #SoundCloud\'da dinle\n%2$s</string>
-    
     <string name="share_playback_link">2025 Playback özetimi #SoundCloud\'da dinle\n%1$s</string>
-
-    <!-- YOUR MIX -->
     <string name="mix_title">Senin miksin</string>
-    
     <string name="mix_start">Mikslemeye başla</string>
     <string name="mix_building">Miksin hazırlanıyor…</string>
     <string name="mix_customise">Miksi özelleştir</string>
@@ -3368,8 +3005,6 @@
     <string name="pref_home_cards_group_title">Ana ekran kartları</string>
     <string name="pref_home_listening_stats_desc">Ana ekranda dinleme istatistikleri kartını göster</string>
     <string name="pref_home_your_mix_desc">Ana ekranda kişiselleştirilmiş miks kartını göster</string>
-
-    <!-- Search Keywords (Localized Tags for Settings Search) -->
     <string name="keywords_themes">tema, renk, koyu mod, karanlık mod, açık mod, amoled, oled, palet, duvar kağıdı, renkler, görünüm</string>
     <string name="keywords_player">oynatıcı, parça kaydırıcı, dalgalı, ince, kıvrımlı, düğmeler, butonlar, menü, panel, dock, kayan, çubuk, ses düzeyi</string>
     <string name="keywords_navigation_bar">gezinme çubuğu, alt çubuk, sekmeler, fab, dock, kısayollar, özelleştir</string>
@@ -3412,8 +3047,6 @@
     <string name="keywords_auto_update">otomatik güncelleme, güncellemeleri kontrol et, yeni sürüm, açılışta kontrol</string>
     <string name="keywords_content_filter">içerik filtresi, yapay zeka tespiti, müzik engelleme, otomatik atlama, engellenen parçalar, engellenen sanatçılar</string>
     <string name="keywords_mini_player_swipe">mini oynatıcı, kaydırma hareketi, parça atla, kapat</string>
-
-    <!-- YEARLY PLAYBACK ADDITIONAL STRINGS -->
     <string name="yearly_playback_year_title">SoundCloud Wrapped %1$d</string>
     <string name="yearly_playback_playback_year_title">SoundCloud Playback %1$d</string>
     <string name="yearly_playback_archive_2025_subtitle">2025 Playback Özetin • Resmi Rive Hikayesi</string>
@@ -3426,8 +3059,6 @@
     <string name="yearly_playback_error_title">Playback Yüklenemedi</string>
     <string name="yearly_playback_error_desc">Lütfen internet bağlantını kontrol et veya daha sonra tekrar dene.</string>
     <string name="yearly_playback_explore_detailed_stats">Ayrıntılı İstatistikleri İncele</string>
-
-    <!-- ECO MODE / DATA SAVER -->
     <string name="quality_data_section">Kalite ve Veri</string>
     <string name="data_saver_title">Veri Tasarrufu</string>
     <string name="data_saver_sub">Tüm trafik için tek anahtar: her kaynakta en düşük bitrate, hafif kapaklar, hareketli kapak yok. SoundCloud, YouTube Music, Qobuz, TIDAL ve Deezer için geçerlidir.</string>
@@ -3453,8 +3084,6 @@
     <string name="pref_track_source_badge_hidden">Kapalı</string>
     <string name="pref_full_player_source_title">Ses kaynağı göstergesi</string>
     <string name="pref_full_player_source_desc">Çalınan parça için platform logosunu (YouTube, SoundCloud vb.) göster</string>
-    
-    <!-- Settings subpage folders -->
     <string name="settings_cat_misc_sub">Genel, içerik filtresi, Discord ve hakkında</string>
     <string name="settings_audio_playback_sub">Otomatik oynatma, sıra, devam ettirme ve hız</string>
     <string name="settings_audio_quality_title">Ses ve Çıkış</string>
@@ -3462,31 +3091,24 @@
     <string name="settings_audio_transitions_title">Geçişler ve Miks</string>
     <string name="settings_audio_transitions_sub">Crossfade ve DJ automix</string>
     <string name="settings_audio_sleep_sub">Yavaşça kısılma süresi ve uyku seçenekleri</string>
-
     <string name="sources_services_sub">SoundCloud, Qobuz, TIDAL, Deezer, VK</string>
-
     <string name="storage_cache_sub">Ses ve görsel önbellek sınırları ile temizliği</string>
-    
     <string name="storage_local_files_sub">Taranan klasörler ve yerel kitaplık</string>
     <string name="storage_backup_sub">Uygulama ayarlarını ve verilerini dışa/içe aktar</string>
-
     <string name="sync_paired_devices_title">Eşlenen Cihazlar</string>
     <string name="sync_paired_devices_sub">Eşitleme durumu, cihaz bağlama ve yönetme</string>
     <string name="sync_options_title">Verileri Eşitle</string>
     <string name="sync_options_sub">Cihazlar arasında nelerin eşitleneceğini seç</string>
     <string name="sync_advanced_title">Gelişmiş Eşitleme</string>
     <string name="sync_advanced_sub">Bağlantı ayrıntıları, bağlantı noktası ve sorun giderme</string>
-
     <string name="network_proxy_sub">HTTP ve SOCKS5 proxy yapılandırması</string>
     <string name="network_zapret_sub">Uygulama içi DPI bypass, VPN veya proxy gerekmez</string>
-    <!-- Zapret: in-app DPI bypass -->
     <string name="zapret_title">Zapret</string>
     <string name="zapret_info_title">VPN yok, proxy yok, ek uygulama yok</string>
     <string name="zapret_info_desc">Zapret, uygulamanın bağlantılarının ilk paketlerini bölerek engelleri aşar; böylece filtreler hangi siteyi istediğini anlayamaz ve erişime izin verir. Bilgisayardaki Zapret ile aynı mantıkta çalışır ancak doğrudan uygulamanın içine entegre edilmiştir. Yalnızca KittyTune içinde etkilidir. En iyi sonuçlar için aşağıdaki testi çalıştır.</string>
     <string name="zapret_enable">Zapret\'i etkinleştir</string>
     <string name="zapret_enable_desc">Uygulama trafiği için DPI engellerini aş</string>
     <string name="zapret_status_enabled">Açık • %1$d alan adı • %2$s</string>
-    
     <string name="zapret_status_vpn_paused">Duraklatıldı • VPN etkin</string>
     <string name="zapret_vpn_active_notice">Bir VPN bağlantısı etkin. Çakışmaları önlemek ve pil tasarrufu sağlamak için Zapret otomatik olarak duraklatıldı. Trafik doğrudan VPN tarafından işlenir.</string>
     <string name="zapret_strategy">Strateji</string>
@@ -3508,12 +3130,7 @@
     <string name="zapret_copy_list">Bilgisayardaki Zapret için listeyi kopyala</string>
     <string name="zapret_copied">Alan adı listesi kopyalandı. Bilgisayarda Zapret\'in list-general-user.txt dosyasına yapıştır</string>
     <string name="keywords_zapret">zapret, dpi, bypass, engeli aş, desync, sni, sansür, engel, rusya, youtube, discord</string>
-
     <string name="misc_general_sub">Dil, başlangıç ekranı ve güncellemeler</string>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- TOGETHER (shared playlists)                                                     -->
-    <!-- ═════════════════════════════════════════════════════════════════════════════════ -->
     <string name="together_title">Birlikte Dinle</string>
     <string name="together_create">Ortak çalma listesi oluştur</string>
     <string name="together_join">Katıl</string>
@@ -3667,7 +3284,6 @@
     <string name="time_hours">%1$d sa</string>
     <string name="time_minutes">%1$d dk</string>
     <string name="time_seconds">%1$d sn</string>
-    <!-- Connect / Playback devices -->
     <string name="slot_devices">Çalma cihazları</string>
     <string name="connect_devices_title">Kullanılabilir cihazlar</string>
     <string name="connect_playing_here">Bu cihazda çalınıyor</string>
@@ -3743,8 +3359,6 @@
     <string name="edit_playlist_tags">Etiketler</string>
     <string name="edit_playlist_add_tags">Etiket ekle</string>
     <string name="desc_fullscreen">Tam ekran</string>
-
-    <!-- Developer Options & Debug Settings -->
     <string name="pref_developer_options_title">Geliştirici Seçenekleri</string>
     <string name="pref_developer_options_subtitle">Hata ayıklama katmanları, günlükler ve tanılama araçları</string>
     <string name="dev_section_audio_debug">Ses ve Geçiş Hata Ayıklama</string>
@@ -3761,8 +3375,6 @@
     <string name="dev_export_logs_desc">Hata bildirimleri için uygulama çalışma zamanı günlüklerini paylaş</string>
     <string name="dev_clear_logs">Çökme Günlüklerini Temizle</string>
     <string name="dev_logs_cleared">Çökme günlükleri temizlendi</string>
-
-    <!-- Lyrics Quick Settings & Full Player Background -->
     <string name="lyrics_quick_tab_look">Stil</string>
     <string name="lyrics_quick_tab_layout">Düzen</string>
     <string name="lyrics_quick_tab_features">Özellikler</string>
@@ -3791,8 +3403,6 @@
     <string name="pref_lyrics_autoscroll_speed">Düz metin söz kaydırma hızı</string>
     <string name="pref_lyrics_speed_this_track">Bu parça için hız</string>
     <string name="pref_lyrics_speed_this_track_sub">Bu şarkıya özel kaydırma hızını kaydet</string>
-
-    <!-- Listening recaps -->
     <string name="recaps_title">Dinleme özetleri</string>
     <string name="recaps_subtitle">Müzikle dolu ayların, mevsimlerin ve yılların</string>
     <string name="recaps_section">Özetlerin</string>
@@ -3880,7 +3490,6 @@
     <string name="recap_summary_brand">KittyTune özeti</string>
     <string name="pref_gyroscope_covers">3B jiroskop albüm kapakları</string>
     <string name="pref_gyroscope_covers_desc">Derin bir 3B paralaks efekti için telefonu eğerek kapak katmanlarını hareket ettirin</string>
-    <!-- Music Passport -->
     <string name="passport_title">Müzik Pasaportu</string>
     <string name="passport_tagline">Tüm dinleme geçmişin paylaşılabilir tek bir kartta.</string>
     <string name="passport_default_holder">Müzik Gezgini</string>
@@ -3901,6 +3510,311 @@
     <string name="passport_open_failed">Görseli açacak uygulama bulunamadı</string>
     <string name="passport_copy_mrz">MRZ kodunu kopyala</string>
     <string name="passport_mrz_copied">MRZ kodu panoya kopyalandı</string>
+    <string name="setup_player_design_apple_desc">Ikonik Apple Music düzeni: büyük kapak görseli, senkronize şarkı sözleri ve Liquid Glass kontrolleri.</string>
+    <string name="pref_gyro_overlay_disable">Kaplamayı kapat</string>
+    <string name="pref_gyro_overlay_enable">Kaplamayı aç</string>
+    <string name="mix_mode">Mix</string>
+    <string name="mix_mode_enable">Mix modunu aç</string>
+    <string name="mix_mode_disable">Mix modunu kapat</string>
+    <string name="mix_panel_title">Çalma listesi mix\'i</string>
+    <string name="mix_smart_sort">Akıllı mix sıralaması</string>
+    <string name="mix_smart_sort_applied">Sıra, uyumlu miksaj için düzenlendi</string>
+    <string name="mix_badge_bpm_key">%1$d BPM • %2$s</string>
+    <string name="mix_badge_bpm_only">%1$d BPM</string>
+    <string name="mix_status_mixing">Miksleniyor…</string>
+    <string name="mix_status_ready">Mix hazır</string>
+    <string name="mix_transition_length">Geçiş süresi</string>
+    <string name="mix_beats_auto">Otomatik</string>
+    <string name="mix_beats_value">%1$d vuruş</string>
+    <string name="mix_waveform_title">Geçiş bölgesi</string>
+    <string name="mix_kill_muted">Sessiz</string>
+    <string name="mix_open_panel">Mix kontrollerini aç</string>
+    <string name="wave_unavailable">Dalga formu kullanılamıyor</string>
+    <string name="wave_loading_pct">Yükleniyor %1$d %%</string>
+    <string name="mix_pill_add">Ekle</string>
+    <string name="mix_pill_video">Video</string>
+    <string name="mix_pill_edit">Düzenle</string>
+    <string name="mix_pill_sort">Sırala</string>
+    <string name="mix_video_unavailable">Video yalnızca YouTube mix\'leri için kullanılabilir</string>
+    <string name="edit_transition_title">Geçişi düzenle</string>
+    <string name="edit_transition_beta">BETA</string>
+    <string name="edit_transition_save">Kaydet</string>
+    <string name="transition_saved">Geçiş kaydedildi</string>
+    <string name="transition_bars_value">%1$d ölçü</string>
+    <string name="mix_bpm_unknown">— BPM</string>
+    <string name="edit_transition_preset_custom">Özel</string>
+    <string name="edit_transition_preset_auto">Otomatik</string>
+    <string name="edit_transition_preset_fade">Solma</string>
+    <string name="edit_transition_preset_rise">Yükseliş</string>
+    <string name="edit_transition_preset_blend">Harman</string>
+    <string name="edit_transition_preset_wave">Dalga</string>
+    <string name="edit_transition_preset_melt">Erime</string>
+    <string name="edit_transition_preset_slam">Slam</string>
+    <string name="edit_transition_preset_none">Geçiş yok</string>
+    <string name="transition_section_volume">Ses düzeyi</string>
+    <string name="transition_section_eq">EQ</string>
+    <string name="transition_section_filter">Filtre</string>
+    <string name="volume_option_overlap">Örtüşme</string>
+    <string name="volume_option_smooth_crossfade">Yumuşak çapraz geçiş</string>
+    <string name="volume_option_fade_in_cut_out">Yavaş giriş, ani çıkış</string>
+    <string name="volume_option_fade_out_cut_in">Yavaş çıkış, ani giriş</string>
+    <string name="volume_option_cut">Kesme</string>
+    <string name="eq_option_centre_bass_swap">Ortada bas değişimi</string>
+    <string name="eq_option_end_bass_swap">Sonda bas değişimi</string>
+    <string name="eq_option_start_bass_swap">Başta bas değişimi</string>
+    <string name="eq_option_three_band_fade">3 bantlı geçiş</string>
+    <string name="eq_option_none">Yok</string>
+    <string name="filter_option_high_pass_out">Yüksek geçiren filtre çıkış</string>
+    <string name="filter_option_low_pass_in">Alçak geçiren filtre giriş</string>
+    <string name="filter_option_none">Yok</string>
+    <string name="volume_explanation">Ses düzeyi, miks sırasında her şarkının ne kadar yüksek olacağını belirler.</string>
+    <string name="eq_explanation">EQ; bas, vokal ve tizleri değiştirir.</string>
+    <string name="filter_explanation">Filtreler, miks sırasında her şarkının parlaklığını şekillendirir.</string>
+    <string name="pref_gyro_flat_cover">Kaplamasız kapak</string>
+    <string name="pref_gyro_flat_cover_desc">Katmanlı gölge kutusu yerine, doğal boyutunda 3B eğilen tek bir temiz kapak görseli</string>
+    <string name="style_live_mesh">Live Mesh</string>
+    <string name="pref_waveform_pause_title">Duraklatıldığında dalga formu</string>
+    <string name="wave_pause_keep">Dalgalanmaya devam et (eskisi gibi)</string>
+    <string name="wave_pause_collapse">Noktalı çizgiye dönüş</string>
+    <string name="wave_pause_solid">Düz çizgiye dönüş</string>
+    <string name="pref_inline_lyrics_side_title">Şarkı sözü konumu</string>
+    <string name="pref_inline_lyrics_side_subtitle">Yatay modda Pixel, KittyTune Modern ve Classic oynatıcılarda geçerlidir</string>
+    <string name="inline_lyrics_side_left">Sol — kapağın yerine</string>
+    <string name="inline_lyrics_side_right">Sağ — kontrollerin yerine</string>
+    <string name="game_eat_playlist">Bu çalma listesini ye</string>
+    <string name="game_wave_title">Dalgayı ye</string>
+    <string name="game_score">Yenen: %1$d</string>
+    <string name="game_best">En iyi: %1$d</string>
+    <string name="game_of_total">/ %1$d</string>
+    <string name="game_idle">Oynamak için dokun</string>
+    <string name="game_wave_idle">Yeni bir şeye aç mısın?</string>
+    <string name="game_eat_hint">Yuttuğun her kapak çalmaya başlar. Kaydır veya oklara dokun.</string>
+    <string name="game_paused">Duraklatıldı</string>
+    <string name="game_over">Oyun bitti</string>
+    <string name="game_finished_title">Çalma listesi bitti!</string>
+    <string name="game_wave_finished">Dalga bitti!</string>
+    <string name="game_finished_text">Yenen şarkılar: %1$d</string>
+    <string name="game_restart">Tekrar oyna</string>
+    <string name="game_now_playing">Şimdi çalıyor</string>
+    <string name="game_loading">Lezzetli parçalar hazırlanıyor…</string>
+    <string name="game_empty">Burada henüz yiyecek bir şey yok</string>
+    <string name="game_up">Yukarı</string>
+    <string name="game_down">Aşağı</string>
+    <string name="game_left">Sol</string>
+    <string name="game_right">Sağ</string>
+    <string name="game_hint">Tahtayı kaydır veya oklara dokun • yılan yedikçe hızlanır</string>
+    <string name="diag_hero_title">Ses yolu tanılaması</string>
+    <string name="diag_hero_open">Yolu görüntüle</string>
+    <string name="diag_hero_sub_waiting">Oynatma bekleniyor…</string>
+    <string name="diag_title">Geçerli ses yolu</string>
+    <string name="diag_badge_bitperfect">Kayıpsız Bit-Perfect</string>
+    <string name="diag_badge_resampled">Yeniden örneklenmiş</string>
+    <string name="diag_badge_direct">Doğrudan</string>
+    <string name="diag_section_input">Kaynak (Giriş)</string>
+    <string name="diag_section_dsp">İşleme (DSP)</string>
+    <string name="diag_section_output">Çıkış (DAC)</string>
+    <string name="diag_chip_rate">Örnekleme hızı</string>
+    <string name="diag_chip_depth">Bit derinliği</string>
+    <string name="diag_chip_bitrate">Bit hızı</string>
+    <string name="diag_chip_channels">Kanallar</string>
+    <string name="diag_resampler">Yeniden örnekleyici</string>
+    <string name="diag_resampler_native">Yerel 1:1 (yeniden örnekleme yok)</string>
+    <string name="diag_resampler_src">SRC yeniden örnekleyici (%1$s → %2$s)</string>
+    <string name="diag_equalizer">Ekolayzır</string>
+    <string name="diag_eq_off">Atlandı (kapalı)</string>
+    <string name="diag_eq_active">Etkin (%1$d bant)</string>
+    <string name="diag_eq_active_bp">Etkin — Bit-Perfect için kapatın</string>
+    <string name="diag_normalizer">Ses yüksekliği (EBU R128)</string>
+    <string name="diag_norm_off">Kapalı</string>
+    <string name="diag_norm_on">Açık · hedef %1$s</string>
+    <string name="diag_output_device">Çıkış aygıtı</string>
+    <string name="diag_output_mode">AudioTrack modu</string>
+    <string name="diag_output_mode_bp">Doğrudan Bit-Perfect</string>
+    <string name="diag_output_mode_mixer">Paylaşılan AudioFlinger mikseri</string>
+    <string name="diag_bus_format">Veri yolu biçimi</string>
+    <string name="diag_out_builtin">Dahili hoparlörler</string>
+    <string name="diag_out_wired">Kablolu kulaklık</string>
+    <string name="diag_out_bluetooth">Bluetooth</string>
+    <string name="diag_out_usb_dac">USB DAC</string>
+    <string name="diag_container_upgrade">Kayıpsız kapsayıcı yükseltmesi</string>
+    <string name="slider_style_expressive">Etkileyici</string>
+    <string name="share_card_pick_lines">Şarkı sözü satırlarını seç</string>
+    <string name="share_card_as_text">Metin olarak paylaş</string>
+    <string name="full_player_bg_live_mesh">Live Mesh</string>
+    <string name="pref_lyrics_line_animation">Satır satır animasyon</string>
+    <string name="pref_instrumental_indicator">Enstrümantal göstergesi</string>
+    <string name="pref_instrumental_indicator_sub">Satır satır şarkı sözlerinde uzun enstrümantal boşluklarda gösterilir</string>
+    <string name="pref_instrumental_dots">Nefes alan noktalar</string>
+    <string name="pref_instrumental_circle">İlerleme çemberi</string>
+    <string name="pref_instrumental_note_wave">Nota + dalga</string>
+    <string name="pref_instrumental_off">Kapalı</string>
+    <string name="pref_tablet_nav_placement">Tablet gezinti konumu</string>
+    <string name="pref_tablet_nav_placement_sub">Tabletlerde yatay modda gezinti çubuğunun yeri</string>
+    <string name="pref_tablet_nav_bottom">Alt</string>
+    <string name="pref_tablet_nav_left">Sol taraf</string>
+    <string name="pref_classic_nav_labels">Klasik çubukta etiketleri göster</string>
+    <string name="pref_classic_nav_labels_sub">Klasik gezinti stilinde yalnızca simgeler için kapatın</string>
+    <string name="pref_modern_nav_labels">Modern çubukta etiketleri göster</string>
+    <string name="pref_modern_nav_labels_sub">Modern yüzen dokta da simgelerin altındaki metni koru</string>
+    <string name="pref_mini_player_style">Mini oynatıcı stili</string>
+    <string name="pref_mini_player_style_classic">Klasik</string>
+    <string name="pref_mini_player_style_modern">Modern</string>
+    <string name="pref_mini_player_background">Mini oynatıcı arka plan stili</string>
+    <string name="pref_mini_player_bg_solid">Düz</string>
+    <string name="pref_mini_player_bg_gradient">Gradyan</string>
+    <string name="pref_mini_player_bg_blur">Bulanıklık</string>
+    <string name="pref_mini_player_bg_glow">Animasyonlu parıltı</string>
+    <string name="pref_mini_player_bg_live_mesh">Live Mesh</string>
+    <string name="pref_mini_player_vertical_gesture">Kapatmak için aşağı kaydır</string>
+    <string name="pref_mini_player_vertical_gesture_sub">Yatay kaydırma eylemiyle birlikte çalışır</string>
+    <string name="pref_nav_hide_labels">Gezinmede etiketleri gizle</string>
+    <string name="pref_nav_hide_labels_sub">Gezinmede metin etiketlerini gizler ve seçili öğenin yanındaki başlığı kaldırır</string>
+    <string name="pref_mini_player_swipe_track">Parça değiştirmek için kaydır</string>
+    <string name="pref_mini_player_swipe_track_desc">Sonraki parça için sola, önceki için sağa kaydırın</string>
+    <string name="pref_mini_player_show_track_buttons">Parça düğmeleri</string>
+    <string name="pref_mini_player_show_track_buttons_desc">Oynat/duraklat düğmesinin yanında önceki / sonraki parça düğmelerini göster</string>
+    <string name="pref_mini_player_width">Mini oynatıcı genişliği</string>
+    <string name="pref_mini_player_width_wide">Geniş</string>
+    <string name="pref_mini_player_width_wide_desc">Alışılmış tam genişlikli hap</string>
+    <string name="pref_mini_player_width_narrow">Dar (Mini)</string>
+    <string name="pref_mini_player_width_narrow_desc">Mini oynatıcı tarzında, kompakt ve ortalanmış bir hap form</string>
+    <string name="player_action_bar_2_title">Oynatıcı eylem çubuğu (2 düğme)</string>
+    <string name="player_action_bar_2_desc">Yapılandırılabilir iki düğmenin ne yapacağını seçin</string>
+    <string name="pref_apple_controls_align_sub">Yalnızca tam kenara arka plan, yalnızca yatay mod</string>
+    <string name="pref_wavy_play_pause">Dalgalı oynat/duraklat düğmesi</string>
+    <string name="pref_wavy_play_pause_sub">Çalarken oynat düğmesi yavaşça dönen dalgalı bir kurabiyeye dönüşür</string>
+    <string name="pref_show_codec_on_player">Oynatıcıda kodeği göster</string>
+    <string name="pref_show_codec_on_player_sub">Geçerli kodek, bit hızı ve örnekleme hızını gösteren küçük bir rozet</string>
+    <string name="pref_skip_silence">Sessizliği atla</string>
+    <string name="pref_skip_silence_sub">Oynatma sırasında parçaların sessiz kısımlarını kırp</string>
+    <string name="pref_instant_skip_silence">Sessizliği anında atla</string>
+    <string name="pref_instant_skip_silence_sub">Uzun sessizliklerde hızlı sarmak yerine doğrudan atla</string>
+    <string name="pref_resume_on_bluetooth">Bluetooth bağlanınca devam et</string>
+    <string name="pref_resume_on_bluetooth_sub">Bir Bluetooth aygıtı yeniden bağlandığında oynatmaya devam et</string>
+    <string name="pref_pause_on_mute">Ses kapatılınca duraklat</string>
+    <string name="pref_pause_on_mute_sub">Medya ses düzeyi sıfıra düştüğünde oynatmayı duraklatır, geri geldiğinde devam ettirir</string>
+    <string name="pref_keep_screen_on">Oynatıcıda ekranı açık tut</string>
+    <string name="pref_keep_screen_on_sub">Oynatıcı genişletilmiş ve çalarken ekranın kapanmasını engeller</string>
+    <string name="pref_pause_listen_history">Dinleme geçmişini duraklat</string>
+    <string name="pref_pause_listen_history_sub">Bu açıkken çaldığınız hiçbir şey kaydedilmez</string>
+    <string name="pref_pause_search_history">Arama geçmişini duraklat</string>
+    <string name="pref_pause_search_history_sub">Bu açıkken yeni aramalar kaydedilmez</string>
+    <string name="pref_album_release_date">Albüm çıkış tarihi</string>
+    <string name="pref_album_release_date_sub">Kütüphane kartlarında albümlerin ne zaman çıktığını göster</string>
+    <string name="pref_release_date_short">Kısa (9 Eyl 2025)</string>
+    <string name="pref_release_date_full">Tam (9 Eylül 2025)</string>
+    <string name="pref_release_date_off">Kapalı</string>
+    <string name="pref_hide_video_songs">Video şarkıları gizle</string>
+    <string name="pref_hide_video_songs_sub">YouTube\'da videolar yerine yalnızca şarkıları ara</string>
+    <string name="pref_hide_youtube_shorts">YouTube Shorts\'u gizle</string>
+    <string name="pref_hide_youtube_shorts_sub">Shorts videolarını (SS çalma listeleri) YouTube sonuçlarından ayıkla</string>
+    <string name="player_design_apple_music">Apple Music</string>
+    <string name="pref_apple_music_inspired">Apple Music\'ten esinlenen</string>
+    <string name="pref_apple_music_inspired_sub">KittyTune modern düğmeleri yerine Apple tarzı oynatma kontrolleri</string>
+    <string name="pref_hide_volume_slider">Ses kaydırıcısını gizle</string>
+    <string name="pref_hide_volume_slider_sub">Apple Music oynatıcısında ses kaydırıcısını gizle</string>
+    <string name="pref_apple_controls_align">Yatay mod kontrol konumu</string>
+    <string name="pref_apple_controls_right">Sağ</string>
+    <string name="pref_apple_controls_center_low">Orta</string>
+    <string name="pref_apple_portrait_art">Dikey modda kapak</string>
+    <string name="pref_apple_portrait_art_full_bleed">Tam kenara arka plan</string>
+    <string name="pref_apple_portrait_art_square">Kapak yok</string>
+    <string name="player_design_ipad">iPad</string>
+    <string name="player_design_ipad_note">iPad düzeni yalnızca yatay moddaki tabletlerde kullanılabilir; dikey modda dikey Apple Music oynatıcısı kullanılır. Telefonlarda gizlidir.</string>
+    <string name="pref_ipad_mode_title">iPad düzeni</string>
+    <string name="pref_ipad_mode_sub">Tam genişlikli Apple Music tablet düzeni; normal Apple Music oynatıcısına dönmek için kapatın</string>
+    <string name="pref_tablet_cover_mode">Yatay modda kapak</string>
+    <string name="pref_tablet_cover_mode_centered">Ortalanmış kapak</string>
+    <string name="pref_tablet_cover_mode_full_screen">Tam ekran kapak</string>
+    <string name="player_design_ipad_tap_hint">İpucu: şarkı sözü düğmesi ve parça başlığına dokunmak başlık → söz satırı → söz paneli (solda kapak, sağda metin) arasında geçiş yapar; parça sayfasını açmak için başlığa uzun basın.</string>
+    <string name="pref_landscape_mini_lyrics">Mini tarz şarkı sözleri</string>
+    <string name="pref_landscape_mini_lyrics_sub">Tüm oynatıcı tasarımlarında dikey ve yatay modda tam ekran modlu söz paneli</string>
+    <string name="pref_usb_bit_perfect">USB Bit-Perfect oynatma</string>
+    <string name="pref_usb_bit_perfect_sub">Android 14+: Mikser, PCM\'i her parçanın kendi hızında DAC\'a değiştirmeden iletir</string>
+    <string name="pref_usb_show_status">Bit-Perfect rozetini göster</string>
+    <string name="pref_usb_show_status_sub">Oynatıcıda etkin USB/DAP durumunu göster</string>
+    <string name="pref_dap_exclusive">DAP özgün hız modu</string>
+    <string name="pref_dap_exclusive_sub">Aynı Bit-Perfect seçimini dijital ses oynatıcının dahili DAC\'ına uygula</string>
+    <string name="usb_status_no_device">USB DAC bağlı değil</string>
+    <string name="usb_status_active">Bit-Perfect etkin</string>
+    <string name="usb_status_unsupported">DAC, Bit-Perfect desteği bildirmiyor</string>
+    <string name="usb_status_android_version">Android 14 veya üstü gerekir</string>
+    <string name="usb_section_title">USB DAC &amp; Bit-Perfect ses</string>
+    <string name="pref_lyrics_line_animation_sub">Geçerli satır yukarıdan aşağıya bir gradyanla dolar</string>
+    <string name="instrumental_style_dots">Nefes alan noktalar</string>
+    <string name="instrumental_style_circle">Dairesel ilerleme</string>
+    <string name="instrumental_style_note">Nota ve dalga</string>
+    <string name="instrumental_style_off">Kapalı</string>
+    <string name="pref_share_lyrics_as_text">Metin olarak paylaş</string>
+    <string name="pref_share_lyrics_as_text_sub">Seçilen satırları mesajda bağlantı olarak gönder</string>
+    <string name="edit_transition_preset_dissolve">Çözünme</string>
+    <string name="volume_option_fade_in_fade_out">Yavaş giriş, yavaş çıkış</string>
+    <string name="volume_option_cut_in_fade_out">Ani giriş, yavaş çıkış</string>
+    <string name="volume_option_center_cut">Ortadan kesmeli çapraz geçiş</string>
+    <string name="filter_option_low_pass_in_out">Alçak geçiren filtre giriş/çıkış</string>
+    <string name="filter_option_high_pass_in_out">Yüksek geçiren filtre giriş/çıkış</string>
+    <string name="filter_option_rise_sweep">Yükselen tarama</string>
+    <string name="filter_option_low_pass_out">Alçak geçiren filtre çıkış</string>
+    <string name="filter_option_high_pass_in">Yüksek geçiren filtre giriş</string>
+    <string name="filter_option_hpf_out_lpf_in">Yüksek geçiren çıkış / alçak geçiren giriş</string>
+    <string name="volume_option_fade_in_fast_out">Yavaş giriş, hızlı çıkış</string>
+    <string name="eq_option_quick_bass_cut">Hızlı bas kesme</string>
+    <string name="eq_option_long_bass_cut">Uzun bas kesme</string>
+    <string name="transition_preview_resolving">Önizleme sesi hazırlanıyor…</string>
+    <string name="transition_desc_auto">Motor, bu çift için geçişi tempo, ton ve enerjiye göre seçer.</string>
+    <string name="transition_desc_custom">Bu geçişteki her eğri elle ayarlandı.</string>
+    <string name="transition_desc_fade">Eşit güçte çapraz geçiş — dekler yer değiştirirken ses seviyesi sabit kalır.</string>
+    <string name="transition_desc_rise">Çıkan parça yüksek geçiren filtreyle kaybolurken yenisi drop\'a doğru yükselir.</string>
+    <string name="transition_desc_blend">Her iki dek de tam seviyede kalır ve bas, ölçü çizgisinde el değiştirir.</string>
+    <string name="transition_desc_wave">Her iki dek ters fazda bant geçiren filtreden geçer — ses bir yandan diğerine süzülür.</string>
+    <string name="transition_desc_melt">Çıkan parça durana kadar yavaşlarken yenisi altından belirir.</string>
+    <string name="transition_desc_slam">Vuruşta sert bir kesme ve hızlı bir bas devri.</string>
+    <string name="transition_desc_dissolve">Eski parça yüksek geçiren filtre altında çözünürken yenisi belirir.</string>
+    <string name="transition_desc_none">Geçiş yok: bir parça biter, sonraki başlar.</string>
+    <string name="discard_changes_title">Değişiklikler silinsin mi?</string>
+    <string name="discard_changes_text">Şimdi geri dönerseniz değişikliklerinizi kaybedersiniz.</string>
+    <string name="keep_editing">Düzenlemeye devam et</string>
+    <string name="discard">Sil</string>
+    <string name="choose_transition_duration">Parçalarınız arasındaki geçişin ne kadar süreceğini seçin.</string>
+    <string name="volume_spotify_hint">Parçalarınız arasında sesin ne kadar yumuşak veya hızlı açılıp kapanacağını değiştirmek için ses eğrilerini kullanın.</string>
+    <string name="eq_spotify_hint">Bas gibi belirli frekansları artırmak veya kısmak için EQ (Ekolayzır) seçenekleriyle oynayın.</string>
+    <string name="filter_spotify_hint">Etki yaratmak veya geçişin sesini değiştirmek için parçalarınıza efektler uygulayın.</string>
+    <string name="volume_option_crossfade">Çapraz geçiş</string>
+    <string name="diag_section_routing">Ses yönlendirme matrisi</string>
+    <string name="diag_routing_isolated">Çıkışı DAC yönetiyor — DSP tamamen devre dışı</string>
+
+    <!-- kept from upstream 3.0.0 -->
     <string name="pref_queue_preserve_upcoming">Atlama sırasında yaklaşan sırayı koru</string>
     <string name="pref_queue_preserve_upcoming_sub">Aradaki parçaları atlamak yerine tıklanan parçayı sıradaki konuma taşır</string>
+
+    <!-- added translations -->
+    <string name="customize_coming_soon">Özelleştirme yakında geliyor</string>
+    <string name="customize_curve">Özel eğri</string>
+    <string name="curve_editor_done">Bitti</string>
+    <string name="curve_editor_hint">Nokta eklemek için çizgiye dokunun, şeklini değiştirmek için noktaları sürükleyin, bir noktayı kaldırmak için uzun basın.</string>
+    <string name="transition_section_effects">Efektler</string>
+    <string name="transition_section_looping">Döngü</string>
+    <string name="transition_section_beatmatch">Beatmatch</string>
+    <string name="effect_option_none">Yok</string>
+    <string name="effect_option_reverb_out_center">Yankı çıkış, orta</string>
+    <string name="effect_option_reverb_cut_end">Yankı, sonda kesmeli</string>
+    <string name="effect_option_reverb_out_end">Yankı çıkış, son</string>
+    <string name="effect_option_delay_half_cut_end">Delay ½, sonda kesmeli</string>
+    <string name="effect_option_delay_three_quarter_cut_end">Delay ¾, sonda kesmeli</string>
+    <string name="effect_option_echo_half_cut_end">Eko ½, sonda kesmeli</string>
+    <string name="effect_option_echo_half_out_end">Eko ½ çıkış, son</string>
+    <string name="loop_option_none">Yok</string>
+    <string name="loop_option_beat_1">1 vuruşluk döngü</string>
+    <string name="loop_option_beat_2">2 vuruşluk döngü</string>
+    <string name="loop_option_beat_4">4 vuruşluk döngü</string>
+    <string name="loop_option_beat_8">8 vuruşluk döngü</string>
+    <string name="loop_option_beat_16">16 vuruşluk döngü</string>
+    <string name="beatmatch_option_auto">Otomatik</string>
+    <string name="beatmatch_option_match">Tempoyu eşleştir</string>
+    <string name="beatmatch_option_original">Özgün tempo</string>
+    <string name="effect_spotify_hint">Yankı geniş bir kuyruk ekler, delay ve eko zamanlı tekrarlar ekler — son notanın da kendi anı olsun.</string>
+    <string name="looping_spotify_hint">Döngü, miks sırasında çıkan şarkının bir bölümünü tekrarlar — 1, 2, 4, 8 veya 16 vuruş seçin.</string>
+    <string name="beatmatch_spotify_hint">“Tempoyu eşleştir”, gelen parçayı çıkan parçanın temposuna uzatır; “Özgün tempo” her iki hızı da korur.</string>
+    <string name="usb_status_track_mismatch">Bit-Perfect doğrulanamadı: ses kanalı biçimi DAC mikserinden farklı</string>
+    <string name="usb_automix_conflict">Bit-Perfect etkinken Otomatik miks duraklatılır: parçalar çapraz geçişsiz değişir</string>
 </resources>
