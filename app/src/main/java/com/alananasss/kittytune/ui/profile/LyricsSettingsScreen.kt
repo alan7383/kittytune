@@ -66,6 +66,10 @@
         var preferLocal by remember { mutableStateOf(prefs.getLyricsPreferLocal()) }
         var showLyricsButton by remember { mutableStateOf(prefs.getShowLyricsButtonEnabled()) }
         var inlineLyrics by remember { mutableStateOf(prefs.getInlineLyricsEnabled()) }
+        var sweepEnabled by remember { mutableStateOf(prefs.getLyricsSweepEnabled()) }
+        var instrumentalIndicator by remember { mutableStateOf(prefs.getInstrumentalIndicatorStyle()) }
+        var landscapeMiniLyrics by remember { mutableStateOf(prefs.getLandscapeMiniLyrics()) }
+        var showInstrumentalDialog by remember { mutableStateOf(false) }
 
         var showAlignmentDialog by remember { mutableStateOf(false) }
         var showFontSizeDialog by remember { mutableStateOf(false) }
@@ -612,7 +616,55 @@
             }
         }
 
-        if (showAlignmentDialog) {
+        if (showInstrumentalDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showInstrumentalDialog = false },
+            title = {
+                Text(stringResource(R.string.pref_instrumental_indicator), fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column {
+                    listOf(
+                        com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.NOTE_WAVE to R.string.pref_instrumental_note_wave,
+                        com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.CIRCLE to R.string.pref_instrumental_circle,
+                        com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.DOTS to R.string.pref_instrumental_dots,
+                        com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.OFF to R.string.pref_instrumental_off,
+                    ).forEach { (option, labelRes) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    instrumentalIndicator = option
+                                    prefs.setInstrumentalIndicatorStyle(option)
+                                    playerViewModel.instrumentalIndicatorStyle = option
+                                    showInstrumentalDialog = false
+                                }
+                                .padding(vertical = 8.dp)
+                        ) {
+                            RadioButton(
+                                selected = instrumentalIndicator == option,
+                                onClick = {
+                                    instrumentalIndicator = option
+                                    prefs.setInstrumentalIndicatorStyle(option)
+                                    playerViewModel.instrumentalIndicatorStyle = option
+                                    showInstrumentalDialog = false
+                                },
+                            )
+                            Text(stringResource(labelRes), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 4.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showInstrumentalDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            },
+        )
+    }
+
+    if (showAlignmentDialog) {
             AlertDialog(
                 onDismissRequest = { showAlignmentDialog = false },
                 title = { Text(stringResource(R.string.pref_lyrics_align)) },
@@ -870,7 +922,8 @@
                             val multiStateIndex = underCoverIndex + 1
                             val placementIndex = underCoverIndex + 2
                             val alwaysIndex = underCoverIndex + 3
-                            val alignIndex = underCoverIndex + (if (lyricsUnderCover) 4 else 1)
+                            val miniLandscapeIndex = underCoverIndex + (if (lyricsUnderCover) 4 else 1)
+                            val alignIndex = miniLandscapeIndex + 1
                             val sizeIndex = alignIndex + 1
                             val totalVisibleItems = sizeIndex + 1
 
@@ -891,6 +944,35 @@
                                     showLyricsButton = it
                                     prefs.setShowLyricsButtonEnabled(it)
                                 }
+                            )
+
+                            // Plain on/off toggle: when on, a line-by-line (non word-synced)
+                            // current line fills top-to-bottom as it is sung instead of just
+                            // being swapped in.
+                            SettingsItem(
+                                shape = getSettingsShape(totalVisibleItems, inlineIndex + 1),
+                                title = stringResource(R.string.pref_lyrics_line_animation),
+                                subtitle = stringResource(R.string.pref_lyrics_line_animation_sub),
+                                hasSwitch = true,
+                                switchState = sweepEnabled,
+                                onSwitchChange = {
+                                    sweepEnabled = it
+                                    prefs.setLyricsSweepEnabled(it)
+                                    playerViewModel.updateLyricsSweepEnabled(it)
+                                }
+                            )
+
+                            SettingsItem(
+                                shape = getSettingsShape(totalVisibleItems, inlineIndex + 2),
+                                title = stringResource(R.string.pref_instrumental_indicator),
+                                subtitle = stringResource(R.string.pref_instrumental_indicator_sub),
+                                trailingText = when (instrumentalIndicator) {
+                                    com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.CIRCLE -> stringResource(R.string.pref_instrumental_circle)
+                                    com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.NOTE_WAVE -> stringResource(R.string.pref_instrumental_note_wave)
+                                    com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.OFF -> stringResource(R.string.pref_instrumental_off)
+                                    else -> stringResource(R.string.pref_instrumental_dots)
+                                },
+                                onClick = hapticAction(HapticKind.UI) { showInstrumentalDialog = true }
                             )
 
                             androidx.compose.animation.AnimatedVisibility(
@@ -964,6 +1046,21 @@
                                     )
                                 }
                             }
+
+                            // Mini-style landscape lyrics lives with the lyrics position
+                            // settings (moved here from the player design screen).
+                            SettingsItem(
+                                shape = getSettingsShape(totalVisibleItems, miniLandscapeIndex),
+                                title = stringResource(R.string.pref_landscape_mini_lyrics),
+                                subtitle = stringResource(R.string.pref_landscape_mini_lyrics_sub),
+                                hasSwitch = true,
+                                switchState = landscapeMiniLyrics,
+                                onSwitchChange = {
+                                    landscapeMiniLyrics = it
+                                    prefs.setLandscapeMiniLyrics(it)
+                                },
+                                highlightKey = "pref_landscape_mini_lyrics"
+                            )
 
                             SettingsItem(
                                 shape = getSettingsShape(totalVisibleItems, alignIndex),
