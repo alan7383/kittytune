@@ -87,6 +87,55 @@ class AutomixTest {
         assertEquals("Key should be minor (true)", true, result.second)
     }
 
+    // Root + third + fifth + octave + double octave, root in the C3 region (130.81 Hz).
+    private fun triadSignal(root: Int, minor: Boolean, sampleRate: Int, seconds: Int): FloatArray {
+        val base = 130.81 * Math.pow(2.0, root / 12.0)
+        val third = if (minor) 3 else 4
+        val n = sampleRate * seconds
+        val out = FloatArray(n)
+        var peak = 0f
+        for (i in 0 until n) {
+            val t = i.toDouble() / sampleRate
+            var v = sin(2.0 * PI * base * t) * 1.5
+            for (semis in intArrayOf(0, third, 7)) {
+                v += sin(2.0 * PI * base * 2.0 * Math.pow(2.0, semis / 12.0) * t)
+            }
+            v += sin(2.0 * PI * base * 4.0 * t) * 0.7
+            out[i] = v.toFloat()
+            peak = maxOf(peak, kotlin.math.abs(out[i]))
+        }
+        for (i in 0 until n) out[i] /= peak
+        return out
+    }
+
+    @Test
+    fun testEstimateKeyDistinguishesDifferentKeys() {
+        // Regression: with a 1024-point chroma FFT (~43 Hz bins at 44.1 kHz) almost every
+        // track collapsed onto the same few keys ("all songs are 7B").
+        val cases = listOf(
+            Triple(7, false, "G major"),
+            Triple(2, false, "D major"),
+            Triple(10, false, "A# major"),
+            Triple(4, true, "E minor"),
+            Triple(6, true, "F# minor"),
+        )
+        val seen = HashSet<Pair<Int, Boolean>>()
+        for ((root, minor, name) in cases) {
+            val result = BeatAnalyzer.estimateKey(triadSignal(root, minor, 22050, 2), 22050)
+            assertNotNull("Key result should not be null for $name", result)
+            assertEquals("$name: pitch class", root, result!!.first)
+            assertEquals("$name: mode", minor, result.second)
+            seen.add(result)
+        }
+        assertEquals("Every key must come out distinct", cases.size, seen.size)
+    }
+
+    @Test
+    fun testEstimateKeyReturnsNullOnSilence() {
+        // Silence must be "unknown", never a default key (and never NaN-driven).
+        assertEquals(null, BeatAnalyzer.estimateKey(FloatArray(22050 * 2), 22050))
+    }
+
     @Test
     fun testEstimateBeatPhase() {
         // Periodic spikes every 10 frames with phase offset 3

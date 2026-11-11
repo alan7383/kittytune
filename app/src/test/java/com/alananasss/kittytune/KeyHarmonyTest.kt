@@ -22,8 +22,8 @@ class KeyHarmonyTest {
     @Test
     fun `two steps up is a lift and unrelated keys clash`() {
         assertEquals(Fit.LIFT, KeyHarmony.between("5A", "7A"))
-        assertEquals(Fit.CLASH, KeyHarmony.between("1A", "6A"))
-        assertEquals(Fit.CLASH, KeyHarmony.between("8A", "9B"))
+        assertEquals(Fit.CLASH, KeyHarmony.between("1A", "4A"))
+        assertEquals(Fit.CLASH, KeyHarmony.between("8A", "11B"))
     }
 
     @Test
