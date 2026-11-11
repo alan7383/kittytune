@@ -6,6 +6,7 @@ import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.ui.common.rememberAppHaptics
+import com.alananasss.kittytune.ui.common.rememberAdaptiveGridCells
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
@@ -56,6 +57,8 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material3.*
 import com.alananasss.kittytune.ui.common.KittyOutlinedTextField
+import com.alananasss.kittytune.ui.common.RegisterLandscapeScrollable
+import com.alananasss.kittytune.ui.common.rememberWindowSizeInfo
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,12 +67,14 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
@@ -110,6 +115,26 @@ private data class PlaylistActionItem(
     val onClick: () -> Unit
 )
 
+/**
+ * Lets the collapsing library header keep its original screen-edge insets even though
+ * it lives inside a LazyVerticalGrid whose contentPadding already insets items by 16dp:
+ * the content is measured wider and placed back so it spans the full window width.
+ */
+private fun Modifier.headerBleed(extra: Dp): Modifier = this.then(
+    Modifier.layout { measurable, constraints ->
+        val extraPx = extra.roundToPx()
+        val placeable = measurable.measure(
+            constraints.copy(
+                minWidth = (constraints.minWidth - extraPx).coerceAtLeast(0),
+                maxWidth = (constraints.maxWidth + extraPx).coerceAtLeast(constraints.minWidth)
+            )
+        )
+        layout(constraints.maxWidth, placeable.height) {
+            placeable.placeRelative(-(extraPx / 2), 0)
+        }
+    }
+)
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LibraryScreen(
@@ -131,6 +156,8 @@ fun LibraryScreen(
     val libraryCategoryLayout by prefs.libraryCategoryLayoutFlow().collectAsState(initial = prefs.getLibraryCategoryLayout())
 
     val listState = rememberLazyGridState()
+    // Let vertical swipes on the landscape navigation rail scroll the library grid.
+    RegisterLandscapeScrollable(listState)
 
     var isFabMenuExpanded by remember { mutableStateOf(false) }
 
@@ -779,7 +806,7 @@ fun LibraryScreen(
                 }
 
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
+                    columns = rememberAdaptiveGridCells(compactCount = 3, tabletTileSize = 170.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -977,7 +1004,7 @@ fun LibraryScreen(
                 }
 
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
+                    columns = rememberAdaptiveGridCells(compactCount = 3, tabletTileSize = 170.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -1080,7 +1107,7 @@ fun LibraryScreen(
                 }
 
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
+                    columns = rememberAdaptiveGridCells(compactCount = 3, tabletTileSize = 170.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -1387,86 +1414,135 @@ fun LibraryScreen(
         libraryViewModel.userProfile == null && !libraryViewModel.isLoading && !libraryViewModel.isOfflineMode && !isGuest
     val isInsideFolder = libraryViewModel.currentFolder != null
 
+    // ── Collapsing header pieces ──────────────────────────────────────────────────
+    // The whole root-library header (banners + "Filter library" search + category
+    // chips + sort row) lives INSIDE the scrolling grid, so it scrolls away upward
+    // when the user reaches the playlists and slides back once the list is at the
+    // top. Folder mode keeps the previous static top bar with its own header.
+    val offlineBannerBlock: @Composable () -> Unit = {
+        if (libraryViewModel.isOfflineMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .hapticClickable { onPlaylistClick("downloads") }
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        Icons.Rounded.WifiOff,
+                        null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = stringResource(R.string.lib_offline_mode),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = stringResource(R.string.offline_banner_action_downloads),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+    val guestBannerBlock: @Composable () -> Unit = {
+        if (isGuest && !libraryViewModel.isOfflineMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .hapticClickable { onLoginClick() }
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    Icons.Rounded.Person,
+                    null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.lib_guest_mode),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+    }
+    val libraryHeaderBlock: @Composable () -> Unit = {
+        Column(
+            modifier = Modifier
+                .statusBarsPadding()
+                .padding(top = 8.dp)
+        ) {
+            offlineBannerBlock()
+            guestBannerBlock()
+            SearchBarHeader(
+                query = libraryViewModel.searchQuery,
+                onQueryChange = { libraryViewModel.searchQuery = it },
+                avatarUrl = if (libraryViewModel.activeLibrarySource == LibrarySource.VK) libraryViewModel.vkTokenManager.getUser()?.photoMax else libraryViewModel.userProfile?.avatarUrl,
+                onProfileClick = onProfileClick,
+                isGuest = isGuest,
+                activeSource = libraryViewModel.activeLibrarySource,
+                onSourceSelect = { libraryViewModel.onLibrarySourceChanged(it) },
+                isUploads = libraryViewModel.selectedFilter == LibraryFilter.UPLOADS,
+                onUploadsFilterClick = { showUploadsFilterSheet = true }
+            )
+
+            if (libraryViewModel.activeLibrarySource == LibrarySource.SOUNDCLOUD) {
+                FilterChipsRow(libraryViewModel, libraryCategoryLayout)
+            }
+
+            SortAndLayoutControls(
+                viewModel = libraryViewModel,
+                onHistoryClick = onHistoryClick,
+                onUploadsFilterClick = { showUploadsFilterSheet = true }
+            )
+        }
+    }
+
     Scaffold(
         topBar = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.background)
-                    .statusBarsPadding()
-                    .padding(top = 8.dp, bottom = 4.dp)
-            ) {
-                if (libraryViewModel.isOfflineMode) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.errorContainer)
-                            .hapticClickable { onPlaylistClick("downloads") }
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                Icons.Rounded.WifiOff,
-                                null,
-                                tint = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.lib_offline_mode),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = stringResource(R.string.offline_banner_action_downloads),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
-                                )
-                            }
+                    .then(
+                        if (isInsideFolder) {
+                            Modifier.statusBarsPadding().padding(top = 8.dp, bottom = 4.dp)
+                        } else {
+                            Modifier
                         }
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-
-                if (isGuest && !libraryViewModel.isOfflineMode) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .hapticClickable { onLoginClick() }
-                            .padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            Icons.Rounded.Person,
-                            null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            stringResource(R.string.lib_guest_mode),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
+                    )
+            ) {
+                if (isInsideFolder) {
+                    offlineBannerBlock()
+                    guestBannerBlock()
                 }
 
                 AnimatedContent(
@@ -1698,31 +1774,22 @@ fun LibraryScreen(
                             }
                         }
                     } else {
-                        Column {
-                            SearchBarHeader(
-                                query = libraryViewModel.searchQuery,
-                                onQueryChange = { libraryViewModel.searchQuery = it },
-                                avatarUrl = if (libraryViewModel.activeLibrarySource == LibrarySource.VK) libraryViewModel.vkTokenManager.getUser()?.photoMax else libraryViewModel.userProfile?.avatarUrl,
-                                onProfileClick = onProfileClick,
-                                isGuest = isGuest,
-                                activeSource = libraryViewModel.activeLibrarySource,
-                                onSourceSelect = { libraryViewModel.onLibrarySourceChanged(it) },
-                                isUploads = libraryViewModel.selectedFilter == LibraryFilter.UPLOADS,
-                                onUploadsFilterClick = { showUploadsFilterSheet = true }
-                            )
-
-                            if (libraryViewModel.activeLibrarySource == LibrarySource.SOUNDCLOUD) {
-                                FilterChipsRow(libraryViewModel, libraryCategoryLayout)
-                            }
-                        }
+                        // Root library header (search + chips + sort row) now lives inside
+                        // the scrolling grid below, so it collapses upward while scrolling.
+                        Box(modifier = Modifier)
                     }
                 }
             }
         },
         floatingActionButton = {
             if (!showLogin || isGuest) {
-                val bottomNavHeight = 90.dp
-                val miniPlayerHeight = if (playerViewModel.uiCurrentTrack != null) 72.dp else 0.dp
+                // In phone landscape the bottom bar is replaced by the side navigation rail,
+                // so the old 90dp + mini-player lift pushed the create FAB to the middle of
+                // the screen (right next to the search bar). Pin it to the bottom there.
+                val windowSizeInfo = rememberWindowSizeInfo()
+                val railMode = windowSizeInfo.showNavRail
+                val bottomNavHeight = if (railMode) 0.dp else 90.dp
+                val miniPlayerHeight = if (!railMode && playerViewModel.uiCurrentTrack != null) 72.dp else 0.dp
                 val totalBottomPadding = bottomNavHeight + miniPlayerHeight
 
                 FloatingActionButtonMenu(
@@ -1764,7 +1831,15 @@ fun LibraryScreen(
                             )
                         }
                     },
-                    modifier = Modifier.padding(bottom = totalBottomPadding)
+                    modifier = Modifier
+                        .then(
+                            if (railMode) {
+                                Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                            } else {
+                                Modifier
+                            }
+                        )
+                        .padding(bottom = totalBottomPadding)
                 ) {
                     FloatingActionButtonMenuItem(
                         onClick = {
@@ -1863,19 +1938,28 @@ fun LibraryScreen(
                     modifier = Modifier.fillMaxSize()
                 ) { folderId ->
                     Column(modifier = Modifier.fillMaxSize()) {
-                        SortAndLayoutControls(
-                            viewModel = libraryViewModel,
-                            onHistoryClick = onHistoryClick,
-                            onUploadsFilterClick = { showUploadsFilterSheet = true }
-                        )
+                        // In folder mode the sort row stays pinned above the grid; in the root
+                        // library it is part of the collapsing header inside the grid itself.
+                        if (isInsideFolder) {
+                            SortAndLayoutControls(
+                                viewModel = libraryViewModel,
+                                onHistoryClick = onHistoryClick,
+                                onUploadsFilterClick = { showUploadsFilterSheet = true }
+                            )
+                        }
 
                         if (libraryViewModel.activeLibrarySource == LibrarySource.VK && !libraryViewModel.vkTokenManager.isLoggedIn()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(24.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                if (!isInsideFolder) {
+                                    libraryHeaderBlock()
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                        .padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(28.dp),
@@ -1923,8 +2007,16 @@ fun LibraryScreen(
                                     }
                                 }
                             }
+                            }
                         } else if (((libraryViewModel.isLoading && libraryViewModel.activeLibrarySource == LibrarySource.SOUNDCLOUD) || (libraryViewModel.isVkLoading && libraryViewModel.activeLibrarySource == LibrarySource.VK)) && libraryViewModel.displayedItems.isEmpty() && folderId == null) {
-                            LibraryShimmerGrid(isGridLayout = libraryViewModel.isGridLayout)
+                            // Shimmer keeps the header above it so the loading state looks
+                            // identical to the loaded grid (the header then scrolls with it).
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                if (!isInsideFolder) {
+                                    libraryHeaderBlock()
+                                }
+                                LibraryShimmerGrid(isGridLayout = libraryViewModel.isGridLayout)
+                            }
                         } else if (folderId != null && libraryViewModel.displayedItems.isEmpty()) {
                             EmptyFolderView()
                         } else {
@@ -1951,7 +2043,12 @@ fun LibraryScreen(
                                 onPlaylistLongClick = { playlist -> selectedPlaylistForMenu = playlist },
                                 onFolderLongClick = { folder -> selectedFolderForMenu = folder },
                                 onUploadClick = onUploadClick,
-                                isGuest = isGuest
+                                isGuest = isGuest,
+                                header = if (!isInsideFolder) {
+                                    { libraryHeaderBlock() }
+                                } else {
+                                    null
+                                }
                             )
                         }
                     }
@@ -1966,7 +2063,14 @@ fun LibraryScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.45f))
+                        // Theme-aware scrim: a heavy black veil looks broken on the light
+                        // theme (the whole library seemed to "change"), so light mode gets
+                        // a barely-there dim while dark mode keeps the original strength.
+                        .background(
+                            Color.Black.copy(
+                                alpha = if (androidx.compose.foundation.isSystemInDarkTheme()) 0.45f else 0.14f
+                            )
+                        )
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
@@ -1995,9 +2099,10 @@ fun LibraryContentGrid(
     onPlaylistLongClick: (Playlist) -> Unit,
     onFolderLongClick: (LibraryFolder) -> Unit,
     onUploadClick: () -> Unit = {},
-    isGuest: Boolean
+    isGuest: Boolean,
+    header: (@Composable () -> Unit)? = null
 ) {
-    val columns = if (viewModel.isGridLayout) GridCells.Fixed(3) else GridCells.Fixed(1)
+    val columns = if (viewModel.isGridLayout) rememberAdaptiveGridCells(compactCount = 3, tabletTileSize = 170.dp) else GridCells.Fixed(1)
     val isSyncing by viewModel.isSyncing.collectAsState()
     val downloadedIds by DownloadManager.downloadedIds.collectAsState()
     val downloadProgress by DownloadManager.downloadProgress.collectAsState()
@@ -2025,6 +2130,17 @@ fun LibraryContentGrid(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(if (viewModel.isGridLayout) 16.dp else 8.dp)
     ) {
+        // Collapsing header: the banners + "Filter library" search + category chips +
+        // sort row scroll together with the content, so reaching the playlists gives
+        // them the whole screen height. Scrolling back to the top brings it back.
+        if (header != null) {
+            item(span = { GridItemSpan(maxLineSpan) }, key = "library_collapsing_header") {
+                Column(modifier = Modifier.headerBleed(32.dp)) {
+                    header()
+                }
+            }
+        }
+
         if (viewModel.selectedFilter == LibraryFilter.UPLOADS) {
             val searched = if (viewModel.searchQuery.isBlank()) {
                 viewModel.uploadedTracks
@@ -2297,7 +2413,7 @@ fun LibraryContentGrid(
 
 @Composable
 fun LibraryShimmerGrid(isGridLayout: Boolean) {
-    val columns = if (isGridLayout) GridCells.Fixed(3) else GridCells.Fixed(1)
+    val columns = if (isGridLayout) rememberAdaptiveGridCells(compactCount = 3, tabletTileSize = 170.dp) else GridCells.Fixed(1)
     LazyVerticalGrid(
         columns = columns,
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 180.dp),
@@ -3356,6 +3472,23 @@ fun DynamicPlaylistCard(
     val finalSubtitle = if (isRadioShortcut) "$typePrefix • $radioPlatform" else "$typePrefix • $authorText"
     val showPin = isPinned && !isInsideFolder
 
+    // Album release date: real albums carry their date under the author, in the
+    // short or full form the appearance setting asks for.
+    val releaseDateText = if (playlist.isRealAlbum && !isRadioShortcut) {
+        val raw = playlist.releaseDate ?: playlist.createdAt
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val display = remember {
+            com.alananasss.kittytune.data.local.PlayerPreferences(context).getAlbumReleaseDateDisplay()
+        }
+        when (display) {
+            com.alananasss.kittytune.data.local.ReleaseDateDisplay.OFF -> null
+            com.alananasss.kittytune.data.local.ReleaseDateDisplay.FULL ->
+                com.alananasss.kittytune.ui.profile.ReleaseDate.text(raw)
+            com.alananasss.kittytune.data.local.ReleaseDateDisplay.SHORT ->
+                com.alananasss.kittytune.ui.profile.ReleaseDate.shortText(raw)
+        }
+    } else null
+
     if (isGrid) {
         Column(
             modifier = modifier
@@ -3415,6 +3548,15 @@ fun DynamicPlaylistCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+            if (!releaseDateText.isNullOrBlank()) {
+                Text(
+                    text = releaseDateText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     } else {
         Row(
@@ -3470,7 +3612,7 @@ fun DynamicPlaylistCard(
                         Spacer(modifier = Modifier.width(4.dp))
                     }
                     Text(
-                        text = finalSubtitle,
+                        text = if (releaseDateText.isNullOrBlank()) finalSubtitle else "$finalSubtitle • $releaseDateText",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
