@@ -6,6 +6,7 @@
  */
 package com.alananasss.kittytune.ui.player
 
+import androidx.compose.runtime.Immutable
 import com.alananasss.kittytune.domain.Track
 
 /**
@@ -35,6 +36,7 @@ enum class TransitionStyle(
 /**
  * Evaluated match result for an upcoming track candidate.
  */
+@Immutable
 data class TrackMatch(
     val track: Track,
     val score: Float,               // Overall match score (0.0f - 100.0f)
@@ -54,6 +56,7 @@ data class TrackMatch(
 /**
  * Reactive state of the DJ Flow engine, exposed to UI and animation systems.
  */
+@Immutable
 data class DjFlowState(
     val isActive: Boolean = false,
     val currentBpm: Float = 0f,
@@ -119,6 +122,7 @@ data class DjFlowState(
  * @param outgoingGrid beat grid of the playing track; null until analysis lands.
  * @param incomingGrid beat grid of the track the next transition will mix in.
  */
+@Immutable
 data class DjSyncState(
     val tempoRatio: Float = 1.0f,
     // No longer written per tick — see [DjFlowController.livePhaseOffsetMs].
