@@ -75,11 +75,15 @@ class FastCaptureAudioSink(
         this.listener = listener
     }
 
+    // Only 16-bit int and float PCM are decoded correctly here (handleBuffer reads
+    // shorts/floats). Claiming 24/32-bit support used to hand raw 3-byte samples to a
+    // 16-bit reader - Hi-Res analysis turned into noise. UNSUPPORTED makes ExoPlayer
+    // convert 24/32-bit PCM to 16-bit before it ever reaches this sink.
     override fun supportsFormat(format: Format): Boolean =
-        androidx.media3.common.util.Util.isEncodingLinearPcm(format.pcmEncoding)
+        format.pcmEncoding == C.ENCODING_PCM_16BIT || format.pcmEncoding == C.ENCODING_PCM_FLOAT
 
     override fun getFormatSupport(format: Format): Int =
-        if (androidx.media3.common.util.Util.isEncodingLinearPcm(format.pcmEncoding)) {
+        if (supportsFormat(format)) {
             AudioSink.SINK_FORMAT_SUPPORTED_DIRECTLY
         } else {
             AudioSink.SINK_FORMAT_UNSUPPORTED
@@ -162,17 +166,29 @@ class FastCaptureAudioSink(
         if (keepStereo) {
             // Left and right as they are (a mono source on both sides), interleaved.
             val isFloat = pcmEncoding == C.ENCODING_PCM_FLOAT
-            val fb = if (isFloat) buffer.asFloatBuffer() else null
-            val sb = if (isFloat) null else buffer.asShortBuffer()
-            val frames = (fb?.remaining() ?: sb!!.remaining()) / channels
-            mono = FloatArray(frames * 2)
-            for (f in 0 until frames) {
-                val l = fb?.get(f * channels) ?: (sb!!.get(f * channels) / 32768f)
-                val r = if (channels > 1) (fb?.get(f * channels + 1) ?: (sb!!.get(f * channels + 1) / 32768f)) else l
-                mono[2 * f] = l
-                mono[2 * f + 1] = r
+            if (isFloat) {
+                val fb = buffer.asFloatBuffer()
+                val frames = fb.remaining() / channels
+                mono = FloatArray(frames * 2)
+                for (f in 0 until frames) {
+                    val l = fb.get(f * channels)
+                    val r = if (channels > 1) fb.get(f * channels + 1) else l
+                    mono[2 * f] = l
+                    mono[2 * f + 1] = r
+                }
+                framesInBuffer = frames
+            } else {
+                val sb = buffer.asShortBuffer()
+                val frames = sb.remaining() / channels
+                mono = FloatArray(frames * 2)
+                for (f in 0 until frames) {
+                    val l = sb.get(f * channels) / 32768f
+                    val r = if (channels > 1) sb.get(f * channels + 1) / 32768f else l
+                    mono[2 * f] = l
+                    mono[2 * f + 1] = r
+                }
+                framesInBuffer = frames
             }
-            framesInBuffer = frames
         } else if (pcmEncoding == C.ENCODING_PCM_FLOAT) {
             val fb = buffer.asFloatBuffer()
             val frames = fb.remaining() / channels
