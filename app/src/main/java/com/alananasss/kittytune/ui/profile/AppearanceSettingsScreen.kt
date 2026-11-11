@@ -113,7 +113,6 @@ fun AppearanceSettingsScreen(
     var lyricsUnderCover by remember { mutableStateOf(prefs.getLyricsUnderCoverEnabled()) }
     var animatedCovers by remember { mutableStateOf(prefs.getAnimatedCoversEnabled()) }
     var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
-    var gyroscopeCovers by remember { mutableStateOf(prefs.getGyroscopeCoversEnabled()) }
     var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
     var libraryCategoryLayout by remember { mutableStateOf(prefs.getLibraryCategoryLayout()) }
     var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
@@ -396,7 +395,6 @@ fun AppearanceSettingsScreen(
             "pref_app_icon" to 2,
             "pref_animated_covers" to 3,
             "pref_animated_covers_fade_ui" to 3,
-            "pref_gyroscope_covers" to 3,
             "pref_animated_artist_profiles" to 3,
             "pref_lyrics_under_cover" to 3,
             "pref_library_category_layout" to 4,
@@ -436,12 +434,10 @@ fun AppearanceSettingsScreen(
                                 onSwitchChange = { on ->
                                     dynamicTheme = on
                                     prefs.setDynamicTheme(on)
-                                    if (on) {
-                                        if (trackDynamicTheme) {
-                                            trackDynamicTheme = false
-                                            prefs.setTrackDynamicTheme(false)
-                                        }
-                                    } else if (keyColor == 0) {
+                                    // Both dynamic themes may be on at once: while a track is
+                                    // loaded the artwork seed wins, and Material You takes over
+                                    // once the mini player is emptied. (See Theme.kt.)
+                                    if (!on && keyColor == 0) {
                                         val defaultPreset = themePresets.first()
                                         keyColor = defaultPreset.seed
                                         prefs.setKeyColor(defaultPreset.seed)
@@ -462,10 +458,9 @@ fun AppearanceSettingsScreen(
                                 onSwitchChange = { on ->
                                     trackDynamicTheme = on
                                     prefs.setTrackDynamicTheme(on)
-                                    if (on && dynamicTheme) {
-                                        dynamicTheme = false
-                                        prefs.setDynamicTheme(false)
-                                    }
+                                    // Coexists with Dynamic Theme (Material You): the track seed
+                                    // wins while there is a track, Material You takes over when
+                                    // the player is emptied. (See Theme.kt.)
                                 },
                                 highlightKey = "pref_theme_track_dynamic"
                             )
@@ -647,21 +642,6 @@ fun AppearanceSettingsScreen(
                         add { shape ->
                             SettingsItem(
                                 shape = shape,
-                                title = stringResource(R.string.pref_gyroscope_covers),
-                                subtitle = stringResource(R.string.pref_gyroscope_covers_desc),
-                                icon = Icons.Rounded.Layers,
-                                hasSwitch = true,
-                                switchState = gyroscopeCovers,
-                                onSwitchChange = {
-                                    gyroscopeCovers = it
-                                    prefs.setGyroscopeCoversEnabled(it)
-                                },
-                                highlightKey = "pref_gyroscope_covers"
-                            )
-                        }
-                        add { shape ->
-                            SettingsItem(
-                                shape = shape,
                                 title = stringResource(R.string.pref_animated_artist_profiles),
                                 subtitle = stringResource(R.string.pref_animated_artist_profiles_desc),
                                 icon = Icons.Rounded.AccountCircle,
@@ -814,6 +794,7 @@ fun AppearanceSettingsScreen(
             }
         }
     }
+
 }
 
 @Composable
