@@ -10,7 +10,12 @@ import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -26,12 +31,14 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -44,6 +51,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -124,7 +132,10 @@ import com.alananasss.kittytune.ui.player.slider.PlayerSliderTrack
 import com.alananasss.kittytune.ui.player.slider.SquigglySlider
 import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import com.alananasss.kittytune.ui.player.FluidArtworkBackground
+import com.alananasss.kittytune.ui.player.CodecBadge
 import com.alananasss.kittytune.ui.player.InlineLyricsContent
+import com.alananasss.kittytune.ui.player.rememberInlineLyricsSide
+import com.alananasss.kittytune.data.local.InlineLyricsSide
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.QueueContent
 import com.alananasss.kittytune.ui.player.SleepTimerDialog
@@ -293,6 +304,12 @@ fun PixelPlayerScreen(
     var showQueueSheet by remember { mutableStateOf(false) }
     var showEffectsSheet by remember { mutableStateOf(false) }
 
+    // "Full screen" mode for mini-style lyrics in landscape: reset when the lyrics are closed
+    var isImmersiveLyrics by remember { mutableStateOf(false) }
+    LaunchedEffect(viewModel.showInlineLyrics) {
+        if (!viewModel.showInlineLyrics) isImmersiveLyrics = false
+    }
+
     val pProgress = predictiveBackProgress.value
     val clampedProgress = if (pProgress.isFinite()) pProgress.coerceIn(0f, 1f) else 0f
     val predictiveScaleX = if (pProgress.isFinite()) (1f - (clampedProgress * 0.06f)).coerceIn(0.8f, 1f) else 1f
@@ -300,7 +317,10 @@ fun PixelPlayerScreen(
     val predictiveTranslationY = if (pProgress.isFinite()) (pProgress.coerceAtLeast(0f) * sheetCollapsedTargetY) else 0f
     val predictiveCorner = (clampedProgress * 32.dp.value).coerceAtLeast(0f).dp
 
-    Box(
+    // Orientation MUST come from the real layout constraints, not LocalConfiguration:
+    // on several tablets Configuration keeps reporting the natural (landscape) width/height
+    // even in portrait, which forced the landscape two-pane layout onto the portrait screen.
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .playerDismissGesture(
@@ -432,9 +452,31 @@ fun PixelPlayerScreen(
                         )
                 )
             }
+
+            PlayerBackgroundStyle.LIVE_MESH -> {
+                // The rotating mesh of blurred artwork layers, same as the main player.
+                com.alananasss.kittytune.ui.player.LiveMeshBackground(
+                    thumbnailUrl = track.fullResArtwork,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScrim = true
+                )
+            }
         }
 
         val verticalDragModifier = Modifier
+        val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo(maxWidth, maxHeight)
+        // "Text on the left / on the right" setting (phone AND tablet landscape):
+        // RIGHT keeps the cover visible and shows the lyrics in place of the controls
+        // pane; LEFT keeps the original behaviour (lyrics replace the cover).
+        val inlineLyricsSide = rememberInlineLyricsSide()
+        val lyricsOnRight = windowSizeInfo.isLandscape &&
+            inlineLyricsSide == InlineLyricsSide.RIGHT
+        // Mini-style lyrics in landscape (the landscape mini-style lyrics setting,
+        // on by default): lyrics on the left, the cover at the track title + slider
+        // on the right, and a "Full screen" mode.
+        val miniLandscapeLyrics = remember { prefs.getLandscapeMiniLyrics() }
+        val miniLyricsLandscape = windowSizeInfo.isLandscape && viewModel.showInlineLyrics &&
+            miniLandscapeLyrics
 
         // Main Player Column Layout
         Column(
@@ -447,7 +489,9 @@ fun PixelPlayerScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Top Bar
+            // Top Bar (hidden in the mini-style lyrics full-screen mode - only the lyrics,
+            // the cover with the title and the slider remain)
+            AnimatedVisibility(visible = !(miniLyricsLandscape && isImmersiveLyrics)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -550,7 +594,11 @@ fun PixelPlayerScreen(
                     }
                 }
             }
+            } // AnimatedVisibility (Top Bar)
 
+            // Artwork / inline-lyrics pager block, shared by the portrait and landscape
+            // layouts (portrait sizes the square by width, landscape by height).
+            val pixelArtworkBlock: @Composable (Modifier) -> Unit = { blockModifier ->
             // Pager for swipe animation between queue tracks
             val queueSize = viewModel.uiQueueState.size
             val currentIdx = viewModel.uiCurrentQueueIndex
@@ -581,21 +629,22 @@ fun PixelPlayerScreen(
 
             // Center Artwork Section (32.dp, 60 smooth corner) with swipe animation
             val showLyrics = viewModel.showInlineLyrics
+            // In "text on the right" landscape mode the cover never fades and the artwork
+            // block never hosts the lyrics layer - the lyrics live in the right pane instead.
+            val showLyricsOverCover = showLyrics && !lyricsOnRight
             val lyricsAlpha by animateFloatAsState(
-                targetValue = if (showLyrics) 1f else 0f,
+                targetValue = if (showLyricsOverCover) 1f else 0f,
                 animationSpec = tween(400),
                 label = "pixelLyricsAlpha"
             )
             val coverAlpha by animateFloatAsState(
-                targetValue = if (showLyrics) 0f else 1f,
+                targetValue = if (showLyricsOverCover) 0f else 1f,
                 animationSpec = tween(400),
                 label = "pixelCoverAlpha"
             )
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
+                modifier = blockModifier
                     .then(if (!showLyrics) verticalDragModifier else Modifier),
                 contentAlignment = Alignment.Center
             ) {
@@ -610,7 +659,10 @@ fun PixelPlayerScreen(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
                         pageSpacing = 16.dp,
-                        contentPadding = PaddingValues(horizontal = 24.dp)
+                        // Equal padding on all sides keeps every pager page a perfect square
+                        // (the artwork is never stretched or cropped) and centers it in the
+                        // bounded artwork pane on both phone and tablet screens.
+                        contentPadding = PaddingValues(24.dp)
                     ) { page ->
                         val pageTrack = viewModel.uiQueueState.getOrNull(page) ?: track
                         val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
@@ -664,87 +716,16 @@ fun PixelPlayerScreen(
                     }
                 }
             }
+            }
 
-            // Track Metadata + Wavy Progress Slider
+            // Progress slider + timecodes extracted into a separate block:
+            // used both in the regular layout (inside pixelMetaBlock) and in the
+            // right pane of the landscape mini-style lyrics.
+            val pixelSliderBlock: @Composable (Boolean) -> Unit = { compactMeta ->
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Track Title (GoogleSansRounded Bold)
-                Text(
-                    text = track.title ?: stringResource(R.string.untitled_track),
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = GoogleSansRounded,
-                        color = mainTextColor
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .hapticClickable { viewModel.navigateToTrackDetails(track.id, 0) }
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                // Artist (GoogleSansRounded Medium)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .weight(1f, fill = false)
-                            .clip(RoundedCornerShape(8.dp))
-                            .hapticClickable { viewModel.navigateToTrackArtist(track) }
-                            .padding(horizontal = 4.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = track.displayArtist.ifBlank {
-                                track.user?.username ?: stringResource(R.string.unknown_artist)
-                            },
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontFamily = GoogleSansRounded,
-                                color = subTextColor
-                            ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        val isAnyVerified = track.user?.verified == true || track.artists?.any { it.verified } == true
-                        if (isAnyVerified) {
-                            Spacer(Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Rounded.Verified,
-                                contentDescription = stringResource(R.string.user_type_verified_artist),
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                    val aiResult by com.alananasss.kittytune.audio.ai.AiDetectionManager.result.collectAsState()
-                    com.alananasss.kittytune.ui.player.ai.AiDetectionBadge(
-                        result = aiResult,
-                        textColor = mainTextColor,
-                        onClick = hapticAction(HapticKind.LIGHT) { viewModel.showAiDetectionSheet = true },
-                        modifier = Modifier.padding(start = 6.dp)
-                    )
-                    com.alananasss.kittytune.ui.common.TrackSourceBadge(
-                        track = track,
-                        resolvedSource = viewModel.currentStreamSource,
-                        modifier = Modifier.padding(start = 6.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
                 // Expressive Wavy Slider
                 val clip = viewModel.uiClipWindow
                 val shownOf = { songMs: Long -> clip?.toShown(songMs) ?: songMs }
@@ -810,6 +791,7 @@ fun PixelPlayerScreen(
                 when (sliderStyle) {
                     PlayerSliderStyle.WAVY -> {
                         WavySliderExpressive(
+                            // v8-API: value is a lambda so the wave reads the position without recomposition
                             value = { animatedProgressState.value },
                             onValueChange = { newFraction ->
                                 sliderDragValue = newFraction
@@ -937,6 +919,29 @@ fun PixelPlayerScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
+                    PlayerSliderStyle.EXPRESSIVE -> {
+                        com.alananasss.kittytune.ui.player.slider.ExpressiveWavesSlider(
+                            value = animatedProgressState.value.coerceIn(0f, 1f),
+                            valueRange = 0f..1f,
+                            onValueChange = { newFraction ->
+                                sliderDragValue = newFraction
+                                val targetMs = (newFraction * totalDuration).roundToLong()
+                                viewModel.updateScrubPosition(targetMs)
+                            },
+                            onValueChangeFinished = {
+                                sliderDragValue?.let { finalFraction ->
+                                    val targetMs = (finalFraction * totalDuration).roundToLong()
+                                    targetSeekFraction = finalFraction
+                                    lastSeekFinishedTime = System.currentTimeMillis()
+                                    viewModel.seekTo(songOf(targetMs))
+                                    sliderDragValue = null
+                                }
+                            },
+                            colors = sliderColors,
+                            isPlaying = viewModel.uiIsPlaying,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
 
                 // Timestamps: current on left, duration on right
@@ -964,16 +969,114 @@ fun PixelPlayerScreen(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .hapticClickable { prefs.setShowRemainingTime(!showRemaining) }
-                            .padding(horizontal = 8.dp, vertical = 8.dp)
+                            .padding(horizontal = 8.dp, vertical = if (compactMeta) 2.dp else 8.dp)
                     )
                 }
             }
+            }
 
-            // Controls Section: AnimatedPlaybackControls + BottomToggleRow
+            // Track Metadata + Wavy Progress Slider
+            // compactMeta=true (phone landscape): tighter title style and spacers so the
+            // metadata + slider + full controls stack always fits the short landscape window
+            // and the bottom toggle row stays on screen.
+            val pixelMetaBlock: @Composable (Boolean) -> Unit = { compactMeta ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Track Title (GoogleSansRounded Bold)
+                Text(
+                    text = track.title ?: stringResource(R.string.untitled_track),
+                    style = (if (compactMeta) {
+                        MaterialTheme.typography.titleLarge
+                    } else {
+                        MaterialTheme.typography.headlineSmall
+                    }).copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = GoogleSansRounded,
+                        color = mainTextColor
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .hapticClickable { viewModel.navigateToTrackDetails(track.id, 0) }
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // Artist (GoogleSansRounded Medium)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .clip(RoundedCornerShape(8.dp))
+                            .hapticClickable { viewModel.navigateToTrackArtist(track) }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = track.displayArtist.ifBlank {
+                                track.user?.username ?: stringResource(R.string.unknown_artist)
+                            },
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontFamily = GoogleSansRounded,
+                                color = subTextColor
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        val isAnyVerified = track.user?.verified == true || track.artists?.any { it.verified } == true
+                        if (isAnyVerified) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.Verified,
+                                contentDescription = stringResource(R.string.user_type_verified_artist),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    val aiResult by com.alananasss.kittytune.audio.ai.AiDetectionManager.result.collectAsState()
+                    com.alananasss.kittytune.ui.player.ai.AiDetectionBadge(
+                        result = aiResult,
+                        textColor = mainTextColor,
+                        onClick = hapticAction(HapticKind.LIGHT) { viewModel.showAiDetectionSheet = true },
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+                    com.alananasss.kittytune.ui.common.TrackSourceBadge(
+                        track = track,
+                        resolvedSource = viewModel.currentStreamSource,
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(if (compactMeta) 4.dp else 12.dp))
+
+                // Progress slider + timecodes (the block shared with the mini-style lyrics)
+                pixelSliderBlock(compactMeta)
+            }
+            }
+
+            // Controls Section: AnimatedPlaybackControls + BottomToggleRow.
+            // compactStack=true (phone landscape): the full-size stack (~370dp together with
+            // the 56dp top bar) does not fit a ~360dp tall landscape window and used to push
+            // the bottom toggle row off-screen. Tablets keep the full-size stack.
+            val pixelControlsBlock: @Composable (Boolean) -> Unit = { compactStack ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = if (compactStack) 4.dp else 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 AnimatedPlaybackControls(
@@ -985,7 +1088,7 @@ fun PixelPlayerScreen(
                     onPrevious = { viewModel.smartPrevious() },
                     onPlayPause = { viewModel.togglePlayPause() },
                     onNext = { viewModel.requestSkipNext() },
-                    height = 80.dp,
+                    height = if (compactStack) 52.dp else 80.dp,
                     colorOtherButtons = skipContainer,
                     colorPlayPause = playPauseContainer,
                     tintPlayPauseIcon = playPauseContent,
@@ -996,12 +1099,12 @@ fun PixelPlayerScreen(
                     tintNextIcon = skipContent
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(if (compactStack) 6.dp else 14.dp))
 
                 BottomToggleRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(66.dp)
+                        .height(if (compactStack) 50.dp else 66.dp)
                         .padding(horizontal = 24.dp),
                     slots = pixelSlots,
                     isShuffleEnabled = viewModel.uiShuffleEnabled,
@@ -1038,6 +1141,122 @@ fun PixelPlayerScreen(
                     inactiveContentColor = if (isBlurMode) Color.White else colorScheme.onSurface,
                     containerColor = if (isBlurMode) Color.White.copy(alpha = 0.12f) else colorScheme.surfaceContainerLowest.copy(alpha = 0.7f)
                 )
+            }
+            }
+
+            if (windowSizeInfo.isLandscape) {
+                if (miniLyricsLandscape) {
+                    // ── Mini-style lyrics in landscape: lyrics on the left; on the right - the
+                    //    cover at the track title, the slider with timecodes and the codec badge;
+                    //    the controls are hidden by "Full screen" mode (pill in the header). ──
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(horizontal = 12.dp)
+                    ) {
+                        com.alananasss.kittytune.ui.player.lyrics.MiniImmersiveLyricsView(
+                            viewModel = viewModel,
+                            isImmersive = isImmersiveLyrics,
+                            onToggleImmersive = { isImmersiveLyrics = !isImmersiveLyrics },
+                            onCloseLyrics = { viewModel.showInlineLyrics = false },
+                            onOpenMenu = { viewModel.showTrackOptions(track, fromPlayer = true) },
+                            accentColor = if (isBlurMode) Color.White.copy(alpha = 0.22f) else colorScheme.primary.copy(alpha = 0.88f),
+                            onAccentColor = if (isBlurMode) Color.White else colorScheme.onPrimary,
+                            sliderComposable = { pixelSliderBlock(!windowSizeInfo.isTablet) },
+                            codecBadgeComposable = {
+                                CodecBadge(viewModel = viewModel, textColor = mainTextColor)
+                            },
+                            playbackControlsComposable = { pixelControlsBlock(!windowSizeInfo.isTablet) },
+                            bottomRowComposable = null,
+                            applyInsets = false
+                        )
+                    }
+                } else {
+                // ── Landscape: artwork on the left, metadata + slider + controls on the
+                //    right, so the square cover can never push them off-screen. ──
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(0.45f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Bounded square: on short/wide tablet screens (e.g. 1280x800) a
+                        // fillMaxHeight square overflows its pane, bleeds off the screen edge
+                        // and slides under the controls column. Sizing by
+                        // min(paneWidth, paneHeight) keeps the artwork fully on screen.
+                        BoxWithConstraints(contentAlignment = Alignment.Center) {
+                            val coverSquareSize = minOf(maxWidth - 8.dp, maxHeight - 16.dp)
+                                .coerceAtLeast(220.dp)
+                            pixelArtworkBlock(Modifier.size(coverSquareSize))
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(
+                        modifier = Modifier
+                            .weight(0.55f)
+                            .fillMaxHeight()
+                    ) {
+                        // "Text on the right" mode: the lyrics replace the meta + controls
+                        // pane (the cover stays visible on the left). No X here - the pixel
+                        // player has its own lyrics button in the top bar, always visible.
+                        AnimatedContent(
+                            targetState = lyricsOnRight && viewModel.showInlineLyrics,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(300))
+                                    .togetherWith(fadeOut(animationSpec = tween(300)))
+                            },
+                            label = "pixelLandscapeControlsOrLyrics",
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) { isLyrics ->
+                            if (isLyrics) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    InlineLyricsContent(viewModel = viewModel)
+                                }
+                            } else {
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    pixelMetaBlock(!windowSizeInfo.isTablet)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    pixelControlsBlock(!windowSizeInfo.isTablet)
+                                }
+                            }
+                        }
+                    }
+                }
+                } // else (not mini-style lyrics)
+            } else {
+                // Portrait (phone & tablet): the artwork lives in a weighted box and is sized
+                // as a square bounded by BOTH the width and the actual leftover height, so
+                // the meta + controls below always stay on screen and the cover is never
+                // cropped on tall tablet displays.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    BoxWithConstraints(contentAlignment = Alignment.Center) {
+                        val coverSquareSize = minOf(maxWidth - 16.dp, maxHeight - 12.dp)
+                            .coerceAtLeast(220.dp)
+                        pixelArtworkBlock(Modifier.size(coverSquareSize))
+                    }
+                }
+                pixelMetaBlock(false)
+                pixelControlsBlock(false)
             }
         }
 
