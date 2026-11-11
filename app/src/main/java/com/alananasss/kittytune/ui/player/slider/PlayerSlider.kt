@@ -126,5 +126,17 @@ fun PlayerSlider(
                 modifier = behindGlow
             )
         }
+        PlayerSliderStyle.EXPRESSIVE -> {
+            ExpressiveWavesSlider(
+                value = clampedValue,
+                valueRange = valueRange,
+                onValueChange = onValueChange,
+                onValueChangeFinished = onValueChangeFinished,
+                colors = colors,
+                isPlaying = isPlaying,
+                enabled = enabled,
+                modifier = behindGlow
+            )
+        }
     }
 }
