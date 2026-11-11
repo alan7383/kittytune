@@ -25,6 +25,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -124,6 +125,16 @@ internal fun BackgroundSketch(style: FullPlayerBgStyle) {
             FullPlayerBgStyle.PURE_BLACK -> {
                 drawRect(Color.Black)
                 drawLine(Color.White.copy(alpha = 0.35f), Offset(size.width * 0.2f, size.height * 0.5f), Offset(size.width * 0.8f, size.height * 0.5f), strokeWidth = 3f)
+            }
+            FullPlayerBgStyle.LIVE_MESH -> {
+                // Sketch of the rotating mesh background: soft rotated blobs of the same hue.
+                drawRect(Color(0xFF17141B))
+                rotate(18f) {
+                    drawSoftBlob(Offset(size.width * 0.3f, size.height * 0.25f), size.minDimension * 0.55f, scheme.primary.copy(alpha = 0.55f))
+                }
+                rotate(-24f) {
+                    drawSoftBlob(Offset(size.width * 0.75f, size.height * 0.75f), size.minDimension * 0.5f, scheme.tertiary.copy(alpha = 0.45f))
+                }
             }
         }
     }

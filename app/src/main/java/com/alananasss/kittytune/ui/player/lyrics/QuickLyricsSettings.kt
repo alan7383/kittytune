@@ -365,7 +365,12 @@ private fun ColumnScope.LookTab(viewModel: PlayerViewModel, knobs: ModeKnobs, is
             selectedOption = knobs.uiStyle,
             onOptionSelected = { knobs.uiStyle = it },
             labelProvider = {
-                ChoiceLabel(if (it == LyricsUiStyle.ENHANCED) str("pref_lyrics_ui_style_enhanced") else str("pref_lyrics_ui_style_classic"))
+                ChoiceLabel(
+                    when (it) {
+                        LyricsUiStyle.ENHANCED -> str("pref_lyrics_ui_style_enhanced")
+                        else -> str("pref_lyrics_ui_style_classic")
+                    }
+                )
             },
         )
     }
@@ -385,7 +390,7 @@ private fun ColumnScope.LookTab(viewModel: PlayerViewModel, knobs: ModeKnobs, is
             },
         )
     }
-    AnimatedVisibility(knobs.uiStyle != LyricsUiStyle.CLASSIC) {
+    AnimatedVisibility(knobs.uiStyle == LyricsUiStyle.ENHANCED) {
         SwitchRow(
             icon = Icons.Rounded.BlurOn,
             title = str("pref_lyrics_line_blur_title"),
@@ -874,6 +879,7 @@ private fun bgStyleLabel(style: FullPlayerBgStyle): String = when (style) {
     FullPlayerBgStyle.APPLE_MUSIC -> str("full_player_bg_apple_music")
     FullPlayerBgStyle.BLUR -> str("full_player_bg_blur")
     FullPlayerBgStyle.GRADIENT -> str("full_player_bg_gradient")
+    FullPlayerBgStyle.LIVE_MESH -> str("full_player_bg_live_mesh")
     FullPlayerBgStyle.PURE_BLACK -> str("full_player_bg_pure_black")
 }
 
