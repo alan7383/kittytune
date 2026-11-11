@@ -214,6 +214,8 @@
         val recentVisits = com.alananasss.kittytune.data.search.RecentVisits.visits
 
         private fun recordSearch(query: String) {
+            // Pause search history: nothing is written while the setting is on.
+            if (playerPrefs.getPauseSearchHistory()) return
             viewModelScope.launch { com.alananasss.kittytune.data.RecentSearchRepository.record(query) }
         }
 
@@ -230,11 +232,15 @@
             com.alananasss.kittytune.data.search.RecentVisits.forget(visit)
 
         private fun noteOpened(visit: com.alananasss.kittytune.data.search.RecentVisits.Visit) {
+            // "Don't record search history" must stop EVERYTHING from landing in the recent
+            // searches: queries, artists, tracks and playlists alike.
+            if (playerPrefs.getPauseSearchHistory()) return
             com.alananasss.kittytune.data.search.RecentVisits.record(visit)
             searchQuery.trim().takeIf { it.isNotEmpty() }?.let(::forgetSearch)
         }
 
         fun noteOpenedArtist(user: User) {
+            if (playerPrefs.getPauseSearchHistory()) return
             com.alananasss.kittytune.data.search.SearchPicks.record(searchQuery, user.id)
             noteOpened(
                 com.alananasss.kittytune.data.search.RecentVisits.Visit(
@@ -1258,13 +1264,20 @@
                     val artistName = seedTrack.user?.username ?: ""
                     val query = "$cleanTitle $artistName audio"
 
-                    val hideVideos = playerPrefs.getHideYoutubeVideos()
+                    val hideVideos = playerPrefs.getHideVideoSongs()
                     val searchFilter = if (hideVideos) YouTube.SearchFilter.FILTER_SONG else YouTube.SearchFilter.FILTER_VIDEO
                     val searchRes = YouTube.search(query, searchFilter).getOrNull()
-                    val result = if (searchRes != null && searchRes.items.isNotEmpty()) {
+                    // Separate "hide YouTube Shorts" filter: shorts surface in search
+                    // results as SS-prefixed playlists.
+                    val hideShorts = playerPrefs.getHideYoutubeShorts()
+                    val result = (if (searchRes != null && searchRes.items.isNotEmpty()) {
                         searchRes
                     } else {
                         YouTube.search(query, YouTube.SearchFilter.FILTER_ALL).getOrNull() ?: searchRes
+                    })?.let { res ->
+                        if (hideShorts) res.copy(
+                            items = res.items.filterNot { it is com.zionhuang.innertube.models.PlaylistItem && it.id.startsWith("SS") }
+                        ) else res
                     }
                     result?.items?.mapNotNull { item ->
                         if (item is SongItem) {
@@ -1319,13 +1332,20 @@
         private suspend fun performYoutubeSearch(query: String) {
             withContext(Dispatchers.IO) {
                 try {
-                    val hideVideos = playerPrefs.getHideYoutubeVideos()
+                    val hideVideos = playerPrefs.getHideVideoSongs()
                     val searchFilter = if (hideVideos) YouTube.SearchFilter.FILTER_SONG else YouTube.SearchFilter.FILTER_VIDEO
                     val searchRes = YouTube.search(query, searchFilter).getOrNull()
-                    val result = if (searchRes != null && searchRes.items.isNotEmpty()) {
+                    // Separate "hide YouTube Shorts" filter: shorts surface in search
+                    // results as SS-prefixed playlists.
+                    val hideShorts = playerPrefs.getHideYoutubeShorts()
+                    val result = (if (searchRes != null && searchRes.items.isNotEmpty()) {
                         searchRes
                     } else {
                         YouTube.search(query, YouTube.SearchFilter.FILTER_ALL).getOrNull() ?: searchRes
+                    })?.let { res ->
+                        if (hideShorts) res.copy(
+                            items = res.items.filterNot { it is com.zionhuang.innertube.models.PlaylistItem && it.id.startsWith("SS") }
+                        ) else res
                     }
                     youtubeContinuation = result?.continuation
 
