@@ -83,6 +83,13 @@ class AiDetectionAudioProcessor(
     internal fun isAllCheckpointsDone(): Boolean = synchronized(this) { allCheckpointsDone }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+        // Audio Routing Matrix: identity configuration when the AI tap is not
+        // routed (Bit-Perfect audiophile mode) - no format is negotiated
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(
+                com.alananasss.kittytune.audio.AudioStage.AI_DETECTION)
+        ) {
+            return inputAudioFormat
+        }
         if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT && inputAudioFormat.encoding != C.ENCODING_PCM_FLOAT) {
             return AudioProcessor.AudioFormat.NOT_SET
         }
@@ -115,6 +122,16 @@ class AiDetectionAudioProcessor(
         if (remaining == 0) return
 
         val output = replaceOutputBuffer(remaining)
+
+        // Audio Routing Matrix: when the AI tap is not routed, pass the PCM
+        // through byte-for-byte and collect nothing
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(
+                com.alananasss.kittytune.audio.AudioStage.AI_DETECTION)
+        ) {
+            output.put(inputBuffer)
+            output.flip()
+            return
+        }
 
         // Fast path: if all checkpoints completed, final verdict reached, or upfront multi-point analysis is running
         if (allCheckpointsDone || AiDetectionManager.isVerdictFinal() || isAiConfirmed || AiDetectionManager.isAiConfirmed() || AiDetectionManager.isAnalyzingUpfront()) {
