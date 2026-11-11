@@ -6,6 +6,7 @@
  */
 package com.alananasss.kittytune.ui.player.dj
 
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -209,6 +210,7 @@ private fun NextUp(state: DjFlowState, onMixNow: () -> Unit) {
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = buildString {
