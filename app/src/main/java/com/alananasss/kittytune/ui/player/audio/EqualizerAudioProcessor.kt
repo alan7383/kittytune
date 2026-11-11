@@ -89,16 +89,29 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
-        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) {
-            throw AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
-        }
-
+        // Channel structure and coefficients are rebuilt BEFORE the Bit-Perfect bypass:
+        // a hot-unplug (DAC off mid-playback) re-routes queueInput off the passthrough
+        // with channelCount/s1/s2 still valid for the biquad loop - not the stale
+        // defaults from before the DAC ever appeared.
         val channels = inputAudioFormat.channelCount.coerceAtLeast(1)
         synchronized(this) {
             channelCount = channels
             s1 = Array(channels) { FloatArray(NUM_BANDS) }
             s2 = Array(channels) { FloatArray(NUM_BANDS) }
             rebuildFilterConfig(inputAudioFormat.sampleRate)
+        }
+
+        // Bit-Perfect: while the DAC owns the output this processor must never negotiate
+        // a conversion or throw - identity configuration for ANY PCM encoding keeps the
+        // chain format 1:1, so the byte passthrough in queueInput is bit-exact (an
+        // int->float mismatch on a container-upgrade stream would surface as white noise).
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.EQUALIZER)) {
+            return inputAudioFormat
+        }
+        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) {
+            // NOT_SET = "inactive, skip me" - the rest of the chain keeps working. Throwing here
+            // used to turn a float/hi-res input into a fatal sink ConfigurationException.
+            return AudioProcessor.AudioFormat.NOT_SET
         }
         return inputAudioFormat
     }
@@ -184,6 +197,15 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
+        // Bit-Perfect on a USB DAC: the EQ (and AutoEQ behind it) must be a
+        // bit-transparent copy - flat response, PCM bytes untouched.
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.EQUALIZER)) {
+            val passthrough = replaceOutputBuffer(remaining)
+            passthrough.put(inputBuffer)
+            passthrough.flip()
+            return
+        }
+
         val config = filterConfig
 
         // Zero-overhead bypass when disabled or when flat with 0 dB preamp
@@ -208,7 +230,10 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
         val preamp = config.preampLinear
 
         var channelIndex = 0
-        while (inputBuffer.hasRemaining()) {
+        // Byte-wise bound: a lone trailing byte cannot form a 16-bit sample, so
+        // remaining() >= 2 keeps getShort() from throwing BufferUnderflowException and
+        // terminates the loop deterministically on an odd-sized buffer.
+        while (inputBuffer.remaining() >= 2) {
             val sample = inputBuffer.getShort().toFloat()
             val ch = channelIndex
 
@@ -250,6 +275,11 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
             buffer.putShort(softLimit(x))
 
             channelIndex = (channelIndex + 1) % channels
+        }
+        // Swallow the odd trailing byte (sub-sample remainder) so Media3's audio thread
+        // can never spin in while(inputBuffer.hasRemaining()) on it.
+        if (inputBuffer.hasRemaining()) {
+            inputBuffer.position(inputBuffer.limit())
         }
 
         buffer.flip()
