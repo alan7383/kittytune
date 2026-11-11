@@ -7,12 +7,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,13 +55,15 @@ data class ShareCardStyle(
     }
 }
 
-/**
- * The card itself, laid out at a fixed aspect so it renders the same whatever the screen.
- *
- * 9:16 matches what a story wants; anything else is letterboxed by the target app, which crops
- * the artwork unpredictably. Everything here is drawn from values the player already holds, so
- * the card can be produced without a network round trip of its own.
- */
+// The wide share-card proportion: wide enough for a full lyric line.
+private val CARD_ASPECT = 4f / 5f
+
+// The card itself, laid out at a fixed aspect so it renders the same whatever the screen.
+//
+// The 4:5 wide proportion replaced the old 9:16 story cut: the card is wide and the lyric
+// lines fit whole (the type even shrinks itself until they do), which reads far better in a
+// feed than a tall strip with ellipsized words. Everything here is drawn from values the
+// player already holds, so the card can be produced without a network round trip of its own.
 @Composable
 fun ShareCard(
     artwork: Bitmap?,
@@ -68,7 +76,7 @@ fun ShareCard(
 ) {
     Box(
         modifier = modifier
-            .aspectRatio(9f / 16f)
+            .aspectRatio(CARD_ASPECT)
             .background(
                 Brush.verticalGradient(
                     listOf(
@@ -90,7 +98,7 @@ fun ShareCard(
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxWidth()
-                .padding(horizontal = 40.dp),
+                .padding(horizontal = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -101,9 +109,9 @@ fun ShareCard(
             val shown = qrCover ?: artwork
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth(0.82f)
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(
                         if (qrCover != null) Color.White else style.onBackground.copy(alpha = 0.06f)
                     ),
@@ -122,17 +130,17 @@ fun ShareCard(
             Text(
                 text = title,
                 color = style.onBackground,
-                fontSize = 26.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 28.dp),
+                modifier = Modifier.padding(top = 22.dp),
             )
             Text(
                 text = artist,
                 color = style.onBackground.copy(alpha = 0.72f),
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -140,22 +148,24 @@ fun ShareCard(
             )
         }
 
+        // The KittyTune mark sits in the card corner on each face:
+        // bottom-left on the lyrics card, centred under the track card.
         Row(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 44.dp),
+                .align(if (!lyrics.isNullOrEmpty()) Alignment.BottomStart else Alignment.BottomCenter)
+                .padding(horizontal = 28.dp, vertical = 26.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Image(
                 painter = painterResource(R.drawable.ic_kittytune_logo),
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(18.dp),
             )
             Text(
                 text = "KittyTune",
                 color = style.onBackground.copy(alpha = 0.78f),
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -177,13 +187,12 @@ private fun Color.compositeOverBlack(): Color =
         alpha = 1f,
     )
 
-/**
- * The lyrics face of the card: the song named small at the top, its words given the space.
- *
- * Inverted against the cover layout on purpose. A lyric is shared because of what it says, so
- * the artwork steps back to a thumbnail that identifies the track and the lines take the middle
- * at a size meant to be read across a feed.
- */
+// The lyrics face of the card: the track in a compact header with its artwork,
+// its words given the rest of the card at a size meant to be read across a feed.
+//
+// The lines are guaranteed to fit: the type starts at the tiered size for the number of lines
+// and then shrinks itself (via [androidx.compose.ui.text.TextLayoutResult.didOverflow]) until
+// nothing is ellipsized - a whole verse shares the card instead of being cut into "…".
 @Composable
 private fun LyricsBody(
     artwork: Bitmap?,
@@ -195,8 +204,8 @@ private fun LyricsBody(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 36.dp, vertical = 56.dp),
-        verticalArrangement = Arrangement.spacedBy(28.dp),
+            .padding(horizontal = 28.dp, vertical = 30.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -204,8 +213,8 @@ private fun LyricsBody(
         ) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(style.onBackground.copy(alpha = 0.08f))
             ) {
                 if (artwork != null) {
@@ -213,15 +222,15 @@ private fun LyricsBody(
                         bitmap = artwork.asImageBitmap(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(44.dp),
+                        modifier = Modifier.size(52.dp),
                     )
                 }
             }
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     color = style.onBackground,
-                    fontSize = 15.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -229,23 +238,41 @@ private fun LyricsBody(
                 Text(
                     text = artist,
                     color = style.onBackground.copy(alpha = 0.7f),
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // More selected lines -> smaller starting type; the auto-fit below then takes care
+            // of whatever still overflows, so the words are always shown in full.
+            val baseSize = when {
+                lines.size <= 2 -> 27.sp
+                lines.size <= 3 -> 24.sp
+                lines.size <= 5 -> 21.sp
+                else -> 17.sp
+            }
+            var fitScale by remember(lines) { mutableFloatStateOf(1f) }
+            val lineH = baseSize * 1.28f * fitScale
             lines.forEach { line ->
                 Text(
                     text = line,
                     color = style.onBackground,
-                    fontSize = 30.sp,
+                    fontSize = baseSize * fitScale,
                     fontWeight = FontWeight.Bold,
-                    lineHeight = 36.sp,
+                    lineHeight = lineH,
+                    // Two visual lines per lyric line at most; anything longer shrinks the
+                    // type instead of being ellipsized - "the text fits in full" is the point
+                    // of this card.
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    overflow = TextOverflow.Clip,
+                    onTextLayout = { result ->
+                        if (result.hasVisualOverflow && fitScale > 0.5f) {
+                            fitScale = (fitScale * 0.92f).coerceAtLeast(0.5f)
+                        }
+                    },
                 )
             }
         }
