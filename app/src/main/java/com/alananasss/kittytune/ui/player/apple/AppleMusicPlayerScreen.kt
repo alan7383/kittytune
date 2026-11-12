@@ -81,6 +81,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -152,8 +153,20 @@ import kotlin.math.roundToInt
  * Portrait (phone and tablet), the "Portrait artwork" setting:
  * - Full-bleed (default): the artwork fills the entire top of the screen and
  *   smoothly fades out toward the bottom (DstIn gradient mask), controls panel below.
- * - "No artwork" (SQUARE): the artwork is removed from portrait on request — only
- *   the controls panel remains, centered; in landscape the artwork is unchanged.
+ * - "No artwork" (SQUARE): on a PHONE the artwork is removed from portrait on
+ *   request — only the controls panel remains, centered; on a TABLET the square
+ *   cover stays, centered above the controls (an empty portrait panel looked
+ *   broken on the big screen). In landscape SQUARE keeps the square artwork on
+ *   the left with the controls panel on the right.
+ *
+ * The animated (motion) artwork follows two switches:
+ * - "Animated album covers" (master): the video plays right on the artwork —
+ *   the full-bleed overlay, the landscape square cover, the tablet portrait
+ *   cover and the iPad "Centred cover" alike.
+ * - "Fade animated cover into UI backdrop": only this switch controls the
+ *   blurred background layer — with it off the backdrop stays a static blurred
+ *   image, exactly like in the KittyTune Modern and Pixel players.
+ *
  *
  * Landscape (phone and tablet): the two-column Apple Music interface — a large
  * rounded artwork on the left, a glass controls panel on the right. The
@@ -316,7 +329,22 @@ fun AppleMusicPlayerScreen(
     }
 
     val artworkUrl = track.fullResArtwork
+    // The motion artwork that rides ON the artwork itself: for square covers the
+    // SQUARE canvas is used (the tall one is reserved for the full-bleed
+    // backdrop and the iPad full-screen cover, where its portrait aspect fits).
     val canvasUrl = viewModel.currentAnimatedCoverTallUrl ?: viewModel.currentAnimatedCoverUrl
+    val squareCanvasUrl = viewModel.currentAnimatedCoverUrl
+
+    // "Fade animated cover into UI backdrop": the blurred background layer plays
+    // the motion artwork ONLY while this setting is enabled — the same gating as
+    // in the KittyTune Modern and Pixel players. Before the fix the Apple Music
+    // backdrop ignored the switch and animated even with it off (most visible in
+    // the landscape "No artwork" layout, where the background was the only
+    // moving element). Live: the toggle applies without reopening the player.
+    val fadeUiEnabled by prefs.getAnimatedCoversFadeUiFlow().collectAsState(
+        initial = prefs.getAnimatedCoversFadeUiEnabled()
+    )
+    val backdropCanvasUrl = if (fadeUiEnabled) canvasUrl else null
 
     // Track clipping (ClipWindow): progress is counted in "shown" milliseconds
     val clip = viewModel.uiClipWindow
@@ -385,10 +413,12 @@ fun AppleMusicPlayerScreen(
         val playerMaxWidth = maxWidth
         val playerMaxHeight = maxHeight
 
-        // ── Apple Music background: heavily blurred artwork + animated (video) artwork ──
+        // ── Apple Music background: heavily blurred artwork + animated (video) artwork.
+        //    The animated layer follows the "Fade animated cover into UI backdrop"
+        //    switch (backdropCanvasUrl is null when it is off). ──
         AppleMusicV2Background(
             artworkUrl = artworkUrl,
-            animatedCoverUrl = canvasUrl,
+            animatedCoverUrl = backdropCanvasUrl,
             isPlaying = viewModel.uiIsPlaying,
             modifier = Modifier.fillMaxSize()
         )
@@ -404,6 +434,7 @@ fun AppleMusicPlayerScreen(
                 track = track,
                 artworkUrl = artworkUrl,
                 animatedCoverUrl = canvasUrl,
+                squareAnimatedCoverUrl = squareCanvasUrl,
                 progressFraction = progressFraction.value,
                 totalDuration = totalDuration,
                 onSeek = onSeekFraction,
@@ -505,12 +536,9 @@ fun AppleMusicPlayerScreen(
                                 .fillMaxHeight(),
                             contentAlignment = Alignment.Center
                         ) {
-                            val paneCoverSize = minOf(maxWidth, maxHeight)
+                                                        val paneCoverSize = minOf(maxWidth, maxHeight)
                                 .coerceAtLeast(180.dp)
-                            AsyncImage(
-                                model = artworkUrl,
-                                contentDescription = track.title,
-                                contentScale = ContentScale.Crop,
+                            Box(
                                 modifier = Modifier
                                     .size(paneCoverSize)
                                     .scale(coverScale)
@@ -518,8 +546,23 @@ fun AppleMusicPlayerScreen(
                                         elevation = 28.dp,
                                         shape = RoundedCornerShape(if (isTablet) 28.dp else 20.dp)
                                     )
-                                    .clip(RoundedCornerShape(if (isTablet) 28.dp else 20.dp))
-                            )
+                                    .clip(RoundedCornerShape(if (isTablet) 28.dp else 20.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                AsyncImage(
+                                    model = artworkUrl,
+                                    contentDescription = track.title,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                if (squareCanvasUrl != null) {
+                                    com.alananasss.kittytune.ui.player.cover.CanvasVideo(
+                                        canvasUrl = squareCanvasUrl,
+                                        isPlaying = viewModel.uiIsPlaying,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            }
                         }
 
                         Spacer(Modifier.width(if (isTablet) 40.dp else 20.dp))
@@ -675,11 +718,47 @@ fun AppleMusicPlayerScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        if (isTablet) {
+                            // ── Tablet portrait: the square (animated) cover stays.
+                            //    Same treatment as the landscape "No artwork" mode:
+                            //    a rounded square artwork, centered above the panel. ──
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val portraitCoverSize = minOf(
+                                    playerMaxWidth * 0.58f,
+                                    playerMaxHeight * 0.40f
+                                ).coerceAtLeast(180.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(portraitCoverSize)
+                                        .scale(coverScale)
+                                        .shadow(
+                                            elevation = 28.dp,
+                                            shape = RoundedCornerShape(28.dp)
+                                        )
+                                        .clip(RoundedCornerShape(28.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AsyncImage(
+                                        model = artworkUrl,
+                                        contentDescription = track.title,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                    if (squareCanvasUrl != null) {
+                                        com.alananasss.kittytune.ui.player.cover.CanvasVideo(
+                                            canvasUrl = squareCanvasUrl,
+                                            isPlaying = viewModel.uiIsPlaying,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+                            }
+
                             AppleControlsColumn(
                                 viewModel = viewModel,
                                 track = track,
@@ -698,11 +777,43 @@ fun AppleMusicPlayerScreen(
                                 isLyricsActive = false,
                                 onEffectsClick = { showEffectsSheet = true },
                                 modifier = Modifier
-                                    .widthIn(max = if (isTablet) 560.dp else 480.dp)
+                                    .widthIn(max = 560.dp)
                                     .fillMaxWidth()
                             )
+                            Spacer(Modifier.height(24.dp))
+                        } else {
+                            // ── Phone portrait: the artwork is removed on request —
+                            //    only the controls panel remains, centered. ──
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                AppleControlsColumn(
+                                    viewModel = viewModel,
+                                    track = track,
+                                    bottomSlots = bottomSlots,
+                                    onFullscreenLyrics = {
+                                        viewModel.showInlineLyrics = true
+                                        isImmersiveLyrics = true
+                                    },
+                                    compactTransport = false,
+                                    showVolumeSlider = !hideVolumeSlider,
+                                    appleMusicInspired = appleMusicInspired,
+                                    sliderStyle = sliderStyle,
+                                    progressFraction = progressFraction.value,
+                                    totalDuration = totalDuration,
+                                    onSeek = onSeekFraction,
+                                    isLyricsActive = false,
+                                    onEffectsClick = { showEffectsSheet = true },
+                                    modifier = Modifier
+                                        .widthIn(max = 480.dp)
+                                        .fillMaxWidth()
+                                )
+                            }
+                            Spacer(Modifier.height(12.dp))
                         }
-                        Spacer(Modifier.height(if (isTablet) 24.dp else 12.dp))
                     }
                 } else {
                     // ── Full-bleed: sharp artwork in the upper part, smooth
@@ -1772,6 +1883,11 @@ private fun AppleTabletLandscapePlayer(
     track: Track,
     artworkUrl: String?,
     animatedCoverUrl: String?,
+    // The SQUARE motion artwork for the centered cover ("Centred cover"): the
+    // tall URL above is reserved for the full-screen cover, where its portrait
+    // aspect actually fills the screen. Before the fix the centered artwork was
+    // permanently static — the animated cover played nowhere in this mode.
+    squareAnimatedCoverUrl: String?,
     progressFraction: Float,
     totalDuration: Long,
     onSeek: (Float) -> Unit,
@@ -1926,6 +2042,7 @@ private fun AppleTabletLandscapePlayer(
                         val lyricsCoverSize = minOf(zoneWidth * 0.40f * 0.85f, zoneHeight * 0.86f)
                         AppleTabletArtwork(
                             artworkUrl = artworkUrl,
+                            animatedCoverUrl = squareAnimatedCoverUrl,
                             contentDescription = track.title,
                             size = lyricsCoverSize,
                             coverScale = coverScale,
@@ -1957,6 +2074,7 @@ private fun AppleTabletLandscapePlayer(
                     val coverSize = minOf(zoneHeight * 0.87f, zoneWidth * 0.40f)
                     AppleTabletArtwork(
                         artworkUrl = artworkUrl,
+                        animatedCoverUrl = squareAnimatedCoverUrl,
                         contentDescription = track.title,
                         size = coverSize,
                         coverScale = coverScale,
@@ -2156,6 +2274,7 @@ private fun AppleTabletFullscreenCoverZone(
 @Composable
 private fun AppleTabletArtwork(
     artworkUrl: String?,
+    animatedCoverUrl: String?,
     contentDescription: String?,
     size: Dp,
     coverScale: Float,
@@ -2182,6 +2301,15 @@ private fun AppleTabletArtwork(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
+
+        // Animated cover video overlay (square motion artwork).
+        if (!animatedCoverUrl.isNullOrBlank()) {
+            com.alananasss.kittytune.ui.player.cover.CanvasVideo(
+                canvasUrl = animatedCoverUrl,
+                isPlaying = isPlaying,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         // Controls appear only while paused: during playback the
         // artwork stays clean, as in Apple Music on iPad.
