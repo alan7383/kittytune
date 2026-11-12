@@ -13929,8 +13929,15 @@ fun PhoneLandscapePlayerView(
                                     .clip(RoundedCornerShape(22.dp))
                                     .background(MaterialTheme.colorScheme.surfaceVariant)
                             ) {
-                                AsyncImage(
-                                    model = pageTrack.fullResArtwork,
+                                                                // AnimatedArtwork = static cover + the animated (video) cover
+                                // overlay, exactly like the phone portrait pager above. Before
+                                // the fix this pane drew a plain AsyncImage, so the phone
+                                // landscape was the only modern layout where the animated
+                                // cover never played at all.
+                                AnimatedArtwork(
+                                    artworkUrl = pageTrack.fullResArtwork,
+                                    animatedCoverUrl = if (pageTrack.id == track.id) viewModel.currentAnimatedCoverUrl else null,
+                                    isPlaying = viewModel.uiIsPlaying,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
