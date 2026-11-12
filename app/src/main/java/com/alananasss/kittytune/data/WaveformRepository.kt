@@ -256,7 +256,7 @@ object WaveformRepository {
         withContext(Dispatchers.IO) {
             try {
                 var url = track.waveformUrl
-                if (url.isNullOrBlank() && track.source == "soundcloud") {
+                if (url.isNullOrBlank() && track.source == "soundcloud" && track.isSoundCloudCatalogTrack) {
                     // The cheap real-data path: SoundCloud serves every track's own waveform
                     // JSON. Tracks that reached us without the url (search results, radio
                     // picks) looked like "no waveform at all" because no api instance was

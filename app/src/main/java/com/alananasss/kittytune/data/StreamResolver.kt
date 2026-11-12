@@ -237,6 +237,12 @@
          */
         suspend fun resolveStreamForBeatAnalysis(context: Context, track: Track): ResolvedStream? {
             return withContext(Dispatchers.IO) {
+                // A YouTube track's own video is the audio that plays: analysing anything else
+                // (a search result, or the SoundCloud upload sharing its hashed id) gives the
+                // transition the wrong beat grid.
+                if (isYoutubeTrack(track)) {
+                    return@withContext resolveFromYoutubeDirect(context, track)?.let { ResolvedStream(it, source = track.source ?: "youtube") }
+                }
                 // 1. Try SoundCloud stream directly (with Widevine DRM if protected)
                 val scStream = try {
                     resolveFromSoundCloudWithDrm(context, track, forDownload = false)
@@ -280,6 +286,9 @@
          */
         suspend fun resolveStreamForAiAnalysis(context: Context, track: Track): ResolvedStream? {
             return withContext(Dispatchers.IO) {
+                if (isYoutubeTrack(track)) {
+                    return@withContext resolveFromYoutubeDirect(context, track)?.let { ResolvedStream(it, source = track.source ?: "youtube") }
+                }
                 val scStream = try {
                     resolveFromSoundCloudWithDrm(
                         context = context,
@@ -341,7 +350,7 @@
                     } catch (e: Exception) {
                         Log.e(TAG, "Error checking local file", e)
                     }
-                    if (track.source == "youtube" || track.source == "youtube_music") {
+                    if (isYoutubeTrack(track)) {
                         Log.d(TAG, "Resolving YouTube track: ${track.title}")
                         val url = resolveFromYoutubeDirect(context, track)
                         return@run url?.let { ResolvedStream(it, source = track.source ?: "youtube") }
@@ -465,7 +474,7 @@
                     }
 
                     var trackToUse = track
-                    if ((track.source == null || track.source == "soundcloud") && track.id > 0) {
+                    if (track.isSoundCloudCatalogTrack) {
                         if (track.media == null || track.media.transcodings.isNullOrEmpty() || track.title.isNullOrBlank() || track.user == null ||
                             ((track.isGoPlus || track.isSnipped || (track.durationMs != null && track.durationMs in 1..45000L)) && track.fullDuration == null)) {
                             try {
@@ -982,6 +991,17 @@
             }
         }
 
+        /**
+         * A track whose audio is a YouTube video: tagged as such, or - for rows saved without a
+         * source - linking to one. Such a track must never be looked up on SoundCloud by id.
+         */
+        internal fun isYoutubeTrack(track: Track): Boolean {
+            if (track.source == "youtube" || track.source == "youtube_music") return true
+            if (!track.source.isNullOrBlank() && track.source != "soundcloud") return false
+            val host = track.permalinkUrl?.lowercase()?.substringAfter("://", "")?.substringBefore('/').orEmpty()
+            return host == "youtu.be" || host == "youtube.com" || host.endsWith(".youtube.com")
+        }
+
         private suspend fun resolveFromYoutubeDirect(context: Context, track: Track): String? {
             val url = track.permalinkUrl ?: return null
             return extractStreamFromYoutubeUrl(context, url)
@@ -997,6 +1017,11 @@
             forDownload: Boolean,
             forceHighQualityNonDrm: Boolean = false
         ): ResolvedStream? {
+            // Only a SoundCloud id can be resolved on SoundCloud. Anything else - a YouTube or
+            // provider track's hashed id - names an unrelated upload whose audio (often DRM
+            // protected) would be played or analysed in place of the real song (issue #82).
+            if (!track.isSoundCloudCatalogTrack) return null
+
             val prefs = PlayerPreferences(context)
             val api = RetrofitClient.create(context)
             var trackToUse = track

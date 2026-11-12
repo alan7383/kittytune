@@ -666,6 +666,17 @@ data class Track(
                  isSnipped ||
                  media?.transcodings?.any { it.snipped } == true)
 
+    /**
+     * Whether [id] is a SoundCloud track id, so the SoundCloud API can be asked for it by id.
+     *
+     * YouTube, Deezer, Qobuz, … tracks carry a positive hash of their own id, which lands in the
+     * same range as real SoundCloud ids. Fetching one of those by id returns an unrelated
+     * SoundCloud track — often DRM protected — and the player then stalls on audio that is not
+     * the song the listener picked (issue #82).
+     */
+    val isSoundCloudCatalogTrack: Boolean
+        get() = id > 0 && (source == null || source == "soundcloud") && !hasExternalIdentity(permalink, permalinkUrl)
+
     val fullResArtwork: String
         get() {
             if (!artworkUrl.isNullOrEmpty()) return artworkUrl.toHighResArtwork()
@@ -679,6 +690,25 @@ data class Track(
                 ?: user?.avatarUrl?.takeIf { it.isNotBlank() }
             return resolveThumbnailUrl(base)
         }
+}
+
+private val externalPermalinkPrefixes = listOf("deezer:", "tidal:", "qobuz:", "spotify:", "vk:", "youtube:", "ytm:")
+private val externalPermalinkHosts = listOf(
+    "youtube.com", "youtu.be", "deezer.com", "tidal.com", "qobuz.com", "spotify.com", "vk.com", "vk.ru"
+)
+
+/** True when a track's links say it belongs to another service, whatever its `source` field claims. */
+internal fun hasExternalIdentity(permalink: String?, permalinkUrl: String?): Boolean {
+    val slug = permalink?.trim()?.lowercase().orEmpty()
+    if (externalPermalinkPrefixes.any { slug.startsWith(it) }) return true
+    val host = permalinkUrl?.trim()?.lowercase()
+        ?.substringAfter("://", missingDelimiterValue = "")
+        ?.substringBefore('/')
+        ?.substringBefore('?')
+        ?.substringAfterLast('@')
+        ?.substringBefore(':')
+        .orEmpty()
+    return externalPermalinkHosts.any { host == it || host.endsWith(".$it") }
 }
 
 fun resolveThumbnailUrl(rawUrl: String?): String {
