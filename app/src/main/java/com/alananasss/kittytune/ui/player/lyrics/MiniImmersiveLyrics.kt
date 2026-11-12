@@ -49,6 +49,7 @@ import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.ui.player.InlineLyricsContent
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.cover.AnimatedArtwork
 
 // Mini-style lyrics layout: "text left - compact pane right" in landscape and
 // "text top - pane bottom" in portrait, with a fullscreen (immersive) button
@@ -201,6 +202,8 @@ fun MiniLyricsSidePane(
             title = track?.title ?: "",
             artist = track?.displayArtist ?: "",
             artworkUrl = track?.fullResArtwork,
+            animatedCoverUrl = viewModel.currentAnimatedCoverUrl,
+            isPlaying = viewModel.uiIsPlaying,
             isImmersive = isImmersive,
             accentColor = accentColor,
             onAccentColor = onAccentColor,
@@ -260,6 +263,8 @@ fun MiniTrackHeaderWithCover(
     title: String,
     artist: String,
     artworkUrl: String?,
+    animatedCoverUrl: String? = null,
+    isPlaying: Boolean = true,
     isImmersive: Boolean,
     accentColor: Color,
     onAccentColor: Color = Color.White,
@@ -272,17 +277,38 @@ fun MiniTrackHeaderWithCover(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Mini track cover next to the title (as in the mini style): tapping it closes the lyrics
-        AsyncImage(
-            model = artworkUrl,
-            contentDescription = title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(Color.White.copy(alpha = 0.10f))
-                .hapticClickable(kind = HapticKind.UI) { onExitLyrics() }
-        )
+        // Mini track cover next to the title (as in the mini style): tapping it closes the
+        // lyrics. AnimatedArtwork keeps the animated (video) cover playing on this little
+        // square too — the same treatment the big covers get everywhere else. When there
+        // is no animated cover for the track it falls back to the plain static image.
+        if (!animatedCoverUrl.isNullOrBlank()) {
+            AnimatedArtwork(
+                artworkUrl = artworkUrl,
+                animatedCoverUrl = animatedCoverUrl,
+                isPlaying = isPlaying,
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                // The 3D gyroscope shadowbox needs a big canvas: on a 48dp chip it
+                // degrades into mush, so the mini cover only ever gets the flat
+                // static artwork + the animated overlay.
+                enableGyroscope = false,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .hapticClickable(kind = HapticKind.UI) { onExitLyrics() }
+            )
+        } else {
+            AsyncImage(
+                model = artworkUrl,
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.White.copy(alpha = 0.10f))
+                    .hapticClickable(kind = HapticKind.UI) { onExitLyrics() }
+            )
+        }
 
         Spacer(Modifier.width(12.dp))
 
