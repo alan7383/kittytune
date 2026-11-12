@@ -1975,7 +1975,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 loadLyrics(finalTrack)
                 AchievementManager.checkTrackNameSecret(finalTrack.title ?: "")
 
-                if (finalTrack.source == "soundcloud" && finalTrack.id > 0 && (finalTrack.permalinkUrl.isNullOrEmpty() || finalTrack.user?.avatarUrl.isNullOrEmpty() || finalTrack.playbackCount == 0)) {
+                if (finalTrack.isSoundCloudCatalogTrack && (finalTrack.permalinkUrl.isNullOrEmpty() || finalTrack.user?.avatarUrl.isNullOrEmpty() || finalTrack.playbackCount == 0)) {
                     try {
                         val fullTracks = api.getTracksByIds(finalTrack.id.toString())
                         val fullTrack = fullTracks.firstOrNull()
@@ -3622,7 +3622,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 showMenuSheet = false
                 showDetailsSheet = true
 
-                if (target.source == "soundcloud" && target.id > 0 && (target.user?.id == 0L || target.playbackCount == 0)) {
+                if (target.isSoundCloudCatalogTrack && (target.user?.id == 0L || target.playbackCount == 0)) {
                     try {
                         val fullTracks = api.getTracksByIds(target.id.toString())
                         val fullTrack = fullTracks.firstOrNull()
@@ -4986,7 +4986,7 @@ query CommentsWithReactions(
                 ((trackToPlay.isGoPlus || trackToPlay.isSnipped) && trackToPlay.fullDuration == null) ||
                 (trackToPlay.durationMs != null && trackToPlay.durationMs in 1..45000L && trackToPlay.fullDuration == null)
 
-            if (!isLocalOrDownloaded && (finalTrack.source == null || finalTrack.source == "soundcloud") && trackToPlay.id > 0 && needsHydration) {
+            if (!isLocalOrDownloaded && finalTrack.isSoundCloudCatalogTrack && trackToPlay.isSoundCloudCatalogTrack && needsHydration) {
                 try {
                     val fullTrackList = api.getTracksByIds(trackToPlay.id.toString())
                     if (fullTrackList.isNotEmpty()) {
@@ -5883,7 +5883,17 @@ query CommentsWithReactions(
             context,
             com.alananasss.kittytune.data.local.PlayerPreferences.KEY_HAPTICS_PLAY_PAUSE
         )
-        if (player.isPlaying || playWhenReady || MusicManager.playWhenReadyRequested) {
+        // Decide from what the player is doing, not from the wish flags alone: a stream that failed
+        // to resolve leaves playWhenReady set on a stopped player, the button shows "play", and the
+        // press used to "pause" nothing (#82).
+        val shouldPause = PlayButtonRecovery.shouldPause(
+            playerIsPlaying = player.isPlaying,
+            playerPlayWhenReady = player.playWhenReady,
+            playbackState = player.playbackState,
+            isLoading = isLoading || MusicManager.isLoadingTrack,
+            wantsToPlay = playWhenReady || MusicManager.playWhenReadyRequested,
+        )
+        if (shouldPause) {
             playWhenReady = false
             MusicManager.playWhenReadyRequested = false
             try {
@@ -5905,6 +5915,14 @@ query CommentsWithReactions(
                 player.playWhenReady = true
             } catch (_: Exception) {}
             restoreDismissedPlayerStateIfNeeded()
+            if (mustReloadCurrentTrackOnPlay()) {
+                // play() on a stopped player, or on the item of the track before, does nothing the
+                // listener can hear: the press looked ignored until they skipped away and back (#82).
+                Log.i("PlayerViewModel", "Play pressed on a stalled player, reloading track ${currentTrack?.id}")
+                playbackRecoveryBudget.reset()
+                playRobustly(currentQueueIndex, autoPlay = true, startPosition = currentPosition, allowSkipOnFailure = false)
+                return
+            }
             if (player.currentMediaItem == null && currentTrack != null) {
                 pendingSeekPosition = currentPosition
                 playPlaylist(
@@ -5917,6 +5935,24 @@ query CommentsWithReactions(
                 player.play()
             }
         }
+    }
+
+    /**
+     * Whether pressing play must load the current track again instead of resuming the player.
+     *
+     * A failed stream resolution stops the player but leaves the previous track's item in it, so
+     * `play()` resumes nothing. The same is true of an item that belongs to another track.
+     */
+    private fun mustReloadCurrentTrackOnPlay(): Boolean {
+        val track = currentTrack ?: return false
+        if (_queue.getOrNull(currentQueueIndex)?.id != track.id) return false
+        if (MusicManager.isLoadingTrack || playJob?.isActive == true || trackInitJob?.isActive == true) return false
+        val item = player.currentMediaItem ?: return false
+        return PlayButtonRecovery.mustReload(
+            playbackState = player.playbackState,
+            heldMediaId = item.mediaId,
+            currentTrackId = track.id,
+        )
     }
 
     fun pause() {
@@ -8087,7 +8123,7 @@ query CommentsWithReactions(
                     ((hydratedNext.isGoPlus || hydratedNext.isSnipped) && hydratedNext.fullDuration == null) ||
                     (hydratedNext.durationMs != null && hydratedNext.durationMs in 1..45000L && hydratedNext.fullDuration == null)
 
-                if ((hydratedNext.source == null || hydratedNext.source == "soundcloud") && hydratedNext.id > 0 && nextNeedsHydration) {
+                if (hydratedNext.isSoundCloudCatalogTrack && nextNeedsHydration) {
                     try {
                         val fullTrackList = api.getTracksByIds(hydratedNext.id.toString())
                         if (fullTrackList.isNotEmpty()) {
@@ -8582,7 +8618,7 @@ query CommentsWithReactions(
                     ((nextTrack.isGoPlus || nextTrack.isSnipped) && nextTrack.fullDuration == null) ||
                     (nextTrack.durationMs != null && nextTrack.durationMs in 1..45000L && nextTrack.fullDuration == null)
 
-                if ((nextTrack.source == null || nextTrack.source == "soundcloud") && nextTrack.id > 0 && nextNeedsHydration) {
+                if (nextTrack.isSoundCloudCatalogTrack && nextNeedsHydration) {
                     try {
                         val fullTrackList = api.getTracksByIds(nextTrack.id.toString())
                         if (fullTrackList.isNotEmpty()) {

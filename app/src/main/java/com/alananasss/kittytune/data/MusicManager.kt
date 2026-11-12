@@ -772,7 +772,11 @@ object MusicManager {
                                             trackToResolve.user == null ||
                                             ((trackToResolve.isGoPlus || trackToResolve.isSnipped || (trackToResolve.durationMs != null && trackToResolve.durationMs in 1..45000L)) && trackToResolve.fullDuration == null)
 
-                                        if (needsFullTrack && trackId > 0) {
+                                        // Only a SoundCloud id can be looked up on SoundCloud: a YouTube or
+                                        // provider track's hashed id names some unrelated SoundCloud upload,
+                                        // which would replace the song and stall on its DRM stream (#82).
+                                        val idIsSoundCloud = trackToResolve?.isSoundCloudCatalogTrack ?: true
+                                        if (needsFullTrack && trackId > 0 && idIsSoundCloud) {
                                             val api = RetrofitClient.create(context)
                                             val tracks = api.getTracksByIds(trackId.toString())
                                             val fetchedTrack = tracks.firstOrNull()

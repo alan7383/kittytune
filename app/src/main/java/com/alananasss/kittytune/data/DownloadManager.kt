@@ -156,7 +156,9 @@ object DownloadManager {
 
                 val storedTracks = dao.getAllStoredTracksList()
                 val brokenTracks = storedTracks.filter { track ->
-                    track.id > 0 && !track.artworkUrl.startsWith("http") &&
+                    track.id > 0 && (track.source.isBlank() || track.source == "soundcloud") &&
+                    !com.alananasss.kittytune.domain.hasExternalIdentity(null, track.permalinkUrl) &&
+                    !track.artworkUrl.startsWith("http") &&
                     (track.localArtworkPath.isEmpty() || !File(track.localArtworkPath).exists() || File(track.localArtworkPath).length() == 0L)
                 }
 
@@ -517,7 +519,7 @@ object DownloadManager {
 
     fun addTrackToPlaylist(playlistId: Long, track: Track) {
         scope.launch {
-            val trackToSave = if ((track.source == null || track.source == "soundcloud") && track.id > 0 &&
+            val trackToSave = if (track.isSoundCloudCatalogTrack &&
                 (track.title.isNullOrBlank() || track.user == null || ((track.isGoPlus || track.isSnipped || (track.durationMs != null && track.durationMs in 1..45000L)) && track.fullDuration == null))) {
                 try {
                     val fetched = api.getTracksByIds(track.id.toString())
@@ -1368,8 +1370,7 @@ object DownloadManager {
 
     suspend fun hydrateTracksIfNeeded(tracks: List<Track>): List<Track> {
         val incompleteIds = tracks.filter {
-            (it.source == null || it.source == "soundcloud") &&
-            it.id > 0 &&
+            it.isSoundCloudCatalogTrack &&
             (it.title.isNullOrBlank() || it.user == null || it.media == null ||
              (it.durationMs != null && it.durationMs in 1..45000L && it.fullDuration == null) ||
              ((it.isGoPlus || it.isSnipped) && it.fullDuration == null))
@@ -1827,7 +1828,7 @@ object DownloadManager {
             url = ""
         }
 
-        if (url.isEmpty() && track.id > 0) {
+        if (url.isEmpty() && track.isSoundCloudCatalogTrack) {
             try {
                 val onlineList = api.getTracksByIds(track.id.toString())
                 val online = onlineList.firstOrNull()
