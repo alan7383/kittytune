@@ -119,6 +119,8 @@ private const val TAG = "EditTransition"
 
 enum class EditSection { NONE, VOLUME, EQ, FILTER, EFFECTS, LOOPING, BEATMATCH }
 
+private data class TransitionOption<T>(val value: T, val label: String)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @UnstableApi
 @Composable
