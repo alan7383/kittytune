@@ -242,6 +242,8 @@ object MusicManager {
             _player2?.setSeekParameters(SeekParameters.EXACT)
             _player2?.addListener(createPlayerListener(1))
             UsbAudioManager.findUsbDac()?.let { _player2?.setPreferredAudioDevice(it) }
+            // The second deck is created lazily (first crossfade): give it the saved skip-silence state too.
+            applySkipSilenceSettings()
         }
         return _player2!!
     }
@@ -976,6 +978,8 @@ object MusicManager {
         _player1?.setSeekParameters(SeekParameters.EXACT)
         _player1?.addListener(createPlayerListener(0))
         UsbAudioManager.findUsbDac()?.let { _player1?.setPreferredAudioDevice(it) }
+        // init() applies the saved skip-silence preference before the deck exists; apply it now.
+        applySkipSilenceSettings()
     }
 
     private fun createAudioTrackAnalytics(playerIndex: Int) =
@@ -1793,13 +1797,19 @@ object MusicManager {
                                     } else emptyList()
                                 if (releaseSchedule.isNotEmpty()) {
                                     var previousAtMs = 0L
-                                    for (step in releaseSchedule) {
+                                    val startPitch = currentParams.pitch
+                                    val endPitch = basePlaybackParams.pitch
+                                    val lastIndex = (releaseSchedule.size - 1).coerceAtLeast(1)
+                                    for ((index, step) in releaseSchedule.withIndex()) {
                                         delay((step.atMs - previousAtMs).coerceAtLeast(0L))
                                         previousAtMs = step.atMs
                                         if (!isActive || transitionSeq != myTransition) break
+                                        // Walk the harmonic pitch correction home together with the
+                                        // tempo, otherwise the rest of the track stays transposed.
+                                        val frac = if (releaseSchedule.size == 1) 1f else index.toFloat() / lastIndex
+                                        val pitch = startPitch + frac * (endPitch - startPitch)
                                         try {
-                                            newPlayer.playbackParameters =
-                                                PlaybackParameters(step.speed, currentParams.pitch)
+                                            newPlayer.playbackParameters = PlaybackParameters(step.speed, pitch)
                                         } catch (_: Exception) { break }
                                     }
                                 } else {
