@@ -717,7 +717,6 @@ fun AppleMusicPlayerScreen(
                             .padding(horizontal = if (isTablet) 48.dp else 26.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Box(
                         if (isTablet) {
                             // ── Tablet portrait: the square (animated) cover stays.
                             //    Same treatment as the landscape "No artwork" mode:
