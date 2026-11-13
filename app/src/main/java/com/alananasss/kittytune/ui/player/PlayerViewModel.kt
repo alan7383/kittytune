@@ -5789,7 +5789,9 @@ query CommentsWithReactions(
     fun updatePlayingQueueOrderIfMatching(matchingContextId: Long?, newOrderedTracks: List<Track>) {
         val currentNav = currentContext?.navigationId ?: return
         val isCurrentContext = when {
-            matchingContextId != null && currentNav.contains(matchingContextId.toString()) -> true
+            matchingContextId != null &&
+                (currentNav == matchingContextId.toString() ||
+                    currentNav.substringAfterLast(':') == matchingContextId.toString()) -> true
             currentNav == "downloads" && matchingContextId == -2L -> true
             currentNav == "likes" && matchingContextId == -1L -> true
             else -> false
