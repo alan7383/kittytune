@@ -26,7 +26,6 @@ import kotlinx.coroutines.asExecutor
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.OutputStream
 import java.io.ByteArrayOutputStream
@@ -328,11 +327,12 @@ object DownloadManager {
         return name.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim()
     }
 
-    private fun getOutputStreamForFile(
+    private fun storeDownloadFile(
+        source: File,
         fileName: String,
         mimeType: String,
         subDir: String? = null
-    ): Pair<OutputStream, String> {
+    ): String {
         val customUriStr = prefs.getDownloadLocation()
 
         if (customUriStr != null) {
@@ -348,30 +348,32 @@ object DownloadManager {
                     rootDoc
                 }
 
-                val existing = targetDir.findFile(fileName)
-                if (existing != null) existing.delete()
-
                 val targetDoc = targetDir.createFile(mimeType, fileName)
                     ?: throw Exception(context.getString(R.string.error_create_external_file))
 
-                val stream = context.contentResolver.openOutputStream(targetDoc.uri)
-                    ?: throw Exception(context.getString(R.string.error_open_external_stream))
-
-                return Pair(stream, targetDoc.uri.toString())
+                var complete = false
+                try {
+                    source.inputStream().use { input ->
+                        val stream = context.contentResolver.openOutputStream(targetDoc.uri)
+                            ?: throw Exception(context.getString(R.string.error_open_external_stream))
+                        stream.use { output -> input.copyTo(output) }
+                    }
+                    complete = true
+                    return targetDoc.uri.toString()
+                } finally {
+                    if (!complete) runCatching { targetDoc.delete() }
+                }
             } catch (e: Exception) {
                 e.printStackTrace(); throw e
             }
         } else {
             val parentDir = if (subDir != null) {
-                File(context.filesDir, subDir).apply {
-                    if (!exists()) mkdirs()
-                }
+                File(context.filesDir, subDir)
             } else {
                 context.filesDir
             }
 
-            val file = File(parentDir, fileName)
-            return Pair(FileOutputStream(file), file.absolutePath)
+            return DownloadFiles.store(source, parentDir, fileName).absolutePath
         }
     }
 
@@ -1738,15 +1740,13 @@ object DownloadManager {
                     tempAudioFile.copyTo(taggedAudioFile, overwrite = true)
                 }
 
-                val cleanArtist = sanitizeFilename(track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.generic_artist) })
-                val cleanTitle = sanitizeFilename(track.title ?: context.getString(R.string.generic_title))
-                val finalFileName = "$cleanArtist - $cleanTitle.$ext"
-
-                val (audioStream, audioPath) = getOutputStreamForFile(finalFileName, mime, subFolderName)
-
-                FileInputStream(taggedAudioFile).use { input ->
-                    audioStream.use { output -> input.copyTo(output) }
-                }
+                val finalFileName = DownloadFiles.name(
+                    track.id,
+                    track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.generic_artist) },
+                    track.title ?: context.getString(R.string.generic_title),
+                    ext,
+                )
+                val audioPath = storeDownloadFile(taggedAudioFile, finalFileName, mime, subFolderName)
 
                 val existingTrack = database.downloadDao().getTrack(track.id)
                 val creationTimestamp = existingTrack?.downloadedAt ?: System.currentTimeMillis()
