@@ -126,6 +126,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     private var remoteTicker: Job? = null
     private var remoteVolumeJob: Job? = null
     private var applyingConnectCommand = false
+    private var retryAttempts = 0
     val playbackDeviceLabel: String?
         get() = ConnectManager.selectedDevice.value?.let { id ->
             val peer = remotePeer
@@ -251,6 +252,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     var currentPosition by mutableLongStateOf(0L)
     var isScrubbing by mutableStateOf(false)
     var isPlayerExpanded by mutableStateOf(false)
+    var isTransitionEditorActive by mutableStateOf(false)
     var isSidePlayerOpen by mutableStateOf(false)
     var isTabletSplitMode by mutableStateOf(true)
     var isLiked by mutableStateOf(false)
@@ -392,9 +394,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     var shareCardLyrics by mutableStateOf<List<String>>(emptyList())
         private set
 
+    /**
+     * Every non-blank lyric line, for the share sheet's line picker: the user chooses what
+     * goes on the card instead of getting a fixed two-line snippet.
+     */
+    var shareCardAllLyrics by mutableStateOf<List<String>>(emptyList())
+        private set
+
     fun openShareCard(track: Track) {
         shareCardTrack = track
         shareCardArtwork = null
+        shareCardAllLyrics = lyricsLines.filter { it.text.isNotBlank() }.map { it.text }
         shareCardLyrics = lyricsSnippetAt(currentPosition)
         showMenuSheet = false
         viewModelScope.launch {
@@ -409,6 +419,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         shareCardTrack = null
         shareCardArtwork = null
         shareCardLyrics = emptyList()
+        shareCardAllLyrics = emptyList()
     }
 
     /**
@@ -605,8 +616,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     var showInlineLyrics: Boolean
         get() = lyricsDisplayState == LyricsDisplayState.COVER_REPLACED
         set(value) {
+            // Lyrics opened by any path other than a title tap (the "lyrics" button,
+            // swipe, sheets) always resets the title-cycle origin.
+            if (!value) lyricsViaTitleCycle = false
             lyricsDisplayState = if (value) LyricsDisplayState.COVER_REPLACED else LyricsDisplayState.OFF
         }
+    /**
+     * True when the lyrics pane was opened by TAPPING THE TRACK TITLE
+     * (see [cycleLyricsFromTitle]), not via the "lyrics" button. The tablet
+     * player uses this to show the classic "cover on the left — lyrics on
+     * the right" layout even when the mini-style lyrics mode is on: a user
+     * cycling states by tapping the title expects exactly that layout.
+     */
+    var lyricsViaTitleCycle by mutableStateOf(false)
+        private set
     val isLyricsUnderCoverActive: Boolean
         get() = (lyricsDisplayState == LyricsDisplayState.UNDER_COVER || playerPrefs.getLyricsUnderCoverAlwaysVisible()) &&
                 hasLyrics && lyricsLines.isNotEmpty() && lyricsDisplayState != LyricsDisplayState.COVER_REPLACED
@@ -628,6 +651,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     var lyricsVerticalOffset by mutableFloatStateOf(playerPrefs.getLyricsVerticalOffset())
     var lyricsActiveScale by mutableFloatStateOf(playerPrefs.getLyricsActiveScale())
     var lyricsWheelLines by mutableFloatStateOf(playerPrefs.getLyricsWheelLines())
+
+    /** Top-to-bottom fill animation for line-by-line lyrics (on/off toggle). */
+    var lyricsSweepEnabled by mutableStateOf(playerPrefs.getLyricsSweepEnabled())
+    /** What to show over long instrumental gaps in line-by-line lyrics (circle / note+wave / dots). */
+    var instrumentalIndicatorStyle by mutableStateOf(playerPrefs.getInstrumentalIndicatorStyle())
+
+    fun updateLyricsSweepEnabled(enabled: Boolean) {
+        lyricsSweepEnabled = enabled
+        playerPrefs.setLyricsSweepEnabled(enabled)
+    }
 
     var isPlainAutoScrollEnabled by mutableStateOf(true)
     var plainAutoScrollSpeed by mutableFloatStateOf(1.5f)
@@ -762,6 +795,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         }
 
         if (!playerPrefs.getListeningStatsEnabled()) return
+        if (playerPrefs.getPauseListenHistory()) return
 
         // Nothing heard at all is not a listen and not a skip — it is a track that was loaded. Recording it
         // would put a row in the table that every aggregate then has to exclude, and would make the skip
@@ -1179,6 +1213,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
         override fun onPlaybackStateChanged(state: Int) {
             if (state == Player.STATE_READY) {
+                retryAttempts = 0
                 isLoading = false
                 currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
                 if (MusicManager.player.duration > 0) {
@@ -2037,6 +2072,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     }
 
     fun toggleInlineLyrics() {
+        // The "lyrics" button follows its own rules — the title-cycle origin is reset.
+        lyricsViaTitleCycle = false
         val multiStateEnabled = playerPrefs.getLyricsMultiStateToggle()
         val underCoverEnabled = playerPrefs.getLyricsUnderCoverEnabled()
         val hasSyncedLyrics = lyricsLines.isNotEmpty()
@@ -2052,6 +2089,45 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 LyricsDisplayState.OFF
             } else {
                 LyricsDisplayState.COVER_REPLACED
+            }
+        }
+    }
+
+    /**
+     * Lyrics mode cycle on TRACK TITLE TAP:
+     *
+     *   title + artist
+     *     → tap 1: a lyrics line instead of the title (the "Lyrics under the
+     *              cover" setting: "instead of the title" / "above the title")
+     *     → tap 2: the lyrics pane (cover on the left — lyrics on the right in landscape)
+     *     → tap 3: back to the title
+     *
+     * Differs from [toggleInlineLyrics] in that the cycle is ALWAYS three-step —
+     * independent of the "multi-state" toggle setting — and in that it sets
+     * [lyricsViaTitleCycle]: this is how the tablet player knows to show the
+     * lyrics pane in the classic "cover on the left — lyrics on the right"
+     * layout rather than the mini-style pane.
+     */
+    fun cycleLyricsFromTitle() {
+        val hasSyncedLyrics = lyricsLines.isNotEmpty()
+        val underCoverEnabled = playerPrefs.getLyricsUnderCoverEnabled()
+
+        lyricsDisplayState = when (lyricsDisplayState) {
+            LyricsDisplayState.OFF ->
+                if (hasSyncedLyrics && underCoverEnabled) {
+                    lyricsViaTitleCycle = false
+                    LyricsDisplayState.UNDER_COVER
+                } else {
+                    lyricsViaTitleCycle = true
+                    LyricsDisplayState.COVER_REPLACED
+                }
+            LyricsDisplayState.UNDER_COVER -> {
+                lyricsViaTitleCycle = true
+                LyricsDisplayState.COVER_REPLACED
+            }
+            LyricsDisplayState.COVER_REPLACED -> {
+                lyricsViaTitleCycle = false
+                LyricsDisplayState.OFF
             }
         }
     }
@@ -4678,6 +4754,19 @@ query CommentsWithReactions(
     }
 
     /**
+     * Jumps to a track that is already in the current queue without rebuilding it — this is how
+     * the snake game replays a cover it just swallowed. Returns false when the track is not in
+     * the queue (blocked, or another context took over), so the caller can start a fresh one.
+     */
+    fun playTrackInQueue(trackId: Long): Boolean {
+        val index = _queue.indexOfFirst { it.id == trackId }
+        if (index < 0) return false
+        com.alananasss.kittytune.audio.haptics.HapticUtil.performUIHaptic(context)
+        playTrackAtIndex(index, addToHistory = false, autoPlay = true)
+        return true
+    }
+
+    /**
      * A collection's Shuffle button. It turns shuffle mode on rather than handing over a pre-shuffled copy:
      * with the copy, the original order was lost and shuffle stayed off, so the next tap on a track of the
      * same list played straight down from it instead of jumping in ahead of a shuffled queue (issue #66).
@@ -4774,7 +4863,7 @@ query CommentsWithReactions(
     fun skipToQueueItem(index: Int, autoPlay: Boolean = true) {
         if (routeRemote("queue", index.toLong())) return
         pendingSeekPosition = null
-        val keepsUpcoming = isQueuePreserveUpcomingEnabled
+        val keepsUpcoming = isQueuePreserveUpcomingEnabled || shuffleEnabled
         if (keepsUpcoming && index > currentQueueIndex && currentQueueIndex >= 0 && index < _queue.size) {
             val targetIndex = currentQueueIndex + 1
             moveQueueItem(index, targetIndex)
@@ -4982,7 +5071,7 @@ query CommentsWithReactions(
 
             if (addToHistory && currentContext?.navigationId?.startsWith("station:") != true && currentContext?.navigationId?.startsWith(
                     "yt_radio:"
-                ) != true
+                ) != true && !playerPrefs.getPauseListenHistory()
             ) {
                 HistoryRepository.addToHistory(finalTrack)
             }
@@ -5044,6 +5133,51 @@ query CommentsWithReactions(
         }
     }
 
+    /**
+     * The transition saved in the playlist connector for exactly this pair, as an overlap
+     * length in ms. Null when nothing was saved for the pair, the pair is on Auto, or the
+     * pair's tempo is unknown. Pure lookup — staging the style into MusicManager happens
+     * at the trigger point via [stagePairTransitionStyle], so an idle tick never leaves a
+     * stale style hint behind for an unrelated transition.
+     */
+    private fun pairTransitionOverrideMs(current: Track?, next: Track?): Long? {
+        if (current == null || next == null || next.id == current.id) return null
+        val navId = currentContext?.navigationId ?: return null
+        val plan = runCatching {
+            // Multi-key: the plan may have been saved under a different route key
+            // (playlist screen vs queue navigation) — loadAny tries them all.
+            com.alananasss.kittytune.audio.automix.TransitionStore.loadAny(context, navId, current.id, next.id)
+        }.getOrNull() ?: return null
+        if (plan.isAuto) return null
+        val bpm = com.alananasss.kittytune.audio.automix.AutomixManager.automixDebugInfo.value?.outBpm ?: 0f
+        if (bpm <= 0f) return null
+        return (plan.bars.beats * (60_000f / bpm)).toLong().coerceIn(2_000L, 30_000L)
+    }
+
+    /**
+     * Stages the saved pair transition's style (and length, when the tempo is known) so the
+     * next crossfade performs what the user drew in the Edit-transition screen — used on the
+     * trigger points that have no automix plan to carry it (manual skip, plain crossfade).
+     */
+    private fun stagePairTransitionStyle(current: Track?, next: Track?) {
+        if (current == null || next == null || next.id == current.id) return
+        val navId = currentContext?.navigationId ?: return
+        val plan = runCatching {
+            com.alananasss.kittytune.audio.automix.TransitionStore.loadAny(context, navId, current.id, next.id)
+        }.getOrNull() ?: return
+        if (plan.isAuto) return
+        MusicManager.pendingTransitionStyle = plan.toEngineStyle()
+        MusicManager.pendingTransitionPair = current.id to next.id
+        // The whole plan, so the fade loop performs the pair's exact saved curves
+        // (volume, EQ handover, filter sweep, effects tail, loop) — not just the style.
+        MusicManager.pendingPairPlan = plan
+        val bpm = com.alananasss.kittytune.audio.automix.AutomixManager.automixDebugInfo.value?.outBpm ?: 0f
+        if (bpm > 0f) {
+            MusicManager.pendingTransitionDurationMs =
+                (plan.bars.beats * (60_000f / bpm)).toLong().coerceIn(2_000L, 30_000L)
+        }
+    }
+
     fun requestSkipNext() {
         if (routeRemote("next")) return
         com.alananasss.kittytune.audio.haptics.HapticUtil.performUIHaptic(context)
@@ -5068,6 +5202,9 @@ query CommentsWithReactions(
                 android.util.Log.d("PlayerViewModel", "Skip -> hard cut")
                 // Stop the engine finishing a fade into a track the listener just skipped past.
                 djFlowController.cancelTransition()
+                // A transition saved for exactly this pair must survive the skip: the cancel
+                // clears the automix plan, so stage the saved shape for the incoming crossfade.
+                stagePairTransitionStyle(currentTrack, _queue.getOrNull(currentQueueIndex + 1))
                 playNext(manual = true, isCrossfade = playerPrefs.getCrossfadeEnabled())
             }
             SkipAction.IGNORE -> {}
@@ -5081,6 +5218,13 @@ query CommentsWithReactions(
     ) {
         if (manual && routeRemote("next")) return
         if (isAutoplayRadioLoading) return
+        if (manual && MusicManager.isCrossfadingOut) {
+            // Every manual advance tears down a blend that is still in flight — the same
+            // decision SkipDecision makes for the next button. Starting a second fade loop on
+            // top of a live one used to zipper the decks' volumes every step and reset the
+            // duck shelves mid-blend (the "hissing, interrupted" transition).
+            djFlowController.cancelTransition()
+        }
         if (manual && !applyingTogether && com.alananasss.kittytune.data.together.Together.active.value != null) {
             com.alananasss.kittytune.data.together.Together.control(
                 com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_NEXT, currentPosition
@@ -5509,6 +5653,33 @@ query CommentsWithReactions(
         }
     }
 
+    /**
+     * The Mix (automix) toggle moved in settings.
+     *
+     * Turning Mix on restores playlist order (the same revert path the Shuffle button uses):
+     * pair transitions only fire on the exact track sequence they were saved for, and a
+     * shuffled upcoming queue hides that sequence, so a saved pair would nearly never meet
+     * again. Both directions also drop the staged pair-transition hints and the cached
+     * automix plan — they describe the previous mode's pair, and the 2 s ticker rebuilds
+     * the plan for the pair that is actually playing once Mix is back on.
+     */
+    fun onAutomixEnabledChanged(enabled: Boolean) {
+        MusicManager.pendingTransitionStyle = null
+        MusicManager.pendingTransitionDurationMs = null
+        MusicManager.pendingTransitionPair = null
+        MusicManager.pendingPairPlan = null
+        if (enabled && shuffleEnabled) {
+            shuffleEnabled = false
+            revertShuffle()
+            updateQueueState()
+            refreshPreloadedNext()
+            saveStateAsync(saveQueue = true)
+        } else {
+            refreshPreloadedNext()
+        }
+        com.alananasss.kittytune.audio.automix.AutomixManager.clearPlan()
+    }
+
     fun toggleShuffle() {
         if (routeRemote("shuffle", if (uiShuffleEnabled) 0 else 1)) return
         com.alananasss.kittytune.audio.haptics.HapticUtil.performMediumHaptic(context)
@@ -5611,6 +5782,38 @@ query CommentsWithReactions(
         saveStateAsync(saveQueue = true)
     }
 
+
+    /**
+     * Updates active playing queue if the reordered playlist matches current playback context.
+     */
+    fun updatePlayingQueueOrderIfMatching(matchingContextId: Long?, newOrderedTracks: List<Track>) {
+        val currentNav = currentContext?.navigationId ?: return
+        val isCurrentContext = when {
+            matchingContextId != null &&
+                (currentNav == matchingContextId.toString() ||
+                    currentNav.substringAfterLast(':') == matchingContextId.toString()) -> true
+            currentNav == "downloads" && matchingContextId == -2L -> true
+            currentNav == "likes" && matchingContextId == -1L -> true
+            else -> false
+        }
+        if (!isCurrentContext) return
+
+        val playingId = currentTrack?.id
+        _originalQueue.clear()
+        _originalQueue.addAll(newOrderedTracks)
+        if (!shuffleEnabled) {
+            _queue.clear()
+            _queue.addAll(newOrderedTracks)
+            if (playingId != null) {
+                val newIdx = _queue.indexOfFirst { it.id == playingId }
+                if (newIdx != -1) currentQueueIndex = newIdx
+            }
+            updateQueueState()
+            refreshPreloadedNext()
+            saveStateAsync(saveQueue = true)
+        }
+    }
+
     fun removeTrackFromQueue(index: Int) {
         if (routeRemote("remove", index.toLong())) return
         if (index !in _queue.indices) return
@@ -5644,28 +5847,6 @@ query CommentsWithReactions(
         refreshPreloadedNext()
 
         saveStateAsync(saveQueue = true)
-    }
-
-    fun playQueueItemNext(index: Int) {
-        when (val action = queueNextAction(_queue.size, currentQueueIndex, index)) {
-            is QueueNextAction.Move -> moveQueueItem(action.from, action.to)
-            is QueueNextAction.Replay -> insertNext(listOf(_queue[action.index]))
-            QueueNextAction.None -> Unit
-        }
-    }
-
-    /** Resolve the selected occurrence again if the queue changed while its menu was open. */
-    fun playMenuTrackNext() {
-        val track = trackForMenu ?: return
-        val index = menuContextQueueIndex
-        if (index == null) {
-            insertNext(listOf(track))
-        } else {
-            val selected = if (_queue.getOrNull(index) === track) index
-                else _queue.indexOfFirst { it === track }
-            playQueueItemNext(selected)
-        }
-        showMenuSheet = false
     }
 
     fun insertNext(tracks: List<Track>) {
@@ -7375,7 +7556,10 @@ query CommentsWithReactions(
 
                         val isDjFlowActive = djFlowController.flowState.value.isActive
                         if ((automixEnabled || isDjFlowActive) && currTrack != null) {
-                            if (now - lastAutomixCheckTime > 2000L) {
+                            // A blend in flight has the audio threads fully loaded — recomputing the
+                            // plan (and the IMMEDIATE beat analysis it kicks off) waits until it ends;
+                            // the 2 s ticker picks everything up right after the mix is over.
+                            if (now - lastAutomixCheckTime > 2000L && !MusicManager.isTransitionRunning()) {
                                 lastAutomixCheckTime = now
                                 com.alananasss.kittytune.audio.automix.AutomixManager.maybeAnalyzeBeat(currTrack, com.alananasss.kittytune.audio.automix.BeatAnalysisPriority.IMMEDIATE)
                                 if (nextTrack != null) {
@@ -7403,7 +7587,7 @@ query CommentsWithReactions(
                                     if (isGaplessAlbum) {
                                         com.alananasss.kittytune.audio.automix.AutomixManager.clearPlan()
                                     } else if (dur > 0L) {
-                                        com.alananasss.kittytune.audio.automix.AutomixManager.computeAutomixPlan(currTrack, nextTrack, currentPosition, dur, playerPrefs)
+                                        com.alananasss.kittytune.audio.automix.AutomixManager.computeAutomixPlan(currTrack, nextTrack, currentPosition, dur, playerPrefs, currentContext?.navigationId)
                                     }
                                 }
                             }
@@ -7434,11 +7618,18 @@ query CommentsWithReactions(
                                     playNext(manual = false, isCrossfade = true)
                                 }
                             } else if (!isGaplessAlbum && crossfadeEnabled && dur > 0L) {
-                                val remainingToCrossfade = (dur - crossfadeMs) - currentPosition
+                                // No automix plan (analysis pending/failed or automix off): a
+                                // transition saved for this exact pair still drives the blend —
+                                // its bars replace the global crossfade length when the tempo is
+                                // known, and its style is staged at the trigger point.
+                                val pairMs = pairTransitionOverrideMs(currTrack, nextTrack)
+                                val triggerCrossfadeMs = pairMs ?: crossfadeMs
+                                val remainingToCrossfade = (dur - triggerCrossfadeMs) - currentPosition
                                 if (nextTrack != null && remainingToCrossfade in 1000L..12000L && !MusicManager.isCrossfadingOut && !MusicManager.isPrebuffered(nextTrack.id)) {
                                     triggerPrebuffer(nextTrack, null)
                                 }
-                                if (currentPosition >= (dur - crossfadeMs) && !MusicManager.isCrossfadingOut) {
+                                if (currentPosition >= (dur - triggerCrossfadeMs) && !MusicManager.isCrossfadingOut) {
+                                    stagePairTransitionStyle(currTrack, nextTrack)
                                     com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
                                     MusicManager.beginCrossfadeRequest()
                                     playNext(manual = false, isCrossfade = true)
@@ -7447,11 +7638,14 @@ query CommentsWithReactions(
                                 com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
                             }
                         } else if (!isGaplessAlbum && crossfadeEnabled && dur > 0L) {
-                            val remainingToCrossfade = (dur - crossfadeMs) - currentPosition
+                            val pairMs = pairTransitionOverrideMs(currTrack, nextTrack)
+                            val triggerCrossfadeMs = pairMs ?: crossfadeMs
+                            val remainingToCrossfade = (dur - triggerCrossfadeMs) - currentPosition
                             if (nextTrack != null && remainingToCrossfade in 1000L..12000L && !MusicManager.isCrossfadingOut && !MusicManager.isPrebuffered(nextTrack.id)) {
                                 triggerPrebuffer(nextTrack, null)
                             }
-                            if (currentPosition >= (dur - crossfadeMs) && !MusicManager.isCrossfadingOut) {
+                            if (currentPosition >= (dur - triggerCrossfadeMs) && !MusicManager.isCrossfadingOut) {
+                                stagePairTransitionStyle(currTrack, nextTrack)
                                 com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
                                 MusicManager.beginCrossfadeRequest()
                                 playNext(manual = false, isCrossfade = true)
@@ -8360,9 +8554,16 @@ query CommentsWithReactions(
                     }
                 }
             }.orEmpty()
-            com.alananasss.kittytune.audio.normalization.LoudnessPreAnalyzer.prepare(
-                context, listOfNotNull(_queue.getOrNull(currentQueueIndex)) + upcoming,
-            )
+            // Audio Routing Matrix: skip LUFS pre-analysis when the normalizer
+            // stage is not routed (e.g. Bit-Perfect audiophile mode) — the result
+            // would never be applied, it would only burn battery.
+            if (com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(
+                    com.alananasss.kittytune.audio.AudioStage.NORMALIZER)
+            ) {
+                com.alananasss.kittytune.audio.normalization.LoudnessPreAnalyzer.prepare(
+                    context, listOfNotNull(_queue.getOrNull(currentQueueIndex)) + upcoming,
+                )
+            }
         }
         if (playerPrefs.getCrossfadeEnabled()) return
 

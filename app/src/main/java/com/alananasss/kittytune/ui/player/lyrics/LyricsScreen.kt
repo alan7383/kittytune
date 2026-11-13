@@ -133,11 +133,17 @@ fun LyricsScreen(
 
     var showQuickSettingsDialog by remember { mutableStateOf(false) }
     var showUploadYamlDialog by remember { mutableStateOf(false) }
+    // Fullscreen (immersive) mode for the mini-style lyrics layout in landscape
+    var isImmersiveLyrics by remember { mutableStateOf(false) }
+    LaunchedEffect(isSearching) {
+        if (isSearching) isImmersiveLyrics = false
+    }
     BackHandler {
         when {
             showQuickSettingsDialog -> showQuickSettingsDialog = false
             showUploadYamlDialog -> showUploadYamlDialog = false
             isSearching -> viewModel.isSearchingLyrics = false
+            isImmersiveLyrics -> isImmersiveLyrics = false
             else -> onClose()
         }
     }
@@ -215,6 +221,15 @@ fun LyricsScreen(
             FullPlayerBgStyle.GRADIENT -> {
                 LyricsMeshBackground { }
             }
+            FullPlayerBgStyle.LIVE_MESH -> {
+                // The rotating mesh of blurred artwork layers behind the lyrics.
+                com.alananasss.kittytune.ui.player.LiveMeshBackground(
+                    thumbnailUrl = currentTrack?.fullResArtwork,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScrim = true
+                )
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.25f)))
+            }
             FullPlayerBgStyle.PURE_BLACK -> {
                 Box(Modifier.fillMaxSize().background(Color.Black))
             }
@@ -242,7 +257,49 @@ fun LyricsScreen(
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
-                Scaffold(
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                    val isLandscape = maxWidth > maxHeight
+                    val hasLyricsContent = viewModel.lyricsLines.isNotEmpty() ||
+                        !viewModel.rawPlainLyrics.isNullOrBlank()
+                    if (isLandscape && hasLyricsContent) {
+                        // ── Mini-style lyrics layout in landscape: lyrics on the left; on the
+                        //    right the cover beside the track title, the fullscreen pill,
+                        //    the slider and transport. ──
+                        MiniImmersiveLyricsView(
+                            viewModel = viewModel,
+                            isImmersive = isImmersiveLyrics,
+                            onToggleImmersive = { isImmersiveLyrics = !isImmersiveLyrics },
+                            onCloseLyrics = onClose,
+                            onOpenMenu = { showQuickSettingsDialog = true },
+                            accentColor = Color.White.copy(alpha = 0.22f),
+                            onAccentColor = Color.White,
+                            sliderComposable = {
+                                com.alananasss.kittytune.ui.player.PlayerProgress(
+                                    viewModel = viewModel,
+                                    textColor = Color.White,
+                                    waveformCompact = true
+                                )
+                            },
+                            codecBadgeComposable = {
+                                com.alananasss.kittytune.ui.player.CodecBadge(
+                                    viewModel = viewModel,
+                                    textColor = Color.White
+                                )
+                            },
+                            playbackControlsComposable = {
+                                com.alananasss.kittytune.ui.player.PlayerControls(
+                                    viewModel = viewModel,
+                                    onEffectsClick = {
+                                        currentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) }
+                                    },
+                                    onQueueClick = { viewModel.navigateToExpandedQueue() },
+                                    contentColorOverride = Color.White,
+                                    compact = true
+                                )
+                            }
+                        )
+                    } else {
+                        Scaffold(
                     containerColor = Color.Transparent,
                     topBar = {
                         CenterAlignedTopAppBar(
@@ -386,6 +443,8 @@ fun LyricsScreen(
                         }
                     }
                 }
+                    } // else (portrait Scaffold)
+                } // BoxWithConstraints (orientation)
             }
         }
     }
@@ -528,6 +587,23 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
     val readingByHand = FollowActiveLine(listState, activeIndex, centred = true, contentKey = lyrics.size to lyrics.firstOrNull()?.startTime)
     val focusIndex = rememberFocusLine(listState, activeIndex, readingByHand)
 
+    // Instrumental gap indicator (classic circle / note+wave). OFF collapses
+    // to the blank spacer the view always had, so the setting is purely additive.
+    val indicatorKind = when (viewModel.instrumentalIndicatorStyle) {
+        com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.CIRCLE -> InstrumentalIndicatorStyleKind.CIRCLE
+        com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.NOTE_WAVE -> InstrumentalIndicatorStyleKind.NOTE_WAVE
+        com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.OFF -> InstrumentalIndicatorStyleKind.OFF
+        // DOTS stays dots here too - the karaoke view's breathing dots.
+        else -> InstrumentalIndicatorStyleKind.DOTS
+    }
+
+    // The top-to-bottom fill is decided per line inside LyricLineText: a line with word
+    // timings keeps its fill / word-colour rendering (word granularity), every line-timed
+    // line sweeps. Whether the source happens to contain one word-timed line somewhere no
+    // longer switches the fill off for all the other lines. Controlled by the plain on/off
+    // toggle in the lyrics settings.
+    val sweepEnabled = viewModel.lyricsSweepEnabled
+
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenHeight = maxHeight
         val halfHeight = screenHeight / 2
@@ -545,6 +621,47 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
         ) {
             itemsIndexed(lyrics, key = { _, line -> "${line.startTime}-${line.endTime}" }) { index, line ->
                 val isActive = index == activeIndex
+
+                if (line.isInstrumental && line.text.isBlank()) {
+                    // Long instrumental gap: the classic circle or the note+wave indicator,
+                    // aligned with the lyrics and centred like any other line.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        contentAlignment = when (alignment) {
+                            TextAlign.Left -> Alignment.CenterStart
+                            TextAlign.Right -> Alignment.CenterEnd
+                            else -> Alignment.Center
+                        }
+                    ) {
+                        if (indicatorKind == InstrumentalIndicatorStyleKind.DOTS) {
+                            com.alananasss.kittytune.ui.player.lyrics.accompanist.KaraokeBreathingDots(
+                                alignment = when (alignment) {
+                                    TextAlign.Left -> com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeAlignment.Start
+                                    TextAlign.Right -> com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeAlignment.End
+                                    else -> com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeAlignment.Unspecified
+                                },
+                                startTimeMs = line.startTime.toInt(),
+                                endTimeMs = line.endTime.toInt(),
+                                currentTimeProvider = { (smoothDrawPosition.value.toLong() + viewModel.lyricsOffset).toInt() },
+                                defaults = com.alananasss.kittytune.ui.player.lyrics.accompanist.KaraokeBreathingDotsDefaults(
+                                    breathingDotsColor = activeColor
+                                ),
+                                modifier = Modifier.padding(vertical = 12.dp)
+                            )
+                        } else {
+                            InstrumentalGapIndicator(
+                                kind = indicatorKind,
+                                startMs = line.startTime,
+                                endMs = line.endTime,
+                                positionProvider = { smoothDrawPosition.value.toLong() + viewModel.lyricsOffset },
+                                accentColor = activeColor,
+                                contentColor = inactiveColor
+                            )
+                        }
+                    }
+                } else {
 
                 val treatment = LyricLineStyling.treatmentFor(
                     style = viewModel.lyricsDisplayStyle,
@@ -596,6 +713,21 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
                 val splitBacking = viewModel.isSplitBackingVocalsEnabled
                 val (mainLine, backingLine) = remember(line, splitBacking) {
                     if (splitBacking) separateBackingVocals(line) else line to null
+                }
+
+                // ── Top-to-bottom fill ──
+                // The fill band runs across the MAIN text of the line only. Sub-lines
+                // (backing vocals, romanization, translation) never fill - they always
+                // stay dark compared with the filling phrase, as in the reference.
+                val showRomanization = viewModel.isRomanizationEnabled && !line.romanization.isNullOrBlank()
+                val showTranslation = viewModel.isLyricsTranslationEnabled &&
+                        !line.translation.isNullOrBlank() &&
+                        !LyricsUtils.isDuplicateTranslation(line.text, line.translation)
+                // Fill progress: the band travels the main text over the line's duration.
+                val sweepLineProgress = {
+                    val start = line.startTime.toFloat()
+                    val end = line.endTime.toFloat().coerceAtLeast(start + 1f)
+                    ((smoothDrawPosition.value + viewModel.lyricsOffset - start) / (end - start)).coerceIn(0f, 1f)
                 }
 
                 Column(
@@ -653,6 +785,13 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
                         inactiveColor = inactiveColor,
                         unsungColor = unsungColor,
                         textAlign = lineTextAlign,
+                        sweep = if (sweepEnabled) LyricSweepSpec(
+                            brightColor = activeColor,
+                            dimColor = activeColor.copy(alpha = activeColor.alpha * 0.45f),
+                            // The band travels only the height of the main text:
+                            // translation / backing vocals / romanization never fill.
+                            progress = sweepLineProgress
+                        ) else null,
                     )
 
                     if (backingLine != null) {
@@ -667,6 +806,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
                                 shrinkTowards = Alignment.Top
                             ),
                         ) {
+                            // Backing vocals never fill: a static dim colour.
                             Text(
                                 text = backingLine.text,
                                 style = MaterialTheme.typography.headlineSmall.copy(
@@ -685,11 +825,12 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
                     }
 
                     AnimatedVisibility(
-                        visible = viewModel.isRomanizationEnabled && !line.romanization.isNullOrBlank(),
+                        visible = showRomanization,
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut()
                     ) {
                         val romanizationColor = if (isThemeBg) MaterialTheme.colorScheme.primary.copy(alpha = if (isActive) 0.9f else 0.4f) else Color.White.copy(alpha = if (isActive) 0.9f else 0.5f)
+                        // Romanization never fills: a static colour.
                         Text(
                             text = line.romanization ?: "",
                             style = MaterialTheme.typography.headlineSmall.copy(
@@ -705,12 +846,12 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
                     }
 
                     AnimatedVisibility(
-                        visible = viewModel.isLyricsTranslationEnabled
-                                && !line.translation.isNullOrBlank()
-                                && !LyricsUtils.isDuplicateTranslation(line.text, line.translation),
+                        visible = showTranslation,
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut()
                     ) {
+                        // The translation never fills: it is always darker
+                        // than the filling line - a static dim colour.
                         Text(
                             text = line.translation ?: "",
                             style = MaterialTheme.typography.headlineSmall.copy(
@@ -725,6 +866,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
                         )
                     }
                 }
+                } // else: non-instrumental line
             }
         }
 

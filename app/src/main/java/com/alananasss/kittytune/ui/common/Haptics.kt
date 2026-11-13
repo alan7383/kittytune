@@ -2,6 +2,7 @@ package com.alananasss.kittytune.ui.common
 
 import android.view.View
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
@@ -120,6 +121,38 @@ fun Modifier.hapticClickable(
         enabled = enabled,
         onClickLabel = onClickLabel,
         role = role,
+    ) {
+        haptics.perform(kind)
+        onClick()
+    }
+}
+
+// `Modifier.combinedClickable` with the same haptic funnel: [kind] before the tap,
+// [longClickKind] before the long-press. Used where a single element owns two actions -
+// e.g. tapping the track title toggles the lyrics mode, while a long press
+// opens the track page.
+fun Modifier.hapticCombinedClickable(
+    enabled: Boolean = true,
+    onClickLabel: String? = null,
+    onLongClickLabel: String? = null,
+    role: Role? = null,
+    kind: HapticKind = HapticKind.UI,
+    longClickKind: HapticKind = HapticKind.LIGHT,
+    onLongClick: (() -> Unit)? = null,
+    onClick: () -> Unit,
+): Modifier = composed {
+    val haptics = rememberAppHaptics()
+    combinedClickable(
+        enabled = enabled,
+        onClickLabel = onClickLabel,
+        onLongClickLabel = onLongClickLabel,
+        role = role,
+        onLongClick = onLongClick?.let { longAction ->
+            {
+                haptics.perform(longClickKind)
+                longAction()
+            }
+        },
     ) {
         haptics.perform(kind)
         onClick()

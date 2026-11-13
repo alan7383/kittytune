@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -155,6 +156,64 @@ private fun createLineGradientBrush(
 
 private const val SOFT_EDGE_PX = 100f
 
+// The mini-style top-to-bottom sweep of [SyncedLineText] drawn over a karaoke line whose syllables all
+// light at once - a line-timed line, including one that carries its backing vocals split off
+// under it (that is the line kind which never filled before: the sweep only knew plain lines).
+// What the band has passed is fully bright; what is below it keeps only [KaraokeSweepSpec.dimColor]'s
+// share of the alpha; the whole text is bright once the line is over. The glow grows with the
+// sweep exactly like the plain line's. The backing vocals under such a line are a separate
+// [KaraokeLineText] without a sweep, so they never fill - they stay dim from start to end.
+fun DrawScope.drawLyricsLineSweep(
+    rowRenderData: List<RowRenderData>,
+    currentTimeMs: Int,
+    color: Color,
+    blendMode: BlendMode,
+    sweep: KaraokeSweepSpec,
+    showPhonetic: Boolean = true,
+) {
+    if (rowRenderData.isEmpty()) return
+    val progress = sweep.progress().coerceIn(0f, 1f)
+    val textTop = rowRenderData.minOf { row -> row.rowLayouts.minOf { it.position.y } }
+    val textBottom = rowRenderData.maxOf { row ->
+        row.rowLayouts.maxOf { it.position.y + it.textLayoutResult.size.height.toFloat() }
+    }
+    val textSpan = (textBottom - textTop).coerceAtLeast(1f)
+    val dimRatio = if (sweep.brightColor.alpha > 0f) {
+        (sweep.dimColor.alpha / sweep.brightColor.alpha).coerceIn(0f, 1f)
+    } else {
+        0.45f
+    }
+    val glow = Shadow(color = sweep.brightColor.copy(alpha = 0.5f), blurRadius = progress * 20f)
+
+    if (progress >= 1f) {
+        // The line has finished: fully bright, like SyncedLineText after the band leaves.
+        rowRenderData.forEach { row ->
+            drawRowText(row.rowLayouts, color, blendMode, false, currentTimeMs, showPhonetic, glow)
+        }
+        return
+    }
+
+    val bandOrigin = textTop + progress * textSpan
+
+    drawIntoCanvas { canvas ->
+        canvas.saveLayer(Rect(0f, 0f, size.width, size.height), LayerPaint)
+        rowRenderData.forEach { row ->
+            drawRowText(row.rowLayouts, color, blendMode, false, currentTimeMs, showPhonetic, glow)
+        }
+        // Above the band the mask keeps everything (opaque black), below it only dimRatio of
+        // the alpha; the 20 px soft edge is the same band SyncedLineText draws.
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(Color.Black, Color.Black.copy(alpha = dimRatio)),
+                startY = bandOrigin - 10f,
+                endY = bandOrigin + 10f
+            ),
+            blendMode = BlendMode.DstIn
+        )
+        canvas.restore()
+    }
+}
+
 fun DrawScope.drawLyricsLine(
     rowRenderData: List<RowRenderData>,
     currentTimeMs: Int,
@@ -211,7 +270,8 @@ private fun DrawScope.drawRowText(
     blendMode: BlendMode,
     showDebugRectangles: Boolean,
     currentTimeMs: Int,
-    showPhonetic: Boolean = true
+    showPhonetic: Boolean = true,
+    glowShadow: Shadow? = null
 ) {
     rowLayouts.forEachIndexed { index, syllableLayout ->
         val wordAnimInfo = syllableLayout.wordAnimInfo
@@ -337,6 +397,7 @@ private fun DrawScope.drawRowText(
                 textLayoutResult = syllableLayout.textLayoutResult,
                 color = drawColor,
                 topLeft = finalPosition,
+                shadow = glowShadow,
             )
 
             if (showPhonetic) {
@@ -379,7 +440,11 @@ fun KaraokeLineText(
     precalculatedLayouts: List<SyllableLayout>? = null,
     isDuoView: Boolean = false,
     textMeasurer: TextMeasurer = rememberTextMeasurer(),
-    activeScale: Float = 1.0f
+    activeScale: Float = 1.0f,
+    // Mini-style top-to-bottom sweep fill, for a line-timed line drawn as syllables (all of them light
+    // at once - the kind of line a line WITH backing vocals becomes when they are split off).
+    // Non-null only while the line is current; null draws the usual per-word gradient fill.
+    sweep: KaraokeSweepSpec? = null
 ) {
     val isLineRtl = remember(line.syllables) { line.syllables.any { it.content.isRtl() } }
 
@@ -577,15 +642,28 @@ fun KaraokeLineText(
 
             Canvas(modifier = Modifier.size(maxWidth, (totalHeight.roundToInt() + 8).toDp())) {
                 val time = currentTimeProvider()
-                drawLyricsLine(
-                    rowRenderData = rowRenderData,
-                    currentTimeMs = time,
-                    color = activeColor,
-                    blendMode = blendMode,
-                    isRtl = isLineRtl,
-                    showDebugRectangles = showDebugRectangles,
-                    showPhonetic = showPhonetic
-                )
+                if (sweep != null) {
+                    // The line-timed line with its backing vocals split off: the same
+                    // top-to-bottom sweep a plain SyncedLine gets, drawn over syllables.
+                    drawLyricsLineSweep(
+                        rowRenderData = rowRenderData,
+                        currentTimeMs = time,
+                        color = activeColor,
+                        blendMode = blendMode,
+                        sweep = sweep,
+                        showPhonetic = showPhonetic
+                    )
+                } else {
+                    drawLyricsLine(
+                        rowRenderData = rowRenderData,
+                        currentTimeMs = time,
+                        color = activeColor,
+                        blendMode = blendMode,
+                        isRtl = isLineRtl,
+                        showDebugRectangles = showDebugRectangles,
+                        showPhonetic = showPhonetic
+                    )
+                }
             }
         }
 

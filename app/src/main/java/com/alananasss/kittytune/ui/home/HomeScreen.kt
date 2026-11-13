@@ -69,6 +69,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -98,6 +99,7 @@ import com.alananasss.kittytune.domain.User
 import com.alananasss.kittytune.ui.common.ArtistCircleShimmer
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.RegisterLandscapeScrollable
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.ui.common.rememberAppHaptics
@@ -164,6 +166,14 @@ fun HomeScreen(
     }
 
     val isKeyboardOpen = WindowInsets.isImeVisible
+
+    // When the full player expands, the search field must not keep the IME open underneath it.
+    LaunchedEffect(playerViewModel.isPlayerExpanded) {
+        if (playerViewModel.isPlayerExpanded) {
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+        }
+    }
 
     LaunchedEffect(Unit) {
         homeViewModel.navigateTo.collect { route ->
@@ -249,6 +259,7 @@ fun HomeScreen(
         try {
             connectivityManager.registerDefaultNetworkCallback(networkCallback)
         } catch (_: Exception) {
+            // Some OEM builds reject the default-callback registration.
             val request = NetworkRequest.Builder()
                 .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .build()
@@ -607,12 +618,25 @@ fun HomeScreen(
 
                                         else -> {
                                             val currentFilter = homeViewModel.activeFilter
-                                            SearchResultsList(
-                                                homeViewModel = homeViewModel,
-                                                playerViewModel = playerViewModel,
-                                                onNavigate = onNavigate,
-                                                activeFilter = currentFilter
-                                            )
+                                            // On wide screens center-cap the results column so rows
+                                            // don't stretch across the whole tablet.
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.TopCenter
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .widthIn(max = 840.dp)
+                                                ) {
+                                                    SearchResultsList(
+                                                        homeViewModel = homeViewModel,
+                                                        playerViewModel = playerViewModel,
+                                                        onNavigate = onNavigate,
+                                                        activeFilter = currentFilter
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -711,6 +735,8 @@ fun HomeContent(
     val homeClips by com.alananasss.kittytune.data.artist.ArtistClips.homeClips.collectAsState()
 
     val scrollState = rememberLazyListState()
+    // Let vertical swipes on the landscape navigation rail scroll the home feed.
+    RegisterLandscapeScrollable(scrollState)
     val allSections = homeViewModel.homeSections
 
     val titleRecommended = stringResource(R.string.home_recommended_tracks)
@@ -1439,7 +1465,17 @@ fun CaptionedRepostCard(
 
 @Composable
 fun ExplorerSection(onNavigate: (String) -> Unit) {
-    val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
+    // Orientation MUST come from the real window metrics, not LocalConfiguration:
+    // on some tablets Configuration keeps reporting the natural (landscape) size even
+    // after rotation, which made the capped width follow the wrong orientation.
+    val density = LocalDensity.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val windowWidthDp = with(density) { containerSize.width.toDp() }
+    val windowHeightDp = with(density) { containerSize.height.toDp() }
+    val isTablet = minOf(windowWidthDp, windowHeightDp) >= 600.dp
+    val isLandscape = windowWidthDp > windowHeightDp
+    // Stretch to the full width in landscape; in portrait keep the 840dp cap on tablets.
+    val stretchExplorer = !isTablet || isLandscape
 
     Column(
         modifier = Modifier
@@ -1457,7 +1493,7 @@ fun ExplorerSection(onNavigate: (String) -> Unit) {
         )
 
         Row(
-            modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 480.dp) else Modifier.fillMaxWidth(),
+            modifier = if (stretchExplorer) Modifier.fillMaxWidth() else Modifier.widthIn(max = 840.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             ExplorerButton(
@@ -1489,7 +1525,7 @@ fun ExplorerSection(onNavigate: (String) -> Unit) {
 
         TogetherCard(
             onClick = { onNavigate("together") },
-            modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 480.dp) else Modifier.fillMaxWidth()
+            modifier = if (stretchExplorer) Modifier.fillMaxWidth() else Modifier.widthIn(max = 840.dp)
         )
     }
 }

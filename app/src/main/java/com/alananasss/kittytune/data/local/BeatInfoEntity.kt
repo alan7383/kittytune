@@ -47,8 +47,12 @@ data class BeatInfoEntity(
          * 2: phrase confidence is recorded separately. Version 1 rows carry a downbeat margin
          * but no phrase margin, and treating a missing margin as "unsure" would demote every
          * one of them to bar quantization - including the ones that were confidently right.
+         *
+         * 3: musical key is computed with a semitone-resolving FFT and Pearson correlation.
+         * Rows from version 2 carry keys from a 43 Hz-per-bin chroma that mapped most tracks
+         * onto the same few keys, so they must be re-analyzed
          */
-        const val CURRENT_ANALYSIS_VERSION = 2
+        const val CURRENT_ANALYSIS_VERSION = 3
     }
 }
 

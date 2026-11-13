@@ -65,7 +65,8 @@
                 android:exported="true"
                 android:label="@string/app_name"
                 android:launchMode="singleTask"
-                android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|smallestScreenSize"
+                android:resizeableActivity="true"
+                android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard|navigation|mnc|colorMode|density|smallestScreenSize"
                 android:theme="@style/Theme.SoundTune"
                 android:windowSoftInputMode="adjustResize">
                 <!-- SoundCloud OAuth Callbacks -->
@@ -1316,7 +1317,7 @@
                     android:name="android.appwidget.provider"
                     android:resource="@xml/mini_music_widget_info" />
             </receiver>
-    
+
             <!-- Pet Widget Receiver (KittyTune's home-screen kitty) -->
             <receiver
                 android:name=".ui.widget.PetWidgetReceiver"
@@ -1334,7 +1335,7 @@
             <receiver
                 android:name=".ui.widget.pet.PetNewYearReceiver"
                 android:exported="false" />
-
+    
             <!-- Search Widget Receiver -->
             <receiver
                 android:name=".ui.widget.SearchWidgetReceiver"

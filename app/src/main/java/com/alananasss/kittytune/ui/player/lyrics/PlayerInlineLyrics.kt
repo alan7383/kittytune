@@ -318,6 +318,8 @@ fun PlayerInlineLyrics(
                         Text(
                             text = cleanTranslation,
                             style = MaterialTheme.typography.bodySmall.copy(
+                                // The translation is never filled: it is always darker
+                                // than the main text - a static half-grey.
                                 color = textColor.copy(alpha = 0.7f),
                                 fontSize = (effectiveFontSize.value * 0.65f).coerceIn(12f, 15f).sp,
                                 fontFamily = lyricsFontFamily,

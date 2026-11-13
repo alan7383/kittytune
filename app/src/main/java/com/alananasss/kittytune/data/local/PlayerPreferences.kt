@@ -36,7 +36,7 @@ import androidx.annotation.StringRes
 import com.alananasss.kittytune.R
 
 enum class AppThemeMode { SYSTEM, LIGHT, DARK }
-enum class PlayerBackgroundStyle { THEME, GRADIENT, BLUR, APPLE_MUSIC }
+enum class PlayerBackgroundStyle { THEME, GRADIENT, BLUR, APPLE_MUSIC, LIVE_MESH }
 enum class StartDestination { HOME, LIBRARY }
 enum class LyricsAlignment { LEFT, CENTER, RIGHT }
 enum class LyricsUiStyle {
@@ -44,6 +44,8 @@ enum class LyricsUiStyle {
     CLASSIC;
 
     companion object {
+        // Any former style entry silently migrates to ENHANCED: the style
+        // selector no longer offers it, the wipe fill is a plain on/off toggle now
         fun fromString(name: String?): LyricsUiStyle = when (name) {
             "CLASSIC" -> CLASSIC
             else -> ENHANCED
@@ -66,7 +68,7 @@ enum class LyricsDisplayStyle {
     }
 }
 
-enum class FullPlayerBgStyle { APPLE_MUSIC, BLUR, GRADIENT, PURE_BLACK }
+enum class FullPlayerBgStyle { APPLE_MUSIC, BLUR, GRADIENT, PURE_BLACK, LIVE_MESH }
 enum class FullPlayerLayout { LYRICS_RIGHT, LYRICS_LEFT, LYRICS_CENTRED, COVER_AND_LINE }
 enum class FullPlayerInfoAlign { START, CENTER, END }
 enum class FullPlayerHeartSide { START, END }
@@ -75,8 +77,110 @@ enum class LyricsFont { APPLE, APP_DEFAULT }
 enum class DiscordStatusDisplay { ACTIVITY, SOUNDCLOUD, ARTIST, SONG }
 
 enum class PlayerProgressMode { SOUNDCLOUD, HYBRID_WAVEFORM, CLASSIC_BAR }
-enum class PlayerSliderStyle { BAR, WAVY, SLIM, SQUIGGLY }
-enum class PlayerDesign { PIXEL_PLAYER, SOUNDCLOUD, MODERN, CLASSIC }
+enum class PlayerSliderStyle { BAR, WAVY, SLIM, SQUIGGLY, EXPRESSIVE }
+enum class PlayerDesign { PIXEL_PLAYER, SOUNDCLOUD, MODERN, CLASSIC, APPLE_MUSIC, IPAD }
+
+ // iPad player (the separate "iPad" design): how the cover art is shown in
+ // landscape — centered (as in Apple Music on iPad) or full screen
+ 
+enum class AppleTabletCoverMode { CENTERED, FULL_SCREEN }
+
+enum class AppleMusicControlsAlign { RIGHT, CENTER_LOW }
+
+// Apple Music player: how the artwork is presented in portrait.
+
+enum class AppleMusicPortraitArt { FULL_BLEED, SQUARE }
+
+// Mini player look: the mini-style pill (modern) or the previous KittyTune strip (classic). */
+enum class MiniPlayerStyle {
+    CLASSIC,
+    MODERN;
+
+    companion object {
+        fun fromString(name: String?): MiniPlayerStyle = when (name) {
+            "MODERN" -> MODERN
+            else -> CLASSIC
+        }
+    }
+}
+
+// background painted inside the modern mini player pill. Liquid glass intentionally excluded
+enum class MiniPlayerBackgroundStyle {
+    SOLID,
+    GRADIENT,
+    BLUR,
+    GLOW,
+    LIVE_MESH;
+
+    companion object {
+        fun fromString(name: String?): MiniPlayerBackgroundStyle = when (name) {
+            "GRADIENT" -> GRADIENT
+            "BLUR" -> BLUR
+            "GLOW" -> GLOW
+            "LIVE_MESH" -> LIVE_MESH
+            else -> SOLID
+        }
+    }
+}
+
+// where the navigation bar lives on tablets in landscape
+enum class TabletNavPlacement { BOTTOM, LEFT }
+
+ // one switch for both navigation styles: when on the bar shows icons only - no text under
+ // the classic bar's icons and no expanding label next to the selected modern dock pill
+ 
+enum class NavLabelsMode { LABELS, ICONS_ONLY;
+    companion object {
+        fun fromBoolean(show: Boolean) = if (show) LABELS else ICONS_ONLY
+    }
+}
+
+// Modern mini player: horizontal swipe switches tracks (on) or is disabled (off)
+enum class MiniPlayerSwipeTrack { ON, OFF;
+    companion object {
+        fun fromBoolean(on: Boolean) = if (on) ON else OFF
+    }
+}
+
+// Modern mini player: show the previous / next track buttons next to play/pause
+enum class MiniPlayerTrackButtons { ON, OFF;
+    companion object {
+        fun fromBoolean(on: Boolean) = if (on) ON else OFF
+    }
+}
+
+// Modern mini player width: full-width pill or the narrower centered mini pill
+enum class MiniPlayerWidth { WIDE, NARROW;
+    companion object {
+        fun fromString(name: String?): MiniPlayerWidth = when (name) {
+            "NARROW" -> NARROW
+            else -> WIDE
+        }
+    }
+}
+
+// Line-by-line lyrics: how the current line "fills in" as it is sung
+enum class LyricsLineAnimation { FADE, SWEEP }
+
+// What to show over long instrumental gaps in line-by-line lyrics
+enum class InstrumentalIndicatorStyle {
+    DOTS,
+    CIRCLE,
+    NOTE_WAVE,
+    OFF;
+
+    companion object {
+        fun fromString(name: String?): InstrumentalIndicatorStyle = when (name) {
+            "CIRCLE" -> CIRCLE
+            "NOTE_WAVE" -> NOTE_WAVE
+            "OFF" -> OFF
+            else -> DOTS
+        }
+    }
+}
+
+// Album cards: how much of the release date to show
+enum class ReleaseDateDisplay { OFF, SHORT, FULL }
 
 enum class MiniPlayerSwipeAction {
     CHANGE_TRACK,
@@ -89,6 +193,9 @@ enum class MiniPlayerSwipeAction {
         }
     }
 }
+
+// how far a vertical swipe on the mini player must travel before it counts as "close"
+enum class MiniPlayerVerticalGesture { OFF, CLOSE }
 
 enum class TrackSourceBadgeStyle(
     @StringRes val titleRes: Int
@@ -133,6 +240,15 @@ enum class LibraryCategoryLayout(
 enum class LyricsUnderCoverPlacement { REPLACE_TITLE_ARTIST, ABOVE_TITLE_ARTIST }
 enum class LyricsDisplayState { OFF, UNDER_COVER, COVER_REPLACED }
 enum class WaveformColorMode { SOUNDCLOUD, COVER_ART, APP_THEME, CUSTOM }
+
+ // Where the inline lyrics open in the two-pane landscape layouts of the classic,
+ // KittyTune modern and pixel players: RIGHT swaps the controls pane for the lyrics
+ // (cover stays), LEFT swaps the cover for the lyrics (controls stay)
+ 
+enum class InlineLyricsSide { LEFT, RIGHT }
+
+// What the waveform does while playback is paused
+enum class WaveformPauseMode { KEEP_AS_IS, COLLAPSE_TO_LINE, SOLID_LINE }
 
 enum class PlayerActionButtonSlot(@StringRes val titleRes: Int) {
     LIKE(R.string.slot_like),
@@ -307,9 +423,9 @@ class PlayerPreferences(context: Context) {
         const val KEY_WAVEFORM_COMMENTS_POPUP = "waveform_comments_popup_enabled"
         const val KEY_WAVEFORM_COLOR_MODE = "waveform_color_mode"
         const val KEY_WAVEFORM_CUSTOM_COLOR = "waveform_custom_color"
+        const val KEY_WAVEFORM_PAUSE_MODE = "waveform_pause_mode"
         const val KEY_SOUNDCLOUD_REACTIONS_BAR = "soundcloud_reactions_bar_enabled"
         const val KEY_SOUNDCLOUD_PARALLAX = "soundcloud_parallax_enabled"
-        const val KEY_GYROSCOPE_COVERS_ENABLED = "gyroscope_covers_enabled"
         const val KEY_SOUNDCLOUD_SLOT_PREFIX = "soundcloud_slot_"
         const val KEY_CLASSIC_SLOT_PREFIX = "classic_slot_"
         const val KEY_PIXEL_SLOT_PREFIX = "pixel_slot_"
@@ -357,6 +473,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_LYRICS_UNDER_COVER_ENABLED = "lyrics_under_cover_enabled"
         private const val KEY_LYRICS_MULTI_STATE_TOGGLE = "lyrics_multi_state_toggle"
         const val KEY_LYRICS_UNDER_COVER_PLACEMENT = "lyrics_under_cover_placement"
+        const val KEY_INLINE_LYRICS_SIDE = "inline_lyrics_side"
         private const val KEY_LYRICS_UNDER_COVER_ALWAYS_VISIBLE = "lyrics_under_cover_always_visible"
         private const val KEY_DISCORD_TOKEN = "discord_token"
         private const val KEY_DISCORD_USERNAME = "discord_username"
@@ -370,6 +487,8 @@ class PlayerPreferences(context: Context) {
         private const val KEY_ANDROID_AUTO_SYNCED_LYRICS = "android_auto_synced_lyrics"
         const val KEY_ANIMATED_COVERS_ENABLED = "animated_covers_enabled"
         const val KEY_ANIMATED_COVERS_FADE_UI = "animated_covers_fade_ui"
+        const val KEY_GYROSCOPE_COVERS_ENABLED = "gyroscope_covers_enabled"
+        const val KEY_GYROSCOPE_FLAT_COVER = "gyroscope_flat_cover"
         const val KEY_ANIMATED_ARTIST_PROFILES_ENABLED = "animated_artist_profiles_enabled"
 
         private const val KEY_LYRICS_PROVIDER = "lyrics_provider"
@@ -450,6 +569,11 @@ class PlayerPreferences(context: Context) {
         private const val KEY_DJ_FLOW_INFINITE_STREAM = "dj_flow_infinite_stream"
         private const val KEY_DJ_FLOW_CATEGORY = "dj_flow_category"
         private const val KEY_DJ_FLOW_AUTO_STEM_CUT = "dj_flow_auto_stem_cut"
+        // Spotify-Mix transition presets (Mix panel): which style and how long.
+        // Style stores the enum name of MixTransitionPresets.MixTransitionStyle, or "AUTO";
+        // beats stores 0 (follow the automix overlap setting) or one of 4/8/16/32.
+        private const val KEY_MIX_TRANSITION_STYLE = "mix_transition_style"
+        private const val KEY_MIX_TRANSITION_BEATS = "mix_transition_beats"
         const val AUTOMIX_START_OFFSET_AUTO = 0
         const val AUTOMIX_START_OFFSET_BEGINNING = 1
         const val AUTOMIX_START_OFFSET_CUSTOM = 2
@@ -557,6 +681,48 @@ class PlayerPreferences(context: Context) {
         const val KEY_SHOW_PLAYLIST_TOTAL_DURATION = "show_playlist_total_duration"
         const val KEY_FULL_PLAYER_SOURCE_INDICATOR_ENABLED = "full_player_source_indicator_enabled"
         const val KEY_TRACK_SOURCE_BADGE_STYLE = "track_source_badge_style"
+
+        // ── Ported feature keys ──
+        const val KEY_LYRICS_LINE_ANIMATION = "lyrics_line_animation"
+        const val KEY_INSTRUMENTAL_INDICATOR = "instrumental_indicator_style"
+        const val KEY_TABLET_NAV_PLACEMENT = "tablet_nav_placement"
+        const val KEY_NAV_HIDE_LABELS = "nav_labels_hidden"
+        const val KEY_MINI_PLAYER_STYLE = "mini_player_style"
+        const val KEY_MINI_PLAYER_BACKGROUND = "mini_player_background_style"
+        const val KEY_MINI_PLAYER_VERTICAL_GESTURE = "mini_player_vertical_gesture"
+        const val KEY_MINI_PLAYER_SWIPE_TRACK = "mini_player_swipe_track"
+        const val KEY_MINI_PLAYER_SHOW_TRACK_BUTTONS = "mini_player_show_track_buttons"
+        const val KEY_MINI_PLAYER_WIDTH = "mini_player_width"
+        const val KEY_WAVY_PLAY_PAUSE = "wavy_play_pause_button"
+        const val KEY_SHOW_CODEC_ON_PLAYER = "show_codec_on_player"
+        const val KEY_SKIP_SILENCE = "skip_silence"
+        const val KEY_INSTANT_SKIP_SILENCE = "instant_skip_silence"
+        const val KEY_RESUME_ON_BLUETOOTH = "resume_on_bluetooth_connect"
+        const val KEY_PAUSE_ON_MUTE = "pause_on_mute"
+        const val KEY_KEEP_SCREEN_ON = "keep_screen_on_player"
+        const val KEY_PAUSE_LISTEN_HISTORY = "pause_listen_history"
+        const val KEY_PAUSE_SEARCH_HISTORY = "pause_search_history"
+        const val KEY_ALBUM_RELEASE_DATE = "album_release_date_display"
+        const val KEY_HIDE_VIDEO_SONGS = "hide_video_songs"
+        const val KEY_HIDE_YOUTUBE_SHORTS = "hide_youtube_shorts"
+        const val KEY_APPLE_MUSIC_INSPIRED = "apple_music_inspired"
+        const val KEY_HIDE_VOLUME_SLIDER = "hide_volume_slider"
+        const val KEY_APPLE_MUSIC_CONTROLS_ALIGN = "apple_music_controls_align"
+        const val KEY_APPLE_TABLET_LANDSCAPE_LAYOUT = "apple_tablet_landscape_layout"
+        const val KEY_APPLE_TABLET_COVER_MODE = "apple_tablet_cover_mode"
+        const val KEY_APPLE_MUSIC_PORTRAIT_ART = "apple_music_portrait_art"
+        const val KEY_APPLE_MUSIC_SLOT_PREFIX = "applemusic_slot_"
+        const val KEY_LANDSCAPE_MINI_LYRICS = "landscape_mini_lyrics"
+
+        // USB DAC / bit-perfect audio
+        const val KEY_USB_BIT_PERFECT = "usb_bit_perfect_enabled"
+        const val KEY_USB_ROUTE_ALL_AUDIO = "usb_route_all_audio"
+        /** STREAM_MUSIC volume saved BEFORE forcing the maximum in bit-perfect mode (-1 = not forced). */
+        const val KEY_USB_SAVED_VOLUME_INDEX = "usb_saved_volume_index"
+        const val KEY_USB_FORCE_MAX_VOLUME = "usb_force_max_volume"
+        const val KEY_USB_SHOW_STATUS = "usb_show_status_badge"
+        const val KEY_DAP_AAUDIO_EXCLUSIVE = "dap_aaudio_exclusive"
+        const val KEY_USB_DSD_OVER_PCM = "usb_dsd_over_pcm"
     }
 
     private fun getSafeFloat(key: String, default: Float): Float {
@@ -731,6 +897,17 @@ class PlayerPreferences(context: Context) {
     fun getDjFlowAutoStemCut(): Boolean = prefs.getBoolean(KEY_DJ_FLOW_AUTO_STEM_CUT, true)
     fun setDjFlowAutoStemCut(enabled: Boolean) = prefs.edit { putBoolean(KEY_DJ_FLOW_AUTO_STEM_CUT, enabled) }
 
+    /**
+     * The Mix panel's transition preset: the [com.alananasss.kittytune.audio.automix.MixTransitionPresets.MixTransitionStyle]
+     * enum name, or "AUTO" (the default) to let the engine decide per pair.
+     */
+    fun getMixTransitionStyle(): String = prefs.getString(KEY_MIX_TRANSITION_STYLE, "AUTO") ?: "AUTO"
+    fun setMixTransitionStyle(style: String) = prefs.edit { putString(KEY_MIX_TRANSITION_STYLE, style) }
+
+    /** The Mix panel's transition length in beats: 0 (follow the automix setting) or 4/8/16/32. */
+    fun getMixTransitionBeats(): Int = prefs.getInt(KEY_MIX_TRANSITION_BEATS, 0)
+    fun setMixTransitionBeats(beats: Int) = prefs.edit { putInt(KEY_MIX_TRANSITION_BEATS, beats) }
+
     fun getCustomFontEnabled() = prefs.getBoolean(KEY_CUSTOM_FONT_ENABLED, true)
     fun setCustomFontEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_CUSTOM_FONT_ENABLED, enabled) }
 
@@ -799,6 +976,13 @@ class PlayerPreferences(context: Context) {
     fun setLyricsUnderCoverPlacement(placement: LyricsUnderCoverPlacement) =
         prefs.edit { putString(KEY_LYRICS_UNDER_COVER_PLACEMENT, placement.name) }
 
+    fun getInlineLyricsSide(): InlineLyricsSide {
+        val name = prefs.getString(KEY_INLINE_LYRICS_SIDE, InlineLyricsSide.RIGHT.name)
+        return runCatching { InlineLyricsSide.valueOf(name ?: "") }.getOrDefault(InlineLyricsSide.RIGHT)
+    }
+    fun setInlineLyricsSide(side: InlineLyricsSide) =
+        prefs.edit { putString(KEY_INLINE_LYRICS_SIDE, side.name) }
+
     fun getLyricsUnderCoverAlwaysVisible(): Boolean = prefs.getBoolean(KEY_LYRICS_UNDER_COVER_ALWAYS_VISIBLE, false)
     fun setLyricsUnderCoverAlwaysVisible(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_UNDER_COVER_ALWAYS_VISIBLE, enabled) }
 
@@ -821,6 +1005,296 @@ class PlayerPreferences(context: Context) {
 
     fun getHideYoutubeVideos(): Boolean = prefs.getBoolean(KEY_HIDE_YOUTUBE_VIDEOS, true)
     fun setHideYoutubeVideos(enabled: Boolean) = prefs.edit { putBoolean(KEY_HIDE_YOUTUBE_VIDEOS, enabled) }
+
+    // ── YouTube content filters, split from the old combined switch ──
+    /** Legacy migration: the old single switch hid both at once, so it seeds both new keys. */
+    private fun youtubeSplitSeeded(): Boolean = prefs.contains(KEY_HIDE_VIDEO_SONGS) || prefs.contains(KEY_HIDE_YOUTUBE_SHORTS)
+
+    fun getHideVideoSongs(): Boolean {
+        if (youtubeSplitSeeded()) return prefs.getBoolean(KEY_HIDE_VIDEO_SONGS, true)
+        return getHideYoutubeVideos()
+    }
+
+    fun setHideVideoSongs(enabled: Boolean) = prefs.edit { putBoolean(KEY_HIDE_VIDEO_SONGS, enabled) }
+
+    fun getHideYoutubeShorts(): Boolean {
+        if (youtubeSplitSeeded()) return prefs.getBoolean(KEY_HIDE_YOUTUBE_SHORTS, true)
+        return getHideYoutubeVideos()
+    }
+
+    fun setHideYoutubeShorts(enabled: Boolean) = prefs.edit { putBoolean(KEY_HIDE_YOUTUBE_SHORTS, enabled) }
+
+    // ── Ported feature accessors ──────────────────────────────────────────────────
+
+    fun getLyricsLineAnimation(): LyricsLineAnimation {
+        val name = prefs.getString(KEY_LYRICS_LINE_ANIMATION, LyricsLineAnimation.SWEEP.name)
+        return runCatching { LyricsLineAnimation.valueOf(name!!) }.getOrDefault(LyricsLineAnimation.SWEEP)
+    }
+
+    fun setLyricsLineAnimation(style: LyricsLineAnimation) = prefs.edit { putString(KEY_LYRICS_LINE_ANIMATION, style.name) }
+
+    /** The line-by-line fill (wipe) as a plain on/off toggle: on = wipe, off = plain line swap. */
+    fun getLyricsSweepEnabled(): Boolean = getLyricsLineAnimation() == LyricsLineAnimation.SWEEP
+
+    fun setLyricsSweepEnabled(enabled: Boolean) = setLyricsLineAnimation(if (enabled) LyricsLineAnimation.SWEEP else LyricsLineAnimation.FADE)
+
+    fun getInstrumentalIndicatorStyle(): InstrumentalIndicatorStyle {
+        return InstrumentalIndicatorStyle.fromString(prefs.getString(KEY_INSTRUMENTAL_INDICATOR, InstrumentalIndicatorStyle.NOTE_WAVE.name))
+    }
+
+    fun setInstrumentalIndicatorStyle(style: InstrumentalIndicatorStyle) = prefs.edit { putString(KEY_INSTRUMENTAL_INDICATOR, style.name) }
+
+    fun getTabletNavPlacement(): TabletNavPlacement {
+        // LEFT is the default: a tablet gets the side rail out of the box (the dock is one tap away).
+        val name = prefs.getString(KEY_TABLET_NAV_PLACEMENT, TabletNavPlacement.LEFT.name)
+        return runCatching { TabletNavPlacement.valueOf(name!!) }.getOrDefault(TabletNavPlacement.LEFT)
+    }
+
+    fun setTabletNavPlacement(placement: TabletNavPlacement) = prefs.edit { putString(KEY_TABLET_NAV_PLACEMENT, placement.name) }
+
+    fun tabletNavPlacementFlow(): Flow<TabletNavPlacement> = callbackFlow {
+        trySend(getTabletNavPlacement())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_TABLET_NAV_PLACEMENT) trySend(getTabletNavPlacement())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /** True = icons only (no labels in either bar style). */
+    fun getNavHideLabels(): Boolean = prefs.getBoolean(KEY_NAV_HIDE_LABELS, false)
+    fun setNavHideLabels(hidden: Boolean) = prefs.edit { putBoolean(KEY_NAV_HIDE_LABELS, hidden) }
+
+    fun navHideLabelsFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getNavHideLabels())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_NAV_HIDE_LABELS) trySend(getNavHideLabels())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getMiniPlayerStyle(): MiniPlayerStyle = MiniPlayerStyle.fromString(prefs.getString(KEY_MINI_PLAYER_STYLE, MiniPlayerStyle.CLASSIC.name))
+    fun setMiniPlayerStyle(style: MiniPlayerStyle) = prefs.edit { putString(KEY_MINI_PLAYER_STYLE, style.name) }
+
+    fun miniPlayerStyleFlow(): Flow<MiniPlayerStyle> = callbackFlow {
+        trySend(getMiniPlayerStyle())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_STYLE) trySend(getMiniPlayerStyle())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getMiniPlayerBackgroundStyle(): MiniPlayerBackgroundStyle =
+        MiniPlayerBackgroundStyle.fromString(prefs.getString(KEY_MINI_PLAYER_BACKGROUND, MiniPlayerBackgroundStyle.SOLID.name))
+
+    fun setMiniPlayerBackgroundStyle(style: MiniPlayerBackgroundStyle) = prefs.edit { putString(KEY_MINI_PLAYER_BACKGROUND, style.name) }
+
+    fun miniPlayerBackgroundStyleFlow(): Flow<MiniPlayerBackgroundStyle> = callbackFlow {
+        trySend(getMiniPlayerBackgroundStyle())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_BACKGROUND) trySend(getMiniPlayerBackgroundStyle())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getMiniPlayerVerticalGesture(): MiniPlayerVerticalGesture {
+        val name = prefs.getString(KEY_MINI_PLAYER_VERTICAL_GESTURE, MiniPlayerVerticalGesture.CLOSE.name)
+        return runCatching { MiniPlayerVerticalGesture.valueOf(name!!) }.getOrDefault(MiniPlayerVerticalGesture.CLOSE)
+    }
+
+    fun setMiniPlayerVerticalGesture(mode: MiniPlayerVerticalGesture) = prefs.edit { putString(KEY_MINI_PLAYER_VERTICAL_GESTURE, mode.name) }
+
+    fun miniPlayerVerticalGestureFlow(): Flow<MiniPlayerVerticalGesture> = callbackFlow {
+        trySend(getMiniPlayerVerticalGesture())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_VERTICAL_GESTURE) trySend(getMiniPlayerVerticalGesture())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /** Modern mini player only: horizontal swipe switches tracks. */
+    fun getMiniPlayerSwipeTrack(): Boolean = prefs.getBoolean(KEY_MINI_PLAYER_SWIPE_TRACK, true)
+    fun setMiniPlayerSwipeTrack(on: Boolean) = prefs.edit { putBoolean(KEY_MINI_PLAYER_SWIPE_TRACK, on) }
+
+    fun miniPlayerSwipeTrackFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getMiniPlayerSwipeTrack())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_SWIPE_TRACK) trySend(getMiniPlayerSwipeTrack())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /** Modern mini player only: previous / next buttons around play/pause. */
+    fun getMiniPlayerShowTrackButtons(): Boolean = prefs.getBoolean(KEY_MINI_PLAYER_SHOW_TRACK_BUTTONS, true)
+    fun setMiniPlayerShowTrackButtons(on: Boolean) = prefs.edit { putBoolean(KEY_MINI_PLAYER_SHOW_TRACK_BUTTONS, on) }
+
+    fun miniPlayerShowTrackButtonsFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getMiniPlayerShowTrackButtons())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_SHOW_TRACK_BUTTONS) trySend(getMiniPlayerShowTrackButtons())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /** Modern mini player only: WIDE pill or the narrower centered mini pill. */
+    fun getMiniPlayerWidth(): MiniPlayerWidth = MiniPlayerWidth.fromString(prefs.getString(KEY_MINI_PLAYER_WIDTH, MiniPlayerWidth.WIDE.name))
+    fun setMiniPlayerWidth(width: MiniPlayerWidth) = prefs.edit { putString(KEY_MINI_PLAYER_WIDTH, width.name) }
+
+    fun miniPlayerWidthFlow(): Flow<MiniPlayerWidth> = callbackFlow {
+        trySend(getMiniPlayerWidth())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_WIDTH) trySend(getMiniPlayerWidth())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getWavyPlayPauseButton(): Boolean = prefs.getBoolean(KEY_WAVY_PLAY_PAUSE, true)
+    fun setWavyPlayPauseButton(enabled: Boolean) = prefs.edit { putBoolean(KEY_WAVY_PLAY_PAUSE, enabled) }
+
+    fun wavyPlayPauseFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getWavyPlayPauseButton())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_WAVY_PLAY_PAUSE) trySend(getWavyPlayPauseButton())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getShowCodecOnPlayer(): Boolean = prefs.getBoolean(KEY_SHOW_CODEC_ON_PLAYER, false)
+    fun setShowCodecOnPlayer(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_CODEC_ON_PLAYER, enabled) }
+
+    fun getSkipSilence(): Boolean = prefs.getBoolean(KEY_SKIP_SILENCE, false)
+    fun setSkipSilence(enabled: Boolean) = prefs.edit { putBoolean(KEY_SKIP_SILENCE, enabled) }
+
+    fun getInstantSkipSilence(): Boolean = prefs.getBoolean(KEY_INSTANT_SKIP_SILENCE, false)
+    fun setInstantSkipSilence(enabled: Boolean) = prefs.edit { putBoolean(KEY_INSTANT_SKIP_SILENCE, enabled) }
+
+    fun getResumeOnBluetoothConnect(): Boolean = prefs.getBoolean(KEY_RESUME_ON_BLUETOOTH, false)
+    fun setResumeOnBluetoothConnect(enabled: Boolean) = prefs.edit { putBoolean(KEY_RESUME_ON_BLUETOOTH, enabled) }
+
+    fun getPauseOnMute(): Boolean = prefs.getBoolean(KEY_PAUSE_ON_MUTE, false)
+    fun setPauseOnMute(enabled: Boolean) = prefs.edit { putBoolean(KEY_PAUSE_ON_MUTE, enabled) }
+
+    fun getKeepScreenOn(): Boolean = prefs.getBoolean(KEY_KEEP_SCREEN_ON, false)
+    fun setKeepScreenOn(enabled: Boolean) = prefs.edit { putBoolean(KEY_KEEP_SCREEN_ON, enabled) }
+
+    fun getPauseListenHistory(): Boolean = prefs.getBoolean(KEY_PAUSE_LISTEN_HISTORY, false)
+    fun setPauseListenHistory(enabled: Boolean) = prefs.edit { putBoolean(KEY_PAUSE_LISTEN_HISTORY, enabled) }
+
+    fun pauseListenHistoryFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getPauseListenHistory())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_PAUSE_LISTEN_HISTORY) trySend(getPauseListenHistory())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getPauseSearchHistory(): Boolean = prefs.getBoolean(KEY_PAUSE_SEARCH_HISTORY, false)
+    fun setPauseSearchHistory(enabled: Boolean) = prefs.edit { putBoolean(KEY_PAUSE_SEARCH_HISTORY, enabled) }
+
+    fun getAlbumReleaseDateDisplay(): ReleaseDateDisplay {
+        val name = prefs.getString(KEY_ALBUM_RELEASE_DATE, ReleaseDateDisplay.SHORT.name)
+        return runCatching { ReleaseDateDisplay.valueOf(name!!) }.getOrDefault(ReleaseDateDisplay.SHORT)
+    }
+
+    fun setAlbumReleaseDateDisplay(display: ReleaseDateDisplay) = prefs.edit { putString(KEY_ALBUM_RELEASE_DATE, display.name) }
+
+    fun getAppleMusicInspired(): Boolean = prefs.getBoolean(KEY_APPLE_MUSIC_INSPIRED, true)
+    fun setAppleMusicInspired(enabled: Boolean) = prefs.edit { putBoolean(KEY_APPLE_MUSIC_INSPIRED, enabled) }
+
+    fun getHideVolumeSlider(): Boolean = prefs.getBoolean(KEY_HIDE_VOLUME_SLIDER, false)
+    fun setHideVolumeSlider(enabled: Boolean) = prefs.edit { putBoolean(KEY_HIDE_VOLUME_SLIDER, enabled) }
+
+     // Apple Music iPad player design (tablet only + landscape mode only).
+     // Off by default and toggled with a switch in the player's top-right
+     // corner rather than automatically by orientation
+     
+    fun getAppleMusicTabletLandscapeLayout(): Boolean = prefs.getBoolean(KEY_APPLE_TABLET_LANDSCAPE_LAYOUT, false)
+    fun setAppleMusicTabletLandscapeLayout(enabled: Boolean) = prefs.edit { putBoolean(KEY_APPLE_TABLET_LANDSCAPE_LAYOUT, enabled) }
+
+    fun getAppleMusicControlsAlign(): AppleMusicControlsAlign {
+        val name = prefs.getString(KEY_APPLE_MUSIC_CONTROLS_ALIGN, AppleMusicControlsAlign.RIGHT.name)
+        if (name == "CENTER") return AppleMusicControlsAlign.CENTER_LOW
+        return runCatching { AppleMusicControlsAlign.valueOf(name!!) }.getOrDefault(AppleMusicControlsAlign.RIGHT)
+    }
+
+    fun setAppleMusicControlsAlign(align: AppleMusicControlsAlign) = prefs.edit { putString(KEY_APPLE_MUSIC_CONTROLS_ALIGN, align.name) }
+
+    fun getAppleMusicPortraitArt(): AppleMusicPortraitArt {
+        val name = prefs.getString(KEY_APPLE_MUSIC_PORTRAIT_ART, AppleMusicPortraitArt.FULL_BLEED.name)
+        return runCatching { AppleMusicPortraitArt.valueOf(name!!) }.getOrDefault(AppleMusicPortraitArt.FULL_BLEED)
+    }
+
+    fun setAppleMusicPortraitArt(style: AppleMusicPortraitArt) = prefs.edit { putString(KEY_APPLE_MUSIC_PORTRAIT_ART, style.name) }
+
+    /**
+     * iPad player: cover art in landscape is either "centered" (classic
+     * iPad) or "full screen" (the cover fills the entire background). The
+     * setting lives in the player personalization's "iPad" design section
+     * and applies both there and when the iPad layout is enabled via the
+     * tablet icon inside Apple Music.
+     */
+    fun getAppleTabletCoverMode(): AppleTabletCoverMode {
+        val name = prefs.getString(KEY_APPLE_TABLET_COVER_MODE, AppleTabletCoverMode.CENTERED.name)
+        return runCatching { AppleTabletCoverMode.valueOf(name!!) }.getOrDefault(AppleTabletCoverMode.CENTERED)
+    }
+
+    fun setAppleTabletCoverMode(mode: AppleTabletCoverMode) = prefs.edit { putString(KEY_APPLE_TABLET_COVER_MODE, mode.name) }
+
+    fun getAppleMusicSlot(index: Int): PlayerActionButtonSlot {
+        if (index == 0) return PlayerActionButtonSlot.QUEUE
+        if (index == 1) return PlayerActionButtonSlot.LYRICS
+        val fallback = when (index) {
+            2 -> PlayerActionButtonSlot.CONNECT
+            3 -> PlayerActionButtonSlot.SLEEP_TIMER
+            else -> PlayerActionButtonSlot.NONE
+        }
+        val name = prefs.getString(KEY_APPLE_MUSIC_SLOT_PREFIX + index, fallback.name)
+        return runCatching { PlayerActionButtonSlot.valueOf(name!!) }.getOrDefault(fallback)
+    }
+
+    fun setAppleMusicSlot(index: Int, slot: PlayerActionButtonSlot) =
+        prefs.edit { putString(KEY_APPLE_MUSIC_SLOT_PREFIX + index, slot.name) }
+
+    fun getLandscapeMiniLyrics(): Boolean = prefs.getBoolean(KEY_LANDSCAPE_MINI_LYRICS, true)
+    fun setLandscapeMiniLyrics(enabled: Boolean) = prefs.edit { putBoolean(KEY_LANDSCAPE_MINI_LYRICS, enabled) }
+
+    // ===USB DAC / bit-perfect 
+    fun getUsbBitPerfect(): Boolean = prefs.getBoolean(KEY_USB_BIT_PERFECT, false)
+    fun setUsbBitPerfect(enabled: Boolean) = prefs.edit { putBoolean(KEY_USB_BIT_PERFECT, enabled) }
+
+    // Persistent copy of the volume: survives swipe-away/LMK/crash while the maximum is forced
+    // commit() instead of apply(): the value must land on disk BEFORE the volume is raised
+    fun getUsbSavedVolumeIndex(): Int = prefs.getInt(KEY_USB_SAVED_VOLUME_INDEX, -1)
+    fun setUsbSavedVolumeIndex(index: Int) {
+        prefs.edit(commit = true) { putInt(KEY_USB_SAVED_VOLUME_INDEX, index) }
+    }
+    fun clearUsbSavedVolumeIndex() {
+        prefs.edit(commit = true) { remove(KEY_USB_SAVED_VOLUME_INDEX) }
+    }
+
+    fun getUsbForceMaxVolume(): Boolean = prefs.getBoolean(KEY_USB_FORCE_MAX_VOLUME, false)
+    fun setUsbForceMaxVolume(enabled: Boolean) = prefs.edit { putBoolean(KEY_USB_FORCE_MAX_VOLUME, enabled) }
+
+    fun getUsbRouteAllAudio(): Boolean = prefs.getBoolean(KEY_USB_ROUTE_ALL_AUDIO, false)
+    fun setUsbRouteAllAudio(enabled: Boolean) = prefs.edit { putBoolean(KEY_USB_ROUTE_ALL_AUDIO, enabled) }
+
+    fun getUsbShowStatus(): Boolean = prefs.getBoolean(KEY_USB_SHOW_STATUS, true)
+    fun setUsbShowStatus(enabled: Boolean) = prefs.edit { putBoolean(KEY_USB_SHOW_STATUS, enabled) }
+
+    fun getDapAaudioExclusive(): Boolean = prefs.getBoolean(KEY_DAP_AAUDIO_EXCLUSIVE, false)
+    fun setDapAaudioExclusive(enabled: Boolean) = prefs.edit { putBoolean(KEY_DAP_AAUDIO_EXCLUSIVE, enabled) }
+
+    fun getUsbDsdOverPcm(): Boolean = prefs.getBoolean(KEY_USB_DSD_OVER_PCM, false)
+    fun setUsbDsdOverPcm(enabled: Boolean) = prefs.edit { putBoolean(KEY_USB_DSD_OVER_PCM, enabled) }
 
     /**
      * Whether the signed-in SoundCloud account holds a Go+ subscription.
@@ -971,6 +1445,26 @@ class PlayerPreferences(context: Context) {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == KEY_GYROSCOPE_COVERS_ENABLED) {
                 trySend(getGyroscopeCoversEnabled())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /**
+     * 3D gyro covers: "no overlay" mode. The layered shadowbox (blurred backdrop plate,
+     * midground, cast shadow, specular glint) is replaced by one clean artwork that is
+     * slightly enlarged and simply rotates with the gyroscope - toggled by the button on
+     * the cover itself in the player.
+     */
+    fun getGyroscopeFlatCover(): Boolean = prefs.getBoolean(KEY_GYROSCOPE_FLAT_COVER, false)
+    fun setGyroscopeFlatCover(enabled: Boolean) = prefs.edit { putBoolean(KEY_GYROSCOPE_FLAT_COVER, enabled) }
+
+    fun getGyroscopeFlatCoverFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getGyroscopeFlatCover())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_GYROSCOPE_FLAT_COVER) {
+                trySend(getGyroscopeFlatCover())
             }
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
@@ -1181,6 +1675,7 @@ class PlayerPreferences(context: Context) {
             PlayerBackgroundStyle.APPLE_MUSIC -> FullPlayerBgStyle.APPLE_MUSIC
             PlayerBackgroundStyle.BLUR -> FullPlayerBgStyle.BLUR
             PlayerBackgroundStyle.GRADIENT -> FullPlayerBgStyle.GRADIENT
+            PlayerBackgroundStyle.LIVE_MESH -> FullPlayerBgStyle.LIVE_MESH
             PlayerBackgroundStyle.THEME -> FullPlayerBgStyle.PURE_BLACK
         }
     }
@@ -1191,6 +1686,7 @@ class PlayerPreferences(context: Context) {
                 FullPlayerBgStyle.APPLE_MUSIC -> putString(KEY_PLAYER_STYLE, PlayerBackgroundStyle.APPLE_MUSIC.name)
                 FullPlayerBgStyle.BLUR -> putString(KEY_PLAYER_STYLE, PlayerBackgroundStyle.BLUR.name)
                 FullPlayerBgStyle.GRADIENT -> putString(KEY_PLAYER_STYLE, PlayerBackgroundStyle.GRADIENT.name)
+                FullPlayerBgStyle.LIVE_MESH -> putString(KEY_PLAYER_STYLE, PlayerBackgroundStyle.LIVE_MESH.name)
                 FullPlayerBgStyle.PURE_BLACK -> putString(KEY_PLAYER_STYLE, PlayerBackgroundStyle.THEME.name)
             }
         }
@@ -1290,6 +1786,7 @@ class PlayerPreferences(context: Context) {
                 PlayerBackgroundStyle.APPLE_MUSIC -> putString(KEY_FULL_PLAYER_BG_STYLE, FullPlayerBgStyle.APPLE_MUSIC.name)
                 PlayerBackgroundStyle.BLUR -> putString(KEY_FULL_PLAYER_BG_STYLE, FullPlayerBgStyle.BLUR.name)
                 PlayerBackgroundStyle.GRADIENT -> putString(KEY_FULL_PLAYER_BG_STYLE, FullPlayerBgStyle.GRADIENT.name)
+                PlayerBackgroundStyle.LIVE_MESH -> putString(KEY_FULL_PLAYER_BG_STYLE, FullPlayerBgStyle.LIVE_MESH.name)
                 PlayerBackgroundStyle.THEME -> putString(KEY_FULL_PLAYER_BG_STYLE, FullPlayerBgStyle.PURE_BLACK.name)
             }
         }
@@ -1304,10 +1801,11 @@ class PlayerPreferences(context: Context) {
     fun setAudioQuality(quality: String) = prefs.edit { putString(KEY_AUDIO_QUALITY, quality) }
     fun getPersistentQueueEnabled(): Boolean = prefs.getBoolean(KEY_PERSISTENT_QUEUE, true)
     fun setPersistentQueueEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_PERSISTENT_QUEUE, enabled) }
-    fun getQueuePreserveUpcomingOnJump(): Boolean = prefs.getBoolean(KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP, true)
-    fun setQueuePreserveUpcomingOnJump(enabled: Boolean) = prefs.edit { putBoolean(KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP, enabled) }
+
     fun getQueueAutoArchiveEnabled(): Boolean = prefs.getBoolean(KEY_QUEUE_AUTO_ARCHIVE, false)
     fun setQueueAutoArchiveEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_QUEUE_AUTO_ARCHIVE, enabled) }
+    fun getQueuePreserveUpcomingOnJump(): Boolean = prefs.getBoolean(KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP, true)
+    fun setQueuePreserveUpcomingOnJump(enabled: Boolean) = prefs.edit { putBoolean(KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP, enabled) }
 
     fun getKeyColor(): Int = prefs.getInt(KEY_KEY_COLOR, 0)
     fun setKeyColor(color: Int) = prefs.edit { putInt(KEY_KEY_COLOR, color) }
@@ -1524,6 +2022,14 @@ class PlayerPreferences(context: Context) {
     fun setWaveformCustomColor(color: Int) =
         prefs.edit { putInt(KEY_WAVEFORM_CUSTOM_COLOR, color) }
 
+    fun getWaveformPauseMode(): WaveformPauseMode {
+        val raw = prefs.getString(KEY_WAVEFORM_PAUSE_MODE, WaveformPauseMode.COLLAPSE_TO_LINE.name)
+        return runCatching { WaveformPauseMode.valueOf(raw ?: "") }.getOrDefault(WaveformPauseMode.COLLAPSE_TO_LINE)
+    }
+
+    fun setWaveformPauseMode(mode: WaveformPauseMode) =
+        prefs.edit { putString(KEY_WAVEFORM_PAUSE_MODE, mode.name) }
+
     fun getSoundCloudReactionsBarEnabled(): Boolean = prefs.getBoolean(KEY_SOUNDCLOUD_REACTIONS_BAR, true)
     fun setSoundCloudReactionsBarEnabled(enabled: Boolean) =
         prefs.edit { putBoolean(KEY_SOUNDCLOUD_REACTIONS_BAR, enabled) }
@@ -1545,6 +2051,19 @@ class PlayerPreferences(context: Context) {
             } else {
                 PlayerSliderStyle.BAR
             }
+        }
+    }
+
+     // Raw slider style: null when the user has never picked one in settings.
+     // Players with their own signature look (e.g. the Apple Music capsule
+     // slider) fall back to their own design when this is null.
+     
+    fun getPlayerSliderStyleOrNull(): PlayerSliderStyle? {
+        val raw = prefs.getString(KEY_PLAYER_SLIDER_STYLE, null) ?: return null
+        return try {
+            PlayerSliderStyle.valueOf(raw)
+        } catch (e: Exception) {
+            null
         }
     }
 
@@ -1617,6 +2136,9 @@ class PlayerPreferences(context: Context) {
         return when (design) {
             PlayerDesign.PIXEL_PLAYER -> getPixelSlot(index)
             PlayerDesign.SOUNDCLOUD -> getSoundCloudSlot(index)
+            // The iPad design inherits the Apple Music slots: it has a fixed row
+            // of glass buttons (like, lyrics, queue, menu), just like Apple's.
+            PlayerDesign.APPLE_MUSIC, PlayerDesign.IPAD -> getAppleMusicSlot(index)
             PlayerDesign.MODERN, PlayerDesign.CLASSIC -> getClassicSlot(index)
         }
     }
@@ -1625,6 +2147,7 @@ class PlayerPreferences(context: Context) {
         when (design) {
             PlayerDesign.PIXEL_PLAYER -> setPixelSlot(index, slot)
             PlayerDesign.SOUNDCLOUD -> setSoundCloudSlot(index, slot)
+            PlayerDesign.APPLE_MUSIC, PlayerDesign.IPAD -> setAppleMusicSlot(index, slot)
             PlayerDesign.MODERN, PlayerDesign.CLASSIC -> setClassicSlot(index, slot)
         }
     }
@@ -1653,6 +2176,19 @@ class PlayerPreferences(context: Context) {
                     for (i in 0..3) {
                         remove("${KEY_CLASSIC_SLOT_PREFIX}$i")
                     }
+                }
+                PlayerDesign.APPLE_MUSIC -> {
+                    remove(KEY_APPLE_MUSIC_CONTROLS_ALIGN)
+                    remove(KEY_APPLE_TABLET_LANDSCAPE_LAYOUT)
+                    remove(KEY_APPLE_MUSIC_PORTRAIT_ART)
+                    remove(KEY_HIDE_VOLUME_SLIDER)
+                    for (i in 0..3) {
+                        remove("${KEY_APPLE_MUSIC_SLOT_PREFIX}$i")
+                    }
+                }
+                PlayerDesign.IPAD -> {
+                    // The iPad design has no customizable slots — only the cover mode.
+                    remove(KEY_APPLE_TABLET_COVER_MODE)
                 }
             }
         }

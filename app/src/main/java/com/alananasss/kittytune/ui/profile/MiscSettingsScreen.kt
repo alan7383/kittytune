@@ -4,7 +4,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.FilterList
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Science
@@ -32,6 +34,7 @@ import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.AppLanguage
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.local.ReleaseDateDisplay
 import com.alananasss.kittytune.data.local.StartDestination
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
@@ -73,8 +76,11 @@ fun MiscGeneralSettingsScreen(
     var rememberSearchFilter by remember { mutableStateOf(prefs.getRememberSearchFilter()) }
     var verifiedFilterEnabled by remember { mutableStateOf(prefs.getVerifiedFilterEnabled()) }
     var showPlaylistTotalDuration by remember { mutableStateOf(prefs.getShowPlaylistTotalDuration()) }
+    var showCodecOnPlayer by remember { mutableStateOf(prefs.getShowCodecOnPlayer()) }
+    var albumReleaseDateDisplay by remember { mutableStateOf(prefs.getAlbumReleaseDateDisplay()) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showStartDialog by remember { mutableStateOf(false) }
+    var showReleaseDateDialog by remember { mutableStateOf(false) }
     var showBetaWarning by remember { mutableStateOf(false) }
 
     if (showBetaWarning) {
@@ -142,6 +148,42 @@ fun MiscGeneralSettingsScreen(
         )
     }
 
+    if (showReleaseDateDialog) {
+        val releaseDateOptions = ReleaseDateDisplay.entries
+        AlertDialog(
+            onDismissRequest = { showReleaseDateDialog = false },
+            title = { Text(stringResource(R.string.pref_album_release_date)) },
+            text = {
+                Column {
+                    val onSelected: (ReleaseDateDisplay) -> Unit = { selected ->
+                        albumReleaseDateDisplay = selected
+                        prefs.setAlbumReleaseDateDisplay(selected)
+                        showReleaseDateDialog = false
+                    }
+                    releaseDateOptions.forEach { option ->
+                        val text = when (option) {
+                            ReleaseDateDisplay.SHORT -> stringResource(R.string.pref_release_date_short)
+                            ReleaseDateDisplay.FULL -> stringResource(R.string.pref_release_date_full)
+                            ReleaseDateDisplay.OFF -> stringResource(R.string.pref_release_date_off)
+                        }
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .hapticClickable { onSelected(option) }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = (option == albumReleaseDateDisplay), onClick = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(text)
+                        }
+                    }
+                }
+            },
+            confirmButton = {}
+        )
+    }
+
     val listState = rememberLazyListState()
 
     AutoScrollToHighlightedItem(
@@ -153,7 +195,9 @@ fun MiscGeneralSettingsScreen(
             "pref_beta_updates" to 0,
             "pref_remember_search_filter" to 0,
             "pref_verified_filter" to 0,
-            "pref_show_playlist_total_duration" to 0
+            "pref_show_playlist_total_duration" to 0,
+            "pref_show_codec_on_player" to 0,
+            "pref_album_release_date" to 0
         )
     )
 
@@ -283,6 +327,37 @@ fun MiscGeneralSettingsScreen(
                                     prefs.setShowPlaylistTotalDuration(it)
                                 },
                                 highlightKey = "pref_show_playlist_total_duration"
+                            )
+                        },
+                        { shape ->
+                            // "Show codec on player" moved here from the player design screen.
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_show_codec_on_player),
+                                subtitle = stringResource(R.string.pref_show_codec_on_player_sub),
+                                icon = Icons.Rounded.GraphicEq,
+                                hasSwitch = true,
+                                switchState = showCodecOnPlayer,
+                                onSwitchChange = {
+                                    showCodecOnPlayer = it
+                                    prefs.setShowCodecOnPlayer(it)
+                                },
+                                highlightKey = "pref_show_codec_on_player"
+                            )
+                        },
+                        { shape ->
+                            // "Album release date" lives here in General, not in Appearance.
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_album_release_date),
+                                subtitle = when (albumReleaseDateDisplay) {
+                                    ReleaseDateDisplay.OFF -> stringResource(R.string.pref_release_date_off)
+                                    ReleaseDateDisplay.SHORT -> stringResource(R.string.pref_release_date_short)
+                                    ReleaseDateDisplay.FULL -> stringResource(R.string.pref_release_date_full)
+                                },
+                                icon = Icons.Rounded.Event,
+                                onClick = hapticAction(HapticKind.UI) { showReleaseDateDialog = true },
+                                highlightKey = "pref_album_release_date"
                             )
                         }
                     )

@@ -32,6 +32,12 @@ class HapticAudioProcessor(context: Context) : BaseAudioProcessor() {
     private var framesWritten: Long = 0L
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+        // Bit-Perfect: identity configuration for ANY PCM encoding - the chain format
+        // must stay 1:1 so the queueInput byte passthrough is bit-exact (never NOT_SET
+        // and never a negotiated conversion while the DAC owns the output).
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.HAPTICS)) {
+            return inputAudioFormat
+        }
         if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT && inputAudioFormat.encoding != C.ENCODING_PCM_FLOAT) {
             return AudioProcessor.AudioFormat.NOT_SET
         }
@@ -42,7 +48,11 @@ class HapticAudioProcessor(context: Context) : BaseAudioProcessor() {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
-        if (hapticManager.isHapticsEnabled) {
+        // Bit-Perfect on a USB DAC: haptic analysis is suspended (PlayerHapticManager
+        // is paused by the same gate) - the PCM still passes through bit-transparent;
+        // this processor never alters samples, only watches them.
+        val bitPerfectActive = !com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.HAPTICS)
+        if (!bitPerfectActive && hapticManager.isHapticsEnabled) {
             val bytesPerSample = if (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT) 2 else 4
             val bytesPerFrame = bytesPerSample * inputAudioFormat.channelCount
             if (bytesPerFrame > 0 && inputAudioFormat.sampleRate > 0) {

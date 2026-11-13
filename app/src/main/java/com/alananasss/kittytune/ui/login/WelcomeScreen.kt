@@ -501,9 +501,6 @@ private fun WelcomePage() {
                 .padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // Each line is meant to stay on one line. "Welcome to " fits at 42.sp,
-            // but longer translations (German "Willkommen bei ") did not and were
-            // broken mid-word. Auto-sizing keeps the original size where it fits.
             Text(
                 text = stringResource(R.string.setup_welcome_prefix),
                 modifier = Modifier.fillMaxWidth(),
@@ -572,44 +569,22 @@ private fun WelcomePage() {
                 modifier = Modifier.fillMaxSize(),
                 drawableResId = R.drawable.welcome_art
             )
-            SineWaveLine(
+            // The new expressive waves: compound-wave crests at three phase speeds breathing
+            // over a filled landscape, instead of the old pair of flat parallel sines.
+            ExpressiveWaves(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .height(32.dp)
+                    .height(56.dp)
                     .padding(horizontal = 8.dp)
-                    .padding(bottom = 4.dp),
+                    .padding(bottom = 2.dp),
+                baseColor = MaterialTheme.colorScheme.surface,
+                accentColor = MaterialTheme.colorScheme.primary,
+                secondaryAccentColor = MaterialTheme.colorScheme.tertiary,
                 animate = true,
-                color = MaterialTheme.colorScheme.surface,
-                alpha = 0.95f,
-                strokeWidth = 16.dp,
-                amplitude = 4.dp,
-                waves = 7.6f,
-                phase = 0f
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .height(22.dp)
-                    .background(color = MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 8.dp)
-                    .padding(bottom = 4.dp)
-            )
-            SineWaveLine(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .height(32.dp)
-                    .padding(horizontal = 8.dp)
-                    .padding(bottom = 4.dp),
-                animate = true,
-                color = MaterialTheme.colorScheme.primary,
-                alpha = 0.95f,
                 strokeWidth = 4.dp,
                 amplitude = 4.dp,
                 waves = 7.6f,
-                phase = 0f
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -898,20 +873,6 @@ fun PermissionPageLayout(
     }
 }
 
-// -----------------------------------------------------------------------------------------
-// Selection Card Colors
-// -----------------------------------------------------------------------------------------
-
-/**
- * Container and content colors for a selectable setup card.
- *
- * A selected card is painted with [ColorScheme.primaryContainer], so its text has to
- * switch to `onPrimaryContainer`. `CardDefaults.cardColors` cannot derive that on its
- * own here: the container is alpha-modified, so `contentColorFor` finds no match,
- * returns `Color.Unspecified` and the card keeps the surface content color. Together
- * with the descriptions, which asked for `onSurfaceVariant` outright, that left the
- * selected card's title and description near-invisible on the light container.
- */
 @Immutable
 private data class SetupSelectionCardColors(
     val container: Color,
@@ -955,10 +916,6 @@ private fun setupSelectionCardColors(
     )
 }
 
-// -----------------------------------------------------------------------------------------
-// Selection Indicator Component (PixelPlayer radio-style circle)
-// -----------------------------------------------------------------------------------------
-
 @Composable
 private fun SetupSelectionIndicator(
     isSelected: Boolean,
@@ -999,10 +956,6 @@ private fun SetupSelectionIndicator(
         }
     }
 }
-
-// -----------------------------------------------------------------------------------------
-// Page 4: Player Design Selection
-// -----------------------------------------------------------------------------------------
 
 private data class PlayerDesignItem(
     val design: PlayerDesign,
@@ -1046,6 +999,13 @@ private fun PlayerDesignSelectionPage(
                 descRes = R.string.setup_player_design_classic_desc,
                 badge = "Classique",
                 iconRes = R.drawable.rounded_library_music_24
+            ),
+            PlayerDesignItem(
+                design = PlayerDesign.APPLE_MUSIC,
+                titleRes = R.string.player_design_apple_music,
+                descRes = R.string.setup_player_design_apple_desc,
+                badge = "Apple Music",
+                iconRes = R.drawable.ic_logo_apple_music
             )
         )
     }
@@ -1117,7 +1077,9 @@ private fun PlayerDesignSelectionPage(
                                     } else {
                                         MaterialTheme.colorScheme.onSecondaryContainer
                                     },
-                                    modifier = if (item.iconRes == R.drawable.ic_soundcloud) {
+                                    modifier = if (item.iconRes == R.drawable.ic_soundcloud ||
+                                        item.iconRes == R.drawable.ic_logo_apple_music
+                                    ) {
                                         Modifier.width(28.dp)
                                     } else {
                                         Modifier.size(24.dp)
@@ -1191,10 +1153,6 @@ private fun PlayerDesignSelectionPage(
     }
 }
 
-// -----------------------------------------------------------------------------------------
-// Page 5: Progress Slider Style Selection
-// -----------------------------------------------------------------------------------------
-
 private data class SliderStyleItem(
     val style: PlayerSliderStyle,
     @StringRes val titleRes: Int
@@ -1211,7 +1169,8 @@ private fun SliderStyleSelectionPage(
             SliderStyleItem(PlayerSliderStyle.WAVY, R.string.slider_style_wavy),
             SliderStyleItem(PlayerSliderStyle.BAR, R.string.slider_style_bar),
             SliderStyleItem(PlayerSliderStyle.SLIM, R.string.slider_style_slim),
-            SliderStyleItem(PlayerSliderStyle.SQUIGGLY, R.string.slider_style_squiggly)
+            SliderStyleItem(PlayerSliderStyle.SQUIGGLY, R.string.slider_style_squiggly),
+            SliderStyleItem(PlayerSliderStyle.EXPRESSIVE, R.string.slider_style_expressive)
         )
     }
 
@@ -1293,7 +1252,9 @@ private fun SliderStyleSelectionPage(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(38.dp),
+                                // 44dp: the Expressive waves slider renders at the same floor
+                                // height as the player slider, so the preview shows the real look.
+                                .height(44.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             when (item.style) {
@@ -1322,8 +1283,6 @@ private fun SliderStyleSelectionPage(
                                     val slimState = remember { SliderState(0.65f, 0, 0f..1f) }
                                     Slider(
                                         state = slimState,
-                                        // Non-interactive style preview. material3 1.5.0-alpha29 made
-                                        // onValueChange a required parameter of the state overload.
                                         onValueChange = {},
                                         thumb = { Spacer(modifier = Modifier.size(0.dp)) },
                                         track = { sliderState ->
@@ -1349,6 +1308,27 @@ private fun SliderStyleSelectionPage(
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                 }
+                                PlayerSliderStyle.EXPRESSIVE -> {
+                                    com.alananasss.kittytune.ui.player.slider.ExpressiveWavesSlider(
+                                        value = 0.5f,
+                                        valueRange = 0f..1f,
+                                        onValueChange = {},
+                                        colors = previewColors,
+                                        isPlaying = true,
+                                        enabled = false,
+                                        trackHeight = 4.dp,
+                                        thumbRadius = 6.dp,
+                                        // 9dp - exactly as in the player itself. The wizard preview
+                                        // used to render with 6dp: the dune was barely noticeable and
+                                        // the "Expressive" style on the card looked almost
+                                        // identical to the regular sliders ("same, didn't
+                                        // fix it"). Now the preview shows the REAL look.
+                                        waveAmplitudeWhenPlaying = 9.dp,
+                                        waveLength = 88.dp,
+                                        waveAnimationDuration = 3600,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
                         }
                     }
@@ -1371,10 +1351,6 @@ private fun SliderStyleSelectionPage(
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
-
-// -----------------------------------------------------------------------------------------
-// Page 6: App Theme Mode Selection
-// -----------------------------------------------------------------------------------------
 
 private data class ThemeOptionItem(
     val mode: AppThemeMode,
@@ -1657,15 +1633,6 @@ private fun FinishPage(
     }
 }
 
-
-/**
- * Title for a setup page.
- *
- * The setup titles used a fixed 32.sp, which only fits the English strings. Longer
- * translations (German "Wiedergabebenachrichtigungen", Hungarian, Russian) overflowed
- * and Compose broke them mid-word. Auto-sizing keeps 32.sp whenever the text fits, so
- * English is unchanged, and steps down only as far as a longer translation needs.
- */
 @Composable
 private fun SetupPageTitle(
     text: String,

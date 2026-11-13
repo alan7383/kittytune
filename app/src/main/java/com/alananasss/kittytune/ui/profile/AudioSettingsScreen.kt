@@ -35,6 +35,8 @@ import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.ui.common.Slider
 import com.alananasss.kittytune.ui.common.SplitSettingsItem
 import com.alananasss.kittytune.ui.common.getSettingsShape
+import com.alananasss.kittytune.ui.player.AudioPathDiagnosticSheet
+import com.alananasss.kittytune.ui.player.AudioPathHeroCard
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.audio.EqualizerSheet
 import kotlin.math.roundToInt
@@ -76,15 +78,29 @@ fun AudioPlaybackSettingsScreen(
     var queueAutoArchiveEnabled by remember { mutableStateOf(prefs.getQueueAutoArchiveEnabled()) }
     var savePositionEnabled by remember { mutableStateOf(prefs.getSavePositionEnabled()) }
     var youtubeFallbackEnabled by remember { mutableStateOf(prefs.getYouTubeFallbackEnabled()) }
-    var hideYoutubeVideosEnabled by remember { mutableStateOf(prefs.getHideYoutubeVideos()) }
+    var hideVideoSongsEnabled by remember { mutableStateOf(prefs.getHideVideoSongs()) }
+    var hideYoutubeShortsEnabled by remember { mutableStateOf(prefs.getHideYoutubeShorts()) }
     var scHistorySyncEnabled by remember { mutableStateOf(prefs.getSoundCloudHistorySyncEnabled()) }
+    var skipSilenceEnabled by remember { mutableStateOf(prefs.getSkipSilence()) }
+    var instantSkipSilenceEnabled by remember { mutableStateOf(prefs.getInstantSkipSilence()) }
+    var resumeOnBluetooth by remember { mutableStateOf(prefs.getResumeOnBluetoothConnect()) }
+    var pauseOnMute by remember { mutableStateOf(prefs.getPauseOnMute()) }
+    var keepScreenOn by remember { mutableStateOf(prefs.getKeepScreenOn()) }
+    var pauseListenHistory by remember { mutableStateOf(prefs.getPauseListenHistory()) }
+    var pauseSearchHistory by remember { mutableStateOf(prefs.getPauseSearchHistory()) }
+    var usbBitPerfect by remember { mutableStateOf(prefs.getUsbBitPerfect()) }
+    var usbShowStatus by remember { mutableStateOf(prefs.getUsbShowStatus()) }
+    var dapExclusive by remember { mutableStateOf(prefs.getDapAaudioExclusive()) }
+    var showAudioPathSheet by remember { mutableStateOf(false) }
+    val usbStatus by com.alananasss.kittytune.audio.usb.UsbAudioManager.status.collectAsState()
+    val automixConflictsWithBitPerfect by com.alananasss.kittytune.audio.usb.UsbAudioManager
+        .automixConflictsWithBitPerfect.collectAsState()
 
     val listState = rememberLazyListState()
 
     AutoScrollToHighlightedItem(
         listState = listState,
         keyToIndex = mapOf(
-            "pref_queue_preserve_upcoming" to 0,
             "pref_autoplay" to 0,
             "pref_stop_on_task_clear" to 0,
             "pref_persist_queue" to 0,
@@ -93,6 +109,9 @@ fun AudioPlaybackSettingsScreen(
             "pref_youtube_fallback" to 0,
             "pref_hide_youtube_videos" to 0,
             "pref_precise_speed" to 0,
+            "pref_resume_on_bluetooth" to 0,
+            "pref_pause_on_mute" to 0,
+            "pref_keep_screen_on" to 0,
             "pref_sc_sync" to 0
         )
     )
@@ -113,20 +132,10 @@ fun AudioPlaybackSettingsScreen(
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = if (!isGuest) 10 else 9
+                        val totalVisibleItems = if (!isGuest) 13 else 12
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
-                            title = stringResource(R.string.pref_queue_preserve_upcoming),
-                            subtitle = stringResource(R.string.pref_queue_preserve_upcoming_sub),
-                            hasSwitch = true,
-                            switchState = playerViewModel.isQueuePreserveUpcomingEnabled,
-                            onSwitchChange = { playerViewModel.toggleQueuePreserveUpcoming(it) },
-                            highlightKey = "pref_queue_preserve_upcoming"
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 1),
                             title = stringResource(R.string.pref_autoplay),
                             subtitle = stringResource(R.string.pref_autoplay_sub),
                             hasSwitch = true,
@@ -136,7 +145,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 2),
+                            shape = getSettingsShape(totalVisibleItems, 1),
                             title = stringResource(R.string.pref_stop_on_task_clear),
                             hasSwitch = true,
                             switchState = stopOnTaskClear,
@@ -145,7 +154,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 3),
+                            shape = getSettingsShape(totalVisibleItems, 2),
                             title = stringResource(R.string.pref_persist_queue),
                             subtitle = stringResource(R.string.pref_persist_queue_sub),
                             hasSwitch = true,
@@ -155,7 +164,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 4),
+                            shape = getSettingsShape(totalVisibleItems, 3),
                             title = stringResource(R.string.pref_queue_auto_archive),
                             subtitle = stringResource(R.string.pref_queue_auto_archive_sub),
                             hasSwitch = true,
@@ -168,7 +177,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 5),
+                            shape = getSettingsShape(totalVisibleItems, 4),
                             title = stringResource(R.string.pref_save_position),
                             subtitle = stringResource(R.string.pref_save_position_sub),
                             hasSwitch = true,
@@ -178,7 +187,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 6),
+                            shape = getSettingsShape(totalVisibleItems, 5),
                             title = stringResource(R.string.pref_youtube_fallback),
                             subtitle = stringResource(R.string.pref_youtube_fallback_sub),
                             hasSwitch = true,
@@ -188,16 +197,29 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 7),
-                            title = stringResource(R.string.pref_hide_youtube_videos),
-                            subtitle = stringResource(R.string.pref_hide_youtube_videos_sub),
+                            shape = getSettingsShape(totalVisibleItems, 6),
+                            title = stringResource(R.string.pref_hide_video_songs),
+                            subtitle = stringResource(R.string.pref_hide_video_songs_sub),
                             hasSwitch = true,
-                            switchState = hideYoutubeVideosEnabled,
+                            switchState = hideVideoSongsEnabled,
                             onSwitchChange = {
-                                hideYoutubeVideosEnabled = it
-                                prefs.setHideYoutubeVideos(it)
+                                hideVideoSongsEnabled = it
+                                prefs.setHideVideoSongs(it)
                             },
-                            highlightKey = "pref_hide_youtube_videos"
+                            highlightKey = "pref_hide_video_songs"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 7),
+                            title = stringResource(R.string.pref_hide_youtube_shorts),
+                            subtitle = stringResource(R.string.pref_hide_youtube_shorts_sub),
+                            hasSwitch = true,
+                            switchState = hideYoutubeShortsEnabled,
+                            onSwitchChange = {
+                                hideYoutubeShortsEnabled = it
+                                prefs.setHideYoutubeShorts(it)
+                            },
+                            highlightKey = "pref_hide_youtube_shorts"
                         )
 
                         SettingsItem(
@@ -210,9 +232,40 @@ fun AudioPlaybackSettingsScreen(
                             highlightKey = "pref_precise_speed"
                         )
 
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 9),
+                            title = stringResource(R.string.pref_resume_on_bluetooth),
+                            subtitle = stringResource(R.string.pref_resume_on_bluetooth_sub),
+                            hasSwitch = true,
+                            switchState = resumeOnBluetooth,
+                            onSwitchChange = { resumeOnBluetooth = it; prefs.setResumeOnBluetoothConnect(it) },
+                            highlightKey = "pref_resume_on_bluetooth"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 10),
+                            title = stringResource(R.string.pref_pause_on_mute),
+                            subtitle = stringResource(R.string.pref_pause_on_mute_sub),
+                            hasSwitch = true,
+                            switchState = pauseOnMute,
+                            onSwitchChange = { pauseOnMute = it; prefs.setPauseOnMute(it) },
+                            highlightKey = "pref_pause_on_mute"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 11),
+                            title = stringResource(R.string.pref_keep_screen_on),
+                            subtitle = stringResource(R.string.pref_keep_screen_on_sub),
+                            hasSwitch = true,
+                            switchState = keepScreenOn,
+                            onSwitchChange = { keepScreenOn = it; prefs.setKeepScreenOn(it) },
+                            highlightKey = "pref_keep_screen_on"
+                        )
+
+
                         if (!isGuest) {
                             SettingsItem(
-                                shape = getSettingsShape(totalVisibleItems, 9),
+                                shape = getSettingsShape(totalVisibleItems, 12),
                                 title = stringResource(R.string.pref_sc_sync_title),
                                 subtitle = stringResource(R.string.pref_sc_sync_sub),
                                 hasSwitch = true,
@@ -225,9 +278,131 @@ fun AudioPlaybackSettingsScreen(
                             )
                         }
                     }
+
+                    SettingsGroupTitle(stringResource(R.string.pref_skip_silence))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val skipGroupItems = if (skipSilenceEnabled) 2 else 1
+                        SettingsItem(
+                            shape = getSettingsShape(skipGroupItems, 0),
+                            title = stringResource(R.string.pref_skip_silence),
+                            subtitle = stringResource(R.string.pref_skip_silence_sub),
+                            hasSwitch = true,
+                            switchState = skipSilenceEnabled,
+                            onSwitchChange = { on ->
+                                skipSilenceEnabled = on
+                                prefs.setSkipSilence(on)
+                                com.alananasss.kittytune.data.MusicManager.applySkipSilenceSettings()
+                            },
+                            highlightKey = "pref_skip_silence"
+                        )
+                        if (skipSilenceEnabled) {
+                            SettingsItem(
+                                shape = getSettingsShape(skipGroupItems, 1),
+                                title = stringResource(R.string.pref_instant_skip_silence),
+                                subtitle = stringResource(R.string.pref_instant_skip_silence_sub),
+                                hasSwitch = true,
+                                switchState = instantSkipSilenceEnabled,
+                                onSwitchChange = { on ->
+                                    instantSkipSilenceEnabled = on
+                                    prefs.setInstantSkipSilence(on)
+                                    com.alananasss.kittytune.data.MusicManager.applySkipSilenceSettings()
+                                },
+                                highlightKey = "pref_instant_skip_silence"
+                            )
+                        }
+                    }
+
+                    SettingsGroupTitle(stringResource(R.string.pref_pause_listen_history))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        SettingsItem(
+                            shape = getSettingsShape(2, 0),
+                            title = stringResource(R.string.pref_pause_listen_history),
+                            subtitle = stringResource(R.string.pref_pause_listen_history_sub),
+                            hasSwitch = true,
+                            switchState = pauseListenHistory,
+                            onSwitchChange = { pauseListenHistory = it; prefs.setPauseListenHistory(it) },
+                            highlightKey = "pref_pause_listen_history"
+                        )
+                        SettingsItem(
+                            shape = getSettingsShape(2, 1),
+                            title = stringResource(R.string.pref_pause_search_history),
+                            subtitle = stringResource(R.string.pref_pause_search_history_sub),
+                            hasSwitch = true,
+                            switchState = pauseSearchHistory,
+                            onSwitchChange = { pauseSearchHistory = it; prefs.setPauseSearchHistory(it) },
+                            highlightKey = "pref_pause_search_history"
+                        )
+                    }
+
+                    SettingsGroupTitle(stringResource(R.string.usb_section_title))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val usbStatusText = when {
+                            usbStatus.reason == "android_version" -> stringResource(R.string.usb_status_android_version)
+                            usbStatus.reason == "track_format_mismatch" -> stringResource(R.string.usb_status_track_mismatch)
+                            usbStatus.bitPerfectActive -> stringResource(R.string.usb_status_active) +
+                                    if (usbStatus.activeSampleRate > 0) " · ${usbStatus.activeSampleRate / 1000} kHz" else ""
+                            usbStatus.usbDacConnected -> stringResource(R.string.usb_status_unsupported)
+                            else -> stringResource(R.string.usb_status_no_device)
+                        }
+                        // Bit-perfect and automix cannot coexist (two decks cannot be summed
+                        // bit-exactly): say so instead of silently falling back to hard switches.
+                        val usbSubtitle = if (automixConflictsWithBitPerfect) {
+                            usbStatusText + "\n" + stringResource(R.string.usb_automix_conflict)
+                        } else usbStatusText
+                        SettingsItem(
+                            shape = getSettingsShape(3, 0),
+                            title = stringResource(R.string.pref_usb_bit_perfect),
+                            subtitle = usbSubtitle,
+                            hasSwitch = true,
+                            switchState = usbBitPerfect,
+                            onSwitchChange = { on ->
+                                usbBitPerfect = on
+                                prefs.setUsbBitPerfect(on)
+                                com.alananasss.kittytune.audio.usb.UsbAudioManager.refresh()
+                            },
+                            highlightKey = "pref_usb_bit_perfect"
+                        )
+                        SettingsItem(
+                            shape = getSettingsShape(3, 1),
+                            title = stringResource(R.string.pref_usb_show_status),
+                            subtitle = stringResource(R.string.pref_usb_show_status_sub),
+                            hasSwitch = true,
+                            switchState = usbShowStatus,
+                            onSwitchChange = { usbShowStatus = it; prefs.setUsbShowStatus(it) },
+                            highlightKey = "pref_usb_show_status"
+                        )
+                        SettingsItem(
+                            shape = getSettingsShape(3, 2),
+                            title = stringResource(R.string.pref_dap_exclusive),
+                            subtitle = stringResource(R.string.pref_dap_exclusive_sub),
+                            hasSwitch = true,
+                            switchState = dapExclusive,
+                            onSwitchChange = { on ->
+                                dapExclusive = on
+                                prefs.setDapAaudioExclusive(on)
+                                com.alananasss.kittytune.audio.usb.UsbAudioManager.refresh()
+                            },
+                            highlightKey = "pref_dap_exclusive"
+                        )
+                    }
+
+                    // Audio path diagnostics - under the USB DAC / Bit-Perfect section.
+                    AudioPathHeroCard(
+                        playerViewModel = playerViewModel,
+                        onOpen = hapticAction(HapticKind.UI) { showAudioPathSheet = true },
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
                 }
             }
         }
+    }
+
+    if (showAudioPathSheet) {
+        AudioPathDiagnosticSheet(
+            visible = true,
+            onDismiss = { showAudioPathSheet = false },
+            playerViewModel = playerViewModel
+        )
     }
 }
 
@@ -779,6 +954,9 @@ fun AudioTransitionsSettingsScreen(
                             onSwitchChange = {
                                 automixEnabled = it
                                 prefs.setAutomixEnabled(it)
+                                // Turning Mix on restores playlist order: pair transitions
+                                // only fire on the exact track sequence they were saved for.
+                                playerViewModel.onAutomixEnabledChanged(it)
                                 if (it) {
                                     crossfadeEnabled = true
                                     prefs.setCrossfadeEnabled(true)

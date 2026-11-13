@@ -27,9 +27,11 @@ import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.TrendingUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +53,9 @@ import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.wave.MyWave
+import com.alananasss.kittytune.ui.game.SnakeGameLauncher
+import com.alananasss.kittytune.ui.game.SnakeGameMode
+import com.alananasss.kittytune.ui.game.SnakeGameRequest
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 
 /**
@@ -65,6 +70,7 @@ fun MyWaveCard(playerViewModel: PlayerViewModel, modifier: Modifier = Modifier) 
     val isLoading = playerViewModel.isWaveLoading
     val nowPlaying = playerViewModel.currentTrack
     val isActive = playerViewModel.isMyWaveActive
+    val waveTitle = stringResource(R.string.wave_title)
 
     Surface(
         shape = RoundedCornerShape(24.dp),
@@ -119,32 +125,57 @@ fun MyWaveCard(playerViewModel: PlayerViewModel, modifier: Modifier = Modifier) 
 
                 Spacer(Modifier.width(16.dp))
 
-                FilledIconButton(
-                    onClick = {
-                        when {
-                            isLoading -> Unit
-                            isActive -> playerViewModel.togglePlayPause()
-                            else -> playerViewModel.startMyWave(playerViewModel.waveMode)
-                        }
-                    },
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = scheme.primary,
-                        contentColor = scheme.onPrimary,
-                    ),
-                    modifier = Modifier.size(52.dp),
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            color = scheme.onPrimary,
-                            strokeWidth = 2.5.dp,
-                            modifier = Modifier.size(24.dp),
-                        )
-                    } else {
+                    // The wave as a game: the snake hunts fresh finds and every cover it eats plays.
+                    FilledTonalIconButton(
+                        onClick = hapticAction(HapticKind.UI) {
+                            SnakeGameLauncher.launch(
+                                SnakeGameRequest(title = waveTitle, mode = SnakeGameMode.WAVE)
+                            )
+                        },
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = scheme.primary.copy(alpha = 0.14f),
+                            contentColor = scheme.primary,
+                        ),
+                        modifier = Modifier.size(52.dp),
+                    ) {
                         Icon(
-                            imageVector = if (isPlaying && isActive) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            contentDescription = stringResource(R.string.wave_title),
-                            modifier = Modifier.size(28.dp),
+                            Icons.Rounded.SportsEsports,
+                            contentDescription = stringResource(R.string.game_wave_title),
+                            modifier = Modifier.size(26.dp),
                         )
+                    }
+
+                    FilledIconButton(
+                        onClick = {
+                            when {
+                                isLoading -> Unit
+                                isActive -> playerViewModel.togglePlayPause()
+                                else -> playerViewModel.startMyWave(playerViewModel.waveMode)
+                            }
+                        },
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = scheme.primary,
+                            contentColor = scheme.onPrimary,
+                        ),
+                        modifier = Modifier.size(52.dp),
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = scheme.onPrimary,
+                                strokeWidth = 2.5.dp,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        } else {
+                            Icon(
+                                imageVector = if (isPlaying && isActive) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                contentDescription = stringResource(R.string.wave_title),
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
                     }
                 }
             }

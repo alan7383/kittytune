@@ -24,6 +24,7 @@ import com.alananasss.kittytune.data.SoundCloudDrmCallback
 import com.alananasss.kittytune.data.local.ExoCacheManager
 import com.alananasss.kittytune.utils.Config
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 
@@ -36,6 +37,16 @@ object ExoBeatDecoder {
 
     private const val TAG = "ExoBeatDecoder"
 
+    // One headless decoder at a time. Every decode pass spins up a full ExoPlayer with its
+    // own MediaCodec instances; two of them plus the live playback player is three codec
+    // sets, which starves low-end devices and is exactly how the UI/audio freezes happened.
+    // IMMEDIATE and LOOKAHEAD analyses run under different mutexes in AutomixManager, so
+    // this gate is what actually serializes them. Fair, so the waiters queue in arrival order.
+    private val decodeGate = Semaphore(1, true)
+
+    // Longest a caller may wait for the gate before giving up (the peer decode takes ≤ 25 s).
+    private const val GATE_WAIT_MS = 30_000L
+
     class DecodedMonoPcm(
         val samples: FloatArray,
         val sampleRate: Int,
@@ -45,6 +56,49 @@ object ExoBeatDecoder {
     )
 
     fun decodeMono(
+        context: Context,
+        streamUrl: String,
+        licenseAuthToken: String? = null,
+        seekToMs: Long = 0L,
+        maxDurationMs: Long = 18_000L,
+        timeoutMs: Long = 25_000L,
+        shouldCancel: () -> Boolean = { false },
+        stereo: Boolean = false,
+    ): DecodedMonoPcm? {
+        if (streamUrl.isBlank() || shouldCancel()) return null
+
+        // Serialize with any other headless decode in flight (see decodeGate). Waiting is
+        // cancellable so a cancelled analysis never parks its IO thread for the full window.
+        try {
+            val deadline = SystemClock.elapsedRealtime() + GATE_WAIT_MS
+            while (!decodeGate.tryAcquire(200, TimeUnit.MILLISECONDS)) {
+                if (shouldCancel() || SystemClock.elapsedRealtime() >= deadline) {
+                    if (shouldCancel()) Log.d(TAG, "Gate wait cancelled")
+                    else Log.w(TAG, "Gate still busy after ${GATE_WAIT_MS}ms; giving up this decode")
+                    return null
+                }
+            }
+        } catch (_: InterruptedException) {
+            return null
+        }
+
+        try {
+            return decodeMonoInternal(
+                context = context,
+                streamUrl = streamUrl,
+                licenseAuthToken = licenseAuthToken,
+                seekToMs = seekToMs,
+                maxDurationMs = maxDurationMs,
+                timeoutMs = timeoutMs,
+                shouldCancel = shouldCancel,
+                stereo = stereo,
+            )
+        } finally {
+            decodeGate.release()
+        }
+    }
+
+    private fun decodeMonoInternal(
         context: Context,
         streamUrl: String,
         licenseAuthToken: String? = null,

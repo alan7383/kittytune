@@ -129,15 +129,27 @@ class DjStemAudioProcessor : BaseAudioProcessor() {
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+        // Filters are built BEFORE the Bit-Perfect early return: a DAC disconnecting
+        // mid-stream re-enters queueInput while the sink reconfigures, and queueInput
+        // dereferences bassSplitL/R - leaving them null here was an NPE in the
+        // AudioTrack thread. Identity configuration for ANY PCM encoding while the DAC
+        // owns the output keeps the chain format 1:1 for the byte passthrough.
+        setupFilters(inputAudioFormat.sampleRate)
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.DJ_STEM)) {
+            return inputAudioFormat
+        }
         if (inputAudioFormat.encoding != androidx.media3.common.C.ENCODING_PCM_16BIT) {
             return AudioProcessor.AudioFormat.NOT_SET
         }
-        setupFilters(inputAudioFormat.sampleRate)
         return inputAudioFormat
     }
 
     override fun onFlush() {
-        resetState()
+        // A flush arrives on seeks - including the phase-lock correction seeks performed
+        // mid-transition while stems are active. Zeroing the LR4 and biquad memory then
+        // snaps the running filter phase: a click. The state is kept while a stem
+        // operation is in flight; a neutral processor keeps the clean-restart contract.
+        if (!isEnabled && !isSettling) resetState()
     }
 
     override fun onReset() {
@@ -194,6 +206,15 @@ class DjStemAudioProcessor : BaseAudioProcessor() {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
+        // Bit-Perfect on a USB DAC: bit-transparent copy - stems stay neutral and the
+        // PCM bytes reach the DAC untouched. Per-buffer check, no per-sample cost.
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.DJ_STEM)) {
+            val passthrough = replaceOutputBuffer(remaining)
+            passthrough.put(inputBuffer)
+            passthrough.flip()
+            return
+        }
+
         if ((!isEnabled && !isSettling) || inputAudioFormat.channelCount != 2) {
             val buffer = replaceOutputBuffer(remaining)
             buffer.put(inputBuffer)
@@ -202,7 +223,17 @@ class DjStemAudioProcessor : BaseAudioProcessor() {
         }
 
         val buffer = replaceOutputBuffer(remaining)
-        val smoothCoeff = 0.005f
+        // One-pole level smoothing, sample-rate normalized: ~4.5 ms time constant at any
+        // rate (the old fixed 0.005 halved the ramp time at 96 kHz and doubled the click
+        // risk at 22.05 kHz).
+        val smoothCoeff = (220.5f / sampleRate).coerceIn(0.0005f, 0.5f)
+        // Transient-detector envelopes were tuned at 44.1 kHz (0.02 / 0.001 per sample); scale
+        // the per-sample coefficients so the time constants (~1.1 ms / ~23 ms) hold at any rate.
+        val fastEnvCoeff = (0.02f * 44100f / sampleRate).coerceIn(0.0005f, 0.5f)
+        val slowEnvCoeff = (0.001f * 44100f / sampleRate).coerceIn(0.00002f, 0.5f)
+
+        val splitL = bassSplitL ?: LinkwitzRiley4(sampleRate, 160.0).also { bassSplitL = it }
+        val splitR = bassSplitR ?: LinkwitzRiley4(sampleRate, 160.0).also { bassSplitR = it }
 
         while (inputBuffer.remaining() >= 4) {
             val inL = inputBuffer.short.toFloat()
@@ -215,10 +246,10 @@ class DjStemAudioProcessor : BaseAudioProcessor() {
             // Split the low band off each channel first. Everything downstream then works on
             // the high band only, so the bass level is the single owner of < 160 Hz - including
             // the side channel, which the old mid-only path left completely unfiltered.
-            val lowL = bassSplitL!!.low(inL)
-            val lowR = bassSplitR!!.low(inR)
-            val highL = bassSplitL!!.high(inL)
-            val highR = bassSplitR!!.high(inR)
+            val lowL = splitL.low(inL)
+            val lowR = splitR.low(inR)
+            val highL = splitL.high(inL)
+            val highR = splitR.high(inR)
 
             val mid = 0.5f * (highL + highR)
             val side = 0.5f * (highL - highR)
@@ -230,8 +261,8 @@ class DjStemAudioProcessor : BaseAudioProcessor() {
             hp_x2 = hp_x1; hp_x1 = mid; hp_y2 = hp_y1; hp_y1 = highSig
 
             val absHigh = abs(highSig)
-            fastEnv += 0.02f * (absHigh - fastEnv)
-            slowEnv += 0.001f * (absHigh - slowEnv)
+            fastEnv += fastEnvCoeff * (absHigh - fastEnv)
+            slowEnv += slowEnvCoeff * (absHigh - slowEnv)
             val isTransient = fastEnv > (slowEnv * 1.6f)
             val drumTransient = if (isTransient) highSig else (highSig * 0.35f)
 
@@ -249,12 +280,20 @@ class DjStemAudioProcessor : BaseAudioProcessor() {
             var outL = newMid + newSide + lowL * currentBass
             var outR = newMid - newSide + lowR * currentBass
 
-            val maxAmp = 32760f
-            outL = max(-maxAmp, min(maxAmp, outL))
-            outR = max(-maxAmp, min(maxAmp, outR))
+            // Full 16-bit range (asymmetric): the old ±32760 shaved hot-master peaks even when
+            // the stems were still settling back to neutral.
+            outL = max(-32768f, min(32767f, outL))
+            outR = max(-32768f, min(32767f, outR))
 
             buffer.putShort(outL.toInt().toShort())
             buffer.putShort(outR.toInt().toShort())
+        }
+
+        // Drain a trailing partial frame (odd byte count or a lone channel): the DSP loop
+        // above only consumes full stereo frames, and a non-empty inputBuffer handed back
+        // to Media3 makes it spin in while(inputBuffer.hasRemaining()) forever.
+        if (inputBuffer.hasRemaining()) {
+            inputBuffer.position(inputBuffer.limit())
         }
 
         buffer.flip()
