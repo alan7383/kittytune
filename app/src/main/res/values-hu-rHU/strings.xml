@@ -466,6 +466,7 @@
     <string name="category_retro_vintage">Retro &amp; Textures</string>
     <string name="player_lyrics">Dalszöveg</string>
     <string name="lyrics_no_data">Nincs dalszöveg</string>
+    <string name="lyrics_result_instrumental">Instrumental</string>
     <string name="lyrics_manual_search">Kézi keresés</string>
     <string name="lyrics_wrong">Hibás szöveg?</string>
     <string name="lyrics_search_hint">Search lyrics&#8230;</string>
