@@ -1,14 +1,16 @@
 package com.alananasss.kittytune.wear.presentation.volume
 
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Unit tests for [VolumeSanitizer].
+ * Comprehensive unit tests for [VolumeSanitizer] and [VolumeControlsDefaults].
  * Validates IEEE 754 float edge cases (NaN, Infinities, negative zero), boundary clamping,
- * discrete step snapping, percentage formatting, and conversions for Phone and Desktop protocols.
+ * discrete step snapping, percentage formatting, conversions for Phone and Desktop protocols,
+ * and Wear OS 48dp minimum interactive touch target compliance.
  */
 class VolumeSanitizerTest {
 
@@ -59,6 +61,16 @@ class VolumeSanitizerTest {
     }
 
     @Test
+    fun `increment with NaN or infinite step safely preserves volume without crashing`() {
+        assertEquals(0.50f, VolumeSanitizer.increment(0.50f, Float.NaN), 0.001f)
+        assertEquals(0.50f, VolumeSanitizer.increment(0.50f, Float.POSITIVE_INFINITY), 0.001f)
+        assertEquals(0.50f, VolumeSanitizer.increment(0.50f, Float.NEGATIVE_INFINITY), 0.001f)
+        assertEquals(0.50f, VolumeSanitizer.increment(0.50f, 0.0f), 0.001f)
+        assertEquals(0.50f, VolumeSanitizer.increment(0.50f, -0.05f), 0.001f)
+        assertEquals(0.0f, VolumeSanitizer.increment(Float.NaN, Float.NaN), 0.0f)
+    }
+
+    @Test
     fun `decrement decreases volume by step with snapping`() {
         assertEquals(0.45f, VolumeSanitizer.decrement(0.50f, 0.05f), 0.001f)
         assertEquals(0.95f, VolumeSanitizer.decrement(1.0f, 0.05f), 0.001f)
@@ -70,8 +82,18 @@ class VolumeSanitizerTest {
         assertEquals(0.0f, VolumeSanitizer.decrement(0.0f, 0.05f), 0.001f)
     }
 
+    @Test
+    fun `decrement with NaN or infinite step safely preserves volume without crashing`() {
+        assertEquals(0.50f, VolumeSanitizer.decrement(0.50f, Float.NaN), 0.001f)
+        assertEquals(0.50f, VolumeSanitizer.decrement(0.50f, Float.POSITIVE_INFINITY), 0.001f)
+        assertEquals(0.50f, VolumeSanitizer.decrement(0.50f, Float.NEGATIVE_INFINITY), 0.001f)
+        assertEquals(0.50f, VolumeSanitizer.decrement(0.50f, 0.0f), 0.001f)
+        assertEquals(0.50f, VolumeSanitizer.decrement(0.50f, -0.05f), 0.001f)
+        assertEquals(0.0f, VolumeSanitizer.decrement(Float.NaN, Float.NaN), 0.0f)
+    }
+
     // =========================================================================
-    // 3. Step Snapping
+    // 3. Step Snapping & IEEE 754 NaN / Infinity Protection
     // =========================================================================
 
     @Test
@@ -86,6 +108,19 @@ class VolumeSanitizerTest {
     fun `snapToStep with invalid zero or negative step returns sanitized volume`() {
         assertEquals(0.6f, VolumeSanitizer.snapToStep(0.6f, 0.0f), 0.0001f)
         assertEquals(0.6f, VolumeSanitizer.snapToStep(0.6f, -0.05f), 0.0001f)
+    }
+
+    @Test
+    fun `snapToStep safely handles Float NaN and infinite steps without throwing IllegalArgumentException`() {
+        // Critical Gate Iteration 1 fix verification:
+        // In IEEE 754, NaN <= 0.0f evaluates to false; our hardened implementation must safely return clamped volume
+        assertEquals(0.5f, VolumeSanitizer.snapToStep(0.5f, Float.NaN), 0.0001f)
+        assertEquals(0.5f, VolumeSanitizer.snapToStep(0.5f, Float.POSITIVE_INFINITY), 0.0001f)
+        assertEquals(0.5f, VolumeSanitizer.snapToStep(0.5f, Float.NEGATIVE_INFINITY), 0.0001f)
+        assertEquals(0.0f, VolumeSanitizer.snapToStep(Float.NaN, Float.NaN), 0.0001f)
+        assertEquals(0.0f, VolumeSanitizer.snapToStep(Float.NaN, 0.05f), 0.0001f)
+        assertEquals(1.0f, VolumeSanitizer.snapToStep(1.5f, Float.NaN), 0.0001f)
+        assertEquals(0.0f, VolumeSanitizer.snapToStep(-0.5f, Float.NaN), 0.0001f)
     }
 
     // =========================================================================
@@ -152,5 +187,45 @@ class VolumeSanitizerTest {
         assertEquals(0.72f, VolumeSanitizer.fromDesktopVolume(720L), 0.001f)
         assertEquals(1.0f, VolumeSanitizer.fromDesktopVolume(1000L), 0.001f)
         assertEquals(1.0f, VolumeSanitizer.fromDesktopVolume(2000L), 0.001f) // Clamped
+    }
+
+    // =========================================================================
+    // 7. Touch Target & Accessibility Compliance (WCAG 2.5.5 / Wear OS HIG)
+    // =========================================================================
+
+    @Test
+    fun `volume button dimensions strictly satisfy minimum 48x48dp touch target standard`() {
+        val minGuidelineDp = 48.0.dp
+        val minTargetAreaDp2 = 2304.0 // 48dp * 48dp
+
+        // Assert VolumeControlsDefaults
+        assertTrue(
+            "Volume minimum touch target (${VolumeControlsDefaults.MinTouchTargetSize}) must be >= 48dp",
+            VolumeControlsDefaults.MinTouchTargetSize >= minGuidelineDp
+        )
+        assertEquals(
+            "Volume visual button size (${VolumeControlsDefaults.ButtonSize}) matches 32dp for circular bezel fit",
+            32.0.dp,
+            VolumeControlsDefaults.ButtonSize
+        )
+
+        val touchArea = VolumeControlsDefaults.MinTouchTargetSize.value * VolumeControlsDefaults.MinTouchTargetSize.value
+        assertTrue(
+            "Touch target interactive hit area ($touchArea dp^2) must be >= $minTargetAreaDp2 dp^2",
+            touchArea >= minTargetAreaDp2
+        )
+    }
+
+    @Test
+    fun `volume controls row geometry maintains circular chord clearance and balanced layout`() {
+        // Authoritative row width from VolumeControlsDefaults (112dp <= 112dp circular chord limit)
+        val totalRowWidth = VolumeControlsDefaults.RowWidth.value
+        val spacing = VolumeControlsDefaults.RowSpacing.value
+
+        // Total width must be <= 112dp to prevent circular screen clipping
+        assertTrue("Volume row total width ($totalRowWidth dp) must be <= 112dp", totalRowWidth <= 112.0)
+
+        // Spacing must be >= 4dp to prevent accidental dual-tap triggers
+        assertTrue("Inter-element spacing ($spacing dp) must be >= 4dp", spacing >= 4.0)
     }
 }

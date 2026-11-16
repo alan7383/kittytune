@@ -222,7 +222,7 @@ class PlaybackAdversarialChallengeTest {
     // =========================================================================
 
     @Test
-    fun `vector3 - volume adjustment failure does not roll back to prior authoritative volume`() {
+    fun `vector3 - volume adjustment failure rolls back to prior authoritative volume`() {
         // Set initial authoritative volume
         controller._playbackState.value = WearPlaybackState(
             trackId = 1L,
@@ -249,12 +249,8 @@ class PlaybackAdversarialChallengeTest {
         println("AUDIT: Volume after failure: $currentVolume (Expected rollback: 0.5f), Error: $errorMsg")
 
         assertNotNull("Error message should be set on failure", errorMsg)
-        // EMPIRICAL TEST: Check if volume actually rolled back!
-        // In PlaybackViewModel lines 175-177:
-        // if (result.isFailure) { _uiState.update { it.copy(errorMessage = "Volume sync failed") } }
-        // Volume is NOT rolled back!
-        val volumeDidRollback = (currentVolume == 0.5f)
-        println("AUDIT: Did volume roll back to 0.5f? $volumeDidRollback")
+        assertEquals("Volume sync failed", errorMsg)
+        assertEquals("Volume must roll back to 0.5f on failure", 0.5f, currentVolume, 0.001f)
     }
 
     @Test

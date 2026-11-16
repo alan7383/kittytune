@@ -15,14 +15,12 @@ import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
-import com.google.android.gms.wearable.Node
 import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -134,26 +132,15 @@ class PhoneWearableController(
 
     override suspend fun setVolume(volume: Float): Result<Unit> {
         val safe = VolumeSanitizer.sanitize(volume)
-        _playbackState.update { it.copy(volume = safe) }
         return sendCommand(WearConstants.ACTION_SET_VOLUME, WearCodecs.encodeVolume(safe))
     }
 
     override suspend fun adjustVolume(delta: Float): Result<Unit> {
-        val newVol = VolumeSanitizer.sanitize(_playbackState.value.volume + delta)
-        _playbackState.update { it.copy(volume = newVol) }
         val action = if (delta >= 0f) WearConstants.ACTION_VOLUME_UP else WearConstants.ACTION_VOLUME_DOWN
         return sendCommand(action)
     }
 
     override suspend fun selectTarget(target: TargetSelectionPayload): Result<Unit> {
-        val isPhone = target.targetType == WearConstants.TARGET_TYPE_PHONE
-        _playbackState.update {
-            it.copy(
-                targetType = target.targetType,
-                targetDevice = target.peerName ?: if (isPhone) WearConstants.TARGET_PHONE_LABEL else "Desktop",
-                targetDeviceId = target.peerId
-            )
-        }
         val payload = WearCodecs.encodeTarget(target)
         return sendCommand(WearConstants.ACTION_TARGET_SELECT, payload)
     }

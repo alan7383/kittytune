@@ -27,8 +27,9 @@ import kotlin.math.abs
  * - Immediate active focus acquisition via [FocusRequester] and [LaunchedEffect].
  * - Auto re-focus on Activity/Screen resume ([Lifecycle.Event.ON_RESUME]).
  * - Detent accumulation preventing jitter and Bluetooth Data Layer flooding.
+ * - Robust NaN / Infinite scroll event delta protection preserving accumulator state.
  * - Haptic tactile feedback on each discrete detent tick.
- * - Boundary clamping at 0.0f and 1.0f.
+ * - Boundary clamping at 0.0f and 1.0f via [VolumeSanitizer].
  *
  * @param currentVolume Current normalized volume fraction (0.0f..1.0f).
  * @param onVolumeChange Callback triggered when volume changes, supplying the new sanitized volume.
@@ -69,16 +70,33 @@ fun Modifier.rotaryVolumeControl(
         }
     }
 
+    val safeThresholdPx = if (detentThresholdPx.isNaN() || detentThresholdPx.isInfinite() || detentThresholdPx <= 0.0f) {
+        24.0f
+    } else {
+        detentThresholdPx
+    }
+
     this
         .focusRequester(focusRequester)
         .focusable()
         .onRotaryScrollEvent { event ->
-            val rawDelta = if (reverseDirection) -event.verticalScrollPixels else event.verticalScrollPixels
+            val scrollDelta = event.verticalScrollPixels
+            // Guard against IEEE-754 NaN or Infinite scroll deltas from hardware/emulator glitches
+            if (scrollDelta.isNaN() || scrollDelta.isInfinite()) {
+                return@onRotaryScrollEvent true // safely ignore corrupt delta and consume event
+            }
+
+            // Self-heal accumulator if it was ever corrupted
+            if (accumulatedPixels.isNaN() || accumulatedPixels.isInfinite()) {
+                accumulatedPixels = 0.0f
+            }
+
+            val rawDelta = if (reverseDirection) -scrollDelta else scrollDelta
             accumulatedPixels += rawDelta
 
-            if (abs(accumulatedPixels) >= detentThresholdPx) {
-                val stepCount = (accumulatedPixels / detentThresholdPx).toInt()
-                accumulatedPixels -= (stepCount * detentThresholdPx)
+            if (abs(accumulatedPixels) >= safeThresholdPx) {
+                val stepCount = (accumulatedPixels / safeThresholdPx).toInt()
+                accumulatedPixels -= (stepCount * safeThresholdPx)
 
                 val oldVol = VolumeSanitizer.sanitize(latestVolume)
                 val newVol = VolumeSanitizer.sanitize(oldVol + (stepCount * stepVolume))
