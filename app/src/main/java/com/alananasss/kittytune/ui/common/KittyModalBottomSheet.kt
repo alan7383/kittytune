@@ -17,20 +17,20 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
@@ -140,61 +140,38 @@ fun KittyModalBottomSheet(
             }
         }
     } else {
-        val scope = rememberCoroutineScope()
         val density = LocalDensity.current
+        val configuration = LocalConfiguration.current
         val dismissThreshold = with(density) { 56.dp.toPx() }
-        val minFlingDismissVelocity = with(density) { 200.dp.toPx() }
+        val minimumFlingVelocity = with(density) { 200.dp.toPx() }
+        val dismiss by rememberUpdatedState(onDismissRequest)
+        var expandedOffset by remember(sheetState, configuration) { mutableFloatStateOf(Float.NaN) }
 
-        var accumulatedDownwardDrag by remember { mutableFloatStateOf(0f) }
-        var expandedOffset by remember { mutableFloatStateOf(Float.NaN) }
-
-        LaunchedEffect(sheetState.currentValue) {
-            if (sheetState.currentValue == SheetValue.Expanded) {
-                try {
-                    expandedOffset = sheetState.requireOffset()
-                } catch (_: Exception) {}
-            }
+        LaunchedEffect(sheetState, configuration) {
+            expandedOffset = snapshotFlow {
+                if (sheetState.currentValue == SheetValue.Expanded && !sheetState.isAnimationRunning) {
+                    runCatching { sheetState.requireOffset() }.getOrNull()
+                } else {
+                    null
+                }
+            }.filterNotNull().first()
         }
 
-        val dismissNestedScrollConnection = remember(sheetState, onDismissRequest) {
+        val dismissNestedScrollConnection = remember(sheetState, configuration, density) {
             object : NestedScrollConnection {
-                override fun onPostScroll(
-                    consumed: Offset,
-                    available: Offset,
-                    source: NestedScrollSource
-                ): Offset {
-                    if (source == NestedScrollSource.UserInput) {
-                        if (available.y > 0f) {
-                            accumulatedDownwardDrag += available.y
-                        } else if (available.y < 0f) {
-                            accumulatedDownwardDrag = (accumulatedDownwardDrag + available.y).coerceAtLeast(0f)
-                        }
-                    }
-                    return Offset.Zero
-                }
-
                 override suspend fun onPreFling(available: Velocity): Velocity {
-                    val currentOffset = try {
-                        sheetState.requireOffset()
-                    } catch (_: Exception) {
-                        Float.NaN
-                    }
-                    val draggedOffset = if (!currentOffset.isNaN() && !expandedOffset.isNaN()) {
-                        (currentOffset - expandedOffset).coerceAtLeast(0f)
-                    } else 0f
-
-                    val totalDrag = max(accumulatedDownwardDrag, draggedOffset)
-                    accumulatedDownwardDrag = 0f
-
-                    if (totalDrag > dismissThreshold || (totalDrag > 15f && available.y > minFlingDismissVelocity)) {
-                        scope.launch {
-                            try {
-                                sheetState.hide()
-                            } finally {
-                                onDismissRequest()
-                            }
+                    // Material 3 consumes the reversal in pre-scroll before the list sees it.
+                    // Measure the distance from the expanded position at release instead of summing scroll deltas.
+                    if (expandedOffset.isNaN() || available.y < 0f) return Velocity.Zero
+                    val displacement = sheetState.requireOffset() - expandedOffset
+                    if (displacement > dismissThreshold ||
+                        (displacement > 15f && available.y > minimumFlingVelocity)
+                    ) {
+                        sheetState.hide()
+                        if (!sheetState.isVisible) {
+                            dismiss()
+                            return available
                         }
-                        return available
                     }
                     return Velocity.Zero
                 }
