@@ -54,6 +54,12 @@ object WordGloss {
     /** "nice → хорошо · bro → братан", the line shown under the comment. */
     fun line(glosses: List<Pair<String, String>>): String = glosses.joinToString("  ·  ") { (word, translation) -> "$word → $translation" }
 
+    // Returns true if [text] appears to be a glossary or word-by-word translation line (contains " - " or " -> ").
+    fun isGlossOrTranslationLine(text: String?): Boolean {
+        if (text.isNullOrBlank()) return false
+        return text.contains(" — ") || text.contains(" -> ") || text.contains(" → ")
+    }
+
     /** The words of [text] without mentions, links and punctuation. */
     private fun wordsOf(text: String): List<String> = text.replace(MENTION_OR_LINK, " ")
         .split(SPACES)

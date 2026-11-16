@@ -314,8 +314,11 @@ fun FluidArtworkBackground(
         if (showing != null && showing !== bitmap) {
             previous = showing
             crossfade.snapTo(0f)
-            crossfade.animateTo(1f, tween(CROSSFADE_MS))
-            previous = null
+            try {
+                crossfade.animateTo(1f, tween(CROSSFADE_MS))
+            } finally {
+                previous = null
+            }
         }
     }
 
@@ -355,6 +358,9 @@ fun FluidArtworkBackground(
         }
 
         if (current != null) {
+            var cachedSigma by remember { mutableFloatStateOf(0f) }
+            var cachedEffect by remember { mutableStateOf<androidx.compose.ui.graphics.RenderEffect?>(null) }
+
             Box(
                 Modifier
                     .fillMaxSize()
@@ -362,9 +368,13 @@ fun FluidArtworkBackground(
                         alpha = appear.value
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             val sigma = fluidBlurSigma(size.width, size.height, extraBlur)
-                            renderEffect = RenderEffect
-                                .createBlurEffect(sigma, sigma, Shader.TileMode.CLAMP)
-                                .asComposeRenderEffect()
+                            if (sigma != cachedSigma || cachedEffect == null) {
+                                cachedSigma = sigma
+                                cachedEffect = RenderEffect
+                                    .createBlurEffect(sigma, sigma, Shader.TileMode.CLAMP)
+                                    .asComposeRenderEffect()
+                            }
+                            renderEffect = cachedEffect
                         }
                     }
                     .then(

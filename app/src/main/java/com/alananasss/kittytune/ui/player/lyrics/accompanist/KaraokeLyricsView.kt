@@ -117,7 +117,12 @@ fun KaraokeLyricsView(
     bounceFactor: Float = 1f,
     lineSpacing: Dp = 0.dp,
     horizontalMargin: Dp = 0.dp,
-    activeScale: Float = 1.00f
+    activeScale: Float = 1.00f,
+    // Mini-style sweep fill for plain (line-timed) lines; ignored for word-timed karaoke lines.
+    lineSweepEnabled: Boolean = false,
+    // What to draw over long instrumental gaps (dots / circle / note+wave / nothing).
+    interludeIndicatorStyle: com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle =
+        com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.DOTS
 ) {
     val density = LocalDensity.current
     val stableNormalTextStyle = remember(normalLineTextStyle) { normalLineTextStyle }
@@ -497,27 +502,48 @@ fun KaraokeLyricsView(
                         val showDotsIntro = lyricsFocusState.activeIntro && index == 0
 
                         AnimatedVisibility(showDotsInterlude || showDotsIntro) {
-                            KaraokeBreathingDots(
-                                alignment = when (val l = previousLine ?: firstLine) {
-                                    is KaraokeLine -> l.alignment
-                                    is SyncedLine -> when {
-                                        isVisualCenterAligned -> KaraokeAlignment.Unspecified
-                                        isVisualRightAligned -> KaraokeAlignment.End
-                                        l.content.isRtl() -> KaraokeAlignment.End
-                                        else -> KaraokeAlignment.Start
-                                    }
-                                    else -> KaraokeAlignment.Start
-                                },
-                                startTimeMs = previousLine?.end ?: 0,
-                                endTimeMs = if (showDotsIntro) firstLine!!.start else line.start,
-                                currentTimeProvider = timeProvider,
-                                defaults = if (breathingDotsDefaults.breathingDotsColor == Color.White && textColor != Color.White) {
-                                    breathingDotsDefaults.copy(breathingDotsColor = textColor)
-                                } else {
-                                    breathingDotsDefaults
-                                },
-                                modifier = Modifier.padding(vertical = 12.dp)
-                            )
+                            when (interludeIndicatorStyle) {
+                                com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.OFF -> Unit
+                                com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.DOTS -> {
+                                    KaraokeBreathingDots(
+                                        alignment = when (val l = previousLine ?: firstLine) {
+                                            is KaraokeLine -> l.alignment
+                                            is SyncedLine -> when {
+                                                isVisualCenterAligned -> KaraokeAlignment.Unspecified
+                                                isVisualRightAligned -> KaraokeAlignment.End
+                                                l.content.isRtl() -> KaraokeAlignment.End
+                                                else -> KaraokeAlignment.Start
+                                            }
+                                            else -> KaraokeAlignment.Start
+                                        },
+                                        startTimeMs = previousLine?.end ?: 0,
+                                        endTimeMs = if (showDotsIntro) firstLine!!.start else line.start,
+                                        currentTimeProvider = timeProvider,
+                                        defaults = if (breathingDotsDefaults.breathingDotsColor == Color.White && textColor != Color.White) {
+                                            breathingDotsDefaults.copy(breathingDotsColor = textColor)
+                                        } else {
+                                            breathingDotsDefaults
+                                        },
+                                        modifier = Modifier.padding(vertical = 12.dp)
+                                    )
+                                }
+                                // Circle and note+wave indicators take
+                                // over the dots' slot in the gap they are drawn over.
+                                else -> com.alananasss.kittytune.ui.player.lyrics.InstrumentalGapIndicator(
+                                    kind = when (interludeIndicatorStyle) {
+                                        com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.CIRCLE ->
+                                            com.alananasss.kittytune.ui.player.lyrics.InstrumentalIndicatorStyleKind.CIRCLE
+                                        else ->
+                                            com.alananasss.kittytune.ui.player.lyrics.InstrumentalIndicatorStyleKind.NOTE_WAVE
+                                    },
+                                    startMs = (previousLine?.end ?: 0).toLong(),
+                                    endMs = (if (showDotsIntro) firstLine!!.start else line.start).toLong(),
+                                    positionProvider = { timeProvider().toLong() },
+                                    accentColor = textColor,
+                                    contentColor = textColor.copy(alpha = 0.6f),
+                                    modifier = Modifier.padding(vertical = 12.dp)
+                                )
+                            }
                         }
 
                         val blurRadiusState = animateFloatAsState(
@@ -532,6 +558,30 @@ fun KaraokeLyricsView(
                         when (line) {
                             is KaraokeLine -> {
                                 if (line is KaraokeLine.MainKaraokeLine) {
+                                    // A line-timed line drawn as syllables - all of them light
+                                    // the moment the line starts - sweeps top-to-bottom exactly
+                                    // like a plain SyncedLine. This is the line kind a line WITH
+                                    // backing vocals becomes when the vocals are split off under
+                                    // it (instantSyllables), which is why such lines never
+                                    // filled before: the sweep only knew about plain lines.
+                                    val instantLine = remember(line) { line.isInstantlyLit() }
+                                    val karaokeSweepSpec =
+                                        if (lineSweepEnabled && instantLine) KaraokeSweepSpec(
+                                            brightColor = textColor,
+                                            dimColor = textColor.copy(alpha = textColor.alpha * 0.45f),
+                                            progress = {
+                                                val start = line.start.toFloat()
+                                                val end = line.end.toFloat().coerceAtLeast(start + 1f)
+                                                ((timeProvider() - start) / (end - start)).coerceIn(0f, 1f)
+                                            }
+                                        ) else null
+                                    // isCurrentFocusLine gates the time read: only the line being
+                                    // sung reads the clock here, the rest of the items do not
+                                    // recompose on every frame of playback.
+                                    val currentKaraokeSweep = if (karaokeSweepSpec != null && isCurrentFocusLine) {
+                                        val now = timeProvider()
+                                        now >= line.start && now < line.end
+                                    } else false
                                     LyricsLineItem(
                                         isFocused = isCurrentFocusLine,
                                         isRightAligned = isVisualRightAligned,
@@ -554,7 +604,8 @@ fun KaraokeLyricsView(
                                             showTranslation = showTranslation,
                                             showPhonetic = showPhonetic,
                                             precalculatedLayouts = layoutCache[index],
-                                            activeScale = activeScale
+                                            activeScale = activeScale,
+                                            sweep = if (currentKaraokeSweep) karaokeSweepSpec else null
                                         )
                                     }
                                 }
@@ -562,6 +613,21 @@ fun KaraokeLyricsView(
 
                             is SyncedLine -> {
                                 val isLineRtlSynced = remember(line.content) { line.content.isRtl() }
+                                // The current plain line sweeps top-to-bottom when the Sweep
+                                // animation is selected (line-timed lyrics only).
+                                val sweepSpec = if (lineSweepEnabled) KaraokeSweepSpec(
+                                    brightColor = textColor,
+                                    dimColor = textColor.copy(alpha = textColor.alpha * 0.45f),
+                                    progress = {
+                                        val start = line.start.toFloat()
+                                        val end = line.end.toFloat().coerceAtLeast(start + 1f)
+                                        ((timeProvider() - start) / (end - start)).coerceIn(0f, 1f)
+                                    }
+                                ) else null
+                                val currentSweep = if (sweepSpec != null) {
+                                    val now = timeProvider()
+                                    now >= line.start && now < line.end
+                                } else false
                                 LyricsLineItem(
                                     isFocused = isCurrentFocusLine,
                                     isRightAligned = isVisualRightAligned,
@@ -581,6 +647,7 @@ fun KaraokeLyricsView(
                                         textColor = textColor,
                                         showTranslation = showTranslation,
                                         activeScale = activeScale,
+                                        sweep = if (currentSweep) sweepSpec else null
                                     )
                                 }
                             }
@@ -601,6 +668,12 @@ private val TOP_START_GAP = 12.dp
 private const val LINE_STIFFNESS = 120f
 private const val LINE_STIFFNESS_STEP = 20f
 private const val LINE_STIFFNESS_MIN = 20f
+
+// Whether every syllable of the line lights the moment the line starts - the fingerprint of a
+// line-timed line converted to syllables ([instantSyllables]), as opposed to a word-timed line
+// whose syllables are staggered across the line's duration.
+private fun KaraokeLine.isInstantlyLit(): Boolean =
+    syllables.isNotEmpty() && syllables.all { it.start == start && it.end - it.start <= 1 }
 
 private fun followTopPx(listState: LazyListState, stableOffsetPx: Int, keepAliveZonePx: Float): Int =
     (listState.layoutInfo.viewportStartOffset + stableOffsetPx + keepAliveZonePx).toInt()

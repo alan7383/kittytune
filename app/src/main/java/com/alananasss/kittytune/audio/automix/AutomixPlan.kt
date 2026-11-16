@@ -16,6 +16,21 @@ data class AutomixPlan(
     val pitchRatio: Float = 1f,
     /** Overlap duration (ms) for the DJ crossfade blend (e.g. 16 beats / 4 bars). */
     val overlapMs: Long,
+    // How the two tracks meet, one of the Spotify-Mix presets. The engine-level enum, resolved
+    // by [com.alananasss.kittytune.audio.automix.MixTransitionPresets.autoSelect] (or taken from
+    // the user's Mix panel override) at plan time, so the fade loop never has to decide anything
+    // mid-transition.
+    val transitionStyle: MixTransitionPresets.MixTransitionStyle =
+        MixTransitionPresets.DEFAULT_STYLE,
+    // Whether the incoming deck is tempo-stretched (Sonic via playbackParameters.speed) for the
+    // blend and released back to its own tempo afterwards. Off when the pair is too far apart
+    // to stretch musically (the plan's tempoRatio is 1 anyway).
+    val tempoSyncEnabled: Boolean = false,
+    // The pair's hand-saved transition plan, present when the seam was shaped in the
+    // Edit-transition editor as Custom - the fade loop then drives its envelopes from the
+    // plan's exact curves ([planFrameAt]) instead of the engine style's approximation.
+    // Null = the engine style owns the shape.
+    val exactCurves: TransitionPlan? = null,
 )
 
 data class AutomixDebugInfo(

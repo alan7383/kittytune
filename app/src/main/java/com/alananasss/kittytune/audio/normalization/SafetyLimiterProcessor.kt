@@ -36,8 +36,25 @@ class SafetyLimiterProcessor : BaseAudioProcessor() {
         this.enabled = enabled
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat =
-        if (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT) inputAudioFormat else AudioProcessor.AudioFormat.NOT_SET
+    // Current engage state, so a temporary force-enable (Slam's seam hold) can restore it.
+    // Named so it does not shadow BaseAudioProcessor's own isActive() from the Media3 chain.
+    fun isLimiterEngaged(): Boolean = enabled
+
+    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+        handleChannels = inputAudioFormat.channelCount
+        handleSampleRate = inputAudioFormat.sampleRate
+        // Bit-Perfect: identity configuration for ANY PCM encoding - the chain format
+        // must stay 1:1 so the queueInput byte passthrough is bit-exact (never NOT_SET
+        // and never a negotiated conversion while the DAC owns the output).
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.SAFETY_LIMITER)) {
+            return inputAudioFormat
+        }
+        return if (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT) {
+            inputAudioFormat
+        } else {
+            AudioProcessor.AudioFormat.NOT_SET
+        }
+    }
 
     override fun onFlush() {
         val format = inputAudioFormat
@@ -60,7 +77,24 @@ class SafetyLimiterProcessor : BaseAudioProcessor() {
     override fun queueInput(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
+        // Bit-Perfect on a USB DAC: the safety limiter is suspended - no gain riding,
+        // the PCM bytes reach the DAC exactly as decoded.
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.SAFETY_LIMITER)) {
+            val passthrough = replaceOutputBuffer(remaining)
+            passthrough.put(inputBuffer)
+            passthrough.flip()
+            return
+        }
         val frameSize = inputAudioFormat.bytesPerFrame
+        if (frameSize <= 0) {
+            // Degenerate format (bytesPerFrame unset/negative, e.g. a non-linear-PCM
+            // upstream mishap): dividing would throw ArithmeticException on the audio
+            // thread - pass the bytes through untouched instead.
+            val output = replaceOutputBuffer(remaining)
+            output.put(inputBuffer)
+            output.flip()
+            return
+        }
         val frames = remaining / frameSize
         val output = replaceOutputBuffer(remaining)
         if (handle == 0L || frames == 0 || !inputBuffer.isDirect || !output.isDirect) {

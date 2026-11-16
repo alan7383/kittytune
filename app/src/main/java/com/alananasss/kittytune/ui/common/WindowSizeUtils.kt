@@ -1,8 +1,11 @@
 package com.alananasss.kittytune.ui.common
 
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -45,6 +48,16 @@ data class WindowSizeInfo(
      */
     val showNavRail: Boolean
         get() = isLandscape && !isTablet
+
+    // Width is at least 840dp (Material EXPANDED): large tablets in landscape,
+    // foldables opened, desktop windows. Used to unlock two-pane layouts.
+    val isExpandedWidth: Boolean
+        get() = widthSizeClass == WindowWidthSizeClass.EXPANDED
+
+    // Max width for list-style content on tablets. Phones stay full-bleed (null),
+    // tablets center their list content so rows don't stretch across the whole screen.
+    val listContentMaxWidth: Dp?
+        get() = if (isTablet) 840.dp else null
 
     /**
      * Show tablet bottom dock: ONLY on tablets.
@@ -106,3 +119,30 @@ fun rememberGridColumnCount(
         else -> compactCount
     }
 }
+
+// Grid cells that scale with the screen: phones keep the familiar fixed column count,
+// tablets switch to adaptive tiles so artwork grids grow columns with the window width
+// instead of blowing tiles up to phone size. This is what makes grids look native on
+// 600dp-1280dp+ screens.
+//
+// @param compactCount columns used on phones (unchanged behavior)
+// @param tabletTileSize minimum tile width on tablets; higher = fewer, larger tiles
+@Composable
+fun rememberAdaptiveGridCells(
+    compactCount: Int,
+    tabletTileSize: Dp = 160.dp
+): GridCells {
+    val windowInfo = rememberWindowSizeInfo()
+    return remember(windowInfo.isTablet, compactCount, tabletTileSize) {
+        if (windowInfo.isTablet) GridCells.Adaptive(tabletTileSize) else GridCells.Fixed(compactCount)
+    }
+}
+
+// Modifier helper: on tablets center-caps the element at [maxWidth], phones stay full width.
+// Usage: Modifier.tabletContentWidth(windowInfo) - must be composed inside a centering parent
+// (e.g. Box(contentAlignment = Alignment.TopCenter) or Column(horizontalAlignment = ...)).
+fun Modifier.tabletContentWidth(
+    windowInfo: WindowSizeInfo,
+    maxWidth: Dp = 840.dp
+): Modifier =
+    if (windowInfo.isTablet) widthIn(max = maxWidth) else this

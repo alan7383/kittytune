@@ -85,7 +85,12 @@ fun LyricsEnhancedView(
     val isDuetEnabled = viewModel.isDuetActiveForTrack(viewModel.uiCurrentTrack)
     val userAlignment = viewModel.lyricsAlignment
     val splitBacking = viewModel.isSplitBackingVocalsEnabled
-    val revealWords = viewModel.isRevealWordsEnabled
+    // Sweep (the top-to-bottom fill) and word-by-word reveal are two different looks for
+    // the same line-timed lines, but word reveal converts every line into syllables, which
+    // bypasses the sweep entirely - that is why the fill never showed. When the Sweep
+    // animation is selected it wins; otherwise the word reveal keeps working as before.
+    val sweepSelected = viewModel.lyricsSweepEnabled && !isWordSyncedFormat
+    val revealWords = viewModel.isRevealWordsEnabled && !sweepSelected
     val syncedLyrics = remember(
         viewModel.lyricsRevision,
         rawLines.size,
@@ -272,6 +277,10 @@ fun LyricsEnhancedView(
                         bounceFactor = viewModel.lyricsBounceFactor,
                         lineSpacing = if (viewModel.lyricsLineSpacing > 0f) viewModel.lyricsLineSpacing.dp else (if (isCompact) 0.dp else (effectiveFontSize * 0.22f).dp),
                         activeScale = viewModel.lyricsActiveScale,
+                        // Sweep works here too: the current plain (line-timed) line fills
+                        // top-to-bottom exactly like the classic line-by-line view.
+                        lineSweepEnabled = viewModel.lyricsSweepEnabled && !isWordSyncedFormat,
+                        interludeIndicatorStyle = viewModel.instrumentalIndicatorStyle,
                         modifier = Modifier.fillMaxSize()
                     )
                 }

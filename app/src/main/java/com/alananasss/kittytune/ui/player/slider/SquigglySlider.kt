@@ -56,22 +56,19 @@ fun SquigglySlider(
     val duration = valueRange.endInclusive - valueRange.start
     val position = currentValue - valueRange.start
 
-    // Animation state
     var phaseOffset by remember { mutableFloatStateOf(0f) }
     var heightFraction by remember { mutableFloatStateOf(if (isPlaying) 1f else 0f) }
 
     val scope = rememberCoroutineScope()
 
-    // Wave parameters
     val waveLength = 80f
     val lineAmplitude = 6f
-    val phaseSpeed = 24f // Wave movement speed
+    val phaseSpeed = 24f
     val transitionPeriods = 1.5f
     val minWaveEndpoint = 0f
     val matchedWaveEndpoint = 1f
     val transitionEnabled = true
 
-    // Animate height fraction based on playing state and dragging state
     LaunchedEffect(isPlaying, isDragging) {
         scope.launch {
             val shouldFlatten = !isPlaying || isDragging
@@ -94,7 +91,6 @@ fun SquigglySlider(
         }
     }
 
-    // Continuous wave animation loop
     LaunchedEffect(isPlaying) {
         if (!isPlaying) return@LaunchedEffect
 
@@ -231,10 +227,16 @@ fun SquigglySlider(
                 }
             }
 
-            // Draw active wavy part
-            drawPathSegment(0f, totalProgressPx, primaryColor)
+            // Buffering rendering for the squiggly path
+            if (bufferedValue != null && duration > 0f) {
+                val bufProgress = ((bufferedValue - valueRange.start) / duration).coerceIn(0f, 1f)
+                val bufPx = totalWidth * bufProgress
+                if (bufPx > totalProgressPx) {
+                    drawPathSegment(totalProgressPx, bufPx, inactiveColor.copy(alpha = 0.5f))
+                }
+            }
 
-            // Draw inactive part (remaining)
+            drawPathSegment(0f, totalProgressPx, primaryColor)
             drawPathSegment(totalProgressPx, totalWidth, inactiveTrackColor)
 
             fun getWaveY(x: Float): Float {
@@ -252,14 +254,12 @@ fun SquigglySlider(
                 return centerY + waveValue * lineAmplitude * heightFraction * ampCoeff
             }
 
-            // Draw round cap at start
             drawCircle(
                 color = primaryColor,
                 radius = capRadius,
                 center = Offset(0f, getWaveY(0f)),
             )
 
-            // Draw round cap at end
             val endWaveY = getWaveY(totalWidth)
             clipRect(
                 left = totalWidth,
@@ -274,7 +274,6 @@ fun SquigglySlider(
                 )
             }
 
-            // Vertical Bar Thumb
             val barHalfHeight = (lineAmplitude + strokeWidth)
             val barWidth = 5.dp.toPx()
 

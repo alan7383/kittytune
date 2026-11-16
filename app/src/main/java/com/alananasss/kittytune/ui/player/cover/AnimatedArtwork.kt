@@ -47,6 +47,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import kotlin.math.cos
+
+// Constant scale margin of the "flat" gyroscope cover (no-overlay mode): +2% - the middle
+// of the configured 1–3% range. Keeps the edges covered at any tilt; visually imperceptible.
+private const val FLAT_GYRO_COVER_ZOOM = 1.02f
 
 @Composable
 fun AnimatedArtwork(
@@ -62,22 +67,57 @@ fun AnimatedArtwork(
     val prefs = remember { PlayerPreferences(context) }
     val prefGyroEnabled by prefs.getGyroscopeCoversFlow().collectAsState(initial = prefs.getGyroscopeCoversEnabled())
     val gyroscopeActive = enableGyroscope ?: prefGyroEnabled
+    // "No overlay" mode: the layered shadowbox is replaced by ONE clean artwork at its
+    // natural size that tilts with the gyroscope. Toggled from Settings -> Covers ->
+    // "Cover without overlay" (shown under the 3D gyroscope switch) - the cover itself
+    // stays clean, with no control buttons on top of the artwork.
+    val flatCover by prefs.getGyroscopeFlatCoverFlow().collectAsState(initial = prefs.getGyroscopeFlatCover())
     val tilt by rememberGyroscopeTilt(enabled = gyroscopeActive)
     val density = LocalDensity.current
 
-    Box(modifier = modifier) {
+    BoxWithConstraints(modifier = modifier) {
         // Underneath the image rather than as its error state, so it also covers the gap while the
         // cover loads. A local file with no embedded art, a cover-less Spotify track, or a failed
         // load used to leave a bare grey square here.
         ArtworkPlaceholder(Modifier.fillMaxSize())
 
-        if (gyroscopeActive) {
+        if (gyroscopeActive && !flatCover) {
+            // Full layered 3D shadowbox: blurred backdrop, midground, cast shadow,
+            // popping foreground subject and the specular glint.
             GyroscopeLayeredCoverContent(
                 artworkUrl = artworkUrl,
                 tilt = tilt,
                 contentScale = contentScale,
                 contentDescription = contentDescription,
                 modifier = Modifier.fillMaxSize()
+            )
+        } else if (gyroscopeActive && flatCover) {
+            // "No overlay": one clean artwork that tilts with the gyroscope like a physical card.
+            // On top of the rotation compensation keep a CONSTANT +2% margin (the configured
+            // 1–3% range): empty corners never peek out at the edges at any tilt, and the
+            // extra zoom is visually indistinguishable.
+            val flatShiftPx = with(density) { 6.dp.toPx() }
+            AsyncImage(
+                model = artworkUrl,
+                contentDescription = contentDescription,
+                contentScale = contentScale,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        // Reads of [tilt] stay INSIDE the lambda: the sensor updates
+                        // ~60 times per second, and a deferred layer read invalidates
+                        // only this layer instead of recomposing the whole artwork.
+                        val rotX = -tilt.tiltY * 9f
+                        val rotY = tilt.tiltX * 9f
+                        rotationX = rotX
+                        rotationY = rotY
+                        cameraDistance = 22f * density.density
+                        translationX = tilt.tiltX * flatShiftPx
+                        translationY = tilt.tiltY * flatShiftPx
+                        // +2% on top of the 1/cos edge compensation.
+                        scaleX = FLAT_GYRO_COVER_ZOOM / cos(rotY * 0.017453292f)
+                        scaleY = FLAT_GYRO_COVER_ZOOM / cos(rotX * 0.017453292f)
+                    }
             )
         } else {
             // Base static artwork
@@ -100,10 +140,25 @@ fun AnimatedArtwork(
                     .let { mod ->
                         if (gyroscopeActive) {
                             mod.graphicsLayer {
-                                scaleX = 1.06f
-                                scaleY = 1.06f
-                                translationX = tilt.tiltX * videoShiftPx
-                                translationY = tilt.tiltY * videoShiftPx
+                                if (flatCover) {
+                                    // The animated canvas rides the SAME clean card tilt as the
+                                    // static artwork (rotation + 1/cos edge compensation + the same
+                                    // +2% margin), so video and image move as one body.
+                                    val rotXDeg = -tilt.tiltY * 9f
+                                    val rotYDeg = tilt.tiltX * 9f
+                                    rotationX = rotXDeg
+                                    rotationY = rotYDeg
+                                    cameraDistance = 22f * density.density
+                                    translationX = tilt.tiltX * videoShiftPx
+                                    translationY = tilt.tiltY * videoShiftPx
+                                    scaleX = FLAT_GYRO_COVER_ZOOM / cos(rotYDeg * 0.017453292f)
+                                    scaleY = FLAT_GYRO_COVER_ZOOM / cos(rotXDeg * 0.017453292f)
+                                } else {
+                                    scaleX = 1.06f
+                                    scaleY = 1.06f
+                                    translationX = tilt.tiltX * videoShiftPx
+                                    translationY = tilt.tiltY * videoShiftPx
+                                }
                             }
                         } else {
                             mod
@@ -111,6 +166,7 @@ fun AnimatedArtwork(
                     }
             )
         }
+
     }
 }
 

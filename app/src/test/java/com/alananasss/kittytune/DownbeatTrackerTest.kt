@@ -306,12 +306,12 @@ class DownbeatTrackerTest {
             1e-6f,
         )
 
-        // 6 ms over a 1000 ms window is 0.6 % - above tolerance, inside the clamp,
-        // so it is corrected exactly within that window.
+        // 3.5 ms over a 1000 ms window is 0.35 % - above tolerance (3.0 ms), inside MAX_NUDGE (0.4 %),
+        // so it is corrected exactly within that window without hitting the clamp.
         val windowMs = 1000L
-        val nudged = BeatPhaseLock.nudgeSpeed(errorMs = 6.0, windowMs = windowMs, baseSpeed = 1.0f)
-        assertEquals(1.0f + 6.0f / windowMs, nudged, 1e-5f)
-        assertTrue("Correction stays inaudible", nudged - 1.0f < BeatPhaseLock.MAX_NUDGE)
+        val nudged = BeatPhaseLock.nudgeSpeed(errorMs = 3.5, windowMs = windowMs, baseSpeed = 1.0f)
+        assertEquals(1.0f + 3.5f / windowMs, nudged, 1e-5f)
+        assertTrue("Correction stays inaudible", nudged - 1.0f <= BeatPhaseLock.MAX_NUDGE)
     }
 
     @Test

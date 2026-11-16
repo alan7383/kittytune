@@ -22,9 +22,14 @@ object AudioScannerManager {
     private val isRunning = AtomicBoolean(false)
     private var hasPendingWork = AtomicBoolean(false)
 
+    // true if kittytune_audio_dsp.so has loaded. Otherwise JNI calls throw UnsatisfiedLinkError
+    // (an Error, not an Exception - catch(e: Exception) does NOT catch it and would kill the scanning coroutine).
+    private var isNativeAvailable = false
+
     init {
         try {
             System.loadLibrary("kittytune_audio_dsp")
+            isNativeAvailable = true
         } catch (e: UnsatisfiedLinkError) {
             Log.e(TAG, "Failed to load kittytune_audio_dsp library", e)
         }
@@ -48,6 +53,12 @@ object AudioScannerManager {
     }
 
     private suspend fun processUnscannedTracks(context: Context) {
+        // Without the native library, LUFS analysis is impossible: bail out right away
+        // instead of spinning up MediaExtractor/MediaCodec in vain for every track.
+        if (!isNativeAvailable) {
+            Log.w(TAG, "Native DSP library unavailable — loudness scanning disabled")
+            return
+        }
         val dao = AppDatabase.getDatabase(context).downloadDao()
         // Downloads scanned before the player kept its own record: hand their figures over, so they
         // start at the right level like the rest.

@@ -5,6 +5,9 @@ import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.ui.common.rememberAppHaptics
+import com.alananasss.kittytune.ui.game.SnakeGameLauncher
+import com.alananasss.kittytune.ui.game.SnakeGameMode
+import com.alananasss.kittytune.ui.game.SnakeGameRequest
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.os.Build
@@ -26,11 +29,14 @@ import com.alananasss.kittytune.ui.upload.TrackArtworkCropDialog
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -44,6 +50,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -52,11 +59,13 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -104,11 +113,33 @@ import java.io.File
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.alananasss.kittytune.data.local.toTrack
+import com.alananasss.kittytune.audio.automix.TransitionPlan
+import com.alananasss.kittytune.audio.automix.TransitionPreset
+import com.alananasss.kittytune.audio.automix.TransitionStore
+import com.alananasss.kittytune.ui.player.mix.CamelotKeyBadge
+import com.alananasss.kittytune.ui.player.mix.EditTransitionScreen
+import com.alananasss.kittytune.ui.player.mix.TransitionPlayheadColor
+import com.alananasss.kittytune.ui.player.mix.transitionPresetIcon
+import com.alananasss.kittytune.ui.player.mix.transitionPresetTitle
+import com.alananasss.kittytune.utils.makeTimeString
 
 
 enum class TrackSortBy {
     RECENTLY_ADDED, FIRST_ADDED, TITLE_AZ, ARTIST_AZ
 }
+
+/**
+ * What a Mix-mode row renders to the right of the track title: the analyzed tempo on the first
+ * line, the Camelot badge (coloured by the wheel) plus the track's duration on the second.
+ * [fit] is the harmonic fit against the currently playing track — kept for future colouring
+ * of the whole card, not just the badge.
+ */
+data class MixBadgeUi(
+    val bpm: Int,
+    val camelot: String?,
+    val fit: com.alananasss.kittytune.data.mix.MixPlaylistAnalyzer.MixKeyFit,
+    val durationMs: Long?,
+)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -174,7 +205,7 @@ fun PlaylistDetailScreen(
     val isTidalArtist = playlistId.startsWith("tidal:artist:")
     val isQobuzArtist = playlistId.startsWith("qobuz:artist:")
     val isArtistStation = playlistId.startsWith("station_artist:")
-    val isArtistView = isDeezerArtist || isTidalArtist || isQobuzArtist
+    val isArtistView = isDeezerArtist || isTidalArtist || isQobuzArtist || isArtistStation
 
 
 
@@ -381,41 +412,33 @@ fun PlaylistDetailScreen(
         }
     }
     val isSpecialSystemScreen = isLikesScreen || playlistId == "downloads" || playlistId == "local_files" || isSystemPlaylistRoute || isSpotifyRadio || playlistId.startsWith("yt_radio:") || playlistId.startsWith("tidal_radio:") || playlistId.startsWith("deezer_radio:") || playlistId.startsWith("qobuz_radio:") || playlistId.startsWith("station:") || playlistId.startsWith("station_artist:") || playlistId.startsWith("spotify:")
-    val isCanReorderGlobal = (isUserCreated || isDownloadedView) && !isSpecialSystemScreen
+    // Drag-and-drop is enabled for ANY playlist whose order the app can
+    // persist: user-created, downloaded, local
+    // (created in the app, id < 0), and anything saved to the library
+    // (playlistInDb != null — importing creates refs with addedAt).
+    //
+    // isSpecialSystemScreen used to cut off the ENTIRE "spotify:" prefix — together with
+    // imported spotify:playlist:… entries that do have refs in the database and whose
+    // order is persisted by stableId. For them, drag-and-drop silently did nothing:
+    // ReorderableItem simply was never built. Now imported playlists (playlists
+    // that are neither radio nor albums) are exempted from that cut-off. Radio, stations,
+    // albums, and system lists keep a fixed order.
+    val isImportedReorderablePlaylist = playlistInDb != null &&
+        (playlistId.startsWith("spotify:playlist:") || playlistId.startsWith("spotify_playlist:") ||
+            playlistId.startsWith("deezer:playlist:") || playlistId.startsWith("tidal:playlist:") ||
+            playlistId.startsWith("qobuz:playlist:") ||
+            decodedPlaylistId.startsWith("spotify:playlist:") || decodedPlaylistId.startsWith("spotify_playlist:") ||
+            decodedPlaylistId.startsWith("deezer:playlist:") || decodedPlaylistId.startsWith("tidal:playlist:") ||
+            decodedPlaylistId.startsWith("qobuz:playlist:"))
+    val isCanReorderGlobal = (isUserCreated || isDownloadedView || isLocalPlaylist || playlistInDb != null) &&
+        (!isSpecialSystemScreen || isImportedReorderablePlaylist)
 
     val listState = rememberLazyListState()
-    val reorderableState = rememberReorderableLazyListState(
-        lazyListState = listState,
-        onMove = { from, to ->
-            if (!isCanReorderGlobal) return@rememberReorderableLazyListState
-            val fromId = from.key as? Long ?: return@rememberReorderableLazyListState
-            val toId = to.key as? Long ?: return@rememberReorderableLazyListState
-
-            val fromIndex = tracks.indexOfFirst { it.id == fromId }
-            val toIndex = tracks.indexOfFirst { it.id == toId }
-
-            if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
-                tracks.apply {
-                    add(toIndex, removeAt(fromIndex))
-                }
-                view.performAppHaptic(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
-            }
-        }
-    )
-
-    var wasDragging by remember { mutableStateOf(false) }
-    val isDragging = reorderableState.isAnyItemDragging
-    LaunchedEffect(isDragging) {
-        if (wasDragging && !isDragging) {
-            val newOrder = tracks.map { it.id }
-            DownloadManager.reorderPlaylistTracks(currentIdLong, newOrder)
-            if (isUserCreated && !isDownloadedView && currentIdLong > 0) {
-                DownloadManager.syncPlaylistOrderOnline(currentIdLong, newOrder)
-            }
-        }
-        wasDragging = isDragging
-    }
-
+    // Manual reorder counter: tracksToDisplay / tracksFilteredByVibe are
+    // remember(...) lists, and mutating the SnapshotStateList does not change their keys.
+    // Without this tick, drag-and-drop in a sorted/filtered view moved the
+    // "raw" list while the screen kept showing a stale derived order.
+    var reorderTick by remember { mutableStateOf(0) }
     val shareUrl = remember(playlistId, currentIdLong, playlistPermalinkUrl, playlistUser) {
         when {
             playlistId.startsWith("station_artist:") -> "https://soundcloud.com/discover/sets/artist-stations:$currentIdLong"
@@ -652,6 +675,35 @@ fun PlaylistDetailScreen(
     var isSearchExpanded by remember { mutableStateOf(false) }
     var playlistSortBy by remember { mutableStateOf(TrackSortBy.RECENTLY_ADDED) }
 
+    // --- Playlist Mix (Spotify-Mix mode) ---------------------------------------------
+    // Mix Mode turns every row into an analyzed DJ card (tempo + Camelot badge + duration),
+    // renders a transition connector between every pair of rows, and exposes the smart-sort
+    // action. Tapping a connector opens the full-screen transition editor.
+    var isMixMode by rememberSaveable { mutableStateOf(false) }
+    // The mixer belongs to the user's own created playlists only: likes, stations,
+    // radios, charts and other foreign lists never carry a mix — so the moment the
+    // list resolves as not-ours, the mode (and its overlays) drops back off.
+    LaunchedEffect(isUserCreated) {
+        if (!isUserCreated) isMixMode = false
+    }
+    // The pair being edited; non-null renders the full-screen EditTransitionScreen on top.
+    var transitionEditor by remember { mutableStateOf<Pair<Track, Track>?>(null) }
+    // The smart sort's order, as track ids. Kept separate from `tracks` so it survives
+    // re-fetches and composes with the existing search/sort pipeline instead of fighting it.
+    var mixOrderedIds by remember { mutableStateOf<List<Long>?>(null) }
+
+    val currentPlayingTrack = playerViewModel.uiCurrentTrack
+    // The reference the badges are coloured against: the key of the track playing right now.
+    // Cold flow per playing track; flowOf(null) keeps the pipeline honest when Mix is off.
+    val mixReferenceProfile by remember(isMixMode, currentPlayingTrack?.id) {
+        if (isMixMode && currentPlayingTrack != null) {
+            com.alananasss.kittytune.data.mix.MixPlaylistAnalyzer.profileFlow(context, currentPlayingTrack)
+        } else {
+            kotlinx.coroutines.flow.flowOf(null)
+        }
+    }.collectAsState(initial = null)
+    val mixReferenceKey = mixReferenceProfile?.camelot
+
     val vibes by com.alananasss.kittytune.data.VibesRepository.vibes.collectAsState()
     var selectedVibeId by remember { mutableStateOf<String?>(null) }
 
@@ -663,7 +715,7 @@ fun PlaylistDetailScreen(
 
     val rawTracks = if (playlistId == "likes") likedTracksRepo else tracks
 
-    val tracksFilteredByVibe = remember(rawTracks, selectedVibeId, vibes, playlistId) {
+    val tracksFilteredByVibe = remember(rawTracks, selectedVibeId, vibes, playlistId, reorderTick) {
         if (selectedVibeId == null || playlistId != "likes") {
             rawTracks
         } else {
@@ -687,8 +739,8 @@ fun PlaylistDetailScreen(
         }
     }
 
-    val tracksToDisplay = remember(tracksFilteredByVibe, playlistSearchQuery, playlistSortBy) {
-        if (playlistSearchQuery.isEmpty() && playlistSortBy == TrackSortBy.RECENTLY_ADDED) {
+    val tracksToDisplay = remember(tracksFilteredByVibe, playlistSearchQuery, playlistSortBy, mixOrderedIds, reorderTick) {
+        val base = if (playlistSearchQuery.isEmpty() && playlistSortBy == TrackSortBy.RECENTLY_ADDED) {
             tracksFilteredByVibe
         } else {
             val filtered = if (playlistSearchQuery.isEmpty()) {
@@ -706,6 +758,105 @@ fun PlaylistDetailScreen(
                 TrackSortBy.ARTIST_AZ -> filtered.sortedBy { it.user?.username?.lowercase() ?: "" }
             }
         }
+        // The smart mix order rides on top of the base pipeline: known ids first, in the
+        // planned order; anything that arrived after the sort keeps its relative order.
+        val orderedIds = mixOrderedIds
+        if (orderedIds == null) base
+        else {
+            val byId = base.associateBy { it.id }
+            orderedIds.mapNotNull { byId[it] } + base.filter { it.id !in orderedIds }
+        }
+    }
+
+    val applySmartMixSort: () -> Unit = {
+        scope.launch {
+            val source = tracksToDisplay.toList()
+            if (source.size > 1) {
+                val profiles = com.alananasss.kittytune.data.mix.MixPlaylistAnalyzer.profilesFor(context, source)
+                val ordered = com.alananasss.kittytune.data.mix.MixQueuePlanner.greedyMixOrder(source) { profiles[it.id] }
+                mixOrderedIds = ordered.map { it.id }
+                Toast.makeText(context, R.string.mix_smart_sort_applied, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val reorderableState = rememberReorderableLazyListState(
+        lazyListState = listState,
+        onMove = { from, to ->
+            if (!isCanReorderGlobal) return@rememberReorderableLazyListState
+            val fromId = from.key as? Long ?: return@rememberReorderableLazyListState
+            val toId = to.key as? Long ?: return@rememberReorderableLazyListState
+
+            // ── Why by the DISPLAYED order, not by tracks ──────────────────────
+            // The user drags a row through the list they SEE: that is tracksToDisplay
+            // (search, sorting, the vibe filter, and the smart mix overlay
+            // can all sit on top of tracks). Previously onMove reordered the "raw"
+            // tracks: with any active transformation the indices did not match,
+            // the move turned into a no-op and the row instantly snapped back —
+            // "drag-and-drop does not work". Now the new sequence is built from
+            // the visible layout and written back into every layer.
+            val displayed = tracksToDisplay.toList()
+            val displayFrom = displayed.indexOfFirst { it.id == fromId }
+            val displayTo = displayed.indexOfFirst { it.id == toId }
+            if (displayFrom == -1 || displayTo == -1 || displayFrom == displayTo) {
+                return@rememberReorderableLazyListState
+            }
+
+            val newDisplayed = displayed.toMutableList().apply {
+                // The library's standard formula: to.index is the insertion index after removal.
+                add(displayTo, removeAt(displayFrom))
+            }
+
+            // 1) The smart sort overlay lives on top — sync it first.
+            if (mixOrderedIds != null) {
+                mixOrderedIds = newDisplayed.map { it.id }
+            }
+
+            // 2) Write the visible order back into the "raw" list: the shown tracks
+            // go in the new order, while the hidden ones (filter/search) keep their relative
+            // order in the tail.
+            val displayedIds = newDisplayed.map { it.id }.toHashSet()
+            val tail = tracks.filter { it.id !in displayedIds }
+            val byId = tracks.associateBy { it.id }
+            tracks.apply {
+                clear()
+                addAll(newDisplayed.mapNotNull { byId[it.id] })
+                addAll(tail)
+            }
+            reorderTick++
+            view.performAppHaptic(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+        }
+    )
+
+    var wasDragging by remember { mutableStateOf(false) }
+    val isDragging = reorderableState.isAnyItemDragging
+    LaunchedEffect(isDragging) {
+        if (wasDragging && !isDragging) {
+            val newOrder = tracks.map { it.id }
+            // Refs are keyed by stableId — the same key that track
+            // add/remove uses. This used to be currentIdLong: for regular
+            // SoundCloud playlists the two matched, but for imported
+            // spotify/deezer/tidal/qobuz lists the stable id is a hash, so
+            // the order after drag-and-drop simply was not persisted.
+            DownloadManager.reorderPlaylistTracks(stableId, newOrder)
+            if (isUserCreated && !isDownloadedView && currentIdLong > 0) {
+                DownloadManager.syncPlaylistOrderOnline(currentIdLong, newOrder)
+            }
+            playerViewModel.updatePlayingQueueOrderIfMatching(stableId, tracks.toList())
+            if (isMixMode && tracks.size > 1) {
+                val currentTracksSnapshot = tracks.toList()
+                scope.launch {
+                    val profiles = com.alananasss.kittytune.data.mix.MixPlaylistAnalyzer.profilesFor(context, currentTracksSnapshot)
+                    com.alananasss.kittytune.data.mix.MixQueuePlanner.recomputeTransitionsForReorderedTracks(
+                        context = context,
+                        playlistKey = playlistId,
+                        tracks = currentTracksSnapshot,
+                        profiles = profiles
+                    )
+                }
+            }
+        }
+        wasDragging = isDragging
     }
 
     val totalDurationMs = remember(tracksToDisplay, playlistDurationMs, playlistSearchQuery, showTotalDuration) {
@@ -948,13 +1099,8 @@ fun PlaylistDetailScreen(
                         }
                         if (brokenTracks.isNotEmpty() && com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)) {
                             try {
-                                val onlineTracks = brokenTracks.map { it.id }.chunked(50).flatMap { chunk ->
-                                    try {
-                                        api.getTracksByIds(chunk.joinToString(","))
-                                    } catch (_: Exception) {
-                                        emptyList()
-                                    }
-                                }
+                                val idsStr = brokenTracks.map { it.id }.joinToString(",")
+                                val onlineTracks = api.getTracksByIds(idsStr)
                                 val onlineMap = onlineTracks.associateBy { it.id }
 
                                 for (i in newTracks.indices) {
@@ -1527,8 +1673,28 @@ fun PlaylistDetailScreen(
                                 else if (isTrackStation) "https://soundcloud.com/discover/sets/track-stations:$currentIdLong"
                                 else null
                             val rawTracks = playlistObj.tracks ?: emptyList()
-                            val hydratedList = com.alananasss.kittytune.data.DownloadManager.hydrateTracksIfNeeded(rawTracks)
-                            newTracks.addAll(hydratedList)
+                            val incompleteIds =
+                                rawTracks.filter { it.title.isNullOrBlank() || it.user == null }.map { it.id }
+
+                            if (incompleteIds.isNotEmpty()) {
+                                val fetchedTracksMap = mutableMapOf<Long, Track>()
+                                val chunks = incompleteIds.chunked(50)
+                                chunks.forEach { batchIds ->
+                                    try {
+                                        val fetched = api.getTracksByIds(batchIds.joinToString(","))
+                                        fetched.forEach { fetchedTracksMap[it.id] = it }
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                }
+                                val hydratedList = rawTracks.map { track ->
+                                    if (track.title.isNullOrBlank() || track.user == null) fetchedTracksMap[track.id]
+                                        ?: track else track
+                                }
+                                newTracks.addAll(hydratedList)
+                            } else {
+                                newTracks.addAll(rawTracks)
+                            }
                         }
                     }
                 }
@@ -1538,28 +1704,7 @@ fun PlaylistDetailScreen(
             if (stableId != 0L && playlistId != "likes" && playlistId != "downloads" && playlistId != "local_files" && !playlistId.startsWith("vk_playlist:")) {
                 val localDbTracks = db.getTracksForPlaylistSync(stableId)
                 if (localDbTracks.isNotEmpty()) {
-                    for (lt in localDbTracks) {
-                        if (lt.duration <= 45000L && lt.localAudioPath.isNotEmpty() && !lt.localAudioPath.startsWith("exo_cache://")) {
-                            try {
-                                val file = java.io.File(lt.localAudioPath)
-                                if (file.exists() && file.length() > 0L) {
-                                    val retriever = android.media.MediaMetadataRetriever()
-                                    try {
-                                        retriever.setDataSource(file.absolutePath)
-                                        val durStr = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
-                                        val dur = durStr?.toLongOrNull() ?: 0L
-                                        if (dur > 0L && (lt.duration <= 0L || dur > lt.duration)) {
-                                            db.updateTrack(lt.copy(duration = dur))
-                                        }
-                                    } finally {
-                                        retriever.release()
-                                    }
-                                }
-                            } catch (_: Exception) {}
-                        }
-                    }
-                    val updatedDbTracks = db.getTracksForPlaylistSync(stableId)
-                    val localMappedTracks = updatedDbTracks.map { local -> local.toTrack() }
+                    val localMappedTracks = localDbTracks.map { local -> local.toTrack() }
                     if (newTracks.isEmpty()) {
                         newTracks.addAll(localMappedTracks)
                     } else {
@@ -1568,18 +1713,28 @@ fun PlaylistDetailScreen(
                                 newTracks.add(lt)
                             }
                         }
-                    }
-                }
-            }
-
-            if (stableId != 0L) {
-                for (t in newTracks) {
-                    try {
-                        val existing = db.getTrack(t.id)
-                        if (existing != null) {
-                            com.alananasss.kittytune.data.DownloadManager.updateStubTrackIfNeeded(db, existing, t)
+                        // Manual track order in someone else's (non-user-created) playlist lives only
+                        // in local refs (addedAt) — it must not be synced to the server.
+                        // Previously every fresh network request wiped the manual reorder
+                        // with the server order; now the user's order
+                        // is restored on top of the network list. For imported
+                        // spotify/deezer/tidal/qobuz playlists this also works:
+                        // the branch used to be cut off by the umbrella isSpecialSystemScreen.
+                        if (!isUserCreated && !isDownloadedView &&
+                            (!isSpecialSystemScreen || isImportedReorderablePlaylist) &&
+                            newTracks.size > 1
+                        ) {
+                            val rank = localDbTracks.mapIndexed { index, local -> local.id to index }.toMap()
+                            val knownCount = newTracks.count { rank.containsKey(it.id) }
+                            if (rank.isNotEmpty() && knownCount > 1) {
+                                val known = newTracks.filter { rank.containsKey(it.id) }
+                                    .sortedBy { rank[it.id]!! }
+                                val unknown = newTracks.filter { !rank.containsKey(it.id) }
+                                newTracks.clear()
+                                newTracks.addAll(known + unknown)
+                            }
                         }
-                    } catch (_: Exception) {}
+                    }
                 }
             }
 
@@ -1812,6 +1967,35 @@ fun PlaylistDetailScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
+                    }
+                }
+
+                // Mix mode adds the harmonic smart sort on top of the plain orders.
+                if (isMixMode) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                view.performAppHaptic(HapticFeedbackConstants.KEYBOARD_TAP)
+                                showPlaylistSortSheet = false
+                                applySmartMixSort()
+                            }
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.mix_smart_sort),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(
+                            Icons.AutoMirrored.Rounded.Sort,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }
@@ -2072,8 +2256,27 @@ fun PlaylistDetailScreen(
                                             if (count == 0 && playlistSearchQuery.isNotEmpty()) {
                                                 stringResource(R.string.no_tracks_found_filter)
                                             } else {
-                                                val base = stringResource(R.string.playlist_num_tracks, count)
-                                                if (durationText.isNotEmpty()) "$base • $durationText" else base
+                                                // Order matters: the count and the TOTAL LISTEN
+                                            // TIME come first, the release date trails last —
+                                            // the date must never displace the duration. On
+                                            // albums the duration shows even when the general
+                                            // playlist-duration switch is off.
+                                            val albumDurationText = if (isAlbum && durationText.isEmpty()) {
+                                                formatPlaylistTotalDuration(context.resources, tracksToDisplay.sumOf { it.durationMs ?: 0L })
+                                            } else durationText
+                                            var base = stringResource(R.string.playlist_num_tracks, count)
+                                            if (albumDurationText.isNotEmpty()) base = "$base • $albumDurationText"
+                                            if (isAlbum) {
+                                                val releaseText = when (remember { prefs.getAlbumReleaseDateDisplay() }) {
+                                                    com.alananasss.kittytune.data.local.ReleaseDateDisplay.OFF -> null
+                                                    com.alananasss.kittytune.data.local.ReleaseDateDisplay.FULL ->
+                                                        playlistReleaseDate?.let { com.alananasss.kittytune.ui.profile.ReleaseDate.text(it) }
+                                                    com.alananasss.kittytune.data.local.ReleaseDateDisplay.SHORT ->
+                                                        playlistReleaseDate?.let { com.alananasss.kittytune.ui.profile.ReleaseDate.shortText(it) }
+                                                }
+                                                if (!releaseText.isNullOrEmpty()) base = "$base • $releaseText"
+                                            }
+                                            base
                                             }
                                         }
                                     }
@@ -2385,58 +2588,86 @@ fun PlaylistDetailScreen(
                                     if (rawTracks.isNotEmpty()) {
                                         item(key = "search_and_buttons") {
                                             if (tracksToDisplay.isNotEmpty()) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                                ) {
-                                                    Button(
-                                                        onClick = hapticAction(HapticKind.UI) {
-                                                            playerViewModel.playPlaylist(
-                                                                tracksToDisplay,
-                                                                0,
-                                                                playbackContext
-                                                            )
-                                                        },
-                                                        colors = ButtonDefaults.buttonColors(
-                                                            containerColor = MaterialTheme.colorScheme.primary,
-                                                            contentColor = MaterialTheme.colorScheme.onPrimary
-                                                        ),
-                                                        shapes = ButtonDefaults.shapes(),
-                                                        modifier = Modifier.weight(1f).height(50.dp)
+                                                // In Mix mode the playlist's play control transforms into the
+                                                // Pioneer-CDJ-style round button — the green disc with the double
+                                                // rim and the soft glow Spotify shows at the top of a mixed
+                                                // playlist. Out of Mix mode the row stays the plain Play/Shuffle pair.
+                                                AnimatedContent(
+                                                    targetState = isMixMode,
+                                                    transitionSpec = {
+                                                        (fadeIn(animationSpec = tween(220)) +
+                                                            scaleIn(initialScale = 0.86f, animationSpec = tween(220))) togetherWith
+                                                            (fadeOut(animationSpec = tween(180)) +
+                                                            scaleOut(targetScale = 0.92f, animationSpec = tween(180)))
+                                                    },
+                                                    label = "mix_play_transform",
+                                                ) { mixOn ->
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                                                     ) {
-                                                        Icon(Icons.Default.PlayArrow, null)
-                                                        Spacer(Modifier.width(8.dp))
-                                                        Text(
-                                                            stringResource(R.string.btn_play),
-                                                            style = MaterialTheme.typography.titleMedium,
-                                                            fontWeight = FontWeight.Bold,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
-                                                    }
-                                                    FilledTonalButton(
-                                                        onClick = { playerViewModel.playPlaylistShuffled(
-                                                                tracksToDisplay,
-                                                                context = playbackContext
+                                                        if (mixOn) {
+                                                            MixCdjPlayButton(
+                                                                onClick = hapticAction(HapticKind.UI) {
+                                                                    playerViewModel.playPlaylist(
+                                                                        tracksToDisplay,
+                                                                        0,
+                                                                        playbackContext
+                                                                    )
+                                                                },
                                                             )
-                                                        },
-                                                        colors = ButtonDefaults.filledTonalButtonColors(
-                                                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                                            contentColor = MaterialTheme.colorScheme.onSurface
-                                                        ),
-                                                        shapes = ButtonDefaults.shapes(),
-                                                        modifier = Modifier.weight(1f).height(50.dp)
-                                                    ) {
-                                                        Icon(Icons.Default.Shuffle, null)
-                                                        Spacer(Modifier.width(8.dp))
-                                                        Text(
-                                                            stringResource(R.string.btn_shuffle),
-                                                            style = MaterialTheme.typography.titleMedium,
-                                                            fontWeight = FontWeight.Bold,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
+                                                        }
+                                                        if (!mixOn) {
+                                                            Button(
+                                                                onClick = hapticAction(HapticKind.UI) {
+                                                                    playerViewModel.playPlaylist(
+                                                                        tracksToDisplay,
+                                                                        0,
+                                                                        playbackContext
+                                                                    )
+                                                                },
+                                                                colors = ButtonDefaults.buttonColors(
+                                                                    containerColor = MaterialTheme.colorScheme.primary,
+                                                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                                                ),
+                                                                shapes = ButtonDefaults.shapes(),
+                                                                modifier = Modifier.weight(1f).height(50.dp)
+                                                            ) {
+                                                                Icon(Icons.Default.PlayArrow, null)
+                                                                Spacer(Modifier.width(8.dp))
+                                                                Text(
+                                                                    stringResource(R.string.btn_play),
+                                                                    style = MaterialTheme.typography.titleMedium,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    maxLines = 1,
+                                                                    overflow = TextOverflow.Ellipsis
+                                                                )
+                                                            }
+                                                        }
+                                                        FilledTonalButton(
+                                                            onClick = { playerViewModel.playPlaylistShuffled(
+                                                                    tracksToDisplay,
+                                                                    context = playbackContext
+                                                                )
+                                                            },
+                                                            colors = ButtonDefaults.filledTonalButtonColors(
+                                                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                                                contentColor = MaterialTheme.colorScheme.onSurface
+                                                            ),
+                                                            shapes = ButtonDefaults.shapes(),
+                                                            modifier = Modifier.weight(1f).height(50.dp)
+                                                        ) {
+                                                            Icon(Icons.Default.Shuffle, null)
+                                                            Spacer(Modifier.width(8.dp))
+                                                            Text(
+                                                                stringResource(R.string.btn_shuffle),
+                                                                style = MaterialTheme.typography.titleMedium,
+                                                                fontWeight = FontWeight.Bold,
+                                                                maxLines = 1,
+                                                                overflow = TextOverflow.Ellipsis
+                                                            )
+                                                        }
                                                     }
                                                 }
                                                 Spacer(Modifier.height(16.dp))
@@ -2564,13 +2795,33 @@ fun PlaylistDetailScreen(
                                             }
                                         }
 
+                                        // Mix mode badge: [124 BPM • 8A], coloured by the harmonic
+                                        // fit of the row's key against the track playing now. The
+                                        // per-row flow also warms the analysis cache the smart sort
+                                        // reads, so by the time it runs the profiles are mostly there.
+                                        val mixProfile = if (isMixMode) {
+                                            com.alananasss.kittytune.data.mix.MixPlaylistAnalyzer
+                                                .profileFlow(context, track)
+                                                .collectAsState(initial = null).value
+                                        } else null
+                                        val mixBadge = mixProfile?.let { profile ->
+                                            MixBadgeUi(
+                                                bpm = profile.bpm,
+                                                camelot = profile.camelot,
+                                                fit = com.alananasss.kittytune.data.mix.MixPlaylistAnalyzer.keyFit(
+                                                    profile.camelot, mixReferenceKey,
+                                                ),
+                                                durationMs = track.durationMs,
+                                            )
+                                        }
+
                                         val progress = downloadProgress[track.id]
                                         val isDownloading = progress != null
                                         val isDownloaded = remember(track.id, downloadedIds) {
                                             downloadedIds.contains(track.id)
                                         }
 
-                                        val isCanReorder = (isUserCreated || isDownloadedView) && !isSpecialSystemScreen
+                                        val isCanReorder = isCanReorderGlobal
                                         val canRemoveTrack = isUserCreated || isDownloadedView || playlistId == "downloads" || playlistId == "likes"
                                         val isSwipeEnabled = isSwipeRemovalEnabled && canRemoveTrack
 
@@ -2617,6 +2868,32 @@ fun PlaylistDetailScreen(
                                                 val backgroundColor =
                                                     if (isDragging) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent
 
+                                                // ── Separating drag and swipe gestures ─────────────
+                                                // Swipe-to-dismiss (enabled by default) and the row's long press
+                                                // competed for the gesture: the horizontal swipe
+                                                // detector claimed the movement at the first touch-slop — even BEFORE
+                                                // the long-press timer fired, and drag only worked with a perfectly
+                                                // motionless finger. Now:
+                                                //  • swipe enabled  → drag only via the grip icon
+                                                //    (instant draggableHandle, no long press);
+                                                //  • swipe disabled  → long press anywhere in the row.
+                                                val rowDragModifier = Modifier.longPressDraggableHandle(
+                                                    onDragStarted = {
+                                                        view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
+                                                    },
+                                                    onDragStopped = {
+                                                        view.performAppHaptic(HapticFeedbackConstants.GESTURE_END)
+                                                    }
+                                                )
+                                                val gripHandleModifier = Modifier.draggableHandle(
+                                                    onDragStarted = {
+                                                        view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
+                                                    },
+                                                    onDragStopped = {
+                                                        view.performAppHaptic(HapticFeedbackConstants.GESTURE_END)
+                                                    }
+                                                )
+
                                                 val itemContent = @Composable {
                                                     TrackListItem(
                                                         track = track,
@@ -2628,6 +2905,10 @@ fun PlaylistDetailScreen(
                                                         showVerifiedBadge = false,
                                                         showLikeIndicator = playlistId != "likes",
                                                         horizontalPadding = 0.dp,
+                                                        mixBadge = mixBadge,
+                                                        // animateItem() is not needed here: ReorderableItem itself
+                                                        // animates the placement of non-dragged rows —
+                                                        // applying it twice conflicted with the drag offset.
                                                         modifier = Modifier
                                                             .fillMaxWidth()
                                                             .then(
@@ -2644,11 +2925,8 @@ fun PlaylistDetailScreen(
                                                                 scaleY = scale
                                                                 shadowElevation = elevation.toPx()
                                                             },
-                                                        dragModifier = Modifier.draggableHandle(
-                                                            onDragStarted = {
-                                                                view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
-                                                            }
-                                                        ),
+                                                        dragModifier = rowDragModifier,
+                                                        handleModifier = gripHandleModifier,
                                                         onClick = hapticAction(HapticKind.UI) {
                                                             if (!isDragging) {
                                                                 playerViewModel.playPlaylist(
@@ -2688,6 +2966,7 @@ fun PlaylistDetailScreen(
                                                     showVerifiedBadge = false,
                                                     showLikeIndicator = playlistId != "likes",
                                                     horizontalPadding = 0.dp,
+                                                    mixBadge = mixBadge,
                                                     modifier = Modifier.animateItem(),
                                                     onClick = hapticAction(HapticKind.UI) {
                                                         playerViewModel.playPlaylist(
@@ -2713,6 +2992,22 @@ fun PlaylistDetailScreen(
                                             ) {
                                                 itemContent()
                                             }
+                                        }
+
+                                        // The inline transition connector: the compact preset
+                                        // plate on the guide line between rows N and N+1.
+                                        // Tapping it opens the full-screen transition editor
+                                        // for exactly this pair, preloaded with its saved plan.
+                                        if (isMixMode && index < tracksToDisplay.lastIndex) {
+                                            val nextTrack = tracksToDisplay[index + 1]
+                                            MixTransitionConnector(
+                                                plan = TransitionStore.loadAny(context, playlistId, track.id, nextTrack.id)
+                                                    ?: TransitionPlan(),
+                                                modifier = Modifier.animateItem(),
+                                                onClick = hapticAction(HapticKind.LIGHT) {
+                                                    transitionEditor = track to nextTrack
+                                                },
+                                            )
                                         }
                                     }
                                     if (playlistId.startsWith("yt_radio:") && youtubeRadioViewModel.isLoadingMore) {
@@ -2748,6 +3043,51 @@ fun PlaylistDetailScreen(
                                 }
                             },
                             actions = {
+                                // The Mix Mode toggle — Spotify's mixer-sliders icon, living
+                                // strictly left of the overflow button. On: Spotify green with
+                                // a badge dot; off: the bar's neutral white. Toggling shows or
+                                // hides the BPM/Camelot badges and the inline transition
+                                // connectors across the list.
+                                //
+                                // Gated to the user's OWN created playlists: likes, stations,
+                                // radios, charts and every other foreign list never see the
+                                // mixer — the transitions only make sense on a playlist the
+                                // user curates themselves.
+                                if (isUserCreated) {
+                                    IconButton(
+                                        onClick = hapticAction(HapticKind.MEDIUM) {
+                                            isMixMode = !isMixMode
+                                            if (!isMixMode) {
+                                                transitionEditor = null
+                                                mixOrderedIds = null
+                                            }
+                                        },
+                                        shapes = IconButtonDefaults.shapes(),
+                                        colors = IconButtonDefaults.iconButtonColors(
+                                            containerColor = Color.Black.copy(alpha = 0.3f),
+                                            contentColor = if (isMixMode) TransitionPlayheadColor else Color.White
+                                        )
+                                    ) {
+                                        Box {
+                                            Icon(
+                                                Icons.Rounded.Tune,
+                                                stringResource(if (isMixMode) R.string.mix_mode_disable else R.string.mix_mode_enable),
+                                                tint = if (isMixMode) TransitionPlayheadColor else Color.White
+                                            )
+                                            if (isMixMode) {
+                                                // The active badge dot pinned to the icon's
+                                                // top-end, the Spotify-live-marker placement.
+                                                Box(
+                                                    modifier = Modifier
+                                                        .align(Alignment.TopEnd)
+                                                        .size(8.dp)
+                                                        .background(TransitionPlayheadColor, CircleShape)
+                                                        .border(1.5.dp, Color.Black.copy(alpha = 0.35f), CircleShape)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                                 IconButton(
                                     onClick = hapticAction(HapticKind.UI) { showPlaylistOptionsSheet = true },
                                     shapes = IconButtonDefaults.shapes(),
@@ -2880,6 +3220,37 @@ fun PlaylistDetailScreen(
                     initialDurationMs = totalDurationMs
                 )
             }
+        }
+
+        // The full-screen transition editor, one per tapped connector. Its Save stores the
+        // plan per pair (via TransitionStore, under EVERY route key the pair can be played
+        // from) and Cancel simply removes the overlay.
+        transitionEditor?.let { (trackA, trackB) ->
+            DisposableEffect(Unit) {
+                playerViewModel.isTransitionEditorActive = true
+                onDispose {
+                    playerViewModel.isTransitionEditorActive = false
+                }
+            }
+            EditTransitionScreen(
+                trackA = trackA,
+                trackB = trackB,
+                initialPlan = TransitionStore.loadAny(context, playlistId, trackA.id, trackB.id)
+                    ?: TransitionPlan(),
+                playlistKey = playlistId,
+                onSave = { savedPlan ->
+                    TransitionStore.saveAll(
+                        context = context,
+                        playlistKey = playlistId,
+                        numericPlaylistId = currentIdLong,
+                        fromId = trackA.id,
+                        toId = trackB.id,
+                        plan = savedPlan,
+                    )
+                    Toast.makeText(context, R.string.transition_saved, Toast.LENGTH_SHORT).show()
+                },
+                onDismiss = { transitionEditor = null },
+            )
         }
     }
 }
@@ -3040,6 +3411,23 @@ fun PlaylistOptionsSheet(
                         ) { playerViewModel.prepareBulkAdd(tracks); onDismiss() })
                 }
 
+                if (tracks.isNotEmpty()) {
+                    add(
+                        DockOptionItem(
+                            Icons.Rounded.SportsEsports,
+                            context.getString(R.string.game_eat_playlist)
+                        ) {
+                            SnakeGameLauncher.launch(
+                                SnakeGameRequest(
+                                    title = playlistTitle,
+                                    mode = SnakeGameMode.PLAYLIST,
+                                    tracks = tracks,
+                                )
+                            )
+                            onDismiss()
+                        })
+                }
+
                 if (isAlbum && tracks.isNotEmpty() && !isYoutubeRadio) {
                     add(
                         DockOptionItem(
@@ -3195,7 +3583,12 @@ fun TrackListItem(
     isVerifiedMatch: Boolean = false,
     showLikeIndicator: Boolean = true,
     horizontalPadding: Dp = 8.dp,
+    /** Full-row drag handle (long-press) — applied to the row root. */
     dragModifier: Modifier = Modifier,
+    /** Grip-icon handle (instant drag) — applied to the icon only. */
+    handleModifier: Modifier = Modifier,
+    /** Mix-mode badge ("124 BPM • 8A"), or null to hide it. Coloured by harmonic fit. */
+    mixBadge: MixBadgeUi? = null,
     onClick: () -> Unit,
     onOptionClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
@@ -3229,16 +3622,37 @@ fun TrackListItem(
         shape = RoundedCornerShape(16.dp),
         color = Color.Transparent,
         modifier = modifier
+            // The drag handle (long-press-then-drag) covers the WHOLE row when the caller
+            // passes one; the grip icon below is then a purely visual affordance. Without
+            // this the long press belonged to combinedClickable only and the row never
+            // started dragging.
+            .then(dragModifier)
             .padding(horizontal = horizontalPadding)
             .clip(RoundedCornerShape(16.dp))
-            .combinedClickable(
-                onClick = {
-                    view.performAppHaptic(HapticFeedbackConstants.KEYBOARD_TAP)
-                    onClick()
-                },
-                onLongClick = {
-                    view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
-                    if (onLongClick != null) onLongClick() else onOptionClick()
+            .then(
+                if (dragModifier != Modifier) {
+                    // Row with a drag handle: a PLAIN clickable without a long-press detector.
+                    // combinedClickable always had its own long-press handler —
+                    // even with an empty callback — and the two detectors competed for the gesture:
+                    // the haptic fired but the drag never started. Now the long
+                    // press belongs entirely to the drag handle.
+                    Modifier.clickable(
+                        onClick = {
+                            view.performAppHaptic(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onClick()
+                        }
+                    )
+                } else {
+                    Modifier.combinedClickable(
+                        onClick = {
+                            view.performAppHaptic(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onClick()
+                        },
+                        onLongClick = {
+                            view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
+                            if (onLongClick != null) onLongClick() else onOptionClick()
+                        }
+                    )
                 }
             )
     ) {
@@ -3363,15 +3777,21 @@ fun TrackListItem(
                     }
                 }
             }
-            if (dragModifier != Modifier) {
+            // Mix-mode metadata, to the right of the title: tempo on top, the Camelot wheel
+            // badge plus the track's duration underneath — the Spotify-Mix row layout.
+            if (mixBadge != null) {
+                Spacer(Modifier.width(8.dp))
+                MixTrackMetaColumn(badge = mixBadge)
+            }
+            if (dragModifier != Modifier || handleModifier != Modifier) {
                 Icon(
                     imageVector = Icons.Rounded.DragHandle,
                     contentDescription = stringResource(R.string.desc_move),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier
                         .size(48.dp)
+                        .then(handleModifier)
                         .padding(12.dp)
-                        .then(dragModifier)
                 )
             }
             IconButton(
@@ -3383,6 +3803,172 @@ fun TrackListItem(
                     Icons.Default.MoreVert,
                     stringResource(R.string.btn_options),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Playlist Mix UI pieces
+// ---------------------------------------------------------------------------
+
+/**
+ * The Mix mode's play control: the Pioneer-CDJ-style round button — a green disc inside a
+ * double rim with a soft glow, the look Spotify puts at the top of a mixed playlist in place
+ * of the plain wide Play pill. Same action, deck-machine dress.
+ */
+@Composable
+private fun MixCdjPlayButton(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(62.dp)
+            .hapticClickable(kind = HapticKind.UI, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        // The soft glow behind the rims.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .drawBehind {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                TransitionPlayheadColor.copy(alpha = 0.30f),
+                                Color.Transparent,
+                            ),
+                            radius = size.maxDimension,
+                        ),
+                        radius = size.maxDimension,
+                    )
+                },
+        )
+        // Outer rim — thin, dimmer.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+                .border(1.dp, TransitionPlayheadColor.copy(alpha = 0.45f), CircleShape),
+        )
+        // Middle rim — the CDJ's second ring.
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(CircleShape)
+                .border(1.5.dp, TransitionPlayheadColor.copy(alpha = 0.85f), CircleShape),
+        )
+        // The platter: the green disc with the play arrow.
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(TransitionPlayheadColor),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Default.PlayArrow,
+                contentDescription = stringResource(R.string.btn_play),
+                tint = Color.White,
+                modifier = Modifier.size(26.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The inline transition connector between rows N and N+1 in Mix mode: a 2dp `surfaceVariant`
+ * guide line with a compact rounded plate on it — the preset's icon beside its name and a
+ * chevron (`Auto ›`, `Blend ›`, `Custom ›`). Tapping opens the transition editor for the pair.
+ */
+@Composable
+private fun MixTransitionConnector(
+    plan: TransitionPlan,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(36.dp)
+            .padding(top = 2.dp, bottom = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        // The guide line the two rows hang from.
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+        )
+        // The connector plate — an oval chip with a 12dp corner radius.
+        val showIcon = plan.preset in CONNECTOR_ICON_PRESETS
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+                .height(32.dp)
+                .hapticClickable(kind = HapticKind.LIGHT, onClick = onClick),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(horizontal = 12.dp),
+            ) {
+                if (showIcon) {
+                    Icon(
+                        imageVector = transitionPresetIcon(plan.preset),
+                        contentDescription = null,
+                        modifier = Modifier.size(13.dp),
+                    )
+                }
+                Text(
+                    text = transitionPresetTitle(plan.preset) + " ›",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+/** Presets that draw their icon on the connector plate: ✦ Auto, ⚡ Slam, sliders Custom, ↔ Blend. */
+private val CONNECTOR_ICON_PRESETS = setOf(
+    TransitionPreset.AUTO,
+    TransitionPreset.SLAM,
+    TransitionPreset.CUSTOM,
+    TransitionPreset.BLEND,
+)
+
+/**
+ * The Mix-mode metadata column for a track row: tempo on the first line in the muted colour,
+ * then the Camelot badge in its wheel colour beside the track's duration.
+ */
+@Composable
+private fun MixTrackMetaColumn(
+    badge: MixBadgeUi,
+    modifier: Modifier = Modifier,
+) {
+    Column(horizontalAlignment = Alignment.End, modifier = modifier) {
+        Text(
+            text = if (badge.bpm > 0) stringResource(R.string.mix_badge_bpm_only, badge.bpm) else "",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+        Spacer(Modifier.height(3.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            badge.camelot?.let { CamelotKeyBadge(code = it) }
+            badge.durationMs?.takeIf { it > 0 }?.let {
+                Text(
+                    text = makeTimeString(it),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
                 )
             }
         }
