@@ -287,48 +287,64 @@ object MusicManager {
 
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
-    private var pausedForTransientFocusLoss = false
+    private var hasAudioFocus = false
+    private var androidAutoProjected = false
+    private var playersPausedForFocus = emptyList<ExoPlayer>()
 
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         when (focusChange) {
             AudioManager.AUDIOFOCUS_LOSS -> {
-                try {
-                    player.pause()
-                    fadingPlayer?.pause()
-                } catch (_: Exception) {}
+                playersPausedForFocus = emptyList()
+                abandonAudioFocus()
+                listOfNotNull(_player1, _player2).forEach { it.pause() }
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                try {
-                    if (player.isPlaying || fadingPlayer?.isPlaying == true) {
-                        pausedForTransientFocusLoss = true
-                        player.pause()
-                        fadingPlayer?.pause()
-                    }
-                } catch (_: Exception) {}
+                val playing = listOfNotNull(_player1, _player2).filter { it.playWhenReady }
+                playersPausedForFocus = (playersPausedForFocus + playing).distinct()
+                playing.forEach { it.pause() }
             }
             AudioManager.AUDIOFOCUS_GAIN -> {
-                if (pausedForTransientFocusLoss) {
-                    pausedForTransientFocusLoss = false
-                    try {
-                        player.play()
-                        fadingPlayer?.play()
-                    } catch (_: Exception) {}
-                }
+                val resumePlayers = playersPausedForFocus
+                playersPausedForFocus = emptyList()
+                resumePlayers.filter { it === _player1 || it === _player2 }
+                    .filter { it.playbackState == Player.STATE_READY || it.playbackState == Player.STATE_BUFFERING }
+                    .forEach { it.play() }
+                updateAudioFocus()
             }
         }
     }
 
-    fun requestAudioFocus(): Boolean {
-        val am = audioManager ?: return true
-        val req = audioFocusRequest ?: return true
-        val res = am.requestAudioFocus(req)
-        return res == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+    private fun updateAudioFocus() {
+        if (playersPausedForFocus.isNotEmpty()) return
+        // The two decks overlap during a crossfade and share one Android media focus request.
+        val wantsFocus = listOfNotNull(_player1, _player2).any {
+            it.playWhenReady && (it.playbackState == Player.STATE_BUFFERING || it.playbackState == Player.STATE_READY)
+        }
+        if (!wantsFocus) {
+            abandonAudioFocus()
+        } else if (androidAutoProjected) {
+            requestAudioFocus()
+        }
     }
 
-    fun abandonAudioFocus() {
+    private fun requestAudioFocus() {
+        if (hasAudioFocus) return
         val am = audioManager ?: return
-        val req = audioFocusRequest ?: return
-        am.abandonAudioFocusRequest(req)
+        val request = audioFocusRequest ?: return
+        hasAudioFocus = am.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+    }
+
+    fun setAndroidAutoProjected(projected: Boolean) {
+        if (androidAutoProjected == projected) return
+        androidAutoProjected = projected
+        // Android Auto takes focus during setup. Request it once the projection can consume media.
+        if (projected) updateAudioFocus() else if (!isCrossfadingOut && playersPausedForFocus.isEmpty()) abandonAudioFocus()
+    }
+
+    private fun abandonAudioFocus() {
+        if (!hasAudioFocus) return
+        hasAudioFocus = false
+        audioFocusRequest?.let { audioManager?.abandonAudioFocusRequest(it) }
     }
 
     fun applySkipSilenceSettings() {
@@ -887,7 +903,6 @@ object MusicManager {
                     .build()
             )
             .setOnAudioFocusChangeListener(audioFocusChangeListener)
-            .setAcceptsDelayedFocusGain(true)
             .build()
 
         val createExoPlayer = { index: Int ->
@@ -1061,6 +1076,12 @@ object MusicManager {
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             super.onPlayWhenReadyChanged(playWhenReady, reason)
             updateRainPlayback()
+        }
+
+        override fun onEvents(player: Player, events: Player.Events) {
+            if (events.containsAny(Player.EVENT_PLAYBACK_STATE_CHANGED, Player.EVENT_PLAY_WHEN_READY_CHANGED)) {
+                updateAudioFocus()
+            }
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -1318,8 +1339,8 @@ object MusicManager {
             setPlayerStemLevels(newPlayerIndex, vocal = 1.0f, drum = 1.0f, bass = 0.0f)
         }
 
-        requestAudioFocus()
         val shouldPlayInitial = playWhenReadyRequested
+        if (shouldPlayInitial) requestAudioFocus()
         newPlayer.playWhenReady = shouldPlayInitial
         if (shouldPlayInitial) {
             newPlayer.play()
@@ -2101,6 +2122,8 @@ object MusicManager {
     }
 
     fun releasePlayer() {
+        playersPausedForFocus = emptyList()
+        abandonAudioFocus()
         _player1?.release(); _player1 = null
         _player2?.release(); _player2 = null
         fadingPlayer?.release(); fadingPlayer = null

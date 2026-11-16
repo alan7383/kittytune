@@ -41,6 +41,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.onEach
 import android.app.PendingIntent
 import androidx.core.net.toUri
 
@@ -203,7 +204,12 @@ class PlaybackService : MediaLibraryService() {
         // Android Auto synchronized lyrics observer
         serviceScope.launch {
             combine(
-                com.alananasss.kittytune.data.auto.AndroidAutoLyricsGate.carConnectionTypeFlow(this@PlaybackService),
+                com.alananasss.kittytune.data.auto.AndroidAutoLyricsGate.carConnectionTypeFlow(this@PlaybackService)
+                    .onEach {
+                        MusicManager.setAndroidAutoProjected(
+                            it == androidx.car.app.connection.CarConnection.CONNECTION_TYPE_PROJECTION
+                        )
+                    },
                 librarySessionCallback!!.isAutomotiveControllerConnected,
                 prefs.getAndroidAutoSyncedLyricsFlow()
             ) { carConnectionType, automotiveConnected, lyricsEnabled ->
@@ -899,6 +905,7 @@ class PlaybackService : MediaLibraryService() {
         mediaController?.release()
         mediaController = null
         serviceScope.cancel()
+        MusicManager.setAndroidAutoProjected(false)
         AchievementManager.flushPendingWrites()
         librarySessionCallback?.release()
         mediaSession?.run { release(); mediaSession = null }

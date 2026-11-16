@@ -86,8 +86,6 @@ class TrackNormalizerProcessor : BaseAudioProcessor() {
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
-        handleChannels = inputAudioFormat.channelCount
-        handleSampleRate = inputAudioFormat.sampleRate
         // Bit-Perfect: identity configuration for ANY PCM encoding - the chain format
         // must stay 1:1 so the queueInput byte passthrough is bit-exact (never NOT_SET
         // and never a negotiated conversion while the DAC owns the output).
