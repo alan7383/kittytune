@@ -2868,23 +2868,6 @@ fun PlaylistDetailScreen(
                                                 val backgroundColor =
                                                     if (isDragging) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent
 
-                                                // ── Separating drag and swipe gestures ─────────────
-                                                // Swipe-to-dismiss (enabled by default) and the row's long press
-                                                // competed for the gesture: the horizontal swipe
-                                                // detector claimed the movement at the first touch-slop — even BEFORE
-                                                // the long-press timer fired, and drag only worked with a perfectly
-                                                // motionless finger. Now:
-                                                //  • swipe enabled  → drag only via the grip icon
-                                                //    (instant draggableHandle, no long press);
-                                                //  • swipe disabled  → long press anywhere in the row.
-                                                val rowDragModifier = Modifier.longPressDraggableHandle(
-                                                    onDragStarted = {
-                                                        view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
-                                                    },
-                                                    onDragStopped = {
-                                                        view.performAppHaptic(HapticFeedbackConstants.GESTURE_END)
-                                                    }
-                                                )
                                                 val gripHandleModifier = Modifier.draggableHandle(
                                                     onDragStarted = {
                                                         view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
@@ -2925,7 +2908,6 @@ fun PlaylistDetailScreen(
                                                                 scaleY = scale
                                                                 shadowElevation = elevation.toPx()
                                                             },
-                                                        dragModifier = rowDragModifier,
                                                         handleModifier = gripHandleModifier,
                                                         onClick = hapticAction(HapticKind.UI) {
                                                             if (!isDragging) {
@@ -3583,9 +3565,7 @@ fun TrackListItem(
     isVerifiedMatch: Boolean = false,
     showLikeIndicator: Boolean = true,
     horizontalPadding: Dp = 8.dp,
-    /** Full-row drag handle (long-press) — applied to the row root. */
-    dragModifier: Modifier = Modifier,
-    /** Grip-icon handle (instant drag) — applied to the icon only. */
+    /** Drag gesture applied only to the reorder handle. */
     handleModifier: Modifier = Modifier,
     /** Mix-mode badge ("124 BPM • 8A"), or null to hide it. Coloured by harmonic fit. */
     mixBadge: MixBadgeUi? = null,
@@ -3621,169 +3601,154 @@ fun TrackListItem(
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = Color.Transparent,
-        modifier = modifier
-            // The drag handle (long-press-then-drag) covers the WHOLE row when the caller
-            // passes one; the grip icon below is then a purely visual affordance. Without
-            // this the long press belonged to combinedClickable only and the row never
-            // started dragging.
-            .then(dragModifier)
-            .padding(horizontal = horizontalPadding)
-            .clip(RoundedCornerShape(16.dp))
-            .then(
-                if (dragModifier != Modifier) {
-                    // Row with a drag handle: a PLAIN clickable without a long-press detector.
-                    // combinedClickable always had its own long-press handler —
-                    // even with an empty callback — and the two detectors competed for the gesture:
-                    // the haptic fired but the drag never started. Now the long
-                    // press belongs entirely to the drag handle.
-                    Modifier.clickable(
-                        onClick = {
-                            view.performAppHaptic(HapticFeedbackConstants.KEYBOARD_TAP)
-                            onClick()
-                        }
-                    )
-                } else {
-                    Modifier.combinedClickable(
+        modifier = modifier.padding(horizontal = horizontalPadding)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().height(88.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Keep the track body and drag handle as siblings so a touch on the handle
+            // never reaches the body's long-press detector.
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .combinedClickable(
                         onClick = {
                             view.performAppHaptic(HapticFeedbackConstants.KEYBOARD_TAP)
                             onClick()
                         },
                         onLongClick = {
                             view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
-                            if (onLongClick != null) onLongClick() else onOptionClick()
+                            (onLongClick ?: onOptionClick)()
                         }
                     )
-                }
-            )
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 8.dp, vertical = 8.dp)
-                .height(72.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                val art = track.thumbnailUrl
-                val imageModel: Any = remember(art) {
-                    if (art.startsWith("/")) File(art) else art
-                }
-                AsyncImage(
-                    model = imageModel,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .alpha(if (isDownloading) 0.3f else 1f),
-                    contentScale = ContentScale.Crop
-                )
-                if (isDownloading) CircularWavyProgressIndicator(
-                    progress = { downloadProgress / 100f },
-                    modifier = Modifier.size(28.dp),
-                    color = Color.White,
-                    trackColor = Color.White.copy(alpha = 0.3f)
-                )
+                    .padding(start = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    val art = track.thumbnailUrl
+                    val imageModel: Any = remember(art) {
+                        if (art.startsWith("/")) File(art) else art
+                    }
+                    AsyncImage(
+                        model = imageModel,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .alpha(if (isDownloading) 0.3f else 1f),
+                        contentScale = ContentScale.Crop
+                    )
+                    if (isDownloading) CircularWavyProgressIndicator(
+                        progress = { downloadProgress / 100f },
+                        modifier = Modifier.size(28.dp),
+                        color = Color.White,
+                        trackColor = Color.White.copy(alpha = 0.3f)
+                    )
 
-                if (isCurrent && !isDownloading) {
-                    Box(
-                        modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.GraphicEq,
-                            contentDescription = stringResource(R.string.player_playing_now),
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
+                    if (isCurrent && !isDownloading) {
+                        Box(
+                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.GraphicEq,
+                                contentDescription = stringResource(R.string.player_playing_now),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = track.title ?: stringResource(R.string.untitled_track),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontWeight = titleWeight,
-                        color = titleColor,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    if (track.isGoPlus) {
-                        Spacer(Modifier.width(6.dp))
-                        com.alananasss.kittytune.ui.common.GoPlusBadge(compact = true)
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (isDownloaded && !isDownloading) {
-                        Icon(
-                            Icons.Rounded.DownloadDone,
-                            stringResource(R.string.btn_downloaded),
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(Modifier.width(4.dp))
-                    }
-                    Text(
-                        text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    if (isVerifiedMatch) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            Icons.Rounded.Verified,
-                            stringResource(R.string.search_verified_track),
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(12.dp)
-                        )
-                    } else if (showVerifiedBadge && track.user?.verified == true) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            Icons.Rounded.Verified,
-                            null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(12.dp)
-                        )
-                    }
-                    if (showLikeIndicator && isTrackLiked) {
-                        Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "·",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = track.title ?: stringResource(R.string.untitled_track),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = titleWeight,
+                            color = titleColor,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Rounded.Favorite,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(12.dp)
-                        )
+                        if (track.isGoPlus) {
+                            Spacer(Modifier.width(6.dp))
+                            com.alananasss.kittytune.ui.common.GoPlusBadge(compact = true)
+                        }
                     }
-                    if (!socialLikers.isNullOrEmpty()) {
-                        Spacer(Modifier.width(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (isDownloaded && !isDownloading) {
+                            Icon(
+                                Icons.Rounded.DownloadDone,
+                                stringResource(R.string.btn_downloaded),
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.width(4.dp))
+                        }
                         Text(
-                            text = "·",
+                            text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
-                        Spacer(Modifier.width(4.dp))
-                        MiniSocialProofAvatars(likers = socialLikers)
+                        if (isVerifiedMatch) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                Icons.Rounded.Verified,
+                                stringResource(R.string.search_verified_track),
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        } else if (showVerifiedBadge && track.user?.verified == true) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                Icons.Rounded.Verified,
+                                null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                        if (showLikeIndicator && isTrackLiked) {
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "·",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.Favorite,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                        if (!socialLikers.isNullOrEmpty()) {
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "·",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            MiniSocialProofAvatars(likers = socialLikers)
+                        }
                     }
                 }
+                // Mix-mode metadata, to the right of the title: tempo on top, the Camelot wheel
+                // badge plus the track's duration underneath — the Spotify-Mix row layout.
+                if (mixBadge != null) {
+                    Spacer(Modifier.width(8.dp))
+                    MixTrackMetaColumn(badge = mixBadge)
+                }
             }
-            // Mix-mode metadata, to the right of the title: tempo on top, the Camelot wheel
-            // badge plus the track's duration underneath — the Spotify-Mix row layout.
-            if (mixBadge != null) {
-                Spacer(Modifier.width(8.dp))
-                MixTrackMetaColumn(badge = mixBadge)
-            }
-            if (dragModifier != Modifier || handleModifier != Modifier) {
+            if (handleModifier != Modifier) {
                 Icon(
                     imageVector = Icons.Rounded.DragHandle,
                     contentDescription = stringResource(R.string.desc_move),
@@ -3805,6 +3770,7 @@ fun TrackListItem(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Spacer(Modifier.width(8.dp))
         }
     }
 }
