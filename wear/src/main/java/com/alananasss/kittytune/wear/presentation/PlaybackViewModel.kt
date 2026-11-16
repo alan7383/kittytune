@@ -9,6 +9,7 @@ import com.alananasss.kittytune.wear.common.WearPlaybackState
 import com.alananasss.kittytune.wear.data.DefaultPlaybackController
 import com.alananasss.kittytune.wear.data.WearPlaybackController
 import com.alananasss.kittytune.wear.presentation.volume.VolumeSanitizer
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,9 @@ class PlaybackViewModel(
     // Tracks optimistic locks to prevent race conditions during rapid tapping
     private var optimisticPlayPauseJob: Job? = null
     private var optimisticVolumeJob: Job? = null
+
+    // Tracks the latest authoritative backend volume to support rollback on transport failure
+    private var lastAuthoritativeVolume: Float = controller.playbackState.value.volume
 
     init {
         // Collect authoritative playback state from controller
@@ -65,6 +69,7 @@ class PlaybackViewModel(
     }
 
     private fun reconcilePlaybackState(backend: WearPlaybackState) {
+        lastAuthoritativeVolume = backend.volume
         _uiState.update { current ->
             // Reconcile selected target info
             val activeTarget = current.availableTargets.find { it.id == backend.targetDeviceId || (backend.isPhone && it.isPhone) }
@@ -76,6 +81,8 @@ class PlaybackViewModel(
                     isSelected = true
                 )
 
+            val effectiveVolume = if (optimisticVolumeJob?.isActive == true) current.volume else backend.volume
+
             current.copy(
                 trackId = backend.trackId,
                 title = backend.title,
@@ -86,7 +93,7 @@ class PlaybackViewModel(
                 isLoading = backend.isLoading,
                 positionMs = backend.positionMs,
                 durationMs = backend.durationMs,
-                volume = backend.volume,
+                volume = effectiveVolume,
                 selectedTarget = activeTarget,
                 timestamp = backend.timestamp,
                 availableTargets = if (backend.availableTargets.isNotEmpty()) backend.availableTargets else current.availableTargets,
@@ -171,9 +178,29 @@ class PlaybackViewModel(
         optimisticVolumeJob?.cancel()
         optimisticVolumeJob = viewModelScope.launch {
             delay(50L) // Debounce for rapid rotary crown ticks
-            val result = controller.setVolume(volume)
-            if (result.isFailure) {
-                _uiState.update { it.copy(errorMessage = "Volume sync failed") }
+            try {
+                val result = controller.setVolume(volume)
+                if (result.isSuccess) {
+                    lastAuthoritativeVolume = volume
+                } else {
+                    _uiState.update { current ->
+                        current.copy(
+                            volume = lastAuthoritativeVolume,
+                            volumeRevision = current.volumeRevision + 1,
+                            errorMessage = "Volume sync failed"
+                        )
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                _uiState.update { current ->
+                    current.copy(
+                        volume = lastAuthoritativeVolume,
+                        volumeRevision = current.volumeRevision + 1,
+                        errorMessage = "Volume sync failed"
+                    )
+                }
             }
         }
     }

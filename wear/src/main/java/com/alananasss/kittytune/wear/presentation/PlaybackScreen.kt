@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -29,7 +30,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.FilledIconButton
@@ -41,18 +45,69 @@ import androidx.wear.compose.material3.ProgressIndicatorDefaults
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
-import androidx.compose.ui.tooling.preview.Preview
 import com.alananasss.kittytune.wear.R
 import com.alananasss.kittytune.wear.common.TargetDeviceInfo
-import com.alananasss.kittytune.wear.common.WearConstants
 import com.alananasss.kittytune.wear.presentation.components.TargetDeviceSelectorChip
 import com.alananasss.kittytune.wear.presentation.components.TargetPickerDialog
 import com.alananasss.kittytune.wear.presentation.theme.KittyTuneWearTheme
 import com.alananasss.kittytune.wear.presentation.theme.WearBackground
 import com.alananasss.kittytune.wear.presentation.volume.EphemeralVolumeHud
 import com.alananasss.kittytune.wear.presentation.volume.VolumeBezelArc
+import com.alananasss.kittytune.wear.presentation.volume.VolumeControlsDefaults
 import com.alananasss.kittytune.wear.presentation.volume.VolumeControlsRow
 import com.alananasss.kittytune.wear.presentation.volume.rotaryVolumeControl
+
+/**
+ * Geometric layout specifications and defaults for [PlaybackScreen].
+ * Central interaction column is compacted to exactly 142dp vertical stack height
+ * to guarantee that all 5 rows remain within the safe circular chord radius
+ * on 390x390 round displays (R_safe = 89.5dp) and 450x450 round displays (R_safe = 104.5dp).
+ */
+object PlaybackScreenDefaults {
+    /** Target device selector chip visual width and height. */
+    val TargetChipWidth: Dp = 80.dp
+    val TargetChipHeight: Dp = 18.dp
+
+    /** Maximum allowed width for marquee track title and artist block. */
+    val TrackInfoMaxWidth: Dp = 124.dp
+    /** Estimated height for track title (15sp) + spacer (1dp) + artist (12sp). */
+    val TrackInfoHeight: Dp = 26.dp
+
+    /** Playback controls triad: 3 buttons at 48dp each + 2 spacers at 8dp = 160dp. */
+    val PlaybackButtonSize: Dp = 48.dp
+    val PlaybackControlsSpacing: Dp = 8.dp
+    val PlaybackControlsRowWidth: Dp = (PlaybackButtonSize * 3) + (PlaybackControlsSpacing * 2) // 160.dp
+    val PlaybackControlsRowHeight: Dp = PlaybackButtonSize // 48.dp
+
+    /** Discrete volume controls row dimensions referenced from [VolumeControlsDefaults]. */
+    val VolumeRowWidth: Dp get() = VolumeControlsDefaults.RowWidth
+    val VolumeRowHeight: Dp get() = VolumeControlsDefaults.RowHeight
+
+    /** Timeline status / idle companion branding readout dimensions. */
+    val TimelineMaxWidth: Dp = 70.dp
+    val TimelineHeight: Dp = 12.dp
+
+    /** Standard vertical spacing between adjacent interaction rows. */
+    val SpacerStandard: Dp = 2.dp
+
+    /** Compact vertical spacing between compact rows. */
+    val SpacerCompact: Dp = 1.dp
+
+    /**
+     * Authoritative total vertical stack height for the 5 rows and 4 spacers.
+     * 18dp + 1dp + 26dp + 2dp + 48dp + 2dp + 32dp + 1dp + 12dp = 142.dp (<= 142.dp target).
+     */
+    val TotalStackHeight: Dp
+        get() = TargetChipHeight +
+            SpacerCompact +
+            TrackInfoHeight +
+            SpacerStandard +
+            PlaybackControlsRowHeight +
+            SpacerStandard +
+            VolumeControlsDefaults.RowHeight +
+            SpacerCompact +
+            TimelineHeight
+}
 
 /**
  * Stateful entry point for PlaybackScreen, binding with [PlaybackViewModel].
@@ -119,8 +174,9 @@ fun PlaybackScreen(
  * - EphemeralVolumeHud badges volume adjustments.
  * - TargetDeviceSelectorChip positioned in safe zone below TimeText.
  * - Track title supports basicMarquee for ultra-long strings.
- * - Three-button triad (48dp Prev, 56dp Play/Pause, 48dp Next) meets touch standards.
- * - VolumeControlsRow provides on-screen fallback buttons.
+ * - Three-button triad (48dp Prev, 48dp Play/Pause, 48dp Next) meets touch standards.
+ * - VolumeControlsRow provides on-screen compact controls (width <= 112dp, height <= 36dp).
+ * - Total stacked vertical height is constrained to <= 142dp.
  */
 @Composable
 fun PlaybackScreenContent(
@@ -165,11 +221,11 @@ fun PlaybackScreenContent(
             )
         }
 
-        // 3. Central interaction column
+        // 3. Central interaction column — vertically compacted to <= 142dp
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 14.dp),
+                .padding(horizontal = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -180,7 +236,7 @@ fun PlaybackScreenContent(
                 onClick = onTargetClick
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(PlaybackScreenDefaults.SpacerCompact))
 
             // Track Title with Marquee & Artist Display
             TrackInfoSection(
@@ -190,7 +246,7 @@ fun PlaybackScreenContent(
                 isLoading = uiState.isLoading
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(PlaybackScreenDefaults.SpacerStandard))
 
             // Playback Controls Triad (Prev | Play/Pause | Next)
             PlaybackControlsRow(
@@ -201,7 +257,7 @@ fun PlaybackScreenContent(
                 onPrevious = onPrevious
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(PlaybackScreenDefaults.SpacerStandard))
 
             // Discrete Volume Controls Row (- | speaker % | +)
             VolumeControlsRow(
@@ -209,7 +265,7 @@ fun PlaybackScreenContent(
                 onVolumeChange = onVolumeChange
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(PlaybackScreenDefaults.SpacerCompact))
 
             // Timeline status or idle branding
             TimelineStatusText(
@@ -239,7 +295,7 @@ fun PlaybackScreenContent(
 
 /**
  * Track title with marquee scrolling and artist name with ellipsis.
- * Width constrained to 82% of screen to prevent chord clipping on round bezels.
+ * Width constrained to 124dp to prevent chord clipping on round bezels.
  */
 @Composable
 private fun TrackInfoSection(
@@ -261,13 +317,17 @@ private fun TrackInfoSection(
     }
 
     Column(
-        modifier = modifier.fillMaxWidth(0.82f),
+        modifier = modifier.widthIn(max = PlaybackScreenDefaults.TrackInfoMaxWidth),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Track Title (single line with smooth marquee for long text)
         Text(
             text = displayTitle,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                lineHeight = 15.sp
+            ),
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
             maxLines = 1,
@@ -286,12 +346,15 @@ private fun TrackInfoSection(
         // Artist Name (secondary color, single line truncated with ellipsis)
         Text(
             text = displayArtist,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 10.sp,
+                lineHeight = 12.sp
+            ),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth(0.90f)
+            modifier = Modifier.fillMaxWidth(0.92f)
         )
     }
 }
@@ -301,9 +364,9 @@ private fun TrackInfoSection(
  *
  * Touch Targets:
  * - Previous: 48x48dp (FilledTonalIconButton)
- * - Play/Pause: 56x56dp (FilledIconButton with Primary container fill)
+ * - Play/Pause: 48x48dp (FilledIconButton with Primary container fill)
  * - Next: 48x48dp (FilledTonalIconButton)
- * - Total width = 48 + 8 + 56 + 8 + 48 = 168dp
+ * - Total width = 48 + 8 + 48 + 8 + 48 = 160dp
  */
 @Composable
 private fun PlaybackControlsRow(
@@ -316,13 +379,13 @@ private fun PlaybackControlsRow(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(PlaybackScreenDefaults.PlaybackControlsSpacing),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Previous Track Button
         FilledTonalIconButton(
             onClick = onPrevious,
-            modifier = Modifier.size(IconButtonDefaults.SmallButtonSize), // 48.dp
+            modifier = Modifier.size(PlaybackScreenDefaults.PlaybackButtonSize), // 48.dp
             enabled = hasTrack,
             colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -339,7 +402,7 @@ private fun PlaybackControlsRow(
         // Primary Play / Pause Toggle Button
         FilledIconButton(
             onClick = onPlayPause,
-            modifier = Modifier.size(56.dp), // Prominent central touch target
+            modifier = Modifier.size(PlaybackScreenDefaults.PlaybackButtonSize), // 48.dp
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
@@ -352,14 +415,14 @@ private fun PlaybackControlsRow(
                 } else {
                     stringResource(R.string.action_play)
                 },
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(26.dp)
             )
         }
 
         // Next Track Button
         FilledTonalIconButton(
             onClick = onNext,
-            modifier = Modifier.size(IconButtonDefaults.SmallButtonSize), // 48.dp
+            modifier = Modifier.size(PlaybackScreenDefaults.PlaybackButtonSize), // 48.dp
             enabled = hasTrack,
             colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -388,7 +451,7 @@ private fun TimelineStatusText(
     if (!hasTrack || durationMs <= 0L) {
         // Display KittyTune companion branding indicator when idle
         Row(
-            modifier = modifier,
+            modifier = modifier.widthIn(max = PlaybackScreenDefaults.TimelineMaxWidth),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
@@ -396,12 +459,12 @@ private fun TimelineStatusText(
                 imageVector = Icons.Filled.MusicNote,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.60f),
-                modifier = Modifier.size(12.dp)
+                modifier = Modifier.size(11.dp)
             )
             Spacer(modifier = Modifier.width(3.dp))
             Text(
                 text = "KittyTune",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, lineHeight = 11.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -413,10 +476,10 @@ private fun TimelineStatusText(
 
         Text(
             text = "$posStr / $durStr",
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = modifier
+            modifier = modifier.widthIn(max = PlaybackScreenDefaults.TimelineMaxWidth)
         )
     }
 }

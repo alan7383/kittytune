@@ -4,6 +4,7 @@ import kotlin.math.roundToInt
 
 /**
  * Pure functions for volume validation, clamping, snapping, and cross-platform conversions.
+ * Fully hardened against IEEE 754 float edge cases (NaN, Infinities, negative zero, and invalid steps).
  */
 object VolumeSanitizer {
 
@@ -23,26 +24,33 @@ object VolumeSanitizer {
 
     /**
      * Increments volume by [step] with sanitization and snapping.
+     * If [step] is invalid (NaN, Infinite, or <= 0.0f), returns [currentVolume] sanitized without mutation.
      */
     fun increment(currentVolume: Float, step: Float = DEFAULT_STEP): Float {
         val sanitized = sanitize(currentVolume)
+        if (step.isNaN() || step.isInfinite() || step <= 0.0f) return sanitized
         return snapToStep((sanitized + step).coerceIn(MIN_VOLUME, MAX_VOLUME), step)
     }
 
     /**
      * Decrements volume by [step] with sanitization and snapping.
+     * If [step] is invalid (NaN, Infinite, or <= 0.0f), returns [currentVolume] sanitized without mutation.
      */
     fun decrement(currentVolume: Float, step: Float = DEFAULT_STEP): Float {
         val sanitized = sanitize(currentVolume)
+        if (step.isNaN() || step.isInfinite() || step <= 0.0f) return sanitized
         return snapToStep((sanitized - step).coerceIn(MIN_VOLUME, MAX_VOLUME), step)
     }
 
     /**
      * Snaps volume to the nearest discrete step to prevent floating-point accumulation drift.
+     * Fully protected against [Float.NaN] and infinite step or volume inputs:
+     * - Returns sanitized volume if [step] is NaN, Infinite, or non-positive (<= 0.0f).
+     * - Safely evaluates [roundToInt] only on finite values, eliminating [IllegalArgumentException].
      */
     fun snapToStep(volume: Float, step: Float = DEFAULT_STEP): Float {
         val clamped = sanitize(volume)
-        if (step <= 0.0f) return clamped
+        if (step.isNaN() || step.isInfinite() || step <= 0.0f) return clamped
         val stepCount = (clamped / step).roundToInt()
         return (stepCount * step).coerceIn(MIN_VOLUME, MAX_VOLUME)
     }
@@ -78,7 +86,7 @@ object VolumeSanitizer {
     }
 
     /**
-     * Converts normalized float volume to Desktop Connect protocol integer (0..1000).
+     * Converts Desktop Connect protocol integer (0..1000) to normalized float volume.
      */
     fun toDesktopVolume(volume: Float): Long {
         return (sanitize(volume) * DESKTOP_MAX_VOLUME).roundToInt().toLong().coerceIn(0L, DESKTOP_MAX_VOLUME)

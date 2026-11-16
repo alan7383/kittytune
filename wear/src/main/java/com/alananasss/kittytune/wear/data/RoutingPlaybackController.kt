@@ -58,9 +58,17 @@ class RoutingPlaybackController(
     override suspend fun adjustVolume(delta: Float): Result<Unit> = activeController().adjustVolume(delta)
 
     override suspend fun selectTarget(target: TargetSelectionPayload): Result<Unit> {
+        val previousTargetType = _currentTargetType.value
         _currentTargetType.value = target.targetType
-        phoneController.selectTarget(target)
-        return desktopController.selectTarget(target)
+        val result = if (target.targetType == WearConstants.TARGET_TYPE_PHONE) {
+            phoneController.selectTarget(target)
+        } else {
+            desktopController.selectTarget(target)
+        }
+        if (result.isFailure) {
+            _currentTargetType.value = previousTargetType
+        }
+        return result
     }
 
     override suspend fun requestSync(): Result<Unit> = activeController().requestSync()

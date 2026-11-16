@@ -193,4 +193,81 @@ class PlaybackViewModelTest {
         viewModel.onDismissError()
         assertNull(viewModel.uiState.value.errorMessage)
     }
+
+    @Test
+    fun `volume adjustment failure rolls back to prior authoritative volume`() {
+        // Set initial authoritative volume to 0.5f
+        controller._playbackState.value = WearPlaybackState(
+            trackId = 1L,
+            title = "Test Track",
+            volume = 0.5f
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(0.5f, viewModel.uiState.value.volume, 0.001f)
+
+        // Make controller command fail
+        controller.shouldFailNextCommand = true
+
+        // User changes volume optimistically to 0.8f
+        viewModel.onSetVolume(0.8f)
+        assertEquals(0.8f, viewModel.uiState.value.volume, 0.001f)
+
+        // Advance debounce timer (50ms) and execute failed controller command
+        testDispatcher.scheduler.advanceTimeBy(100L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Volume must roll back to 0.5f and error message must be set
+        assertEquals("Volume must roll back to authoritative value on failure", 0.5f, viewModel.uiState.value.volume, 0.001f)
+        assertEquals("Volume sync failed", viewModel.uiState.value.errorMessage)
+    }
+
+    @Test
+    fun `rapid volume delta adjustments roll back to initial authoritative baseline on failure`() {
+        controller._playbackState.value = WearPlaybackState(
+            trackId = 1L,
+            volume = 0.4f
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(0.4f, viewModel.uiState.value.volume, 0.001f)
+
+        controller.shouldFailNextCommand = true
+
+        // Rapid rotary crown ticks before debounce expires
+        viewModel.onVolumeChange(+0.1f) // 0.5f
+        viewModel.onVolumeChange(+0.1f) // 0.6f
+        viewModel.onVolumeChange(+0.1f) // 0.7f
+        assertEquals(0.7f, viewModel.uiState.value.volume, 0.001f)
+
+        // Debounce expires and dispatch fails
+        testDispatcher.scheduler.advanceTimeBy(100L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Must roll back to the baseline 0.4f, NOT intermediate 0.5f or 0.6f
+        assertEquals(0.4f, viewModel.uiState.value.volume, 0.001f)
+        assertNotNull(viewModel.uiState.value.errorMessage)
+    }
+
+    @Test
+    fun `successful volume update updates authoritative baseline for subsequent failures`() {
+        controller._playbackState.value = WearPlaybackState(volume = 0.3f)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(0.3f, viewModel.uiState.value.volume, 0.001f)
+
+        // Step 1: Update to 0.6f successfully
+        viewModel.onSetVolume(0.6f)
+        testDispatcher.scheduler.advanceTimeBy(100L)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(0.6f, viewModel.uiState.value.volume, 0.001f)
+        assertNull(viewModel.uiState.value.errorMessage)
+
+        // Step 2: Next update to 0.9f fails
+        controller.shouldFailNextCommand = true
+        viewModel.onSetVolume(0.9f)
+        testDispatcher.scheduler.advanceTimeBy(100L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Must roll back to 0.6f (the last confirmed volume), not 0.3f
+        assertEquals(0.6f, viewModel.uiState.value.volume, 0.001f)
+        assertEquals("Volume sync failed", viewModel.uiState.value.errorMessage)
+    }
 }
