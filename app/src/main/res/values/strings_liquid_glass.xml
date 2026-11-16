@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="glass_settings_title">Liquid Glass</string>
+    <string name="glass_settings_entry_desc">Translucent glass that refracts what is behind it, component by component</string>
+    <string name="glass_state_on">On</string>
+    <string name="glass_state_off">Off</string>
+    <string name="glass_enable_title">Use Liquid Glass</string>
+    <string name="glass_enable_desc">Draw the parts you pick below as glass instead of Material surfaces</string>
+    <string name="glass_limited_title">Limited on this device</string>
+    <string name="glass_limited_no_lens">Refraction needs Android 13. Glass is drawn with blur, tint and highlights only.</string>
+    <string name="glass_limited_no_blur">Blur needs Android 12 and refraction Android 13. Glass is drawn as tinted material with highlights.</string>
+
+    <string name="glass_group_look">Look</string>
+    <string name="glass_material_title">Material</string>
+    <string name="glass_material_clear">Clear</string>
+    <string name="glass_material_regular">Regular</string>
+    <string name="glass_material_tinted">Tinted</string>
+    <string name="glass_refraction_title">Refraction</string>
+    <string name="glass_refraction_subtle">Subtle</string>
+    <string name="glass_refraction_standard">Standard</string>
+    <string name="glass_refraction_strong">Strong</string>
+    <string name="glass_chromatic_title">Chromatic dispersion</string>
+    <string name="glass_chromatic_desc">Split light into colour fringes at the edge of the glass</string>
+    <string name="glass_specular_title">Specular highlights</string>
+    <string name="glass_specular_desc">Light catching the rim of every glass surface</string>
+    <string name="glass_motion_title">Liquid motion</string>
+    <string name="glass_motion_desc">Glass swells, stretches and follows your finger when touched</string>
+
+    <string name="glass_group_chrome">Navigation and player</string>
+    <string name="glass_group_controls">Controls</string>
+    <string name="glass_group_surfaces">Surfaces</string>
+
+    <string name="glass_component_navigation">Navigation bar</string>
+    <string name="glass_component_navigation_desc">Bottom tabs, tablet dock and side rail, with a draggable selection lens</string>
+    <string name="glass_component_mini_player">Mini player</string>
+    <string name="glass_component_mini_player_desc">The floating now playing bar</string>
+    <string name="glass_component_top_bars">Top bars</string>
+    <string name="glass_component_top_bars_desc">Back and action buttons grouped in glass capsules</string>
+    <string name="glass_component_snackbars">Notifications</string>
+    <string name="glass_component_snackbars_desc">Snackbars and undo bars</string>
+    <string name="glass_component_player">Full player</string>
+    <string name="glass_component_player_desc">Player controls refract the artwork behind them</string>
+    <string name="glass_component_buttons">Buttons</string>
+    <string name="glass_component_buttons_desc">Filled, tonal, outlined and text buttons</string>
+    <string name="glass_component_icon_buttons">Icon buttons</string>
+    <string name="glass_component_icon_buttons_desc">Round buttons; plain icons turn to glass when pressed</string>
+    <string name="glass_component_fabs">Floating buttons</string>
+    <string name="glass_component_fabs_desc">Floating action buttons</string>
+    <string name="glass_component_switches">Switches</string>
+    <string name="glass_component_switches_desc">The thumb becomes a lens while you hold it</string>
+    <string name="glass_component_sliders">Sliders</string>
+    <string name="glass_component_sliders_desc">A glass thumb that magnifies the track</string>
+    <string name="glass_component_chips">Chips</string>
+    <string name="glass_component_chips_desc">Filter, suggestion and input chips</string>
+    <string name="glass_component_text_fields">Text fields</string>
+    <string name="glass_component_text_fields_desc">Search and input fields</string>
+    <string name="glass_component_dialogs">Dialogs</string>
+    <string name="glass_component_dialogs_desc">Alerts refract the screen behind them</string>
+    <string name="glass_component_sheets">Bottom sheets</string>
+    <string name="glass_component_sheets_desc">Menus and panels that slide up</string>
+    <string name="glass_component_menus">Menus</string>
+    <string name="glass_component_menus_desc">Dropdown and overflow menus</string>
+    <string name="glass_component_cards">Cards and lists</string>
+    <string name="glass_component_cards_desc">Cards and settings groups become glass panels</string>
+
+    <string name="glass_reset_title">Reset glass options</string>
+    <string name="glass_reset_desc">Restore the default look and component selection</string>
+
+    <string name="glass_preview_home">Home</string>
+    <string name="glass_preview_search">Search</string>
+    <string name="glass_preview_library">Library</string>
+</resources>

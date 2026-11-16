@@ -46,6 +46,31 @@ fun Slider(
     colors: SliderColors = SliderDefaults.colors(),
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
 ) {
+    if (com.alananasss.kittytune.ui.glass.glassEnabled(com.alananasss.kittytune.ui.glass.GlassComponent.SLIDERS)) {
+        val glassHaptics = rememberAppHaptics()
+        val glassBuckets = if (steps > 0) steps + 1 else 20
+        var glassLastBucket by remember(steps, valueRange) { mutableIntStateOf(Int.MIN_VALUE) }
+        com.alananasss.kittytune.ui.glass.components.GlassSlider(
+            value = value,
+            onValueChange = { newValue ->
+                onValueChange(newValue)
+                val span = valueRange.endInclusive - valueRange.start
+                val fraction = if (span > 0f) ((newValue - valueRange.start) / span).coerceIn(0f, 1f) else 0f
+                val bucket = (fraction * glassBuckets).toInt()
+                if (bucket != glassLastBucket) {
+                    glassLastBucket = bucket
+                    glassHaptics.perform(HapticKind.SLIDER)
+                }
+            },
+            modifier = modifier,
+            enabled = enabled,
+            valueRange = valueRange,
+            steps = steps,
+            onValueChangeFinished = onValueChangeFinished,
+            accentColor = colors.activeTrackColor,
+        )
+        return
+    }
     val state = remember(steps, valueRange) { SliderState(value, steps, valueRange) }
     state.value = value
 

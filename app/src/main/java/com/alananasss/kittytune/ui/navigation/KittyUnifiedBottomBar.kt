@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui.navigation
 
+import top.yukonga.miuix.kmp.basic.NavigationBarItem as MxNavigationBarItem
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
@@ -28,6 +29,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -45,12 +47,20 @@ import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.MiniPlayerSwipeAction
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.ui.glass.GlassComponent
+import com.alananasss.kittytune.ui.glass.components.GlassChromeButton
+import com.alananasss.kittytune.ui.glass.components.GlassChromePanel
+import com.alananasss.kittytune.ui.glass.components.GlassNavItem
+import com.alananasss.kittytune.ui.glass.components.GlassNavigationTabs
+import com.alananasss.kittytune.ui.glass.glassEnabled
+import com.alananasss.kittytune.ui.design.IconButton
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.lyrics.FloatingLyricChip
 import com.alananasss.kittytune.ui.player.pixel.miniPlayerDismissHorizontalGesture
 import com.alananasss.kittytune.ui.player.pixel.rememberMiniPlayerDismissGestureHandler
 import androidx.compose.ui.platform.LocalContext
 import kotlin.math.abs
+import com.alananasss.kittytune.ui.design.Icon
 
 data class KittyTab(
     val title: String,
@@ -110,7 +120,12 @@ fun KittyUnifiedBottomBar(
         }
     )
 
-    if (style == "classic") {
+    val glassNavigation = glassEnabled(GlassComponent.NAVIGATION)
+    val glassMiniPlayer = glassEnabled(GlassComponent.MINI_PLAYER)
+    val miuixNavigation = com.alananasss.kittytune.ui.design.miuixEnabled(com.alananasss.kittytune.ui.design.MiuixComponent.NAVIGATION)
+    val miuixMiniPlayer = com.alananasss.kittytune.ui.design.miuixEnabled(com.alananasss.kittytune.ui.design.MiuixComponent.MINI_PLAYER)
+
+    if (style == "classic" && !glassNavigation && !glassMiniPlayer) {
         Column(
             modifier = modifier
                 .fillMaxWidth()
@@ -246,6 +261,24 @@ fun KittyUnifiedBottomBar(
                 }
             }
         }
+        if (miuixNavigation) {
+            top.yukonga.miuix.kmp.basic.NavigationBar(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.background,
+            ) {
+                tabs.filter { it.visible }.forEach { tab ->
+                    MxNavigationBarItem(
+                        selected = selectedRoute == tab.route,
+                        onClick = {
+                            com.alananasss.kittytune.audio.haptics.HapticUtil.performUIHaptic(context)
+                            onTabSelected(tab)
+                        },
+                        icon = com.alananasss.kittytune.ui.design.miuixIconOrSelf(tab.icon),
+                        label = tab.title,
+                    )
+                }
+            }
+        } else
         NavigationBar(
                 modifier = Modifier.fillMaxWidth(),
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -295,7 +328,7 @@ fun KittyUnifiedBottomBar(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(64.dp)
-                            .clipToBounds()
+                            .then(if (glassMiniPlayer) Modifier else Modifier.clipToBounds())
                         .systemGestureExclusion()
                         .graphicsLayer {
                             translationX = offsetAnimatable.value
@@ -309,10 +342,24 @@ fun KittyUnifiedBottomBar(
                             enabled = true,
                             handler = miniDismissGestureHandler
                         )
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainer)
-                        .clickable { onPlayerClick() }
+                        .then(
+                            if (glassMiniPlayer) {
+                                Modifier
+                            } else if (miuixMiniPlayer) {
+                                Modifier
+                                    .shadow(10.dp, RoundedCornerShape(18.dp), ambientColor = Color.Black.copy(alpha = 0.10f), spotColor = Color.Black.copy(alpha = 0.10f))
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                                    .clickable { onPlayerClick() }
+                            } else {
+                                Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                                    .clickable { onPlayerClick() }
+                            }
+                        )
                 ) {
+                    MiniPlayerContainer(glass = glassMiniPlayer, onClick = onPlayerClick) {
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
@@ -400,13 +447,79 @@ fun KittyUnifiedBottomBar(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(2.dp)
+                            .padding(horizontal = if (glassMiniPlayer) 20.dp else 0.dp)
                             .align(Alignment.BottomCenter),
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = Color.Transparent
                     )
+                    }
                 }
             }
         }
+        if (glassNavigation) {
+            val visibleTabs = tabs.filter { it.visible }
+            val items = remember(visibleTabs) { visibleTabs.map { GlassNavItem(it.route, it.title, it.icon) } }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 520.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                GlassNavigationTabs(
+                    items = items,
+                    selectedKey = selectedRoute,
+                    onSelect = { item ->
+                        com.alananasss.kittytune.audio.haptics.HapticUtil.performUIHaptic(context)
+                        visibleTabs.firstOrNull { it.route == item.key }?.let(onTabSelected)
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+                GlassChromeButton(
+                    icon = fabIcon,
+                    contentDescription = null,
+                    onClick = {
+                        com.alananasss.kittytune.audio.haptics.HapticUtil.performMediumHaptic(context)
+                        onFabClick()
+                    }
+                )
+            }
+        } else if (miuixNavigation) {
+            val visibleTabs = tabs.filter { it.visible }
+            Row(
+                modifier = Modifier.fillMaxWidth().widthIn(max = 520.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+            ) {
+                top.yukonga.miuix.kmp.basic.FloatingNavigationBar(
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    horizontalOutSidePadding = 0.dp,
+                    defaultWindowInsetsPadding = false,
+                ) {
+                    visibleTabs.forEach { tab ->
+                        top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem(
+                            selected = selectedRoute == tab.route,
+                            onClick = {
+                                com.alananasss.kittytune.audio.haptics.HapticUtil.performUIHaptic(context)
+                                onTabSelected(tab)
+                            },
+                            icon = com.alananasss.kittytune.ui.design.miuixIconOrSelf(tab.icon),
+                            label = tab.title,
+                        )
+                    }
+                    top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem(
+                        selected = false,
+                        onClick = {
+                            com.alananasss.kittytune.audio.haptics.HapticUtil.performMediumHaptic(context)
+                            onFabClick()
+                        },
+                        icon = com.alananasss.kittytune.ui.design.miuixIconOrSelf(fabIcon),
+                        label = "",
+                    )
+                }
+
+            }
+        } else
         BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -598,4 +711,31 @@ internal fun rememberDockProgress(viewModel: com.alananasss.kittytune.ui.player.
         }
     }
     return progress
+}
+
+/**
+ * The mini player's surface: a floating glass capsule when Liquid Glass is on for it, otherwise a
+ * transparent pass-through (the Material container is drawn by the caller).
+ */
+@Composable
+internal fun BoxScope.MiniPlayerContainer(
+    glass: Boolean,
+    onClick: () -> Unit,
+    shape: androidx.compose.ui.graphics.Shape = com.kyant.shapes.RoundedRectangle(24.dp),
+    content: @Composable BoxScope.() -> Unit
+) {
+    if (glass) {
+        GlassChromePanel(
+            shape = shape,
+            modifier = Modifier.matchParentSize(),
+            contentModifier = Modifier.clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+            content = content
+        )
+    } else {
+        Box(Modifier.matchParentSize(), content = content)
+    }
 }

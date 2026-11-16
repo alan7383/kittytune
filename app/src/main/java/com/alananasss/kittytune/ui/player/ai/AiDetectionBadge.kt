@@ -50,6 +50,10 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import kotlin.math.roundToInt
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.Icon
 
 /**
  * Compact pill-shaped badge displayed in the player next to the track metadata.

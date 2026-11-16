@@ -1,5 +1,11 @@
 package com.alananasss.kittytune.ui.navigation
 
+import com.alananasss.kittytune.ui.glass.GlassComponent
+import com.alananasss.kittytune.ui.glass.GlassLevel
+import com.alananasss.kittytune.ui.glass.GlassShadow
+import com.alananasss.kittytune.ui.glass.glass
+import com.alananasss.kittytune.ui.glass.glassEnabled
+import com.alananasss.kittytune.ui.design.IconButton
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +36,7 @@ import com.alananasss.kittytune.ui.common.WindowWidthSizeClass
 import com.alananasss.kittytune.ui.common.WindowHeightSizeClass
 import com.alananasss.kittytune.ui.common.rememberAppHaptics
 import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.design.Icon
 
 @Composable
 fun KittyNavigationRail(
@@ -54,12 +61,27 @@ fun KittyNavigationRail(
     // Adaptive width: wider on tablet, standard size on landscape phone
     val railWidth = if (windowSizeInfo.widthSizeClass == WindowWidthSizeClass.EXPANDED) 260.dp else 220.dp
 
+    val glassRail = glassEnabled(GlassComponent.NAVIGATION)
+    val railShape = com.kyant.shapes.RoundedRectangle(28.dp)
+    val itemShape = if (glassRail) com.kyant.shapes.Capsule() else RoundedCornerShape(8.dp)
+
     Column(
         modifier = modifier
             .fillMaxHeight()
             .width(railWidth)
-            .background(MaterialTheme.colorScheme.surface)
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start + WindowInsetsSides.Top + WindowInsetsSides.Bottom))
+            .then(
+                if (glassRail) {
+                    Modifier
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start + WindowInsetsSides.Top + WindowInsetsSides.Bottom))
+                        .padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 4.dp)
+                        .glass(shape = railShape, level = GlassLevel.Chrome, shadow = GlassShadow.Floating)
+                        .clip(railShape)
+                } else {
+                    Modifier
+                        .background(MaterialTheme.colorScheme.surface)
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start + WindowInsetsSides.Top + WindowInsetsSides.Bottom))
+                }
+            )
     ) {
         // Status bar spacing
         Spacer(Modifier.height(16.dp))
@@ -73,15 +95,23 @@ fun KittyNavigationRail(
             visibleTabs.forEach { tab ->
                 val selected = selectedRoute == tab.route
                 val bgColor by animateColorAsState(
-                    targetValue = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+                    targetValue = when {
+                        !selected -> Color.Transparent
+                        glassRail -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                        else -> MaterialTheme.colorScheme.secondaryContainer
+                    }
                 )
-                val contentColor = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                val contentColor = when {
+                    selected && glassRail -> MaterialTheme.colorScheme.primary
+                    selected -> MaterialTheme.colorScheme.onSecondaryContainer
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = if (isPhoneLandscape) 2.dp else 4.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(itemShape)
                         .background(bgColor)
                         .clickable {
                             haptics.perform(HapticKind.UI)
@@ -117,7 +147,7 @@ fun KittyNavigationRail(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(itemShape)
                     .clickable {
                         haptics.perform(HapticKind.MEDIUM)
                         onFabClick()
@@ -147,8 +177,11 @@ fun KittyNavigationRail(
                 modifier = Modifier
                     .padding(12.dp)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .clip(if (glassRail) com.kyant.shapes.RoundedRectangle(20.dp) else RoundedCornerShape(12.dp))
+                    .background(
+                        if (glassRail) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+                        else MaterialTheme.colorScheme.surfaceContainerHigh
+                    )
                     .clickable {
                         haptics.perform(HapticKind.LIGHT)
                         onPlayerClick()

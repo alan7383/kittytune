@@ -32,6 +32,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import com.alananasss.kittytune.ui.design.ModalBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="glass_settings_title">Liquid Glass</string>
+    <string name="glass_settings_entry_desc">Du verre translucide qui réfracte ce qui se trouve derrière, composant par composant</string>
+    <string name="glass_state_on">Activé</string>
+    <string name="glass_state_off">Désactivé</string>
+    <string name="glass_enable_title">Utiliser Liquid Glass</string>
+    <string name="glass_enable_desc">Affiche en verre les éléments choisis ci-dessous au lieu des surfaces Material</string>
+    <string name="glass_limited_title">Limité sur cet appareil</string>
+    <string name="glass_limited_no_lens">La réfraction nécessite Android 13. Le verre est rendu avec flou, teinte et reflets uniquement.</string>
+    <string name="glass_limited_no_blur">Le flou nécessite Android 12 et la réfraction Android 13. Le verre est rendu comme une matière teintée avec reflets.</string>
+
+    <string name="glass_group_look">Apparence</string>
+    <string name="glass_material_title">Matière</string>
+    <string name="glass_material_clear">Transparente</string>
+    <string name="glass_material_regular">Standard</string>
+    <string name="glass_material_tinted">Teintée</string>
+    <string name="glass_refraction_title">Réfraction</string>
+    <string name="glass_refraction_subtle">Légère</string>
+    <string name="glass_refraction_standard">Standard</string>
+    <string name="glass_refraction_strong">Forte</string>
+    <string name="glass_chromatic_title">Dispersion chromatique</string>
+    <string name="glass_chromatic_desc">Décompose la lumière en franges colorées au bord du verre</string>
+    <string name="glass_specular_title">Reflets spéculaires</string>
+    <string name="glass_specular_desc">La lumière accroche le bord de chaque surface en verre</string>
+    <string name="glass_motion_title">Mouvement liquide</string>
+    <string name="glass_motion_desc">Le verre gonfle, s\'étire et suit le doigt au toucher</string>
+
+    <string name="glass_group_chrome">Navigation et lecteur</string>
+    <string name="glass_group_controls">Contrôles</string>
+    <string name="glass_group_surfaces">Surfaces</string>
+
+    <string name="glass_component_navigation">Barre de navigation</string>
+    <string name="glass_component_navigation_desc">Onglets du bas, dock tablette et barre latérale, avec une lentille de sélection déplaçable</string>
+    <string name="glass_component_mini_player">Mini-lecteur</string>
+    <string name="glass_component_mini_player_desc">La barre flottante de lecture en cours</string>
+    <string name="glass_component_top_bars">Barres du haut</string>
+    <string name="glass_component_top_bars_desc">Boutons retour et actions groupés dans des capsules en verre</string>
+    <string name="glass_component_snackbars">Notifications</string>
+    <string name="glass_component_snackbars_desc">Snackbars et barres d\'annulation</string>
+    <string name="glass_component_player">Lecteur plein écran</string>
+    <string name="glass_component_player_desc">Les commandes réfractent la pochette derrière elles</string>
+    <string name="glass_component_buttons">Boutons</string>
+    <string name="glass_component_buttons_desc">Boutons pleins, tonals, contour et texte</string>
+    <string name="glass_component_icon_buttons">Boutons icônes</string>
+    <string name="glass_component_icon_buttons_desc">Boutons ronds ; les icônes simples deviennent du verre à l\'appui</string>
+    <string name="glass_component_fabs">Boutons flottants</string>
+    <string name="glass_component_fabs_desc">Boutons d\'action flottants</string>
+    <string name="glass_component_switches">Interrupteurs</string>
+    <string name="glass_component_switches_desc">Le curseur devient une lentille quand on le maintient</string>
+    <string name="glass_component_sliders">Curseurs</string>
+    <string name="glass_component_sliders_desc">Un curseur en verre qui grossit la piste</string>
+    <string name="glass_component_chips">Puces</string>
+    <string name="glass_component_chips_desc">Puces de filtre, de suggestion et de saisie</string>
+    <string name="glass_component_text_fields">Champs de texte</string>
+    <string name="glass_component_text_fields_desc">Champs de recherche et de saisie</string>
+    <string name="glass_component_dialogs">Boîtes de dialogue</string>
+    <string name="glass_component_dialogs_desc">Les alertes réfractent l\'écran derrière elles</string>
+    <string name="glass_component_sheets">Panneaux du bas</string>
+    <string name="glass_component_sheets_desc">Menus et panneaux qui glissent vers le haut</string>
+    <string name="glass_component_menus">Menus</string>
+    <string name="glass_component_menus_desc">Menus déroulants et de débordement</string>
+    <string name="glass_component_cards">Cartes et listes</string>
+    <string name="glass_component_cards_desc">Les cartes et groupes de réglages deviennent des panneaux en verre</string>
+
+    <string name="glass_reset_title">Réinitialiser les options du verre</string>
+    <string name="glass_reset_desc">Rétablit l\'apparence et la sélection de composants par défaut</string>
+
+    <string name="glass_preview_home">Accueil</string>
+    <string name="glass_preview_search">Recherche</string>
+    <string name="glass_preview_library">Bibliothèque</string>
+</resources>

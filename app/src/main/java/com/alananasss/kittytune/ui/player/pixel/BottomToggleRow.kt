@@ -24,7 +24,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Vibration
-import androidx.compose.material3.Icon
+import com.alananasss.kittytune.ui.design.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue

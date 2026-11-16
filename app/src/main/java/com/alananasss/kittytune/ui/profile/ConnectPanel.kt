@@ -46,6 +46,14 @@ import com.alananasss.kittytune.data.sync.ConnectPlatform
 import com.alananasss.kittytune.data.sync.SyncPeers
 import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import kotlin.math.roundToInt
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.Switch
+import com.alananasss.kittytune.ui.design.Slider
+import com.alananasss.kittytune.ui.design.OutlinedTextField
+import com.alananasss.kittytune.ui.design.Icon
 
 @Composable
 fun ConnectDialog(onDismissRequest: () -> Unit) {

@@ -34,6 +34,7 @@ import com.alananasss.kittytune.ui.common.getSettingsShape
 import com.alananasss.kittytune.ui.library.LibraryItem
 import com.alananasss.kittytune.ui.library.LibraryViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.alananasss.kittytune.ui.design.Icon
 
 @Composable
 fun FabSettingsScreen(

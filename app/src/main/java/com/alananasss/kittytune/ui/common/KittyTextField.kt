@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui.common
 
+import com.alananasss.kittytune.ui.glass.glass
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.text.KeyboardActions
@@ -113,9 +114,19 @@ fun KittyOutlinedTextField(
         }
     }
 
+    val glassField = com.alananasss.kittytune.ui.glass.glassEnabled(com.alananasss.kittytune.ui.glass.GlassComponent.TEXT_FIELDS)
+    val miuixField = com.alananasss.kittytune.ui.design.miuixEnabled(com.alananasss.kittytune.ui.design.MiuixComponent.TEXT_FIELDS)
     OutlinedTextField(
         state = state,
-        modifier = modifier.moveCaretWithArrowKeys(state, isFocused),
+        modifier = modifier
+            .then(
+                if (glassField) {
+                    androidx.compose.ui.Modifier.glassFieldBackground()
+                } else {
+                    androidx.compose.ui.Modifier
+                }
+            )
+            .moveCaretWithArrowKeys(state, isFocused),
         enabled = enabled,
         readOnly = readOnly,
         textStyle = textStyle,
@@ -130,8 +141,12 @@ fun KittyOutlinedTextField(
         keyboardOptions = keyboardOptions,
         onKeyboardAction = actionHandler,
         lineLimits = lineLimits,
-        shape = shape,
-        colors = colors,
+        shape = if (glassField) com.alananasss.kittytune.ui.design.GlassFieldShape else if (miuixField) com.alananasss.kittytune.ui.design.MiuixFieldShape else shape,
+        colors = if (glassField) com.alananasss.kittytune.ui.design.glassFieldColors(colors) else if (miuixField) com.alananasss.kittytune.ui.design.miuixFieldColors(colors) else colors,
         interactionSource = interactions
     )
 }
+
+@androidx.compose.runtime.Composable
+private fun androidx.compose.ui.Modifier.glassFieldBackground(): androidx.compose.ui.Modifier =
+    this.glass(com.alananasss.kittytune.ui.design.GlassFieldShape, com.alananasss.kittytune.ui.glass.GlassLevel.Regular)

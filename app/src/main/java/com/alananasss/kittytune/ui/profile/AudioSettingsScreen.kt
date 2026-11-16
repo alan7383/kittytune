@@ -38,6 +38,11 @@ import com.alananasss.kittytune.ui.common.getSettingsShape
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.audio.EqualizerSheet
 import kotlin.math.roundToInt
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.RadioButton
+import com.alananasss.kittytune.ui.design.Icon
 
 /**
  * The Audio category folder hub:

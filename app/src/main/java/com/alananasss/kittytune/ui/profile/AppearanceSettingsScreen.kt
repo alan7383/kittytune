@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui.profile
 
+import androidx.compose.material.icons.rounded.WaterDrop
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -61,6 +62,11 @@ import com.alananasss.kittytune.ui.common.getSettingsShape
 import com.alananasss.kittytune.ui.theme.KittyTuneDefaultSeedColor
 import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicColorScheme
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.AssistChip
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.RadioButton
+import com.alananasss.kittytune.ui.design.Icon
 
 private enum class ThemeLook(
     val mode: AppThemeMode,
@@ -96,6 +102,7 @@ fun AppearanceSettingsScreen(
     onNavigateToBottomBarSettings: () -> Unit,
     onNavigateToAppIconSettings: () -> Unit,
     onNavigateToPlayerCustomization: () -> Unit,
+    onNavigateToLiquidGlass: () -> Unit = {},
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -567,6 +574,17 @@ fun AppearanceSettingsScreen(
                 SettingsGroup(
                     title = stringResource(R.string.settings_group_window),
                     items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.design_style_title),
+                                subtitle = stringResource(R.string.design_style_entry_desc),
+                                icon = Icons.Rounded.WaterDrop,
+                                trailingText = stringResource(com.alananasss.kittytune.ui.design.currentDesignStyle().title),
+                                onClick = onNavigateToLiquidGlass,
+                                highlightKey = "pref_liquid_glass_entry"
+                            )
+                        },
                         { shape ->
                             SettingsItem(
                                 shape = shape,

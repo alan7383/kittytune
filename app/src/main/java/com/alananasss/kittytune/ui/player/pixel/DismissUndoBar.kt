@@ -1,5 +1,7 @@
 package com.alananasss.kittytune.ui.player.pixel
 
+import com.alananasss.kittytune.ui.glass.glass
+import androidx.compose.ui.draw.clip
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -16,10 +18,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material3.Button
+import com.alananasss.kittytune.ui.design.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.Icon
+import com.alananasss.kittytune.ui.design.FilledIconButton
+import com.alananasss.kittytune.ui.design.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -61,20 +63,7 @@ fun DismissUndoBar(
         onClose()
     }
 
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .padding(horizontal = 14.dp)
-            .clipToBounds()
-            .semantics { }
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = {})
-            },
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shadowElevation = 6.dp
-    ) {
+    val undoContent: @Composable () -> Unit = {
         Box(modifier = Modifier.fillMaxSize()) {
             // Animated background progress fill
             Box(
@@ -147,5 +136,43 @@ fun DismissUndoBar(
                 }
             }
         }
+    }
+    if (com.alananasss.kittytune.ui.glass.glassEnabled(com.alananasss.kittytune.ui.glass.GlassComponent.SNACKBARS)) {
+        val glassShape = com.kyant.shapes.Capsule()
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 14.dp)
+                .semantics { }
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {})
+                }
+                .glass(
+                    shape = glassShape,
+                    level = com.alananasss.kittytune.ui.glass.GlassLevel.Chrome,
+                    shadow = com.alananasss.kittytune.ui.glass.GlassShadow.Floating
+                )
+                .clip(glassShape)
+        ) {
+            undoContent()
+        }
+    } else {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .padding(horizontal = 14.dp)
+            .clipToBounds()
+            .semantics { }
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {})
+            },
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 6.dp
+    ) {
+        undoContent()
+    }
     }
 }

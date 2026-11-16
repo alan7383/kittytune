@@ -37,19 +37,19 @@ import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
+import com.alananasss.kittytune.ui.design.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.Icon
+import com.alananasss.kittytune.ui.design.FilledTonalIconButton
+import com.alananasss.kittytune.ui.design.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.alananasss.kittytune.ui.design.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.alananasss.kittytune.ui.design.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -77,7 +77,7 @@ import com.alananasss.kittytune.data.local.QueueHistorySummary
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import com.alananasss.kittytune.ui.common.SwipeToDeleteItem
-import androidx.compose.material3.IconButton
+import com.alananasss.kittytune.ui.design.IconButton
 import com.alananasss.kittytune.utils.makeTimeString
 import kotlinx.coroutines.launch
 

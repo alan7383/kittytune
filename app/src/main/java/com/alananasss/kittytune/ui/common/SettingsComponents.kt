@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui.common
 
+import com.alananasss.kittytune.ui.glass.glass
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -43,6 +44,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
 import kotlinx.coroutines.delay
+import com.alananasss.kittytune.ui.design.FilledTonalIconButton
+import com.alananasss.kittytune.ui.design.Switch
+import com.alananasss.kittytune.ui.design.Slider
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.Icon
 
 // Removed getSettingsShape
 
@@ -59,6 +65,10 @@ fun getSettingsShape(groupSize: Int, index: Int): Shape {
 
 @Composable
 fun SettingsGroupTitle(title: String) {
+    if (com.alananasss.kittytune.ui.design.miuixEnabled(com.alananasss.kittytune.ui.design.MiuixComponent.SETTINGS)) {
+        MiuixSettingsTitle(title)
+        return
+    }
     Text(
         text = title,
         style = MaterialTheme.typography.titleMedium,
@@ -73,6 +83,10 @@ fun SettingsGroup(
     title: String? = null,
     items: List<@Composable (Shape) -> Unit>
 ) {
+    if (com.alananasss.kittytune.ui.design.miuixEnabled(com.alananasss.kittytune.ui.design.MiuixComponent.SETTINGS)) {
+        MiuixSettingsGroup(title, items)
+        return
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -82,12 +96,30 @@ fun SettingsGroup(
             SettingsGroupTitle(title)
         }
 
+        val glassGroup = com.alananasss.kittytune.ui.glass.glassEnabled(com.alananasss.kittytune.ui.glass.GlassComponent.CARDS)
+        val groupShape = if (glassGroup) com.kyant.shapes.RoundedRectangle(24.dp) else RoundedCornerShape(24.dp)
         Column(
-            modifier = Modifier.clip(RoundedCornerShape(24.dp)),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            modifier = Modifier
+                .then(
+                    if (glassGroup) {
+                        Modifier.glass(
+                            shape = groupShape,
+                            level = com.alananasss.kittytune.ui.glass.GlassLevel.Regular,
+                            shadow = com.alananasss.kittytune.ui.glass.GlassShadow.Soft
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
+                .clip(groupShape),
+            verticalArrangement = Arrangement.spacedBy(if (glassGroup) 1.dp else 2.dp)
         ) {
-            items.forEachIndexed { index, itemContent ->
-                itemContent(getSettingsShape(items.size, index))
+            androidx.compose.runtime.CompositionLocalProvider(
+                com.alananasss.kittytune.ui.design.LocalGlassCardGroup provides glassGroup
+            ) {
+                items.forEachIndexed { index, itemContent ->
+                    itemContent(getSettingsShape(items.size, index))
+                }
             }
         }
     }
@@ -118,6 +150,14 @@ fun SettingsItem(
     trailingContent: (@Composable () -> Unit)? = null,
     highlightKey: String? = null
 ) {
+    if (LocalMiuixSettingsGroup.current || com.alananasss.kittytune.ui.design.miuixEnabled(com.alananasss.kittytune.ui.design.MiuixComponent.SETTINGS)) {
+        MiuixSettingsItem(
+            title, subtitle, trailingText, icon, iconRes, iconTint, iconContainerColor, onClick,
+            hasSwitch, switchState, onSwitchChange, hasSlider, sliderValue, sliderRange, onSliderChange,
+            titleColor, modifier, trailingContent, highlightKey,
+        )
+        return
+    }
     val interactionSource = remember { MutableInteractionSource() }
     val haptics = rememberAppHaptics()
 
@@ -344,6 +384,10 @@ fun SettingsScaffold(
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
+    if (com.alananasss.kittytune.ui.design.miuixEnabled(com.alananasss.kittytune.ui.design.MiuixComponent.SETTINGS)) {
+        MiuixSettingsScaffold(title, onBackClick, subtitle, actions, content)
+        return
+    }
     val windowSizeInfo = rememberWindowSizeInfo()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val haptics = rememberAppHaptics()
