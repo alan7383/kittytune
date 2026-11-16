@@ -51,6 +51,8 @@ import com.alananasss.kittytune.ui.player.PlayerViewModel
 fun BottomBarSettingsScreen(
     onBackClick: () -> Unit,
     onNavigateToFabSettings: () -> Unit,
+    onNavigateToTabletSettings: () -> Unit,
+    isTablet: Boolean,
     playerViewModel: PlayerViewModel
 ) {
     val context = LocalContext.current
@@ -67,8 +69,6 @@ fun BottomBarSettingsScreen(
     var showSwipeActionDialog by remember { mutableStateOf(false) }
 
     // ── Navigation: one labels switch for both styles + placement on tablets ──
-    val tabletNavPlacement by prefs.tabletNavPlacementFlow().collectAsState(initial = prefs.getTabletNavPlacement())
-    var showTabletNavDialog by remember { mutableStateOf(false) }
     val navHideLabels by prefs.navHideLabelsFlow().collectAsState(initial = prefs.getNavHideLabels())
 
     // ── Mini player (the whole section moved here from the player design screen) ──
@@ -84,7 +84,6 @@ fun BottomBarSettingsScreen(
     val wavyPlayPause by prefs.wavyPlayPauseFlow().collectAsState(initial = prefs.getWavyPlayPauseButton())
 
     // The placement row only makes sense where a left rail can actually live.
-    val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
 
     val view = LocalView.current
     val listState = rememberLazyListState()
@@ -93,7 +92,7 @@ fun BottomBarSettingsScreen(
         listState = listState,
         keyToIndex = mapOf(
             "mini_player_swipe_action" to 2,
-            "pref_tablet_nav_placement" to 0,
+            "pref_tablet_interface" to 0,
             "pref_nav_hide_labels" to 0,
             "pref_mini_player_style" to 1,
             "pref_mini_player_background" to 1,
@@ -166,46 +165,6 @@ fun BottomBarSettingsScreen(
                 }
             },
             confirmButton = { TextButton(onClick = { showStyleDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
-        )
-    }
-
-    if (showTabletNavDialog) {
-        AlertDialog(
-            onDismissRequest = { showTabletNavDialog = false },
-            title = { Text(stringResource(R.string.pref_tablet_nav_placement), fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    listOf(
-                        com.alananasss.kittytune.data.local.TabletNavPlacement.BOTTOM to R.string.pref_tablet_nav_bottom,
-                        com.alananasss.kittytune.data.local.TabletNavPlacement.LEFT to R.string.pref_tablet_nav_left,
-                    ).forEach { (option, labelRes) ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    prefs.setTabletNavPlacement(option)
-                                    showTabletNavDialog = false
-                                }
-                                .padding(vertical = 8.dp)
-                        ) {
-                            RadioButton(
-                                selected = tabletNavPlacement == option,
-                                onClick = {
-                                    prefs.setTabletNavPlacement(option)
-                                    showTabletNavDialog = false
-                                },
-                            )
-                            Text(
-                                stringResource(labelRes),
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(start = 4.dp)
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showTabletNavDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
         )
     }
 
@@ -479,7 +438,7 @@ fun BottomBarSettingsScreen(
                         // One merged card: menu style, FAB, blur, then the navigation
                         // rows (tablet placement + hide-labels) appended below.
                         val modern = style == "modern"
-                        val tablet = windowSizeInfo.isTablet
+                        val tablet = isTablet
                         val hideLabelsIndex = (if (modern) 2 else 0) + (if (tablet) 2 else 1)
                         val groupSize = hideLabelsIndex + 1
 
@@ -525,18 +484,14 @@ fun BottomBarSettingsScreen(
                             }
                         }
 
-                        // Hidden on phones: a left rail can only exist on a tablet.
-                        if (windowSizeInfo.isTablet) {
+                        // The dedicated layout controls only apply to tablets.
+                        if (isTablet) {
                             SettingsItem(
                                 shape = getSettingsShape(groupSize, hideLabelsIndex - 1),
-                                title = stringResource(R.string.pref_tablet_nav_placement),
-                                subtitle = stringResource(R.string.pref_tablet_nav_placement_sub),
-                                trailingText = when (tabletNavPlacement) {
-                                    com.alananasss.kittytune.data.local.TabletNavPlacement.LEFT -> stringResource(R.string.pref_tablet_nav_left)
-                                    else -> stringResource(R.string.pref_tablet_nav_bottom)
-                                },
-                                onClick = { showTabletNavDialog = true },
-                                highlightKey = "pref_tablet_nav_placement"
+                                title = stringResource(R.string.pref_tablet_interface),
+                                subtitle = stringResource(R.string.pref_tablet_interface_sub),
+                                onClick = onNavigateToTabletSettings,
+                                highlightKey = "pref_tablet_interface"
                             )
                         }
 
@@ -561,7 +516,7 @@ fun BottomBarSettingsScreen(
                     ) {
                         // The width switch only exists where a WIDE pill makes sense - on a
                         // tablet. Phones always run the compact pill, so the row is hidden there.
-                        val modernGroupCount = if (windowSizeInfo.isTablet) 7 else 6
+                        val modernGroupCount = if (isTablet) 7 else 6
                         SettingsItem(
                             shape = if (miniPlayerStyle == com.alananasss.kittytune.data.local.MiniPlayerStyle.MODERN) getSettingsShape(modernGroupCount, 0) else getSettingsShape(2, 0),
                             title = stringResource(R.string.pref_mini_player_style),
@@ -608,7 +563,7 @@ fun BottomBarSettingsScreen(
                                 onSwitchChange = { prefs.setMiniPlayerShowTrackButtons(it) },
                                 highlightKey = "pref_mini_player_show_track_buttons"
                             )
-                            if (windowSizeInfo.isTablet) {
+                            if (isTablet) {
                                 SettingsItem(
                                     shape = getSettingsShape(modernGroupCount, 4),
                                     title = stringResource(R.string.pref_mini_player_width),
@@ -621,7 +576,7 @@ fun BottomBarSettingsScreen(
                                 )
                             }
                             SettingsItem(
-                                shape = getSettingsShape(modernGroupCount, if (windowSizeInfo.isTablet) 5 else 4),
+                                shape = getSettingsShape(modernGroupCount, if (isTablet) 5 else 4),
                                 title = stringResource(R.string.pref_mini_player_background),
                                 subtitle = when (miniPlayerBackground) {
                                     com.alananasss.kittytune.data.local.MiniPlayerBackgroundStyle.GRADIENT -> stringResource(R.string.pref_mini_player_bg_gradient)
@@ -634,7 +589,7 @@ fun BottomBarSettingsScreen(
                                 highlightKey = "pref_mini_player_background"
                             )
                             SettingsItem(
-                                shape = getSettingsShape(modernGroupCount, if (windowSizeInfo.isTablet) 6 else 5),
+                                shape = getSettingsShape(modernGroupCount, if (isTablet) 6 else 5),
                                 title = stringResource(R.string.pref_wavy_play_pause),
                                 subtitle = stringResource(R.string.pref_wavy_play_pause_sub),
                                 hasSwitch = true,

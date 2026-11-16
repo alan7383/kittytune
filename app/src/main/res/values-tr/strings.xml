@@ -3817,4 +3817,9 @@
     <string name="beatmatch_spotify_hint">“Tempoyu eşleştir”, gelen parçayı çıkan parçanın temposuna uzatır; “Özgün tempo” her iki hızı da korur.</string>
     <string name="usb_status_track_mismatch">Bit-Perfect doğrulanamadı: ses kanalı biçimi DAC mikserinden farklı</string>
     <string name="usb_automix_conflict">Bit-Perfect etkinken Otomatik miks duraklatılır: parçalar çapraz geçişsiz değişir</string>
+    <string name="pref_tablet_interface">Tablet arayüzü</string>
+    <string name="pref_tablet_interface_sub">Tabletlerde gezinme çubuğunu, oynatıcı panelini ve etiketleri seçin</string>
+    <string name="pref_tablet_nav_classic_dock">Orijinal tablet alt çubuğu</string>
+    <string name="pref_tablet_side_player">Sağ oynatıcı paneli</string>
+    <string name="pref_tablet_side_player_sub">Mini oynatıcıya dokunmak, tam ekran oynatıcı yerine yan paneli açar</string>
 </resources>

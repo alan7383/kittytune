@@ -37,6 +37,7 @@ import com.alananasss.kittytune.ui.common.SplitSettingsItem
 import com.alananasss.kittytune.ui.common.getSettingsShape
 import com.alananasss.kittytune.ui.player.AudioPathDiagnosticSheet
 import com.alananasss.kittytune.ui.player.AudioPathHeroCard
+import com.alananasss.kittytune.ui.common.settingHighlight
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.audio.EqualizerSheet
 import kotlin.math.roundToInt
@@ -390,7 +391,7 @@ fun AudioPlaybackSettingsScreen(
                     AudioPathHeroCard(
                         playerViewModel = playerViewModel,
                         onOpen = hapticAction(HapticKind.UI) { showAudioPathSheet = true },
-                        modifier = Modifier.padding(top = 16.dp)
+                        modifier = Modifier.padding(top = 16.dp).settingHighlight("diag_hero_title", RoundedCornerShape(24.dp))
                     )
                 }
             }

@@ -124,7 +124,7 @@ enum class MiniPlayerBackgroundStyle {
 }
 
 // where the navigation bar lives on tablets in landscape
-enum class TabletNavPlacement { BOTTOM, LEFT }
+enum class TabletNavPlacement { BOTTOM, LEFT, CLASSIC_DOCK }
 
  // one switch for both navigation styles: when on the bar shows icons only - no text under
  // the classic bar's icons and no expanding label next to the selected modern dock pill
@@ -686,6 +686,7 @@ class PlayerPreferences(context: Context) {
         const val KEY_LYRICS_LINE_ANIMATION = "lyrics_line_animation"
         const val KEY_INSTRUMENTAL_INDICATOR = "instrumental_indicator_style"
         const val KEY_TABLET_NAV_PLACEMENT = "tablet_nav_placement"
+        const val KEY_TABLET_SIDE_PLAYER = "tablet_side_player"
         const val KEY_NAV_HIDE_LABELS = "nav_labels_hidden"
         const val KEY_MINI_PLAYER_STYLE = "mini_player_style"
         const val KEY_MINI_PLAYER_BACKGROUND = "mini_player_background_style"
@@ -1039,18 +1040,40 @@ class PlayerPreferences(context: Context) {
     fun setLyricsSweepEnabled(enabled: Boolean) = setLyricsLineAnimation(if (enabled) LyricsLineAnimation.SWEEP else LyricsLineAnimation.FADE)
 
     fun getInstrumentalIndicatorStyle(): InstrumentalIndicatorStyle {
-        return InstrumentalIndicatorStyle.fromString(prefs.getString(KEY_INSTRUMENTAL_INDICATOR, InstrumentalIndicatorStyle.NOTE_WAVE.name))
+        return InstrumentalIndicatorStyle.fromString(prefs.getString(KEY_INSTRUMENTAL_INDICATOR, InstrumentalIndicatorStyle.DOTS.name))
     }
 
     fun setInstrumentalIndicatorStyle(style: InstrumentalIndicatorStyle) = prefs.edit { putString(KEY_INSTRUMENTAL_INDICATOR, style.name) }
 
     fun getTabletNavPlacement(): TabletNavPlacement {
-        // LEFT is the default: a tablet gets the side rail out of the box (the dock is one tap away).
-        val name = prefs.getString(KEY_TABLET_NAV_PLACEMENT, TabletNavPlacement.LEFT.name)
-        return runCatching { TabletNavPlacement.valueOf(name!!) }.getOrDefault(TabletNavPlacement.LEFT)
+        val name = prefs.getString(KEY_TABLET_NAV_PLACEMENT, null)
+        return TabletNavPlacement.entries.firstOrNull { it.name == name } ?: TabletNavPlacement.CLASSIC_DOCK
     }
 
-    fun setTabletNavPlacement(placement: TabletNavPlacement) = prefs.edit { putString(KEY_TABLET_NAV_PLACEMENT, placement.name) }
+    fun setTabletNavPlacement(placement: TabletNavPlacement) {
+        val sidePlayerEnabled = getTabletSidePlayerEnabled()
+        prefs.edit {
+            putString(KEY_TABLET_NAV_PLACEMENT, placement.name)
+            putBoolean(KEY_TABLET_SIDE_PLAYER, sidePlayerEnabled)
+        }
+    }
+
+    fun getTabletSidePlayerEnabled(): Boolean =
+        prefs.getBoolean(KEY_TABLET_SIDE_PLAYER, getTabletNavPlacement() == TabletNavPlacement.CLASSIC_DOCK)
+
+    fun setTabletSidePlayerEnabled(enabled: Boolean) =
+        prefs.edit { putBoolean(KEY_TABLET_SIDE_PLAYER, enabled) }
+
+    fun tabletSidePlayerFlow(): Flow<Boolean> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_TABLET_SIDE_PLAYER || key == KEY_TABLET_NAV_PLACEMENT) {
+                trySend(getTabletSidePlayerEnabled())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(getTabletSidePlayerEnabled())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     fun tabletNavPlacementFlow(): Flow<TabletNavPlacement> = callbackFlow {
         trySend(getTabletNavPlacement())
@@ -1168,6 +1191,14 @@ class PlayerPreferences(context: Context) {
     }
 
     fun getShowCodecOnPlayer(): Boolean = prefs.getBoolean(KEY_SHOW_CODEC_ON_PLAYER, false)
+    fun showCodecOnPlayerFlow(): Flow<Boolean> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_SHOW_CODEC_ON_PLAYER) trySend(getShowCodecOnPlayer())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(getShowCodecOnPlayer())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
     fun setShowCodecOnPlayer(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_CODEC_ON_PLAYER, enabled) }
 
     fun getSkipSilence(): Boolean = prefs.getBoolean(KEY_SKIP_SILENCE, false)

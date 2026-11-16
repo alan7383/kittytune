@@ -3713,7 +3713,12 @@
 <string name="pref_instrumental_off">Off</string>
 <string name="pref_tablet_nav_placement">Tablet navigation placement</string>
 <string name="pref_tablet_nav_placement_sub">Where the navigation bar lives on tablets in landscape</string>
-<string name="pref_tablet_nav_bottom">Bottom</string>
+<string name="pref_tablet_nav_bottom">Standard bottom bar</string>
+<string name="pref_tablet_interface">Tablet interface</string>
+<string name="pref_tablet_interface_sub">Choose the tablet navigation, player panel and labels</string>
+<string name="pref_tablet_nav_classic_dock">Original tablet dock</string>
+<string name="pref_tablet_side_player">Right-hand player panel</string>
+<string name="pref_tablet_side_player_sub">Tap the mini-player to open the side panel instead of the full-screen player</string>
 <string name="pref_tablet_nav_left">Left side</string>
 <string name="pref_classic_nav_labels">Show labels in classic bar</string>
 <string name="pref_classic_nav_labels_sub">Turn off for icons only in the classic navigation style</string>

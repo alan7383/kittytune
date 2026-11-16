@@ -16,6 +16,7 @@ import com.alananasss.kittytune.ui.player.PlayerViewModel
 internal fun rememberSettingsSearchCatalog(
     navController: NavController,
     playerViewModel: PlayerViewModel,
+    isTablet: Boolean,
     preferenceVersion: Int,
     onPreferenceChange: () -> Unit
 ): List<SearchSettingEntry> {
@@ -33,6 +34,7 @@ internal fun rememberSettingsSearchCatalog(
 
     return remember(
         preferenceVersion,
+        isTablet,
         playerViewModel.isHapticsEnabled,
         playerViewModel.equalizerState.isEnabled,
         playerViewModel.effectsState.isNormalizationEnabled,
@@ -77,7 +79,7 @@ internal fun rememberSettingsSearchCatalog(
         var showHomeMyWave = prefs.getShowHomeMyWave()
         var showHomeCharts = prefs.getShowHomeCharts()
 
-        val staticItems = listOf(
+        val staticItems = listOfNotNull(
             // INTERFACE
             createSearchEntry(
                 context = context,
@@ -134,17 +136,27 @@ internal fun rememberSettingsSearchCatalog(
                 keywordsRes = R.string.keywords_fab,
                 keywords = listOf("fab")
             ),
-            createSearchEntry(
+            if (isTablet) createSearchEntry(
                 context = context,
                 englishContext = englishContext,
-                titleRes = R.string.pref_tablet_nav_placement,
-                subtitleRes = R.string.pref_tablet_nav_placement_sub,
+                titleRes = R.string.pref_tablet_interface,
+                subtitleRes = R.string.pref_tablet_interface_sub,
                 categoryName = catInterface,
                 icon = Icons.Rounded.TabletMac,
-                route = "bottom_bar_settings",
-                highlightKey = "pref_tablet_nav_placement",
-                keywords = listOf("tablet", "navigation", "rail", "left", "landscape", "docked")
-            ),
+                route = "tablet_interface_settings",
+                keywords = listOf("tablet", "navigation", "rail", "left", "classic", "dock", "tablette")
+            ) else null,
+            if (isTablet) createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_tablet_side_player,
+                subtitleRes = R.string.pref_tablet_side_player_sub,
+                categoryName = catInterface,
+                icon = Icons.Rounded.TabletMac,
+                route = "tablet_interface_settings",
+                highlightKey = "pref_tablet_side_player",
+                keywords = listOf("tablet", "right", "side panel", "now playing", "tablette")
+            ) else null,
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
@@ -183,11 +195,33 @@ internal fun rememberSettingsSearchCatalog(
                 englishContext = englishContext,
                 titleRes = R.string.pref_show_codec_on_player,
                 subtitleRes = R.string.pref_show_codec_on_player_sub,
-                categoryName = catInterface,
+                categoryName = catMisc,
                 icon = Icons.Rounded.GraphicEq,
                 route = "misc_general_settings",
                 highlightKey = "pref_show_codec_on_player",
-                keywords = listOf("codec", "bitrate", "opus", "aac", "player", "badge")
+                keywords = listOf("codec", "bitrate", "opus", "flac", "aac", "player", "badge")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_lyrics_line_animation,
+                subtitleRes = R.string.pref_lyrics_line_animation_sub,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Lyrics,
+                route = "lyrics_settings",
+                highlightKey = "pref_lyrics_line_animation",
+                keywords = listOf("sweep", "dégradé", "karaoké")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_instrumental_indicator,
+                subtitleRes = R.string.pref_instrumental_indicator_sub,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Lyrics,
+                route = "lyrics_settings",
+                highlightKey = "pref_instrumental_indicator",
+                keywords = listOf("interlude", "breathing dots", "points", "vague")
             ),
             createSearchEntry(
                 context = context,
@@ -1017,6 +1051,49 @@ internal fun rememberSettingsSearchCatalog(
                     com.alananasss.kittytune.data.MusicManager.applySkipSilenceSettings()
                     onPreferenceChange()
                 }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.diag_hero_title,
+                categoryName = catAudio,
+                icon = Icons.Rounded.GraphicEq,
+                route = "audio_playback_settings",
+                highlightKey = "diag_hero_title",
+                keywords = listOf("audio path", "codec", "bitrate", "resampling")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_instant_skip_silence,
+                subtitleRes = R.string.pref_instant_skip_silence_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.GraphicEq,
+                route = "audio_playback_settings",
+                highlightKey = if (skipSilence) "pref_instant_skip_silence" else "pref_skip_silence",
+                keywords = listOf("silence", "instant")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_pause_listen_history,
+                subtitleRes = R.string.pref_pause_listen_history_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.GraphicEq,
+                route = "audio_playback_settings",
+                highlightKey = "pref_pause_listen_history",
+                keywords = listOf("listening history", "privacy")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_pause_search_history,
+                subtitleRes = R.string.pref_pause_search_history_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.GraphicEq,
+                route = "audio_playback_settings",
+                highlightKey = "pref_pause_search_history",
+                keywords = listOf("search history", "privacy")
             ),
             createSearchEntry(
                 context = context,

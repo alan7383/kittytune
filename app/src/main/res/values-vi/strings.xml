@@ -3820,4 +3820,9 @@
     <string name="beatmatch_spotify_hint">“Khớp tempo” kéo giãn bài vào theo tempo của bài ra; “Tempo gốc” giữ nguyên tốc độ của cả hai.</string>
     <string name="usb_status_track_mismatch">Chưa xác nhận Bit-Perfect: định dạng audio track khác với bộ trộn của DAC</string>
     <string name="usb_automix_conflict">Automix bị tạm dừng khi Bit-Perfect đang hoạt động: các bài chuyển tiếp không hòa chuyển</string>
+    <string name="pref_tablet_interface">Giao diện máy tính bảng</string>
+    <string name="pref_tablet_interface_sub">Chọn kiểu điều hướng, bảng phát nhạc và nhãn trên máy tính bảng</string>
+    <string name="pref_tablet_nav_classic_dock">Thanh dock máy tính bảng gốc</string>
+    <string name="pref_tablet_side_player">Bảng phát nhạc bên phải</string>
+    <string name="pref_tablet_side_player_sub">Chạm vào trình phát thu nhỏ để mở bảng bên thay cho trình phát toàn màn hình</string>
 </resources>

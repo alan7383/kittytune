@@ -32,6 +32,7 @@
     import com.alananasss.kittytune.data.local.LyricsUnderCoverPlacement
     import com.alananasss.kittytune.data.local.PlayerPreferences
     import com.alananasss.kittytune.ui.common.SettingsGroup
+    import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
     import com.alananasss.kittytune.ui.common.SettingsItem
     import com.alananasss.kittytune.ui.common.SettingsScaffold
     import com.alananasss.kittytune.ui.common.SettingsGroupTitle
@@ -679,11 +680,21 @@
             )
         }
 
+        val settingsListState = rememberLazyListState()
+        AutoScrollToHighlightedItem(
+            listState = settingsListState,
+            keyToIndex = mapOf(
+                "pref_lyrics_line_animation" to 3,
+                "pref_instrumental_indicator" to 3,
+            ),
+        )
+
         SettingsScaffold(
             title = stringResource(R.string.pref_lyrics_title),
             onBackClick = onBackClick
         ) { innerPadding ->
             LazyColumn(
+                state = settingsListState,
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize(),
@@ -953,6 +964,7 @@
                                 shape = getSettingsShape(totalVisibleItems, inlineIndex + 1),
                                 title = stringResource(R.string.pref_lyrics_line_animation),
                                 subtitle = stringResource(R.string.pref_lyrics_line_animation_sub),
+                                highlightKey = "pref_lyrics_line_animation",
                                 hasSwitch = true,
                                 switchState = sweepEnabled,
                                 onSwitchChange = {
@@ -966,6 +978,7 @@
                                 shape = getSettingsShape(totalVisibleItems, inlineIndex + 2),
                                 title = stringResource(R.string.pref_instrumental_indicator),
                                 subtitle = stringResource(R.string.pref_instrumental_indicator_sub),
+                                highlightKey = "pref_instrumental_indicator",
                                 trailingText = when (instrumentalIndicator) {
                                     com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.CIRCLE -> stringResource(R.string.pref_instrumental_circle)
                                     com.alananasss.kittytune.data.local.InstrumentalIndicatorStyle.NOTE_WAVE -> stringResource(R.string.pref_instrumental_note_wave)

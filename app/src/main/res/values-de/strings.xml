@@ -3820,4 +3820,9 @@
     <string name="beatmatch_spotify_hint">„Tempo angleichen“ dehnt den neuen Titel auf das Tempo des auslaufenden; „Originaltempo“ behält beide Geschwindigkeiten.</string>
     <string name="usb_status_track_mismatch">Bit-Perfect nicht bestätigt: Das Format der Audiospur weicht vom DAC-Mixer ab</string>
     <string name="usb_automix_conflict">Automix ist pausiert, solange Bit-Perfect aktiv ist: Titel wechseln ohne Überblendung</string>
+    <string name="pref_tablet_interface">Tablet-Oberfläche</string>
+    <string name="pref_tablet_interface_sub">Navigation, Player-Seitenleiste und Beschriftungen auf Tablets auswählen</string>
+    <string name="pref_tablet_nav_classic_dock">Ursprüngliches Tablet-Dock</string>
+    <string name="pref_tablet_side_player">Player-Seitenleiste rechts</string>
+    <string name="pref_tablet_side_player_sub">Ein Tippen auf den Miniplayer öffnet die Seitenleiste statt des Vollbild-Players</string>
 </resources>
