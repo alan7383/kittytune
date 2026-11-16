@@ -174,3 +174,8 @@
 -keepclassmembers class **.R$* {
     public static <fields>;
 }
+
+# Wear OS Data Layer Integration (:app)
+-keep class com.alananasss.kittytune.wear.** { *; }
+-keepclassmembers class com.alananasss.kittytune.wear.** { *; }
+-keep class * extends com.google.android.gms.wearable.WearableListenerService { *; }

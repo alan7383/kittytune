@@ -133,6 +133,16 @@ object WearConstants {
     const val KEY_TIMESTAMP = "timestamp"
 
     // =========================================================================
+    // Capability discovery
+    // =========================================================================
+
+    /**
+     * Capability advertised by the handheld app, so the watch can tell a paired KittyTune phone
+     * apart from any other Wear OS node instead of assuming the first node it sees is the phone.
+     */
+    const val CAPABILITY_PHONE_APP = "kittytune_phone"
+
+    // =========================================================================
     // Target Device Constants
     // =========================================================================
 

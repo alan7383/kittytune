@@ -72,12 +72,12 @@ class PlaybackViewModel(
         lastAuthoritativeVolume = backend.volume
         _uiState.update { current ->
             // Reconcile selected target info
-            val activeTarget = current.availableTargets.find { it.id == backend.targetDeviceId || (backend.isPhone && it.isPhone) }
+            val activeTarget = (backend.availableTargets.ifEmpty { current.availableTargets }).find { it.id == backend.targetDeviceId || (backend.isPhone && it.isPhone) }
                 ?: TargetDeviceInfo(
                     id = backend.targetDeviceId ?: WearConstants.TARGET_PHONE_ID,
                     name = backend.targetDevice.ifBlank { if (backend.isPhone) WearConstants.TARGET_PHONE_LABEL else "Desktop" },
                     type = backend.targetType,
-                    isConnected = true,
+                    isConnected = backend.isPhone,
                     isSelected = true
                 )
 
@@ -97,13 +97,30 @@ class PlaybackViewModel(
                 selectedTarget = activeTarget,
                 timestamp = backend.timestamp,
                 availableTargets = if (backend.availableTargets.isNotEmpty()) backend.availableTargets else current.availableTargets,
-                errorMessage = null // Clear errors on fresh authoritative frame
+                errorMessage = null // Clear errors on a fresh authoritative frame
             )
         }
     }
 
+    /**
+     * True when the selected target cannot receive commands right now.
+     *
+     * Play/pause stays allowed: it is the one action a user wants to work as soon as the phone is
+     * back, and a failed dispatch rolls back visibly. Skipping and volume changes are refused with a
+     * message instead, because silently doing nothing is worse than saying why.
+     */
+    private fun isTargetReachable(): Boolean {
+        val state = _uiState.value
+        return state.connectionStatus == ConnectionStatus.CONNECTED &&
+            (state.selectedTarget.isConnected || state.selectedTarget.isPhone)
+    }
+
+    private fun reportUnreachable(action: String) {
+        _uiState.update { it.copy(errorMessage = "$action failed: device unreachable") }
+    }
+
     // =========================================================================
-    // User Intent Actions (Optimistic UI + Dispatch)
+    // User intent actions (optimistic UI + dispatch)
     // =========================================================================
 
     fun onPlayPause() {
@@ -130,6 +147,10 @@ class PlaybackViewModel(
     }
 
     fun onNext() {
+        if (!isTargetReachable()) {
+            reportUnreachable("Next track")
+            return
+        }
         viewModelScope.launch {
             val result = controller.next()
             if (result.isFailure) {
@@ -139,6 +160,10 @@ class PlaybackViewModel(
     }
 
     fun onPrevious() {
+        if (!isTargetReachable()) {
+            reportUnreachable("Previous track")
+            return
+        }
         viewModelScope.launch {
             val result = controller.previous()
             if (result.isFailure) {
@@ -150,27 +175,26 @@ class PlaybackViewModel(
     fun onVolumeChange(delta: Float) {
         val currentVol = _uiState.value.volume
         val newVol = if (delta.isNaN()) currentVol else VolumeSanitizer.sanitize(currentVol + delta)
-
-        // 1. Optimistic volume update
-        _uiState.update { current ->
-            current.copy(
-                volume = newVol,
-                volumeRevision = current.volumeRevision + 1
-            )
-        }
-
-        // 2. Debounced dispatch
-        dispatchDebouncedVolume(newVol)
+        onSetVolume(newVol)
     }
 
     fun onSetVolume(volume: Float) {
         val safe = VolumeSanitizer.sanitize(volume)
-        _uiState.update { current ->
-            current.copy(
+        val current = _uiState.value
+        // A no-op volume write would still round-trip to the phone and back; skip it entirely.
+        if (safe == current.volume) return
+
+        if (!isTargetReachable()) {
+            reportUnreachable("Volume change")
+            return
+        }
+        _uiState.update {
+            it.copy(
                 volume = safe,
-                volumeRevision = current.volumeRevision + 1
+                volumeRevision = it.volumeRevision + 1
             )
         }
+
         dispatchDebouncedVolume(safe)
     }
 
@@ -181,7 +205,9 @@ class PlaybackViewModel(
             try {
                 val result = controller.setVolume(volume)
                 if (result.isSuccess) {
-                    lastAuthoritativeVolume = volume
+                    // The controller has merged the acknowledged player snapshot by now.
+                    lastAuthoritativeVolume = controller.playbackState.value.volume
+                    _uiState.update { it.copy(volume = lastAuthoritativeVolume) }
                 } else {
                     _uiState.update { current ->
                         current.copy(
@@ -210,22 +236,7 @@ class PlaybackViewModel(
      * or opens the picker dialog if 3+ targets exist.
      */
     fun onToggleTarget() {
-        val targets = _uiState.value.availableTargets
-        if (targets.size <= 2) {
-            val nextTarget = targets.firstOrNull { it.id != _uiState.value.selectedTarget.id }
-            if (nextTarget != null) {
-                onSelectTarget(nextTarget)
-            } else {
-                // Direct fallback toggle
-                if (_uiState.value.isPhone) {
-                    onSelectTarget(TargetDeviceInfo("desktop", "Desktop", WearConstants.TARGET_TYPE_DESKTOP))
-                } else {
-                    onSelectTarget(TargetDeviceInfo(WearConstants.TARGET_PHONE_ID, WearConstants.TARGET_PHONE_LABEL, WearConstants.TARGET_TYPE_PHONE))
-                }
-            }
-        } else {
-            onShowTargetPicker(true)
-        }
+        onShowTargetPicker(true)
     }
 
     fun onSelectTarget(target: TargetDeviceInfo) {
@@ -256,6 +267,10 @@ class PlaybackViewModel(
                         errorMessage = "Failed to switch to ${target.name}"
                     )
                 }
+            } else {
+                // A successful dispatch proves the phone answered, so leave the CONNECTING state
+                // even if the controller publishes nothing else for a while.
+                _uiState.update { it.copy(connectionStatus = ConnectionStatus.CONNECTED) }
             }
         }
     }

@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeDown
+import androidx.compose.material.icons.automirrored.filled.VolumeMute
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.runtime.Composable
@@ -14,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.FilledTonalIconButton
@@ -21,6 +26,7 @@ import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.IconButtonDefaults
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
+import androidx.wear.compose.material3.touchTargetAwareSize
 import com.alananasss.kittytune.wear.R
 
 /**
@@ -39,32 +45,43 @@ object VolumeControlsDefaults {
     /** Visual glyph size centered within the 32dp button container (16x16dp with 8dp padding). */
     val IconSize: Dp = 16.dp
 
-    /** Horizontal spacing between buttons and center volume percentage indicator. */
-    val RowSpacing: Dp = 4.dp
+    /** Horizontal spacing between buttons and center volume speaker indicator. */
+    val RowSpacing: Dp = 0.dp
 
-    /** Fixed width for the center percentage, including 100%. */
-    val IndicatorWidth: Dp = 40.dp
+    /** Width allocated for the compact center volume indicator container (speaker glyph). */
+    val IndicatorWidth: Dp = 16.dp
+
+    /** Center volume indicator speaker glyph size. */
+    val IndicatorIconSize: Dp = 14.dp
 
     /**
      * Authoritative total visual width of [VolumeControlsRow] (112.dp <= 112.dp chord limit at y in [30, 60]dp).
-     * Formula: 2 * ButtonSize (64dp) + 2 * RowSpacing (8dp) + IndicatorWidth (40dp) = 112.dp.
+     * Formula: 2 * MinTouchTargetSize (96dp) + IndicatorWidth (16dp) = 112.dp.
      */
-    val RowWidth: Dp = ButtonSize * 2 + RowSpacing * 2 + IndicatorWidth // 112.dp
+    val RowWidth: Dp = MinTouchTargetSize * 2 + RowSpacing * 2 + IndicatorWidth // 112.dp
 
-    /** Authoritative total visual height of [VolumeControlsRow] (32.dp). */
-    val RowHeight: Dp = ButtonSize // 32.dp
+    /**
+     * Layout height of the volume row. The buttons are 32dp wide but need a 48dp touch target, so
+     * the row occupies the full target height: the extra 8dp above each button must not reach the
+     * playback triad, which is the neighbouring interactive row.
+     */
+    val RowHeight: Dp = MinTouchTargetSize // 48.dp
 }
 
 /**
  * Compact, circular-safe discrete volume button row for Wear OS.
  *
  * Ergonomics & Accessibility:
+ * - Satisfies Google Wear OS HIG and WCAG 2.5.5 with minimum 48x48dp interactive touch targets
+ *   via [touchTargetAwareSize] on 32x32dp visual buttons.
  * - Total row width of exactly 112dp fits within allowable circular display chord clearances
  *   at vertical offsets y in [30, 60]dp on 390x390 round displays with >= 8dp safe margin and
  *   >= 16dp physical bezel margin.
- * - Fixed 40dp center volume indicator eliminates layout jitter across 1-digit, 2-digit, and 3-digit percentages.
- * - Symmetrical 4dp horizontal spacing preserves compact layout hierarchy.
- * - Displays active volume percentage (0% to 100%) in the center.
+ * - Fixed 16dp speaker indicator leaves both buttons their full 48dp touch targets.
+ * - Symmetrical 0dp horizontal spacing preserves compact layout hierarchy.
+ * - Displays a dynamic speaker icon; the bezel and transient HUD show the volume level.
+ * - Buttons use the Wear Material 3 animated [IconButtonDefaults.animatedShapes] so the container
+ *   morphs on press, giving tactile visual feedback instead of a flat circle.
  * - Dimmed / disabled styling at boundaries (0% and 100%).
  */
 @Composable
@@ -82,66 +99,94 @@ fun VolumeControlsRow(
     val canDecrease = sanitized > VolumeSanitizer.MIN_VOLUME
     val canIncrease = sanitized < VolumeSanitizer.MAX_VOLUME
 
+    val stepPercent = VolumeSanitizer.toPercentage(step).coerceAtLeast(1)
+    val decreaseLabel = stringResource(R.string.volume_decrease, stepPercent)
+    val increaseLabel = stringResource(R.string.volume_increase, stepPercent)
+    val currentLabel = stringResource(R.string.volume_current, percentage)
+
     Row(
         modifier = modifier.width(VolumeControlsDefaults.RowWidth),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
+        // Volume Decrease (-) Button: 32x32dp visual footprint with 48x48dp accessible touch target
         FilledTonalIconButton(
             onClick = {
-                if (canDecrease) {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onVolumeChange(VolumeSanitizer.decrement(sanitized, step))
+                val next = VolumeSanitizer.decrement(sanitized, step)
+                if (next != sanitized) {
+                    haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    onVolumeChange(next)
                 }
             },
             enabled = canDecrease,
-            modifier = Modifier.size(buttonSize),
+            shapes = IconButtonDefaults.animatedShapes(),
             colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = if (canDecrease) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                contentColor = MaterialTheme.colorScheme.onSurface,
                 disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f),
-                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-            )
+                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            ),
+            modifier = Modifier
+                .touchTargetAwareSize(buttonSize)
+                .clearAndSetSemantics { contentDescription = decreaseLabel }
         ) {
             Icon(
                 imageVector = Icons.Default.Remove,
-                contentDescription = stringResource(R.string.action_volume_down),
+                contentDescription = null,
                 modifier = Modifier.size(VolumeControlsDefaults.IconSize)
             )
         }
 
         Spacer(modifier = Modifier.width(VolumeControlsDefaults.RowSpacing))
 
-        Text(
-            text = "$percentage%",
-            modifier = Modifier.width(VolumeControlsDefaults.IndicatorWidth),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-        )
+        // Center volume indicator (glyph + percentage in a fixed 16dp width)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .width(VolumeControlsDefaults.IndicatorWidth)
+                .clearAndSetSemantics { contentDescription = currentLabel }
+        ) {
+            val volumeIcon = when {
+                percentage == 0 -> Icons.AutoMirrored.Filled.VolumeMute
+                percentage < 50 -> Icons.AutoMirrored.Filled.VolumeDown
+                else -> Icons.AutoMirrored.Filled.VolumeUp
+            }
+            Icon(
+                imageVector = volumeIcon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(VolumeControlsDefaults.IndicatorIconSize)
+            )
+
+        }
 
         Spacer(modifier = Modifier.width(VolumeControlsDefaults.RowSpacing))
 
+        // Volume Increase (+) Button: 32x32dp visual footprint with 48x48dp accessible touch target
         FilledTonalIconButton(
             onClick = {
-                if (canIncrease) {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onVolumeChange(VolumeSanitizer.increment(sanitized, step))
+                val next = VolumeSanitizer.increment(sanitized, step)
+                if (next != sanitized) {
+                    haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    onVolumeChange(next)
                 }
             },
             enabled = canIncrease,
-            modifier = Modifier.size(buttonSize),
+            shapes = IconButtonDefaults.animatedShapes(),
             colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = if (canIncrease) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                contentColor = MaterialTheme.colorScheme.onSurface,
                 disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f),
-                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-            )
+                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            ),
+            modifier = Modifier
+                .touchTargetAwareSize(buttonSize)
+                .clearAndSetSemantics { contentDescription = increaseLabel }
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = stringResource(R.string.action_volume_up),
+                contentDescription = null,
                 modifier = Modifier.size(VolumeControlsDefaults.IconSize)
             )
         }

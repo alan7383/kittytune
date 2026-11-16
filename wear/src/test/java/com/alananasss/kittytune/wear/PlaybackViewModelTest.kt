@@ -141,7 +141,7 @@ class PlaybackViewModelTest {
     }
 
     @Test
-    fun `quick toggle switches between phone and desktop when only two targets exist`() {
+    fun `target button opens picker without silently selecting a desktop`() {
         val targets = listOf(
             TargetDeviceInfo("phone", "Phone", WearConstants.TARGET_TYPE_PHONE, true, true),
             TargetDeviceInfo("desktop-1", "MacBook Pro", WearConstants.TARGET_TYPE_DESKTOP, true, false)
@@ -152,11 +152,10 @@ class PlaybackViewModelTest {
         // Starting on phone
         assertTrue(viewModel.uiState.value.isPhone)
 
-        // Quick toggle switches to MacBook Pro
         viewModel.onToggleTarget()
-        assertTrue("Quick toggle must switch to desktop", viewModel.uiState.value.isDesktop)
-        assertEquals("MacBook Pro", viewModel.uiState.value.selectedTarget.name)
-        assertFalse("Picker dialog should not open when <= 2 targets", viewModel.uiState.value.isTargetPickerVisible)
+        assertTrue("The picker must show actual discovered targets", viewModel.uiState.value.isTargetPickerVisible)
+        assertTrue("Opening the picker must preserve the current target", viewModel.uiState.value.isPhone)
+        assertTrue(controller.dispatchedCommands.isEmpty())
     }
 
     @Test

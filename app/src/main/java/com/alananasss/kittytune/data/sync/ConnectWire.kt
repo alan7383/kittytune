@@ -146,7 +146,8 @@ class ConnectReplayGuard {
 
 object ConnectPolicy {
     fun shouldConnect(enabled: Boolean, playbackSync: Boolean, mobile: Boolean, foreground: Boolean,
-        playing: Boolean): Boolean = enabled && playbackSync && (!mobile || foreground || playing)
+        playing: Boolean, wearControl: Boolean = false): Boolean =
+        enabled && playbackSync && (!mobile || foreground || playing || wearControl)
 }
 
 /** Explicit device choices stay selected; incoming renderer commands retain automatic following. */

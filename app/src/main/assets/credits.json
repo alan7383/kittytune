@@ -52,11 +52,18 @@
       "order": 5
     },
     {
+      "github": "ilgiova237",
+      "role": "about_role_community_contrib",
+      "badge": "Desktop Contributor",
+      "category": "dev",
+      "order": 6
+    },
+    {
       "github": "wynriu",
       "role": "about_role_translation_vi",
       "badge": "🇻🇳 Tiếng Việt",
       "category": "translation",
-      "order": 6
+      "order": 7
     },
     {
       "name": "Егор Белоусов (kivoyoso)",
@@ -65,7 +72,7 @@
       "role": "about_role_translation_ru",
       "badge": "🇷🇺 Русский",
       "category": "translation",
-      "order": 7
+      "order": 8
     },
     {
       "name": "mattdotcat",
@@ -73,49 +80,49 @@
       "badge": "🇭🇺 Magyar",
       "role": "about_role_translation_hu",
       "category": "translation",
-      "order": 8
+      "order": 9
     },
     {
       "github": "The-S3NS3",
       "role": "about_role_qa",
       "badge": "Tablet QA & Feedback",
       "category": "community",
-      "order": 9
+      "order": 10
     },
     {
       "github": "meowsite",
       "role": "about_role_translation_qa",
       "badge": "🌐 QA & Feedback",
       "category": "community",
-      "order": 10
+      "order": 11
     },
     {
       "github": "dyr00l",
       "role": "about_role_community_contrib",
       "badge": "QA & Feedback",
       "category": "community",
-      "order": 11
+      "order": 12
     },
     {
       "github": "quntqunt",
       "role": "about_role_community_contrib",
       "badge": "Contributor",
       "category": "community",
-      "order": 12
+      "order": 13
     },
     {
       "github": "tankist939-afk",
       "role": "about_role_community_contrib",
       "badge": "Contributor",
       "category": "community",
-      "order": 13
+      "order": 14
     },
     {
       "github": "TheFoxCraft",
       "role": "about_role_community_contrib",
       "badge": "Bug Reports & Feedback",
       "category": "community",
-      "order": 14
+      "order": 15
     }
   ]
 }

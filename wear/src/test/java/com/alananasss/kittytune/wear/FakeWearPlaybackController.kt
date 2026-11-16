@@ -37,7 +37,11 @@ class FakeWearPlaybackController : WearPlaybackController {
     override suspend fun playPause() = record("playPause")
     override suspend fun next() = record("next")
     override suspend fun previous() = record("previous")
-    override suspend fun setVolume(volume: Float) = record("setVolume:$volume")
+    override suspend fun setVolume(volume: Float): Result<Unit> {
+        val result = record("setVolume:$volume")
+        if (result.isSuccess) _playbackState.value = _playbackState.value.copy(volume = volume)
+        return result
+    }
     override suspend fun adjustVolume(delta: Float) = record("adjustVolume:$delta")
     override suspend fun selectTarget(target: TargetSelectionPayload) = record("selectTarget:${target.targetType}:${target.peerId}")
     override suspend fun requestSync() = record("requestSync")

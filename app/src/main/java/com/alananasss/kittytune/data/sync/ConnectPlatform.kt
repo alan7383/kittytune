@@ -9,14 +9,14 @@ import com.alananasss.kittytune.KittyTuneApp
 internal object ConnectPlatform {
     fun trace(event: String) { if (com.alananasss.kittytune.BuildConfig.DEBUG) android.util.Log.d("KittyConnect", event) }
     const val mobile = true
-    private val prefs by lazy { KittyTuneApp.instance.getSharedPreferences("sync_state", Context.MODE_PRIVATE) }
+    private val prefs by lazy { runCatching { KittyTuneApp.instance.getSharedPreferences("sync_state", Context.MODE_PRIVATE) }.getOrNull() }
     var relayUrl: String
-        get() = prefs.getString("connect_relay_url", "").orEmpty()
-        set(value) { prefs.edit().putString("connect_relay_url", value).apply() }
+        get() = prefs?.getString("connect_relay_url", "").orEmpty()
+        set(value) { prefs?.edit()?.putString("connect_relay_url", value)?.apply() }
     var autoHeadphones: Boolean
-        get() = prefs.getBoolean("connect_auto_headphones", true)
-        set(value) { prefs.edit().putBoolean("connect_auto_headphones", value).apply() }
-    private val audio by lazy { KittyTuneApp.instance.getSystemService(android.media.AudioManager::class.java) }
+        get() = prefs?.getBoolean("connect_auto_headphones", true) ?: true
+        set(value) { prefs?.edit()?.putBoolean("connect_auto_headphones", value)?.apply() }
+    private val audio by lazy { runCatching { KittyTuneApp.instance.getSystemService(android.media.AudioManager::class.java) }.getOrNull() }
     fun canAutoTransfer() = audio?.mode == android.media.AudioManager.MODE_NORMAL
     private var audioCallback: android.media.AudioDeviceCallback? = null
     @Synchronized fun observeHeadphones(active: Boolean) {
@@ -42,7 +42,7 @@ internal object ConnectPlatform {
     }
     fun relayEndpoint() = relayUrl
     fun startListener() {} // Android uses one outbound duplex connection, including for receiving commands.
-    private val connectivity by lazy { KittyTuneApp.instance.getSystemService(ConnectivityManager::class.java) }
+    private val connectivity by lazy { runCatching { KittyTuneApp.instance.getSystemService(ConnectivityManager::class.java) }.getOrNull() }
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     fun canUseLan(): Boolean = connectivity?.activeNetwork?.let { connectivity?.getNetworkCapabilities(it) }?.let {
         it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || it.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
