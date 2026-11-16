@@ -46,6 +46,7 @@ import com.alananasss.kittytune.ui.player.PlayerViewModel
 fun SettingsSearchScreen(
     navController: NavController,
     onBackClick: () -> Unit,
+    isTablet: Boolean,
     playerViewModel: PlayerViewModel
 ) {
     val context = LocalContext.current
@@ -56,10 +57,12 @@ fun SettingsSearchScreen(
     var preferenceVersion by remember { mutableIntStateOf(0) }
 
     var recentItems by remember { mutableStateOf(prefs.getSettingsRecentSearches()) }
+    val visibleRecentItems = if (isTablet) recentItems else recentItems.filterNot { it.route == "tablet_interface_settings" }
 
     val allSearchItems = rememberSettingsSearchCatalog(
         navController = navController,
         playerViewModel = playerViewModel,
+        isTablet = isTablet,
         preferenceVersion = preferenceVersion,
         onPreferenceChange = { preferenceVersion++ }
     )
@@ -248,14 +251,14 @@ fun SettingsSearchScreen(
         ) {
             when {
                 searchQuery.isBlank() -> {
-                    if (recentItems.isEmpty()) {
+                    if (visibleRecentItems.isEmpty()) {
                         SettingsZeroStateIllustration(
                             title = stringResource(R.string.search_no_recent_results),
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
                         RecentSettingsList(
-                            recentItems = recentItems,
+                            recentItems = visibleRecentItems,
                             allSearchItems = allSearchItems,
                             onItemClick = { onRecentClick(it) },
                             onClearAll = {

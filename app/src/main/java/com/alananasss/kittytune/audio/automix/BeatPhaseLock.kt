@@ -27,12 +27,13 @@ import kotlin.math.abs
  */
 object BeatPhaseLock {
 
-    /**
-     * Largest speed deviation once the incoming deck is at full level, as a fraction of base
-     * speed. 1.5 % is about a quarter of a semitone — inaudible, and enough to hold a locked
-     * pair together against clock drift.
-     */
-    const val MAX_NUDGE = 0.015f
+    // Largest speed deviation once the incoming deck is at full level, as a fraction of base
+    // speed. 0.4 % is deep inside the inaudible zone (a twelfth of a semitone) and still
+    // enough to hold a locked pair together against clock drift: a 3 ms error is erased over
+    // a 750 ms window at this authority, and the fade loop re-measures every few hundred ms.
+    // Going higher (the old 1.5 %) made the correction itself audible as a slow detune of the
+    // incoming deck, the exact "flanger" artefact phase locking exists to prevent.
+    const val MAX_NUDGE = 0.004f
 
     /**
      * Largest speed deviation while the incoming deck is still silent or nearly so.
@@ -53,7 +54,7 @@ object BeatPhaseLock {
     }
 
     /** Below this error the decks count as locked and nothing is touched. */
-    const val LOCK_TOLERANCE_MS = 4.0
+    const val LOCK_TOLERANCE_MS = 3.0
 
     /** Above this error a seek is worth it; below it, the speed nudge alone is used. */
     const val SEEK_THRESHOLD_MS = 12.0
@@ -102,6 +103,19 @@ object BeatPhaseLock {
             if (firstK > lastK) return null
             val k = Math.round((target - anchorMs) / lineMs).coerceIn(firstK, lastK)
             return (anchorMs + k * lineMs).toLong()
+        }
+
+        // Time of the grid beat closest to [targetMs], in either direction, or null when the
+        // grid cannot produce a beat (degenerate period) or the result would be negative.
+        //
+        // This is the last rung of the cut-point fallback ladder (phrase -> bar -> beat -> raw
+        // position): a fade at the very edge of a track or over an ambient intro can contain
+        // neither a phrase line nor a bar line, but the beat grid itself still exists.
+        fun nearestBeat(targetMs: Long): Long? {
+            if (periodMs <= 0.0) return null
+            val steps = Math.round((targetMs - anchorMs) / periodMs)
+            val ms = anchorMs + (steps * periodMs).toLong()
+            return if (ms < 0L) null else ms
         }
 
         /**

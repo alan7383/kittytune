@@ -87,6 +87,8 @@ class DjFlowController(
     private var infiniteFetchJob: Job? = null
 
     private var currentTrack: Track? = null
+    private var trackInfoJob: Job? = null
+    private var trackInfoGeneration: Long = 0L
     private var currentQueue: List<Track> = emptyList()
     private var currentQueueIndex: Int = -1
 
@@ -176,7 +178,11 @@ class DjFlowController(
         prefs?.setDjFlowEnabled(enabled)
         if (enabled) {
             currentTrack?.let { curr ->
-                AutomixManager.maybeAnalyzeBeat(curr, BeatAnalysisPriority.IMMEDIATE)
+                // Deferred while a blend is in flight - the 2 s ticker analyzes it as soon as
+                // the decks are idle again.
+                if (!com.alananasss.kittytune.data.MusicManager.isTransitionRunning()) {
+                    AutomixManager.maybeAnalyzeBeat(curr, BeatAnalysisPriority.IMMEDIATE)
+                }
             }
             evaluateQueueAsync()
         } else {
@@ -419,9 +425,14 @@ class DjFlowController(
             return
         }
 
-        scope.launch(Dispatchers.IO) {
+        trackInfoJob?.cancel()
+        val generation = ++trackInfoGeneration
+        trackInfoJob = scope.launch(Dispatchers.IO) {
             val info = getOrFetchBeatInfo(track)
-            if (info == null || info.bpm <= 0f) {
+            if ((info == null || info.bpm <= 0f) && !com.alananasss.kittytune.data.MusicManager.isTransitionRunning()) {
+                // A blend is in flight: decoding up to 40 s of audio right now would fight the
+                // two live decks for CPU (hissy/interrupted playback). The ticker retries the
+                // moment the transition is over.
                 AutomixManager.maybeAnalyzeBeat(track, BeatAnalysisPriority.IMMEDIATE)
             }
             val bpm = info?.bpm ?: AutomixManager.automixDebugInfo.value?.outBpm ?: 0f
@@ -430,6 +441,7 @@ class DjFlowController(
             } else null
 
             withContext(Dispatchers.Main) {
+                if (generation != trackInfoGeneration || currentTrack?.id != track.id) return@withContext
                 _flowState.update {
                     it.copy(
                         currentBpm = bpm,
@@ -786,8 +798,9 @@ class DjFlowController(
                 val info = getOrFetchBeatInfo(track)
                 if (info != null && info.bpm > 0f) {
                     analyzedCount++
-                } else {
-                    // Queue for background analysis
+                } else if (!com.alananasss.kittytune.data.MusicManager.isTransitionRunning()) {
+                    // Queue for background analysis - but never while a blend is running:
+                    // that decode burst right after a skip is what starved the audio threads.
                     AutomixManager.maybeAnalyzeBeat(track, BeatAnalysisPriority.LOOKAHEAD)
                 }
 

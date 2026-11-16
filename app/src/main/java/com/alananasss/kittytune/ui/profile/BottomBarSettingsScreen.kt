@@ -51,6 +51,8 @@ import com.alananasss.kittytune.ui.player.PlayerViewModel
 fun BottomBarSettingsScreen(
     onBackClick: () -> Unit,
     onNavigateToFabSettings: () -> Unit,
+    onNavigateToTabletSettings: () -> Unit,
+    isTablet: Boolean,
     playerViewModel: PlayerViewModel
 ) {
     val context = LocalContext.current
@@ -66,13 +68,39 @@ fun BottomBarSettingsScreen(
     val miniPlayerSwipeAction by prefs.miniPlayerSwipeActionFlow().collectAsState(initial = prefs.getMiniPlayerSwipeAction())
     var showSwipeActionDialog by remember { mutableStateOf(false) }
 
+    // ── Navigation: one labels switch for both styles + placement on tablets ──
+    val navHideLabels by prefs.navHideLabelsFlow().collectAsState(initial = prefs.getNavHideLabels())
+
+    // ── Mini player (the whole section moved here from the player design screen) ──
+    val miniPlayerStyle by prefs.miniPlayerStyleFlow().collectAsState(initial = prefs.getMiniPlayerStyle())
+    val miniPlayerBackground by prefs.miniPlayerBackgroundStyleFlow().collectAsState(initial = prefs.getMiniPlayerBackgroundStyle())
+    var showMiniPlayerBackgroundDialog by remember { mutableStateOf(false) }
+    val miniPlayerSwipeTrack by prefs.miniPlayerSwipeTrackFlow().collectAsState(initial = prefs.getMiniPlayerSwipeTrack())
+    val miniPlayerVerticalGesture by prefs.miniPlayerVerticalGestureFlow().collectAsState(initial = prefs.getMiniPlayerVerticalGesture())
+    val miniPlayerShowTrackButtons by prefs.miniPlayerShowTrackButtonsFlow().collectAsState(initial = prefs.getMiniPlayerShowTrackButtons())
+    val miniPlayerWidth by prefs.miniPlayerWidthFlow().collectAsState(initial = prefs.getMiniPlayerWidth())
+    var showMiniPlayerWidthDialog by remember { mutableStateOf(false) }
+    var showMiniPlayerStyleDialog by remember { mutableStateOf(false) }
+    val wavyPlayPause by prefs.wavyPlayPauseFlow().collectAsState(initial = prefs.getWavyPlayPauseButton())
+
+    // The placement row only makes sense where a left rail can actually live.
+
     val view = LocalView.current
     val listState = rememberLazyListState()
 
     AutoScrollToHighlightedItem(
         listState = listState,
         keyToIndex = mapOf(
-            "mini_player_swipe_action" to 1
+            "mini_player_swipe_action" to 2,
+            "pref_tablet_interface" to 0,
+            "pref_nav_hide_labels" to 0,
+            "pref_mini_player_style" to 1,
+            "pref_mini_player_background" to 1,
+            "pref_mini_player_swipe_track" to 1,
+            "pref_mini_player_vertical_gesture" to 1,
+            "pref_mini_player_show_track_buttons" to 1,
+            "pref_mini_player_width" to 1,
+            "pref_wavy_play_pause" to 1
         )
     )
 
@@ -214,6 +242,177 @@ fun BottomBarSettingsScreen(
         )
     }
 
+    if (showMiniPlayerBackgroundDialog) {
+        AlertDialog(
+            onDismissRequest = { showMiniPlayerBackgroundDialog = false },
+            title = { Text(stringResource(R.string.pref_mini_player_background), fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf(
+                        com.alananasss.kittytune.data.local.MiniPlayerBackgroundStyle.SOLID to R.string.pref_mini_player_bg_solid,
+                        com.alananasss.kittytune.data.local.MiniPlayerBackgroundStyle.GRADIENT to R.string.pref_mini_player_bg_gradient,
+                        com.alananasss.kittytune.data.local.MiniPlayerBackgroundStyle.BLUR to R.string.pref_mini_player_bg_blur,
+                        com.alananasss.kittytune.data.local.MiniPlayerBackgroundStyle.GLOW to R.string.pref_mini_player_bg_glow,
+                        com.alananasss.kittytune.data.local.MiniPlayerBackgroundStyle.LIVE_MESH to R.string.pref_mini_player_bg_live_mesh
+                    ).forEach { (option, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    prefs.setMiniPlayerBackgroundStyle(option)
+                                    showMiniPlayerBackgroundDialog = false
+                                }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = miniPlayerBackground == option, onClick = null)
+                            Spacer(Modifier.width(12.dp))
+                            Text(text = stringResource(label), style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showMiniPlayerBackgroundDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (showMiniPlayerWidthDialog) {
+        AlertDialog(
+            onDismissRequest = { showMiniPlayerWidthDialog = false },
+            title = { Text(stringResource(R.string.pref_mini_player_width), fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                prefs.setMiniPlayerWidth(com.alananasss.kittytune.data.local.MiniPlayerWidth.WIDE)
+                                showMiniPlayerWidthDialog = false
+                            }
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = miniPlayerWidth == com.alananasss.kittytune.data.local.MiniPlayerWidth.WIDE,
+                            onClick = null
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.pref_mini_player_width_wide),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = stringResource(R.string.pref_mini_player_width_wide_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                prefs.setMiniPlayerWidth(com.alananasss.kittytune.data.local.MiniPlayerWidth.NARROW)
+                                showMiniPlayerWidthDialog = false
+                            }
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = miniPlayerWidth == com.alananasss.kittytune.data.local.MiniPlayerWidth.NARROW,
+                            onClick = null
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.pref_mini_player_width_narrow),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = stringResource(R.string.pref_mini_player_width_narrow_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showMiniPlayerWidthDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (showMiniPlayerStyleDialog) {
+        AlertDialog(
+            onDismissRequest = { showMiniPlayerStyleDialog = false },
+            title = { Text(stringResource(R.string.pref_mini_player_style), fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                prefs.setMiniPlayerStyle(com.alananasss.kittytune.data.local.MiniPlayerStyle.CLASSIC)
+                                showMiniPlayerStyleDialog = false
+                            }
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = miniPlayerStyle == com.alananasss.kittytune.data.local.MiniPlayerStyle.CLASSIC,
+                            onClick = null
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = stringResource(R.string.pref_mini_player_style_classic),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                prefs.setMiniPlayerStyle(com.alananasss.kittytune.data.local.MiniPlayerStyle.MODERN)
+                                showMiniPlayerStyleDialog = false
+                            }
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = miniPlayerStyle == com.alananasss.kittytune.data.local.MiniPlayerStyle.MODERN,
+                            onClick = null
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = stringResource(R.string.pref_mini_player_style_modern),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showMiniPlayerStyleDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
     SettingsScaffold(
         title = stringResource(R.string.pref_bottom_menu_title),
         onBackClick = onBackClick
@@ -236,10 +435,15 @@ fun BottomBarSettingsScreen(
                         modifier = Modifier.clip(RoundedCornerShape(24.dp)),
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        val totalItems = if (style == "modern") 3 else 1
+                        // One merged card: menu style, FAB, blur, then the navigation
+                        // rows (tablet placement + hide-labels) appended below.
+                        val modern = style == "modern"
+                        val tablet = isTablet
+                        val hideLabelsIndex = (if (modern) 2 else 0) + (if (tablet) 2 else 1)
+                        val groupSize = hideLabelsIndex + 1
 
                         SettingsItem(
-                            shape = getSettingsShape(totalItems, 0),
+                            shape = getSettingsShape(groupSize, 0),
                             title = stringResource(R.string.pref_bottom_menu_style),
                             subtitle = if (style == "modern") stringResource(R.string.pref_bottom_menu_style_modern) else stringResource(R.string.pref_bottom_menu_style_classic),
                             onClick = { showStyleDialog = true }
@@ -263,14 +467,14 @@ fun BottomBarSettingsScreen(
                                     else -> stringResource(R.string.pref_bottom_menu_fab_profile)
                                 }
                                 SettingsItem(
-                                    shape = getSettingsShape(3, 1),
+                                    shape = getSettingsShape(groupSize, 1),
                                     title = stringResource(R.string.pref_bottom_menu_fab),
                                     subtitle = currentSubtitle,
                                     onClick = onNavigateToFabSettings
                                 )
 
                                 SettingsItem(
-                                    shape = getSettingsShape(3, 2),
+                                    shape = getSettingsShape(groupSize, 2),
                                     title = stringResource(R.string.pref_bottom_menu_blur),
                                     subtitle = stringResource(R.string.pref_bottom_menu_blur_sub),
                                     hasSwitch = true,
@@ -279,28 +483,135 @@ fun BottomBarSettingsScreen(
                                 )
                             }
                         }
+
+                        // The dedicated layout controls only apply to tablets.
+                        if (isTablet) {
+                            SettingsItem(
+                                shape = getSettingsShape(groupSize, hideLabelsIndex - 1),
+                                title = stringResource(R.string.pref_tablet_interface),
+                                subtitle = stringResource(R.string.pref_tablet_interface_sub),
+                                onClick = onNavigateToTabletSettings,
+                                highlightKey = "pref_tablet_interface"
+                            )
+                        }
+
+                        SettingsItem(
+                            shape = getSettingsShape(groupSize, hideLabelsIndex),
+                            title = stringResource(R.string.pref_nav_hide_labels),
+                            subtitle = stringResource(R.string.pref_nav_hide_labels_sub),
+                            hasSwitch = true,
+                            switchState = navHideLabels,
+                            onSwitchChange = { prefs.setNavHideLabels(it) },
+                            highlightKey = "pref_nav_hide_labels"
+                        )
                     }
                 }
             }
             item(key = "mini_player_section") {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    SettingsGroupTitle(stringResource(R.string.pref_mini_player_title))
+                    SettingsGroupTitle(stringResource(R.string.pref_mini_player_style))
                     Column(
                         modifier = Modifier.clip(RoundedCornerShape(24.dp)),
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
+                        // The width switch only exists where a WIDE pill makes sense - on a
+                        // tablet. Phones always run the compact pill, so the row is hidden there.
+                        val modernGroupCount = if (isTablet) 7 else 6
                         SettingsItem(
-                            shape = RoundedCornerShape(24.dp),
-                            title = stringResource(R.string.pref_mini_player_swipe_action_title),
-                            subtitle = when (miniPlayerSwipeAction) {
-                                com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK ->
-                                    stringResource(R.string.pref_mini_player_swipe_action_change_track)
-                                com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS ->
-                                    stringResource(R.string.pref_mini_player_swipe_action_dismiss)
+                            shape = if (miniPlayerStyle == com.alananasss.kittytune.data.local.MiniPlayerStyle.MODERN) getSettingsShape(modernGroupCount, 0) else getSettingsShape(2, 0),
+                            title = stringResource(R.string.pref_mini_player_style),
+                            subtitle = if (miniPlayerStyle == com.alananasss.kittytune.data.local.MiniPlayerStyle.MODERN) {
+                                stringResource(R.string.pref_mini_player_style_modern)
+                            } else {
+                                stringResource(R.string.pref_mini_player_style_classic)
                             },
-                            onClick = { showSwipeActionDialog = true },
-                            highlightKey = "mini_player_swipe_action"
+                            onClick = { showMiniPlayerStyleDialog = true },
+                            highlightKey = "pref_mini_player_style"
                         )
+
+                        if (miniPlayerStyle == com.alananasss.kittytune.data.local.MiniPlayerStyle.MODERN) {
+                            // ── Modern (Mini) pill ──
+                            SettingsItem(
+                                shape = getSettingsShape(modernGroupCount, 1),
+                                title = stringResource(R.string.pref_mini_player_swipe_track),
+                                subtitle = stringResource(R.string.pref_mini_player_swipe_track_desc),
+                                hasSwitch = true,
+                                switchState = miniPlayerSwipeTrack,
+                                onSwitchChange = { prefs.setMiniPlayerSwipeTrack(it) },
+                                highlightKey = "pref_mini_player_swipe_track"
+                            )
+                            SettingsItem(
+                                shape = getSettingsShape(modernGroupCount, 2),
+                                title = stringResource(R.string.pref_mini_player_vertical_gesture),
+                                subtitle = stringResource(R.string.pref_mini_player_vertical_gesture_sub),
+                                hasSwitch = true,
+                                switchState = miniPlayerVerticalGesture == com.alananasss.kittytune.data.local.MiniPlayerVerticalGesture.CLOSE,
+                                onSwitchChange = { on ->
+                                    prefs.setMiniPlayerVerticalGesture(
+                                        if (on) com.alananasss.kittytune.data.local.MiniPlayerVerticalGesture.CLOSE
+                                        else com.alananasss.kittytune.data.local.MiniPlayerVerticalGesture.OFF
+                                    )
+                                },
+                                highlightKey = "pref_mini_player_vertical_gesture"
+                            )
+                            SettingsItem(
+                                shape = getSettingsShape(modernGroupCount, 3),
+                                title = stringResource(R.string.pref_mini_player_show_track_buttons),
+                                subtitle = stringResource(R.string.pref_mini_player_show_track_buttons_desc),
+                                hasSwitch = true,
+                                switchState = miniPlayerShowTrackButtons,
+                                onSwitchChange = { prefs.setMiniPlayerShowTrackButtons(it) },
+                                highlightKey = "pref_mini_player_show_track_buttons"
+                            )
+                            if (isTablet) {
+                                SettingsItem(
+                                    shape = getSettingsShape(modernGroupCount, 4),
+                                    title = stringResource(R.string.pref_mini_player_width),
+                                    subtitle = when (miniPlayerWidth) {
+                                        com.alananasss.kittytune.data.local.MiniPlayerWidth.NARROW -> stringResource(R.string.pref_mini_player_width_narrow)
+                                        else -> stringResource(R.string.pref_mini_player_width_wide)
+                                    },
+                                    onClick = { showMiniPlayerWidthDialog = true },
+                                    highlightKey = "pref_mini_player_width"
+                                )
+                            }
+                            SettingsItem(
+                                shape = getSettingsShape(modernGroupCount, if (isTablet) 5 else 4),
+                                title = stringResource(R.string.pref_mini_player_background),
+                                subtitle = when (miniPlayerBackground) {
+                                    com.alananasss.kittytune.data.local.MiniPlayerBackgroundStyle.GRADIENT -> stringResource(R.string.pref_mini_player_bg_gradient)
+                                    com.alananasss.kittytune.data.local.MiniPlayerBackgroundStyle.BLUR -> stringResource(R.string.pref_mini_player_bg_blur)
+                                    com.alananasss.kittytune.data.local.MiniPlayerBackgroundStyle.GLOW -> stringResource(R.string.pref_mini_player_bg_glow)
+                                    com.alananasss.kittytune.data.local.MiniPlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.pref_mini_player_bg_live_mesh)
+                                    else -> stringResource(R.string.pref_mini_player_bg_solid)
+                                },
+                                onClick = { showMiniPlayerBackgroundDialog = true },
+                                highlightKey = "pref_mini_player_background"
+                            )
+                            SettingsItem(
+                                shape = getSettingsShape(modernGroupCount, if (isTablet) 6 else 5),
+                                title = stringResource(R.string.pref_wavy_play_pause),
+                                subtitle = stringResource(R.string.pref_wavy_play_pause_sub),
+                                hasSwitch = true,
+                                switchState = wavyPlayPause,
+                                onSwitchChange = { prefs.setWavyPlayPauseButton(it) },
+                                highlightKey = "pref_wavy_play_pause"
+                            )
+                        } else {
+                            // ── Classic strip: just the swipe gesture (2 options) ──
+                            SettingsItem(
+                                shape = getSettingsShape(2, 1),
+                                title = stringResource(R.string.pref_mini_player_swipe_action_title),
+                                subtitle = when (miniPlayerSwipeAction) {
+                                    com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK ->
+                                        stringResource(R.string.pref_mini_player_swipe_action_change_track)
+                                    com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS ->
+                                        stringResource(R.string.pref_mini_player_swipe_action_dismiss)
+                                },
+                                onClick = { showSwipeActionDialog = true },
+                                highlightKey = "mini_player_swipe_action"
+                            )
+                        }
                     }
                 }
             }

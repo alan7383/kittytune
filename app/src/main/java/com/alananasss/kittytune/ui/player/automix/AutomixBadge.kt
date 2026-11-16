@@ -83,7 +83,9 @@ fun AutomixBadge(
     val beats = mixBeatsLeft
 
     // Dynamic tempo-synced beat period (ms) based on outgoing track BPM
-    val mixBeatMs = automixDebug?.outBpm?.takeIf { it > 0f }?.let { 60_000f / it } ?: 500f
+        val rawMixBeatMs = automixDebug?.outBpm?.takeIf { it > 0f }?.let { 60_000f / it } ?: 500f
+    // Quantize pulse to 50ms buckets to prevent micro-jitter restarts
+    val mixBeatMs = ((rawMixBeatMs / 50f).toInt() * 50).coerceIn(200, 1000)
 
     val shouldShowAutomix = showAutomixIndicator && (isAutomixing || (beats != null && beats > 0))
     val shouldShowCrossfade = showCrossfadeIndicator && isCrossfading && !isAutomixing
@@ -146,7 +148,7 @@ fun AutomixBadge(
                     initialValue = 1f,
                     targetValue = 0.35f,
                     animationSpec = infiniteRepeatable(
-                        animation = tween(mixBeatMs.toInt().coerceIn(200, 1000), easing = LinearEasing),
+                        animation = tween(mixBeatMs, easing = LinearEasing),
                         repeatMode = RepeatMode.Restart
                     ),
                     label = "MixCountdownAlpha"
@@ -178,7 +180,7 @@ fun AutomixBadge(
                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
                         (1..4).forEach { dotIdx ->
-                            val isCurrentBeat = (((32 - beats) % 4) + 1) == dotIdx
+                            val isCurrentBeat = (Math.floorMod(32 - beats, 4) + 1) == dotIdx
                             Box(
                                 modifier = Modifier
                                     .size(if (isCurrentBeat) 6.dp else 4.dp)

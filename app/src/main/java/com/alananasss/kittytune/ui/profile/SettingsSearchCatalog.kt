@@ -16,6 +16,7 @@ import com.alananasss.kittytune.ui.player.PlayerViewModel
 internal fun rememberSettingsSearchCatalog(
     navController: NavController,
     playerViewModel: PlayerViewModel,
+    isTablet: Boolean,
     preferenceVersion: Int,
     onPreferenceChange: () -> Unit
 ): List<SearchSettingEntry> {
@@ -33,8 +34,8 @@ internal fun rememberSettingsSearchCatalog(
 
     return remember(
         preferenceVersion,
+        isTablet,
         playerViewModel.isHapticsEnabled,
-        playerViewModel.isQueuePreserveUpcomingEnabled,
         playerViewModel.equalizerState.isEnabled,
         playerViewModel.effectsState.isNormalizationEnabled,
         playerViewModel.effectsState.isMonoEnabled
@@ -44,7 +45,6 @@ internal fun rememberSettingsSearchCatalog(
         var pureBlack = prefs.getPureBlack()
         var animatedCovers = prefs.getAnimatedCoversEnabled()
         var animatedCoversFadeUi = prefs.getAnimatedCoversFadeUiEnabled()
-        var gyroscopeCovers = prefs.getGyroscopeCoversEnabled()
         var animatedArtistProfiles = prefs.getAnimatedArtistProfilesEnabled()
         var lyricsUnderCover = prefs.getLyricsUnderCoverEnabled()
         var showRemainingTime = prefs.getShowRemainingTime()
@@ -60,6 +60,8 @@ internal fun rememberSettingsSearchCatalog(
         var savePosition = prefs.getSavePositionEnabled()
         var youtubeFallback = prefs.getYouTubeFallbackEnabled()
         var hideYoutubeVideos = prefs.getHideYoutubeVideos()
+        var skipSilence = prefs.getSkipSilence()
+        var usbBitPerfect = prefs.getUsbBitPerfect()
         var scHistorySync = prefs.getSoundCloudHistorySyncEnabled()
         var downloadDrm = prefs.getDownloadDrmStreamsEnabled()
         var discordRpc = prefs.getDiscordRpcEnabled()
@@ -77,7 +79,7 @@ internal fun rememberSettingsSearchCatalog(
         var showHomeMyWave = prefs.getShowHomeMyWave()
         var showHomeCharts = prefs.getShowHomeCharts()
 
-        val staticItems = listOf(
+        val staticItems = listOfNotNull(
             // INTERFACE
             createSearchEntry(
                 context = context,
@@ -133,6 +135,104 @@ internal fun rememberSettingsSearchCatalog(
                 route = "fab_settings",
                 keywordsRes = R.string.keywords_fab,
                 keywords = listOf("fab")
+            ),
+            if (isTablet) createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_tablet_interface,
+                subtitleRes = R.string.pref_tablet_interface_sub,
+                categoryName = catInterface,
+                icon = Icons.Rounded.TabletMac,
+                route = "tablet_interface_settings",
+                keywords = listOf("tablet", "navigation", "rail", "left", "classic", "dock", "tablette")
+            ) else null,
+            if (isTablet) createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_tablet_side_player,
+                subtitleRes = R.string.pref_tablet_side_player_sub,
+                categoryName = catInterface,
+                icon = Icons.Rounded.TabletMac,
+                route = "tablet_interface_settings",
+                highlightKey = "pref_tablet_side_player",
+                keywords = listOf("tablet", "right", "side panel", "now playing", "tablette")
+            ) else null,
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_nav_hide_labels,
+                subtitleRes = R.string.pref_nav_hide_labels_sub,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Label,
+                route = "bottom_bar_settings",
+                highlightKey = "pref_nav_hide_labels",
+                keywords = listOf("labels", "icons", "navigation", "text", "classic", "modern", "dock", "hide")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_mini_player_style,
+                subtitleRes = R.string.pref_mini_player_width,
+                categoryName = catInterface,
+                icon = Icons.Rounded.MusicNote,
+                route = "bottom_bar_settings",
+                highlightKey = "pref_mini_player_style",
+                keywords = listOf("mini", "player", "pill", "modern", "width", "narrow", "swipe", "background", "glow", "mesh")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_landscape_mini_lyrics,
+                subtitleRes = R.string.pref_landscape_mini_lyrics_sub,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Lyrics,
+                route = "lyrics_settings",
+                highlightKey = "pref_landscape_mini_lyrics",
+                keywords = listOf("mini", "landscape", "lyrics", "left", "tablet", "position")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_show_codec_on_player,
+                subtitleRes = R.string.pref_show_codec_on_player_sub,
+                categoryName = catMisc,
+                icon = Icons.Rounded.GraphicEq,
+                route = "misc_general_settings",
+                highlightKey = "pref_show_codec_on_player",
+                keywords = listOf("codec", "bitrate", "opus", "flac", "aac", "player", "badge")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_lyrics_line_animation,
+                subtitleRes = R.string.pref_lyrics_line_animation_sub,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Lyrics,
+                route = "lyrics_settings",
+                highlightKey = "pref_lyrics_line_animation",
+                keywords = listOf("sweep", "dégradé", "karaoké")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_instrumental_indicator,
+                subtitleRes = R.string.pref_instrumental_indicator_sub,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Lyrics,
+                route = "lyrics_settings",
+                highlightKey = "pref_instrumental_indicator",
+                keywords = listOf("interlude", "breathing dots", "points", "vague")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_album_release_date,
+                subtitleRes = R.string.pref_album_release_date_sub,
+                categoryName = catMisc,
+                icon = Icons.Rounded.Event,
+                route = "misc_general_settings",
+                highlightKey = "pref_album_release_date",
+                keywords = listOf("album", "release", "date", "year", "library")
             ),
             createSearchEntry(
                 context = context,
@@ -275,6 +375,7 @@ internal fun rememberSettingsSearchCatalog(
                     com.alananasss.kittytune.data.local.PlayerBackgroundStyle.GRADIENT -> R.string.style_gradient
                     com.alananasss.kittytune.data.local.PlayerBackgroundStyle.BLUR -> R.string.style_blur
                     com.alananasss.kittytune.data.local.PlayerBackgroundStyle.APPLE_MUSIC -> R.string.style_apple_music
+                    com.alananasss.kittytune.data.local.PlayerBackgroundStyle.LIVE_MESH -> R.string.style_live_mesh
                 },
                 categoryName = catInterface,
                 icon = Icons.Rounded.Style,
@@ -342,24 +443,6 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     animatedCoversFadeUi = it
                     prefs.setAnimatedCoversFadeUiEnabled(it)
-                    onPreferenceChange()
-                }
-            ),
-            createSearchEntry(
-                context = context,
-                englishContext = englishContext,
-                titleRes = R.string.pref_gyroscope_covers,
-                subtitleRes = R.string.pref_gyroscope_covers_desc,
-                categoryName = catInterface,
-                icon = Icons.Rounded.Layers,
-                route = "appearance_settings",
-                highlightKey = "pref_gyroscope_covers",
-                keywords = listOf("gyroscope", "3d", "parallax", "tilt", "layer", "cover", "pochette"),
-                hasSwitch = true,
-                switchState = gyroscopeCovers,
-                onSwitchChange = {
-                    gyroscopeCovers = it
-                    prefs.setGyroscopeCoversEnabled(it)
                     onPreferenceChange()
                 }
             ),
@@ -713,22 +796,6 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
-                titleRes = R.string.pref_queue_preserve_upcoming,
-                subtitleRes = R.string.pref_queue_preserve_upcoming_sub,
-                categoryName = catAudio,
-                icon = Icons.AutoMirrored.Rounded.QueueMusic,
-                route = "audio_playback_settings",
-                highlightKey = "pref_queue_preserve_upcoming",
-                hasSwitch = true,
-                switchState = playerViewModel.isQueuePreserveUpcomingEnabled,
-                onSwitchChange = {
-                    playerViewModel.toggleQueuePreserveUpcoming(it)
-                    onPreferenceChange()
-                }
-            ),
-            createSearchEntry(
-                context = context,
-                englishContext = englishContext,
                 titleRes = R.string.pref_persist_queue,
                 subtitleRes = R.string.pref_persist_queue_sub,
                 categoryName = catAudio,
@@ -934,18 +1001,116 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
-                titleRes = R.string.pref_hide_youtube_videos,
-                subtitleRes = R.string.pref_hide_youtube_videos_sub,
+                titleRes = R.string.pref_hide_video_songs,
+                subtitleRes = R.string.pref_hide_video_songs_sub,
                 categoryName = catSources,
                 icon = Icons.Rounded.SmartDisplay,
                 route = "audio_playback_settings",
-                highlightKey = "pref_hide_youtube_videos",
-                keywords = listOf("youtube", "videos", "shorts"),
+                highlightKey = "pref_hide_video_songs",
+                keywords = listOf("youtube", "videos", "songs"),
                 hasSwitch = true,
                 switchState = hideYoutubeVideos,
                 onSwitchChange = {
                     hideYoutubeVideos = it
-                    prefs.setHideYoutubeVideos(it)
+                    prefs.setHideVideoSongs(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_hide_youtube_shorts,
+                subtitleRes = R.string.pref_hide_youtube_shorts_sub,
+                categoryName = catSources,
+                icon = Icons.Rounded.SmartDisplay,
+                route = "audio_playback_settings",
+                highlightKey = "pref_hide_youtube_shorts",
+                keywords = listOf("youtube", "shorts"),
+                hasSwitch = true,
+                switchState = prefs.getHideYoutubeShorts(),
+                onSwitchChange = {
+                    prefs.setHideYoutubeShorts(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_skip_silence,
+                subtitleRes = R.string.pref_skip_silence_sub,
+                categoryName = catSources,
+                icon = Icons.Rounded.GraphicEq,
+                route = "audio_playback_settings",
+                highlightKey = "pref_skip_silence",
+                keywords = listOf("silence", "skip", "quiet"),
+                hasSwitch = true,
+                switchState = skipSilence,
+                onSwitchChange = {
+                    skipSilence = it
+                    prefs.setSkipSilence(it)
+                    com.alananasss.kittytune.data.MusicManager.applySkipSilenceSettings()
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.diag_hero_title,
+                categoryName = catAudio,
+                icon = Icons.Rounded.GraphicEq,
+                route = "audio_playback_settings",
+                highlightKey = "diag_hero_title",
+                keywords = listOf("audio path", "codec", "bitrate", "resampling")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_instant_skip_silence,
+                subtitleRes = R.string.pref_instant_skip_silence_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.GraphicEq,
+                route = "audio_playback_settings",
+                highlightKey = if (skipSilence) "pref_instant_skip_silence" else "pref_skip_silence",
+                keywords = listOf("silence", "instant")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_pause_listen_history,
+                subtitleRes = R.string.pref_pause_listen_history_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.GraphicEq,
+                route = "audio_playback_settings",
+                highlightKey = "pref_pause_listen_history",
+                keywords = listOf("listening history", "privacy")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_pause_search_history,
+                subtitleRes = R.string.pref_pause_search_history_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.GraphicEq,
+                route = "audio_playback_settings",
+                highlightKey = "pref_pause_search_history",
+                keywords = listOf("search history", "privacy")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_usb_bit_perfect,
+                subtitleRes = R.string.pref_usb_bit_perfect_sub,
+                categoryName = catSources,
+                icon = Icons.Rounded.Usb,
+                route = "audio_playback_settings",
+                highlightKey = "pref_usb_bit_perfect",
+                keywords = listOf("usb", "dac", "bit", "perfect", "audiophile"),
+                hasSwitch = true,
+                switchState = usbBitPerfect,
+                onSwitchChange = {
+                    usbBitPerfect = it
+                    prefs.setUsbBitPerfect(it)
+                    com.alananasss.kittytune.audio.usb.UsbAudioManager.onSettingsChanged()
                     onPreferenceChange()
                 }
             ),

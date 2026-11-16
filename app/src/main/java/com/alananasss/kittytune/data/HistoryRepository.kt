@@ -78,6 +78,11 @@ object HistoryRepository {
     }
 
     fun addToHistory(track: Track) {
+        // «Don't record listening history» silences everything: this track row, the
+        // played counter below, and the station / album / playlist / profile rows
+        // written by the playlist overload. While the toggle is on nothing that was
+        // played may land in the history tab.
+        if (PlayerPreferences(appContext).getPauseListenHistory()) return
         try {
             PlayerPreferences(appContext).incrementTracksPlayedCount()
         } catch (_: Exception) {}
@@ -100,6 +105,10 @@ object HistoryRepository {
     }
 
     fun addToHistory(playlist: Playlist, isStation: Boolean = false, isProfile: Boolean = false) {
+        // Same privacy toggle as the track overload: stations, albums, playlists and
+        // artist profiles are listening history too, so nothing is written here while
+        // recording is paused.
+        if (PlayerPreferences(appContext).getPauseListenHistory()) return
         if ((playlist.id == 0L && playlist.permalinkUrl.isNullOrBlank() && playlist.urn.isNullOrBlank()) ||
             playlist.title.equals("history", ignoreCase = true) ||
             playlist.permalinkUrl == "history" ||

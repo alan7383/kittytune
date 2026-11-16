@@ -1,5 +1,8 @@
 package com.alananasss.kittytune.ui.player.audio
 
+import android.util.Log
+import com.alananasss.kittytune.audio.usb.UsbAudioManager
+import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
 import java.nio.ByteBuffer
@@ -9,7 +12,59 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-class EightDAudioProcessor : BaseAudioProcessor() {
+/**
+ * Base class for all player DSP processors.
+ *
+ * When the Audio Routing Matrix routes no stage (Bit-Perfect on a USB DAC),
+ * all DSP is switched off automatically — the incoming PCM stream is copied to the
+ * output buffer byte-for-byte, without a single math operation.
+ *
+ * Every effect reads PCM via ByteBuffer.getShort(), i.e. it only understands
+ * ENCODING_PCM_16BIT. While Bit-Perfect is off, a float/hi-res source (e.g. a
+ * 24/96 FLAC decoded to ENCODING_PCM_FLOAT) must NOT be handed to an effect:
+ * reinterpreting float bytes as shorts is digital noise, not music. Such
+ * configurations opt the effect out with AudioFormat.NOT_SET instead — the same
+ * contract DjStem/Equalizer/SilenceDetector already follow.
+ */
+abstract class BypassableAudioProcessor : BaseAudioProcessor() {
+
+    final override fun onConfigure(f: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+        // Bit-Perfect: the DAC owns the output. Identity configuration for ANY PCM
+        // encoding keeps the chain format 1:1, so the byte passthrough in queueInput
+        // stays bit-exact.
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.PLAYER_FX)) return f
+
+        // Float / hi-res input: the effects below only read 16-bit shorts. NOT_SET means
+        // "inactive, skip me" — the rest of the chain (and the sink) keeps handling the
+        // format instead of the effect chewing on bytes it cannot parse.
+        if (f.encoding != C.ENCODING_PCM_16BIT) return AudioProcessor.AudioFormat.NOT_SET
+
+        return onConfigureEffect(f)
+    }
+
+    /** Effect-specific format hook; default is an identity configuration. */
+    protected open fun onConfigureEffect(f: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat = f
+
+    final override fun queueInput(inputBuffer: ByteBuffer) {
+        val remaining = inputBuffer.remaining()
+        if (remaining == 0) return
+
+        // Bit-Perfect: pass the PCM through unchanged
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.PLAYER_FX)) {
+            val buffer = replaceOutputBuffer(remaining)
+            buffer.put(inputBuffer)
+            buffer.flip()
+            return
+        }
+
+        processAudio(inputBuffer)
+    }
+
+    /** The effect's original DSP logic lives here. */
+    abstract fun processAudio(inputBuffer: ByteBuffer)
+}
+
+class EightDAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var time: Double = 0.0
     private var rotationSpeed: Double = 0.00001
@@ -23,7 +78,7 @@ class EightDAudioProcessor : BaseAudioProcessor() {
         rotationSpeed = (0.000002 + normalizedSpeed * 0.000038).coerceIn(0.000002, 0.00004)
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         return inputAudioFormat
     }
 
@@ -33,7 +88,7 @@ class EightDAudioProcessor : BaseAudioProcessor() {
         }
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -73,7 +128,7 @@ class EightDAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class FxAudioProcessor : BaseAudioProcessor() {
+class FxAudioProcessor : BypassableAudioProcessor() {
 
     private var isMuffled = false
     private var isBassBoost = false
@@ -134,7 +189,7 @@ class FxAudioProcessor : BaseAudioProcessor() {
         }
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         resetStates()
         calculateCoefficients()
         return inputAudioFormat
@@ -187,7 +242,7 @@ class FxAudioProcessor : BaseAudioProcessor() {
         }
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -229,7 +284,7 @@ class FxAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class ReverbAudioProcessor : BaseAudioProcessor() {
+class ReverbAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var buffer: ShortArray = ShortArray(0)
     private var cursor = 0
@@ -249,7 +304,7 @@ class ReverbAudioProcessor : BaseAudioProcessor() {
         decay = (0.2f + normalizedIntensity * 0.6f).coerceIn(0.2f, 0.8f)
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
 
         val bufferSize = (inputAudioFormat.sampleRate * (delayMs / 1000.0) * inputAudioFormat.channelCount).toInt()
         buffer = ShortArray(bufferSize)
@@ -264,7 +319,7 @@ class ReverbAudioProcessor : BaseAudioProcessor() {
         }
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -297,7 +352,7 @@ class ReverbAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class EarrapeAudioProcessor : BaseAudioProcessor() {
+class EarrapeAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var intensity = 1.0f
 
@@ -309,11 +364,11 @@ class EarrapeAudioProcessor : BaseAudioProcessor() {
         this.intensity = intensity.coerceIn(0.05f, 5.0f)
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         return inputAudioFormat
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -352,18 +407,18 @@ class EarrapeAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class MonoAudioProcessor : BaseAudioProcessor() {
+class MonoAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
 
     fun setEnabled(enabled: Boolean) {
         this.enabled = enabled
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         return inputAudioFormat
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -389,7 +444,7 @@ class MonoAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class VintageMp3AudioProcessor : BaseAudioProcessor() {
+class VintageMp3AudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var compression = 0.5f
 
@@ -415,7 +470,7 @@ class VintageMp3AudioProcessor : BaseAudioProcessor() {
         this.compression = compression.coerceIn(0.0f, 1.0f)
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         return inputAudioFormat
     }
 
@@ -427,7 +482,7 @@ class VintageMp3AudioProcessor : BaseAudioProcessor() {
         lpRight = 0f
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -494,7 +549,7 @@ class VintageMp3AudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class VocalRemoverAudioProcessor : BaseAudioProcessor() {
+class VocalRemoverAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var suppressionLevel = 1.0f
 
@@ -507,11 +562,11 @@ class VocalRemoverAudioProcessor : BaseAudioProcessor() {
     private var lp_a2 = 0f
 
     private var lp_x1_1 = 0f;
-    private var lp_x2_1 = 0f;
+    private var lp_x2_1 = 0f
     private var lp_y1_1 = 0f;
     private var lp_y2_1 = 0f
     private var lp_x1_2 = 0f;
-    private var lp_x2_2 = 0f;
+    private var lp_x2_2 = 0f
     private var lp_y1_2 = 0f;
     private var lp_y2_2 = 0f
 
@@ -647,7 +702,7 @@ class VocalRemoverAudioProcessor : BaseAudioProcessor() {
         envR = 100f
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         updateCoefficients(inputAudioFormat.sampleRate)
         return inputAudioFormat
     }
@@ -656,7 +711,7 @@ class VocalRemoverAudioProcessor : BaseAudioProcessor() {
         resetFilterState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -725,7 +780,7 @@ class VocalRemoverAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class VocalBoostAudioProcessor : BaseAudioProcessor() {
+class VocalBoostAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var intensity = 0.75f
 
@@ -823,7 +878,7 @@ class VocalBoostAudioProcessor : BaseAudioProcessor() {
         hs_x1 = 0f; hs_x2 = 0f; hs_y1 = 0f; hs_y2 = 0f
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         updateCoefficients(inputAudioFormat.sampleRate)
         return inputAudioFormat
     }
@@ -832,7 +887,7 @@ class VocalBoostAudioProcessor : BaseAudioProcessor() {
         resetFilterState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -883,7 +938,7 @@ class VocalBoostAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class FlangerAudioProcessor : BaseAudioProcessor() {
+class FlangerAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var intensity = 0.75f
     private var speed = 0.50f
@@ -933,7 +988,7 @@ class FlangerAudioProcessor : BaseAudioProcessor() {
         return sat * 24000f
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         resetFilterState()
         return inputAudioFormat
@@ -943,7 +998,7 @@ class FlangerAudioProcessor : BaseAudioProcessor() {
         resetFilterState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -1024,7 +1079,7 @@ class FlangerAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class PartyNextDoorAudioProcessor : BaseAudioProcessor() {
+class PartyNextDoorAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var isolation = 0.60f
     private var reverb = 0.50f
@@ -1169,7 +1224,7 @@ class PartyNextDoorAudioProcessor : BaseAudioProcessor() {
         apBufferR2.fill(0f); apIndexR2 = 0
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         updateCoefficients()
         resetFilterState()
@@ -1180,7 +1235,7 @@ class PartyNextDoorAudioProcessor : BaseAudioProcessor() {
         resetFilterState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -1288,7 +1343,7 @@ class PartyNextDoorAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class SuperWideAudioProcessor : BaseAudioProcessor() {
+class SuperWideAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var width = 0.70f
     private var depth = 0.50f
@@ -1394,7 +1449,7 @@ class SuperWideAudioProcessor : BaseAudioProcessor() {
         pinna_s1_R = 0.0; pinna_s2_R = 0.0
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         updateCoefficients()
         resetState()
@@ -1405,7 +1460,7 @@ class SuperWideAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -1494,7 +1549,7 @@ class SuperWideAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class VinylLoFiAudioProcessor : BaseAudioProcessor() {
+class VinylLoFiAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var crackles = 0.65f
     private var flutter = 0.50f
@@ -1541,7 +1596,7 @@ class VinylLoFiAudioProcessor : BaseAudioProcessor() {
         crackleFilterR = 0f
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         resetState()
         return inputAudioFormat
@@ -1556,7 +1611,7 @@ class VinylLoFiAudioProcessor : BaseAudioProcessor() {
         return (rngState.toFloat() / 4294967296.0f) * 2.0f - 1.0f
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -1645,7 +1700,7 @@ class VinylLoFiAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class PhaserAudioProcessor : BaseAudioProcessor() {
+class PhaserAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var speed = 0.50f
     private var feedback = 0.65f
@@ -1681,7 +1736,7 @@ class PhaserAudioProcessor : BaseAudioProcessor() {
         lastOutputL = 0f; lastOutputR = 0f
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         resetState()
         return inputAudioFormat
@@ -1691,7 +1746,7 @@ class PhaserAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -1758,10 +1813,9 @@ class PhaserAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class MegaphoneRadioAudioProcessor : BaseAudioProcessor() {
+class MegaphoneRadioAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
-    private var tone =
-        0.50f
+    private var tone = 0.50f
     private var drive = 0.60f
 
     private var sampleRate = 44100
@@ -1880,7 +1934,7 @@ class MegaphoneRadioAudioProcessor : BaseAudioProcessor() {
         whistlePhase = 0.0
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         updateCoefficients()
         resetState()
@@ -1891,7 +1945,7 @@ class MegaphoneRadioAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -1975,7 +2029,7 @@ class MegaphoneRadioAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class RobotVocoderAudioProcessor : BaseAudioProcessor() {
+class RobotVocoderAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var frequency = 0.40f
     private var mix = 0.75f
@@ -1996,7 +2050,7 @@ class RobotVocoderAudioProcessor : BaseAudioProcessor() {
         this.mix = mix.coerceIn(0.0f, 1.0f)
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         carrierPhase = 0.0
         return inputAudioFormat
@@ -2006,7 +2060,7 @@ class RobotVocoderAudioProcessor : BaseAudioProcessor() {
         carrierPhase = 0.0
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -2051,7 +2105,7 @@ class RobotVocoderAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class ChorusAudioProcessor : BaseAudioProcessor() {
+class ChorusAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var rate = 0.30f
     private var depth = 0.70f
@@ -2086,7 +2140,7 @@ class ChorusAudioProcessor : BaseAudioProcessor() {
         lfoPhase = 0.0
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         resetState()
         return inputAudioFormat
@@ -2096,7 +2150,7 @@ class ChorusAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -2173,7 +2227,7 @@ class ChorusAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class UnderwaterAudioProcessor : BaseAudioProcessor() {
+class UnderwaterAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var depth = 0.60f
     private var bubbles = 0.40f
@@ -2278,7 +2332,7 @@ class UnderwaterAudioProcessor : BaseAudioProcessor() {
         hydroPhase = 0.0
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         updateCoefficients()
         resetState()
@@ -2289,7 +2343,7 @@ class UnderwaterAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -2353,7 +2407,7 @@ class UnderwaterAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class TranceGateAudioProcessor : BaseAudioProcessor() {
+class TranceGateAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var speed = 0.50f
     private var pattern = 0.85f
@@ -2385,7 +2439,7 @@ class TranceGateAudioProcessor : BaseAudioProcessor() {
         smoothedGain = 1.0f
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         resetState()
         return inputAudioFormat
@@ -2395,7 +2449,7 @@ class TranceGateAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -2442,7 +2496,7 @@ class TranceGateAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class PingPongDelayAudioProcessor : BaseAudioProcessor() {
+class PingPongDelayAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var delayTime = 0.45f
     private var feedback = 0.60f
@@ -2479,7 +2533,7 @@ class PingPongDelayAudioProcessor : BaseAudioProcessor() {
         fbLpR = 0f
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         resetState()
         return inputAudioFormat
@@ -2489,7 +2543,7 @@ class PingPongDelayAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -2538,7 +2592,7 @@ class PingPongDelayAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class ChiptuneAudioProcessor : BaseAudioProcessor() {
+class ChiptuneAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var bits = 0.50f
     private var sampleRateDown = 0.55f
@@ -2564,7 +2618,7 @@ class ChiptuneAudioProcessor : BaseAudioProcessor() {
         this.sampleRateDown = sr.coerceIn(0.0f, 1.0f)
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         return inputAudioFormat
     }
 
@@ -2574,7 +2628,7 @@ class ChiptuneAudioProcessor : BaseAudioProcessor() {
         heldRight = 0
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -2628,7 +2682,7 @@ class ChiptuneAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class ShimmerReverbAudioProcessor : BaseAudioProcessor() {
+class ShimmerReverbAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var size = 0.65f
     private var shimmerMix = 0.60f
@@ -2691,7 +2745,7 @@ class ShimmerReverbAudioProcessor : BaseAudioProcessor() {
         pitchWrite = 0; pitchPhase = 0.0
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         resetState()
         return inputAudioFormat
@@ -2701,7 +2755,7 @@ class ShimmerReverbAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -2800,7 +2854,7 @@ class ShimmerReverbAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class RotarySpeakerAudioProcessor : BaseAudioProcessor() {
+class RotarySpeakerAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var speed = 0.40f
     private var depth = 0.75f
@@ -2839,7 +2893,7 @@ class RotarySpeakerAudioProcessor : BaseAudioProcessor() {
         lpL = 0f; lpR = 0f
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         resetState()
         return inputAudioFormat
@@ -2849,7 +2903,7 @@ class RotarySpeakerAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -2930,7 +2984,7 @@ class RotarySpeakerAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class TapeSaturationAudioProcessor : BaseAudioProcessor() {
+class TapeSaturationAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var warmth = 0.65f
     private var exciter = 0.50f
@@ -2993,7 +3047,7 @@ class TapeSaturationAudioProcessor : BaseAudioProcessor() {
         hs_s1_R = 0.0; hs_s2_R = 0.0
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         updateCoefficients()
         resetState()
@@ -3004,7 +3058,7 @@ class TapeSaturationAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -3051,7 +3105,7 @@ class TapeSaturationAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class SubOctaverAudioProcessor : BaseAudioProcessor() {
+class SubOctaverAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var subLevel = 0.70f
     private var subCutoff = 0.50f
@@ -3126,7 +3180,7 @@ class SubOctaverAudioProcessor : BaseAudioProcessor() {
         sub_s1_2_R = 0.0; sub_s2_2_R = 0.0
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         updateCoefficients()
         resetState()
@@ -3137,7 +3191,7 @@ class SubOctaverAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -3193,7 +3247,7 @@ class SubOctaverAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class EmptyMallAudioProcessor : BaseAudioProcessor() {
+class EmptyMallAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var distance = 0.65f
     private var glassReverb = 0.55f
@@ -3286,7 +3340,7 @@ class EmptyMallAudioProcessor : BaseAudioProcessor() {
         apBufR2.fill(0f); apIdxR2 = 0
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         updateCoefficients()
         resetState()
@@ -3297,7 +3351,7 @@ class EmptyMallAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -3386,7 +3440,7 @@ class EmptyMallAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class GramophoneAudioProcessor : BaseAudioProcessor() {
+class GramophoneAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var shellacAge = 0.65f
     private var hornResonance = 0.60f
@@ -3495,7 +3549,7 @@ class GramophoneAudioProcessor : BaseAudioProcessor() {
         crackleFilter = 0f
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         updateCoefficients()
         resetState()
@@ -3506,7 +3560,7 @@ class GramophoneAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -3582,7 +3636,7 @@ class GramophoneAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class ReverseEchoAudioProcessor : BaseAudioProcessor() {
+class ReverseEchoAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var time = 0.50f
     private var feedback = 0.55f
@@ -3619,7 +3673,7 @@ class ReverseEchoAudioProcessor : BaseAudioProcessor() {
         fbLpL = 0f; fbLpR = 0f
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         resetState()
         return inputAudioFormat
@@ -3629,7 +3683,7 @@ class ReverseEchoAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -3690,7 +3744,7 @@ class ReverseEchoAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class StadiumAudioProcessor : BaseAudioProcessor() {
+class StadiumAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var stadiumSize = 0.65f
     private var atmosphere = 0.60f
@@ -3738,7 +3792,7 @@ class StadiumAudioProcessor : BaseAudioProcessor() {
         }
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         resetState()
         return inputAudioFormat
@@ -3748,7 +3802,7 @@ class StadiumAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -3841,7 +3895,7 @@ class StadiumAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class CassetteWalkmanAudioProcessor : BaseAudioProcessor() {
+class CassetteWalkmanAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var drive = 0.65f
     private var tapeHiss = 0.40f
@@ -3926,7 +3980,7 @@ class CassetteWalkmanAudioProcessor : BaseAudioProcessor() {
         hissFilterL = 0f; hissFilterR = 0f
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         updateCoefficients()
         resetState()
@@ -3937,7 +3991,7 @@ class CassetteWalkmanAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -3998,7 +4052,7 @@ class CassetteWalkmanAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class AsmrVocalAudioProcessor : BaseAudioProcessor() {
+class AsmrVocalAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var proximity = 0.70f
     private var airSheen = 0.65f
@@ -4065,7 +4119,7 @@ class AsmrVocalAudioProcessor : BaseAudioProcessor() {
         binWrite = 0
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         updateCoefficients()
         resetState()
@@ -4076,7 +4130,7 @@ class AsmrVocalAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
@@ -4130,7 +4184,7 @@ class AsmrVocalAudioProcessor : BaseAudioProcessor() {
     }
 }
 
-class NightDriveAudioProcessor : BaseAudioProcessor() {
+class NightDriveAudioProcessor : BypassableAudioProcessor() {
     private var enabled = false
     private var cabinWidth = 0.65f
     private var roadRumble = 0.45f
@@ -4195,7 +4249,7 @@ class NightDriveAudioProcessor : BaseAudioProcessor() {
         cabinWrite = 0
     }
 
-    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigureEffect(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         sampleRate = inputAudioFormat.sampleRate
         updateCoefficients()
         resetState()
@@ -4206,7 +4260,7 @@ class NightDriveAudioProcessor : BaseAudioProcessor() {
         resetState()
     }
 
-    override fun queueInput(inputBuffer: ByteBuffer) {
+    override fun processAudio(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 

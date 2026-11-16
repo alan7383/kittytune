@@ -170,8 +170,6 @@ fun SliderStyleDialog(
                         val slimState = androidx.compose.runtime.remember { androidx.compose.material3.SliderState(0.65f, 0, 0f..1f) }
                         Slider(
                             state = slimState,
-                            // Non-interactive style preview. material3 1.5.0-alpha29 made
-                            // onValueChange a required parameter of the state overload.
                             onValueChange = {},
                             thumb = { Spacer(modifier = Modifier.size(0.dp)) },
                             track = { sliderState ->
@@ -227,6 +225,54 @@ fun SliderStyleDialog(
                         )
                         Text(
                             text = stringResource(R.string.slider_style_squiggly),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 5. Expressive waves
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .weight(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(
+                                1.dp,
+                                if (currentStyle == PlayerSliderStyle.EXPRESSIVE) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                },
+                                RoundedCornerShape(16.dp)
+                            )
+                            .hapticClickable {
+                                onStyleSelected(PlayerSliderStyle.EXPRESSIVE)
+                                onDismiss()
+                            }
+                            .padding(12.dp)
+                    ) {
+                        ExpressiveWavesSlider(
+                            value = 0.5f,
+                            valueRange = 0f..1f,
+                            onValueChange = {},
+                            colors = previewColors,
+                            isPlaying = true,
+                            enabled = false,
+                            trackHeight = 4.dp,
+                            thumbRadius = 6.dp,
+                            waveAmplitudeWhenPlaying = 10.dp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = stringResource(R.string.slider_style_expressive),
                             style = MaterialTheme.typography.labelSmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
