@@ -15,7 +15,8 @@ data class LrcLibResponse(
     @SerializedName("albumName") val albumName: String?,
     @SerializedName("duration") val duration: Double,
     @SerializedName("plainLyrics") val plainLyrics: String?,
-    @SerializedName("syncedLyrics") val syncedLyrics: String?
+    @SerializedName("syncedLyrics") val syncedLyrics: String?,
+    val instrumental: Boolean = false,
 )
 
 interface LrcLibApiService {

@@ -465,6 +465,7 @@
     <string name="category_retro_vintage">Retro &amp; Texturen</string>
     <string name="player_lyrics">Songtext</string>
     <string name="lyrics_no_data">Kein Songtext verfügbar</string>
+    <string name="lyrics_result_instrumental">Instrumental</string>
     <string name="lyrics_manual_search">Manuelle Suche</string>
     <string name="lyrics_wrong">Falscher Songtext?</string>
     <string name="lyrics_search_hint">Songtext suchen…</string>

@@ -109,8 +109,12 @@ data class UnifiedLyricResult(
     val hasWordSync: Boolean,
     val provider: String,
     val rawContent: String? = null,
-    val previewText: String? = null
-)
+    val previewText: String? = null,
+    val noLyrics: Boolean = false,
+    val instrumental: Boolean = false,
+) {
+    val key: String get() = "${PreferredLyricsProvider.fromName(provider)?.name ?: provider}/$id"
+}
 
 private const val MIX_AFTER_SEEK_MS = 2_000L
 private const val LYRICS_MIX_LEAD_MS = 2_500L
@@ -559,7 +563,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     val unifiedLyricSearchResults = mutableStateListOf<UnifiedLyricResult>()
     val pendingLyricSources = mutableStateListOf<com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider>()
     var lyricSearchTrackId by mutableStateOf<Long?>(null)
-    var currentLyricsSource by mutableStateOf<String?>(null)
+    private var lyricsSelection by mutableStateOf<LyricsPayload?>(null)
+    val currentLyricsSource: String? get() = lyricsSelection?.provider
+    val currentLyricsResultKey: String?
+        get() = lyricsSelection?.let { selection ->
+            selection.resultId?.let { "${PreferredLyricsProvider.fromName(selection.provider)?.name ?: selection.provider}/$it" }
+        }
+    val hasSelectedResultWithoutLyrics: Boolean get() = lyricsSelection?.noLyrics == true
+    private var hasManualLyricsSelection = false
     private var manualSearchGeneration = 0
     var isTranslatingLyrics by mutableStateOf(false)
     var lastFetchedMxmTrackId: Long? = null
@@ -2677,8 +2688,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         isLyricsLoading = true
         isSearchingLyrics = false
         rawPlainLyrics = null
-        currentLyricsSource = null
-        pendingLyricSources.clear()
+        lyricsSelection = null
+        hasManualLyricsSelection = false
+        lastFetchedMxmTrackId = null
+        if (lyricSearchTrackId != track.id) {
+            manualLyricSearchJob?.cancel()
+            pendingLyricSources.clear()
+            manualSearchGeneration++
+            unifiedLyricSearchResults.clear()
+            lyricSearchTrackId = null
+            isManualSearchLoading = false
+        }
 
         val effectiveArtist = track.displayArtist.ifBlank { track.user?.username.orEmpty() }
         val (parsedArtist, parsedTitle) = parseArtistAndTitle(track.title ?: "", effectiveArtist)
@@ -2704,7 +2724,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             )
             if (cached != null && cached.found) {
                 withContext(Dispatchers.Main) {
-                    applyLyricsPayload(LyricsPayload(cached.lines, cached.plain, cached.provider))
+                    applyLyricsPayload(LyricsPayload(cached.lines, cached.plain, cached.provider, cached.resultId, cached.noLyrics))
                 }
                 prefetchQueueLyrics()
                 return@launch
@@ -2723,10 +2743,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             LyricsCache.put(
                 track.id,
                 LyricsCache.Entry(
-                    found = payload != null && !payload.isEmpty,
+                    found = payload != null && (!payload.isEmpty || payload.noLyrics),
                     lines = payload?.lines.orEmpty(),
                     plain = payload?.plain,
                     provider = payload?.provider,
+                    resultId = payload?.resultId,
+                    noLyrics = payload?.noLyrics == true,
                     providerPreference = variant.providerPreference,
                     translationLang = variant.translationLang,
                     romanized = variant.romanized,
@@ -2758,6 +2780,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         val lines: List<LyricLine>,
         val plain: String?,
         val provider: String?,
+        val resultId: String? = null,
+        val noLyrics: Boolean = false,
     ) {
         val isEmpty: Boolean get() = lines.isEmpty() && plain.isNullOrBlank()
     }
@@ -2775,16 +2799,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         val matchScore: Float,
         val titleSimilarity: Float = 0f,
         val providerBonus: Float = 0f,
+        val resultId: String? = null,
+        val instrumental: Boolean = false,
     ) {
         val rank: Float get() = LyricsMatcher.rank(syncTier, matchScore, titleSimilarity, providerBonus)
 
         val syncTier: Int get() = LyricsMatcher.syncTier(lines, plain)
 
-        val isUsable: Boolean get() = syncTier > LyricsMatcher.SYNC_TIER_NONE
+        val isUsable: Boolean get() = instrumental || syncTier > LyricsMatcher.SYNC_TIER_NONE
     }
 
     /** Publishes a resolved lookup to the screen. Main thread only. */
-    private fun applyLyricsPayload(payload: LyricsPayload) {
+    private fun applyLyricsPayload(payload: LyricsPayload, preloadOptions: Boolean = true) {
         lyricsLines.clear()
         lyricsLines.addAll(payload.lines)
         MusicManager.currentLyricsFlow.value = payload.lines
@@ -2793,11 +2819,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         lyricsMode = if (payload.lines.isNotEmpty()) LyricsMode.SYNCED else LyricsMode.PLAIN
         isLyricsLoading = false
         lyricsRevision++
-        currentLyricsSource = payload.provider.takeUnless { payload.isEmpty }
+        lyricsSelection = payload
+        lastFetchedMxmTrackId = payload.resultId?.toLongOrNull()
+            .takeIf { payload.provider == PreferredLyricsProvider.MUSIXMATCH.name && !payload.noLyrics }
         val tr = currentTrack
         if (tr != null) {
             refineLyricVoices(tr)
-            searchLyricsInBackground(tr, manualSearchQuery)
+            if (preloadOptions) searchLyricsInBackground(tr, manualSearchQuery)
         }
 
         if (isLyricsTranslationEnabled && lyricsLines.isNotEmpty() && lyricsLines.none { !it.translation.isNullOrBlank() }) {
@@ -2911,10 +2939,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             LyricsCache.put(
                 next.id,
                 LyricsCache.Entry(
-                    found = payload != null && !payload.isEmpty,
+                    found = payload != null && (!payload.isEmpty || payload.noLyrics),
                     lines = payload?.lines.orEmpty(),
                     plain = payload?.plain,
                     provider = payload?.provider,
+                    resultId = payload?.resultId,
+                    noLyrics = payload?.noLyrics == true,
                     providerPreference = variant.providerPreference,
                     translationLang = variant.translationLang,
                     romanized = variant.romanized,
@@ -2947,13 +2977,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 // A TTML payload that failed to parse is unusable: showing the raw <tt> markup
                 // is worse than letting the next provider answer.
                 if (parsed.isEmpty() && LyricsUtils.looksLikeTtml(raw)) continue
-                val plain = if (parsed.isEmpty()) raw else null
+                val instrumental = ManualLyricsSearch.isInstrumental(raw, parsed)
+                val plain = if (parsed.isEmpty() && !instrumental) raw else null
                 val matchScore = LyricsMatcher.score(candTitle, candArtist, (trackDurationMs / 1000.0), target)
                 val titleSim = LyricsMatcher.titleSimilarity(candTitle, target)
                 return LyricsCandidate(
-                    lines = parsed,
+                    lines = if (instrumental) emptyList() else parsed,
                     plain = plain,
                     provider = prefProvider.name,
+                    resultId = ManualLyricsSearch.genericResultId(candTitle, candArtist, raw),
+                    instrumental = instrumental &&
+                        LyricsMatcher.titleSimilarity(candTitle, target) >= LyricsMatcher.CONFIDENT_MATCH &&
+                        LyricsMatcher.artistSimilarity(candArtist, target) >= LyricsMatcher.CONFIDENT_MATCH,
                     matchScore = matchScore.coerceAtLeast(0.85f),
                     titleSimilarity = titleSim.coerceAtLeast(0.85f),
                 )
@@ -3020,14 +3055,43 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 for (q in lrcLibQueries) {
                     found = searchLrcLibCandidates(q, target, trackDurationMs)
                         .filter { it.isUsable }
-                        .maxByOrNull { it.rank }
+                        .maxWithOrNull(compareBy<LyricsCandidate> { it.instrumental }.thenBy { it.rank })
                     if (found != null) break
                 }
                 // "NEWYORK" as SoundCloud titles it is only found as "NEW YORK": the spelling Genius gives it.
                 found ?: queries.firstOrNull()
                     ?.let { com.alananasss.kittytune.data.lyrics.TitleSpellings.respelled(it) }
                     ?.let { respelled ->
-                        searchLrcLibCandidates(respelled, target, trackDurationMs).filter { it.isUsable }.maxByOrNull { it.rank }
+                        searchLrcLibCandidates(respelled, target, trackDurationMs).filter { it.isUsable }.maxWithOrNull(compareBy<LyricsCandidate> { it.instrumental }.thenBy { it.rank })
+                    }
+            }
+            PreferredLyricsProvider.UNISON, PreferredLyricsProvider.SIMPMUSIC -> {
+                val lookup = LyricsSearchTrack(track.id.toString(), target.title, target.artist,
+                    track.publisherMetadata?.albumTitle, trackDurationMs)
+                val results = if (providerId == PreferredLyricsProvider.UNISON) {
+                    listOfNotNull(ManualLyricsSearch.lookupUnison(lookup, target.title, target.artist))
+                } else {
+                    ManualLyricsSearch.searchSimpMusic("${target.title} ${target.artist}", trackDurationMs, target)
+                }
+                ManualLyricsSearch.merge(emptyList(), results, target)
+                    .firstOrNull {
+                        LyricsMatcher.isAcceptable(it.name, it.artistName, target) &&
+                            LyricsMatcher.durationMatches(it.durationSec, trackDurationMs) &&
+                            (!it.noLyrics || ManualLyricsSearch.isConfirmedInstrumental(it, target))
+                    }?.let { result ->
+                        val raw = result.rawContent
+                        val lines = if (raw != null && !result.noLyrics) {
+                            LyricsUtils.parseLyricsContent(raw, trackDurationMs)
+                        } else emptyList()
+                        LyricsCandidate(
+                            lines = lines,
+                            plain = raw.takeIf { lines.isEmpty() && !result.noLyrics },
+                            provider = providerId.name,
+                            matchScore = LyricsMatcher.score(result.name, result.artistName, result.durationSec, target),
+                            titleSimilarity = LyricsMatcher.titleSimilarity(result.name, target),
+                            resultId = result.id,
+                            instrumental = result.instrumental,
+                        )
                     }
             }
             PreferredLyricsProvider.GENIUS -> {
@@ -3053,7 +3117,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         val best = answers.withIndex()
             .mapNotNull { (i, c) -> c?.takeIf { it.isUsable }?.let { i to it } }
             .maxWithOrNull(
-                compareBy<Pair<Int, LyricsCandidate>> { (_, c) -> if (c.matchScore >= LyricsMatcher.CONFIDENT_MATCH) 1 else 0 }
+                compareBy<Pair<Int, LyricsCandidate>> { (_, c) -> c.instrumental }
+                    .thenBy { (_, c) -> c.matchScore >= LyricsMatcher.CONFIDENT_MATCH }
                     .thenBy { (_, c) -> c.syncTier }
                     .thenBy { (_, c) -> c.rank }
                     .thenByDescending { (i, _) -> i } // earlier provider order wins ties
@@ -3072,6 +3137,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             plain = candidate.plain
                 ?: candidate.lines.takeIf { it.isNotEmpty() }?.joinToString("\n") { it.text },
             provider = candidate.provider,
+            resultId = candidate.resultId,
+            noLyrics = candidate.instrumental,
         )
     }
 
@@ -3090,8 +3157,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             emptyList()
         }
         return results
-            .filter { LyricsMatcher.isAcceptable(it.name, it.artistName, target) }
+            .filter { LyricsMatcher.isAcceptable(it.name, it.artistName, target) &&
+                LyricsMatcher.durationMatches(it.duration, target.durationMs) }
             .map { result ->
+                val instrumental = result.instrumental &&
+                    LyricsMatcher.titleSimilarity(result.name, target) >= LyricsMatcher.CONFIDENT_MATCH &&
+                    LyricsMatcher.artistSimilarity(result.artistName, target) >= LyricsMatcher.CONFIDENT_MATCH
                 val lines = result.syncedLyrics
                     ?.takeIf { it.isNotBlank() }
                     ?.let { LyricsUtils.parseLyricsContent(it, trackDurationMs) }
@@ -3099,9 +3170,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 val candTitle = result.name
                 val titleSim = LyricsMatcher.titleSimilarity(candTitle, target)
                 LyricsCandidate(
-                    lines = lines,
-                    plain = result.plainLyrics,
+                    lines = if (result.instrumental) emptyList() else lines,
+                    plain = result.plainLyrics.takeUnless { result.instrumental },
                     provider = "LRCLIB",
+                    resultId = result.id.toString(),
+                    instrumental = instrumental,
                     matchScore = LyricsMatcher.score(result.name, result.artistName, result.duration, target),
                     titleSimilarity = titleSim,
                 )
@@ -3125,9 +3198,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         } catch (e: Exception) {
             emptyList()
         }
+        fun isInstrumental(hit: com.alananasss.kittytune.data.network.MxmTrack) =
+            hit.instrumental == 1 &&
+                LyricsMatcher.titleSimilarity(hit.trackName, target) >= LyricsMatcher.CONFIDENT_MATCH &&
+                LyricsMatcher.artistSimilarity(hit.artistName, target) >= LyricsMatcher.CONFIDENT_MATCH
         val pick = results
-            .filter { LyricsMatcher.isAcceptable(it.trackName, it.artistName, target) }
-            .maxByOrNull { hit ->
+            .filter {
+                LyricsMatcher.isAcceptable(it.trackName, it.artistName, target) &&
+                    LyricsMatcher.durationMatches(it.trackLength.toDouble(), target.durationMs) &&
+                    (isInstrumental(it) || (it.instrumental == 0 &&
+                        (it.hasLyrics != 0 || it.hasSubtitles == 1 || it.hasRichSync == 1)))
+            }
+            .maxWithOrNull(compareBy<com.alananasss.kittytune.data.network.MxmTrack> { isInstrumental(it) }.thenBy { hit ->
                 val syncTier = when {
                     hit.hasRichSync == 1 -> LyricsMatcher.SYNC_TIER_WORD
                     hit.hasSubtitles == 1 -> LyricsMatcher.SYNC_TIER_LINE
@@ -3142,9 +3224,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                     matchScore = score,
                     titleSimilarity = titleSim,
                 )
-            } ?: return emptyList()
+            }) ?: return emptyList()
 
-        val data = try {
+        val data = if (isInstrumental(pick)) (emptyList<LyricLine>() to null) else try {
             MusixmatchClient.getLyricsData(
                 context,
                 pick.trackId,
@@ -3160,6 +3242,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 lines = data.first,
                 plain = data.second,
                 provider = "MUSIXMATCH",
+                resultId = pick.trackId.toString(),
+                instrumental = isInstrumental(pick),
                 matchScore = LyricsMatcher.score(
                     pick.trackName,
                     pick.artistName,
@@ -3189,6 +3273,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 lines = emptyList(),
                 plain = plain,
                 provider = "GENIUS",
+                resultId = pick.id.toString(),
                 matchScore = LyricsMatcher.score(pick.title, pick.artist, 0.0, target),
                 titleSimilarity = LyricsMatcher.titleSimilarity(pick.title, target),
             )
@@ -3239,10 +3324,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     fun loadCustomLyrics(content: String) {
         viewModelScope.launch {
             val trackDuration = currentTrack?.actualDurationMs ?: 0L
+            lyricsJob?.cancel()
+            hasManualLyricsSelection = true
             val resultLines = LyricsUtils.parseLyricsContent(content, trackDuration)
             withContext(Dispatchers.Main) {
                 lyricsLines.clear()
                 lyricsLines.addAll(resultLines)
+                lyricsSelection = null
+                lastFetchedMxmTrackId = null
+                MusicManager.currentLyricsFlow.value = resultLines
+                lyricsRevision++
                 rawPlainLyrics = when {
                     resultLines.isNotEmpty() -> resultLines.joinToString("\n") { it.text }
                     // Unparsed TTML stays hidden rather than dumped as raw XML tags.
@@ -3385,7 +3476,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                             }.orEmpty()
                             withContext(Dispatchers.Main) {
                                 if (generation != manualSearchGeneration) return@withContext
-                                val merged = ManualLyricsSearch.merge(unifiedLyricSearchResults.toList(), found, target)
+                                val merged = ManualLyricsSearch.merge(
+                                    unifiedLyricSearchResults.toList(), found, target, currentLyricsResultKey,
+                                )
                                 unifiedLyricSearchResults.clear()
                                 unifiedLyricSearchResults.addAll(merged)
                                 pendingLyricSources.remove(source)
@@ -3414,19 +3507,22 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             lyricsJob?.join()
             delay(600L)
             if (currentTrack?.id != track.id) return@launch
-            if (lyricSearchTrackId == track.id && unifiedLyricSearchResults.isNotEmpty()) return@launch
+            if (lyricSearchTrackId == track.id &&
+                (isManualSearchLoading || unifiedLyricSearchResults.isNotEmpty())) return@launch
             startManualLyricsSearch(query, ManualLyricsSearch.ALL) { target -> upgradeToSyncedLyrics(track, target) }
         }
     }
 
     /**
-     * The automatic lookup settled on plain text or nothing, while the search for the manual list found this song
-     * with timings: those are used.
+     * Sources that finish during the background search can improve the automatic selection's timing.
      */
-    private fun upgradeToSyncedLyrics(track: Track, target: LyricsMatcher.Target) {
-        if (currentTrack?.id != track.id || lyricsMode == LyricsMode.SYNCED || isLyricsLoading) return
+    internal fun upgradeToSyncedLyrics(track: Track, target: LyricsMatcher.Target) {
+        if (currentTrack?.id != track.id || hasManualLyricsSelection || hasSelectedResultWithoutLyrics ||
+            isLyricsLoading) return
+        val currentTier = LyricsMatcher.syncTier(lyricsLines, rawPlainLyrics)
         val best = unifiedLyricSearchResults.firstOrNull {
-            (it.hasLineSync || it.hasWordSync) && ManualLyricsSearch.isConfidentMatch(it, target)
+            ManualLyricsSearch.syncTier(it) >= LyricsMatcher.SYNC_TIER_LINE &&
+                ManualLyricsSearch.syncTier(it) > currentTier && ManualLyricsSearch.isConfidentMatch(it, target)
         } ?: return
         selectUnifiedLyricResult(best, isManualPick = false)
     }
@@ -3436,26 +3532,29 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     }
 
     fun selectUnifiedLyricResult(result: UnifiedLyricResult, isManualPick: Boolean = true) {
+        val track = currentTrack ?: return
         lyricsJob?.cancel()
-        val pickedForTrackId = currentTrack?.id
-        viewModelScope.launch(Dispatchers.IO) {
-            isLyricsLoading = true
+        if (isManualPick) hasManualLyricsSelection = true
+        val trackDuration = track.actualDurationMs
+        val variant = currentLyricsVariant()
+        isLyricsLoading = true
+        lyricsJob = viewModelScope.launch(Dispatchers.IO) {
             var finalLines = emptyList<LyricLine>()
             var finalPlain: String? = null
 
-            if (result.rawContent != null) {
-                finalLines = LyricsUtils.parseLyricsContent(result.rawContent, duration)
+            if (!result.noLyrics && result.rawContent != null) {
+                finalLines = LyricsUtils.parseLyricsContent(result.rawContent, trackDuration)
                 if (finalLines.isEmpty() && !LyricsUtils.looksLikeTtml(result.rawContent)) {
                     finalPlain = result.rawContent
                 }
-            } else {
+            } else if (!result.noLyrics) {
                 when (result.provider.uppercase()) {
                     "LRCLIB" -> {
                         try {
                             val lrcData = LrcLibClient.api.getLyricsById(result.id.toLong())
                             val lyricsText = lrcData.syncedLyrics ?: lrcData.plainLyrics
                             if (!lyricsText.isNullOrEmpty()) {
-                                finalLines = LyricsUtils.parseLyricsContent(lyricsText, duration)
+                                finalLines = LyricsUtils.parseLyricsContent(lyricsText, trackDuration)
                             }
                             finalPlain = lrcData.plainLyrics
                         } catch (e: Exception) {
@@ -3471,11 +3570,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                     "MUSIXMATCH" -> {
                         val targetLang =
                             if (playerPrefs.getLyricsTranslationEnabled()) playerPrefs.getLyricsTranslationLang() else null
-                        lastFetchedMxmTrackId = result.id.toLongOrNull()
-                        val data =
-                            MusixmatchClient.getLyricsData(context, result.id.toLong(), duration, targetLang, isRomanizationEnabled)
-                        finalLines = data.first
-                        finalPlain = data.second
+                        val trackId = result.id.toLongOrNull()
+                        if (trackId != null) {
+                            val data = MusixmatchClient.getLyricsData(
+                                context, trackId, trackDuration, targetLang, variant.romanized,
+                            )
+                            finalLines = data.first
+                            finalPlain = data.second
+                        }
                     }
 
                     else -> {
@@ -3486,10 +3588,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                                 title = result.name,
                                 artist = result.artistName,
                                 album = result.albumName,
-                                duration = (duration / 1000).toInt()
+                                duration = (trackDuration / 1000).toInt()
                             ).getOrNull()
                             if (!raw.isNullOrBlank()) {
-                                finalLines = LyricsUtils.parseLyricsContent(raw, duration)
+                                finalLines = LyricsUtils.parseLyricsContent(raw, trackDuration)
                                 if (finalLines.isEmpty() && !LyricsUtils.looksLikeTtml(raw)) finalPlain = raw
                             }
                         }
@@ -3497,47 +3599,43 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 }
             }
 
-            if (!isManualPick && currentTrack?.id != pickedForTrackId) {
-                withContext(Dispatchers.Main) { isLyricsLoading = false }
-                return@launch
+            val instrumental = result.instrumental || ManualLyricsSearch.isInstrumental(finalPlain, finalLines)
+            if (instrumental) {
+                finalLines = emptyList()
+                finalPlain = null
             }
-            withContext(Dispatchers.Main) {
-                if (finalLines.isNotEmpty()) {
-                    lyricsLines.clear()
-                    lyricsLines.addAll(finalLines)
-                    MusicManager.currentLyricsFlow.value = finalLines
-                    rawPlainLyrics = finalPlain
-                    lyricsMode = LyricsMode.SYNCED
-                    currentTrack?.let { refineLyricVoices(it) }
-                } else if (!finalPlain.isNullOrBlank()) {
-                    lyricsLines.clear()
-                    MusicManager.currentLyricsFlow.value = emptyList()
-                    rawPlainLyrics = finalPlain
-                    lyricsMode = LyricsMode.PLAIN
-                } else {
-                    lyricsLines.clear()
-                    MusicManager.currentLyricsFlow.value = emptyList()
-                    rawPlainLyrics = null
-                    lyricsMode = LyricsMode.PLAIN
+            val payload = LyricsPayload(
+                lines = finalLines,
+                plain = finalPlain?.takeIf { it.isNotBlank() },
+                provider = PreferredLyricsProvider.fromName(result.provider)?.name ?: result.provider,
+                resultId = result.id,
+                noLyrics = finalLines.isEmpty() && finalPlain.isNullOrBlank(),
+            )
+            val applied = withContext(Dispatchers.Main) {
+                if (currentTrack?.id != track.id) return@withContext false
+                if (!isManualPick && (payload.isEmpty ||
+                        LyricsMatcher.syncTier(payload.lines, payload.plain) <=
+                            LyricsMatcher.syncTier(lyricsLines, rawPlainLyrics))
+                ) {
+                    isLyricsLoading = false
+                    return@withContext false
                 }
-                isLyricsLoading = false
-                isSearchingLyrics = false
-                currentLyricsSource = result.provider.takeIf { finalLines.isNotEmpty() || !finalPlain.isNullOrBlank() }
+                applyLyricsPayload(payload, preloadOptions = false)
+                if (isManualPick) isSearchingLyrics = false
+                true
             }
-
-            if (isManualPick && (finalLines.isNotEmpty() || !finalPlain.isNullOrBlank())) {
-                currentTrack?.id?.let {
-                    LyricsCache.invalidate(it)
-                }
-            } else if (!isManualPick && finalLines.isNotEmpty() && pickedForTrackId != null) {
-                val variant = currentLyricsVariant()
+            if (!applied) return@launch
+            if (isManualPick) {
+                LyricsCache.invalidate(track.id)
+            } else if (!payload.isEmpty) {
                 LyricsCache.put(
-                    pickedForTrackId,
+                    track.id,
                     LyricsCache.Entry(
                         found = true,
-                        lines = finalLines,
-                        plain = finalPlain,
-                        provider = result.provider,
+                        lines = payload.lines,
+                        plain = payload.plain,
+                        provider = payload.provider,
+                        resultId = payload.resultId,
                         providerPreference = variant.providerPreference,
                         translationLang = variant.translationLang,
                         romanized = variant.romanized,

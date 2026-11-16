@@ -54,7 +54,7 @@ object UnisonClient {
 
     var logger: ((String) -> Unit)? = null
 
-    private suspend fun fetchEntry(
+    suspend fun fetchEntry(
         videoId: String?,
         title: String,
         artist: String,

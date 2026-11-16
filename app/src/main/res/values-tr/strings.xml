@@ -466,6 +466,7 @@
     <string name="category_retro_vintage">Nostalji ve Dokular</string>
     <string name="player_lyrics">Şarkı Sözleri</string>
     <string name="lyrics_no_data">Şarkı sözü bulunamadı</string>
+    <string name="lyrics_result_instrumental">Enstrümantal</string>
     <string name="lyrics_manual_search">Manuel Arama</string>
     <string name="lyrics_wrong">Şarkı sözleri yanlış mı?</string>
     <string name="lyrics_search_hint">Şarkı sözü ara…</string>

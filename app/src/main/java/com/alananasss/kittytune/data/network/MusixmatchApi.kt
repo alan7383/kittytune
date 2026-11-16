@@ -42,7 +42,9 @@ data class MxmTrack(
     @SerializedName("album_name") val albumName: String?,
     @SerializedName("track_length") val trackLength: Int,
     @SerializedName("has_subtitles") val hasSubtitles: Int,
-    @SerializedName("has_richsync") val hasRichSync: Int
+    @SerializedName("has_richsync") val hasRichSync: Int,
+    @SerializedName("has_lyrics") val hasLyrics: Int? = null,
+    val instrumental: Int = 0,
 )
 
 data class MxmSubtitleBody(val subtitle: MxmSubtitleObj?)

@@ -316,6 +316,7 @@
     <string name="category_ambience_filters">Атмосфера и фильтры</string>
     <string name="player_lyrics">Текст песни</string>
     <string name="lyrics_no_data">Текст недоступен</string>
+    <string name="lyrics_result_instrumental">Инструментал</string>
     <string name="lyrics_manual_search">Ручной поиск</string>
     <string name="lyrics_wrong">Неверный текст песни?</string>
     <string name="lyrics_search_hint">Поиск текста …</string>

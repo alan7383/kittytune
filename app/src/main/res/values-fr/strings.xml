@@ -461,6 +461,7 @@
     <string name="category_retro_vintage">Rétro &amp; Vintage</string>
     <string name="player_lyrics">Paroles</string>
     <string name="lyrics_no_data">Aucune parole disponible</string>
+    <string name="lyrics_result_instrumental">Instrumental</string>
     <string name="lyrics_manual_search">Recherche manuelle</string>
     <string name="lyrics_wrong">Paroles incorrectes ?</string>
     <string name="lyrics_search_hint">Chercher paroles…</string>
