@@ -464,16 +464,28 @@ fun MainScreen(
             }
     ) {
         val windowSizeInfo = rememberWindowSizeInfo(maxWidth, maxHeight)
-        // Blur is a signature of the MODERN floating dock; the classic bar is an opaque surface.
-        val actualBottomMenuBlurEnabled = bottomMenuStyle == "modern" && rawBottomMenuBlurEnabled
+        val isTablet by rememberUpdatedState(windowSizeInfo.isTablet)
         val showBottomUi = !playerViewModel.isPlayerExpanded && !playerViewModel.isTransitionEditorActive
 
-        // Tablet navigation placement: the bottom dock (default) or a left rail,
-        // for both the classic and the modern styles. Works in BOTH orientations —
-        // the rail is a first-class tablet layout, not a landscape-only trick.
         val tabletNavPlacement by prefs.tabletNavPlacementFlow().collectAsState(initial = prefs.getTabletNavPlacement())
         val showTabletLeftRail = windowSizeInfo.isTablet &&
                 tabletNavPlacement == com.alananasss.kittytune.data.local.TabletNavPlacement.LEFT
+        val showClassicTabletDock = windowSizeInfo.isTablet &&
+                tabletNavPlacement == com.alananasss.kittytune.data.local.TabletNavPlacement.CLASSIC_DOCK
+        val actualBottomMenuBlurEnabled = (bottomMenuStyle == "modern" || showClassicTabletDock) && rawBottomMenuBlurEnabled
+        val tabletSidePlayerEnabled by remember(prefs) { prefs.tabletSidePlayerFlow() }
+            .collectAsState(initial = prefs.getTabletSidePlayerEnabled())
+        val useTabletSidePlayer = windowSizeInfo.isTablet && tabletSidePlayerEnabled
+        val openMiniPlayer: () -> Unit = {
+            if (useTabletSidePlayer) {
+                playerViewModel.isSidePlayerOpen = true
+            } else {
+                playerViewModel.isPlayerExpanded = true
+            }
+        }
+        LaunchedEffect(useTabletSidePlayer) {
+            if (!useTabletSidePlayer) playerViewModel.isSidePlayerOpen = false
+        }
         // One switch for both styles: ON = icons only (no text under the classic icons and
         // no expanding label next to the selected modern pill / rail item).
         val hideNavLabels by prefs.navHideLabelsFlow().collectAsState(initial = prefs.getNavHideLabels())
@@ -509,6 +521,16 @@ fun MainScreen(
 
 
         val isMiniPlayerVisible = playerViewModel.uiCurrentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute && !playerViewModel.isTransitionEditorActive
+        val showTabletSidePlayer = useTabletSidePlayer && playerViewModel.isSidePlayerOpen && isMiniPlayerVisible
+        val sidePanelWidth = minOf(420.dp, maxWidth * 0.45f)
+        val animatedSidePanelWidth by animateDpAsState(
+            targetValue = if (showTabletSidePlayer) sidePanelWidth else 0.dp,
+            animationSpec = spring(dampingRatio = 0.85f, stiffness = 380f),
+            label = "tabletSidePlayerWidth",
+        )
+        BackHandler(enabled = showTabletSidePlayer && !isFullscreenOverlayVisible) {
+            playerViewModel.isSidePlayerOpen = false
+        }
 
         val snackbarPadding by animateDpAsState(
             targetValue = if (isMiniPlayerVisible) 90.dp else 16.dp,
@@ -1609,6 +1631,7 @@ fun MainScreen(
                             SettingsSearchScreen(
                                 navController = navController,
                                 onBackClick = { navController.popBackStack() },
+                                isTablet = isTablet,
                                 playerViewModel = playerViewModel
                             )
                         }
@@ -1768,7 +1791,16 @@ fun MainScreen(
                             BottomBarSettingsScreen(
                                 onBackClick = { navController.popBackStack() },
                                 onNavigateToFabSettings = { navController.navigate("fab_settings") },
+                                onNavigateToTabletSettings = { navController.navigate("tablet_interface_settings") },
+                                isTablet = isTablet,
                                 playerViewModel = playerViewModel
+                            )
+                        }
+
+                        clippedComposable("tablet_interface_settings") {
+                            TabletInterfaceSettingsScreen(
+                                isTablet = isTablet,
+                                onBackClick = { navController.popBackStack() },
                             )
                         }
 
@@ -2053,14 +2085,26 @@ fun MainScreen(
                         enter = slideInVertically(initialOffsetY = { it }),
                         exit = slideOutVertically(targetOffsetY = { it }),
                     ) {
-                        KittyUnifiedBottomBar(
+                        if (showClassicTabletDock) {
+                            com.alananasss.kittytune.ui.navigation.TabletBottomDock(
+                                tabs = tabs,
+                                selectedRoute = selectedRoute,
+                                onTabSelected = onTabSelected,
+                                onFabClick = onFabClick,
+                                fabIcon = fabIcon,
+                                fabLabel = fabLabel,
+                                playerViewModel = playerViewModel,
+                                onPlayerClick = openMiniPlayer,
+                                showLabels = showNavLabels,
+                            )
+                        } else KittyUnifiedBottomBar(
                             tabs = tabs,
                             selectedRoute = selectedRoute,
                             onTabSelected = onTabSelected,
                             onFabClick = onFabClick,
                             fabIcon = fabIcon,
                             playerViewModel = playerViewModel,
-                            onPlayerClick = { playerViewModel.isPlayerExpanded = true },
+                            onPlayerClick = openMiniPlayer,
                             style = bottomMenuStyle,
                             blurEnabled = actualBottomMenuBlurEnabled,
                             showSkipInMiniPlayer = true,
@@ -2073,7 +2117,7 @@ fun MainScreen(
                     // gestures as on the phone: a horizontal swipe dismisses it (with an "Undo"
                     // button) or switches the track — per the "Mini player swipe" setting.
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = showTabletLeftRail && isMiniPlayerVisible && showBottomUi && !isFullScreenRoute,
+                        visible = showTabletLeftRail && isMiniPlayerVisible && !showTabletSidePlayer && showBottomUi,
                         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
                     ) {
@@ -2106,7 +2150,7 @@ fun MainScreen(
                             if (miniPlayerStyle == com.alananasss.kittytune.data.local.MiniPlayerStyle.MODERN) {
                                 com.alananasss.kittytune.ui.player.KittyModernMiniPlayer(
                                     viewModel = playerViewModel,
-                                    onPlayerClick = { playerViewModel.isPlayerExpanded = true },
+                                    onPlayerClick = openMiniPlayer,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             } else {
@@ -2130,7 +2174,7 @@ fun MainScreen(
                                             handler = miniDismissGestureHandler
                                         )
                                         .clip(RoundedCornerShape(16.dp))
-                                        .clickable { playerViewModel.isPlayerExpanded = true }
+                                        .clickable(onClick = openMiniPlayer)
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -2183,9 +2227,31 @@ fun MainScreen(
                         }
                     }
                 }
+                }
+
+                if (animatedSidePanelWidth > 0.dp) {
+                    Box(
+                        modifier = Modifier
+                            .width(animatedSidePanelWidth)
+                            .fillMaxHeight()
+                            .clipToBounds()
+                            .alpha((animatedSidePanelWidth / sidePanelWidth).coerceIn(0f, 1f))
+                            .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+                    ) {
+                        com.alananasss.kittytune.ui.player.TabletSidePlayerPanel(
+                            viewModel = playerViewModel,
+                            onExpandFullScreen = {
+                                playerViewModel.isSidePlayerOpen = false
+                                playerViewModel.isPlayerExpanded = true
+                            },
+                            onClose = { playerViewModel.isSidePlayerOpen = false },
+                            onNavigateToArtist = { artistId -> navController.navigate("profile/$artistId") },
+                            modifier = Modifier.wrapContentWidth(Alignment.Start, unbounded = true).width(sidePanelWidth),
+                        )
+                    }
+                }
             }
         }
-    }
 
         val navStackIds = navController.currentBackStack.collectAsState().value.map { it.id }
         BackHandler(enabled = ayuBackState.shouldVetoBack(navStackIds)) {

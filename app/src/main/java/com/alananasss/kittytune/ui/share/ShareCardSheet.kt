@@ -30,9 +30,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -55,6 +52,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.PlayerPreferences
@@ -164,19 +162,17 @@ fun ShareCardSheet(
                 )
             }
 
-            if (lyrics.isNotEmpty()) {
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.padding(top = 20.dp)) {
-                    SegmentedButton(
-                        selected = !lyricsFace,
-                        onClick = hapticAction(HapticKind.UI) { lyricsFace = false },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    ) { Text(stringResource(R.string.share_card_face_song)) }
-                    SegmentedButton(
-                        selected = lyricsFace,
-                        onClick = hapticAction(HapticKind.UI) { lyricsFace = true },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    ) { Text(stringResource(R.string.share_card_face_lyrics)) }
-                }
+            if (lyrics.isNotEmpty() || allLyrics.isNotEmpty()) {
+                ExpressiveConnectedButtonGroup(
+                    options = listOf(false, true),
+                    selectedOption = lyricsFace,
+                    onOptionSelected = { lyricsFace = it },
+                    modifier = Modifier.padding(top = 16.dp),
+                    fillMaxWidth = false,
+                    labelProvider = { showLyrics ->
+                        Text(stringResource(if (showLyrics) R.string.share_card_face_lyrics else R.string.share_card_face_song))
+                    },
+                )
             }
 
             if (styles.size > 1) {

@@ -3824,4 +3824,9 @@
     <string name="beatmatch_spotify_hint">A „Tempó igazítása” a bejövő számot a kimenő tempójára nyújtja; az „Eredeti tempó” mindkét sebességet megtartja.</string>
     <string name="usb_status_track_mismatch">A Bit-Perfect nincs megerősítve: a hangsáv formátuma eltér a DAC keverőjétől</string>
     <string name="usb_automix_conflict">Az Automix szünetel, amíg a Bit-Perfect aktív: a számok átúsztatás nélkül váltanak</string>
+    <string name="pref_tablet_interface">Táblagépes felület</string>
+    <string name="pref_tablet_interface_sub">A navigáció, a lejátszópanel és a feliratok beállítása táblagépen</string>
+    <string name="pref_tablet_nav_classic_dock">Eredeti táblagépes dokk</string>
+    <string name="pref_tablet_side_player">Jobb oldali lejátszópanel</string>
+    <string name="pref_tablet_side_player_sub">A minilejátszó megérintése a teljes képernyős lejátszó helyett az oldalsó panelt nyitja meg</string>
 </resources>

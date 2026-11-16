@@ -3650,7 +3650,12 @@
     <string name="pref_instrumental_off">Désactivé</string>
     <string name="pref_tablet_nav_placement">Emplacement de la navigation sur tablette</string>
     <string name="pref_tablet_nav_placement_sub">Où se trouve la barre de navigation sur les tablettes en paysage</string>
-    <string name="pref_tablet_nav_bottom">En bas</string>
+    <string name="pref_tablet_nav_bottom">Barre inférieure standard</string>
+    <string name="pref_tablet_interface">Interface tablette</string>
+    <string name="pref_tablet_interface_sub">Choisir la navigation, le panneau de lecture et les libellés sur tablette</string>
+    <string name="pref_tablet_nav_classic_dock">Barre tablette d’origine</string>
+    <string name="pref_tablet_side_player">Panneau de lecture à droite</string>
+    <string name="pref_tablet_side_player_sub">Toucher le mini-lecteur ouvre le panneau latéral au lieu du lecteur plein écran</string>
     <string name="pref_tablet_nav_left">Côté gauche</string>
     <string name="pref_classic_nav_labels">Afficher les libellés dans la barre classique</string>
     <string name="pref_classic_nav_labels_sub">Désactivez pour n’avoir que les icônes dans le style de navigation classique</string>
