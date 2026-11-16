@@ -213,6 +213,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
 
                         // Main App Content
                         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                          com.alananasss.kittytune.ui.design.DesignRoot {
                             MainScreen(
                                 shouldOpenSearch = openSearchState,
                                 initialSearchQuery = initialQueryState,
@@ -222,6 +223,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
                                 }
                             )
                             com.alananasss.kittytune.ui.common.CoverViewerOverlay()
+                          }
                         }
                     }
                 }

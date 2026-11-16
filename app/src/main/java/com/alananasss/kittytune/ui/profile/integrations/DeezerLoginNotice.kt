@@ -16,6 +16,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.Icon
 
 @Composable
 fun DeezerLoginNotice(

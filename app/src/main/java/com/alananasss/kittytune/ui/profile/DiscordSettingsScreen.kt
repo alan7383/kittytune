@@ -34,6 +34,12 @@ import com.my.kizzy.rpc.KizzyRPC
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.OutlinedTextField
+import com.alananasss.kittytune.ui.design.RadioButton
+import com.alananasss.kittytune.ui.design.Icon
 
 @Composable
 fun DiscordSettingsScreen(

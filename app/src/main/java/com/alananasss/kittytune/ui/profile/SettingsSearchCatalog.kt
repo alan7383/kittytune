@@ -82,6 +82,38 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
+                titleRes = R.string.design_style_title,
+                subtitleRes = R.string.design_style_entry_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.WaterDrop,
+                route = "design_style_settings",
+                keywords = listOf("miuix", "hyperos", "xiaomi", "material", "design", "style", "liquid glass")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.miuix_settings_title,
+                subtitleRes = R.string.miuix_settings_entry_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.WaterDrop,
+                route = "miuix_settings",
+                highlightKey = "pref_miuix",
+                keywords = listOf("miuix", "hyperos", "xiaomi", "miui")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.glass_settings_title,
+                subtitleRes = R.string.glass_settings_entry_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.WaterDrop,
+                route = "liquid_glass_settings",
+                highlightKey = "pref_liquid_glass",
+                keywords = listOf("liquid glass", "glass", "verre", "ios", "blur", "refraction", "transparent")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
                 titleRes = R.string.settings_page_themes,
                 subtitleRes = R.string.settings_page_themes_sub,
                 categoryName = catInterface,

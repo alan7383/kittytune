@@ -206,6 +206,15 @@ dependencies {
     // stack the official Qobuz app uses to get an id token.
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
+    // Liquid Glass: Kyant backdrop (refraction, blur, highlights) and G2-continuous shapes.
+    implementation(libs.kyant.backdrop)
+    implementation(libs.kyant.shapes)
+
+    // MIUIX (HyperOS design): components, preferences and icons.
+    implementation(libs.miuix.ui)
+    implementation(libs.miuix.preference)
+    implementation(libs.miuix.icons)
 }
 
 kotlin {

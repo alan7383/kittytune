@@ -84,6 +84,11 @@ import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.Slider
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.Icon
 
 sealed class SetupPage {
     data object Welcome : SetupPage()

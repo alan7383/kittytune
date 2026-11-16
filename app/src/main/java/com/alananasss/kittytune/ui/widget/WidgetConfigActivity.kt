@@ -31,6 +31,15 @@
 import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.Card
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.ExtendedFloatingActionButton
+import com.alananasss.kittytune.ui.design.OutlinedTextField
+import com.alananasss.kittytune.ui.design.Checkbox
+import com.alananasss.kittytune.ui.design.Icon
     import com.alananasss.kittytune.ui.theme.SoundTuneTheme
     import kotlinx.coroutines.MainScope
     import kotlinx.coroutines.launch

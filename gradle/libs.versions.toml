@@ -46,6 +46,9 @@ zxing = "3.5.4"
 material = "1.14.0"
 litert = "2.3.2"
 smooth-corner-rect = "v1.0.0"
+kyantBackdrop = "2.0.1"
+kyantShapes = "1.2.1"
+miuix = "0.9.4"
 documentfile = "1.1.0"
 wearCompose = "1.5.6"
 playServicesWearable = "20.0.1"
@@ -125,6 +128,11 @@ accompanist-lyrics-ui = { module = "com.mocharealm.accompanist:lyrics-ui", versi
 accompanist-lyrics-core = { module = "com.mocharealm.accompanist:lyrics-core", version = "0.5.0" }
 litert = { module = "com.google.ai.edge.litert:litert", version.ref = "litert" }
 smooth-corner-rect = { module = "com.github.racra:smooth-corner-rect-android-compose", version.ref = "smooth-corner-rect" }
+kyant-backdrop = { module = "io.github.kyant0:backdrop-android", version.ref = "kyantBackdrop" }
+kyant-shapes = { module = "io.github.kyant0:shapes-android", version.ref = "kyantShapes" }
+miuix-ui = { module = "top.yukonga.miuix.kmp:miuix-ui", version.ref = "miuix" }
+miuix-preference = { module = "top.yukonga.miuix.kmp:miuix-preference", version.ref = "miuix" }
+miuix-icons = { module = "top.yukonga.miuix.kmp:miuix-icons", version.ref = "miuix" }
 play-services-wearable = { group = "com.google.android.gms", name = "play-services-wearable", version.ref = "playServicesWearable" }
 wear-compose-material3 = { group = "androidx.wear.compose", name = "compose-material3", version.ref = "wearCompose" }
 wear-compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation", version.ref = "wearCompose" }

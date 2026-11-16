@@ -39,6 +39,12 @@ import com.alananasss.kittytune.ui.common.QrCodeGenerator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import com.alananasss.kittytune.ui.design.Button
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.OutlinedTextField
+import com.alananasss.kittytune.ui.design.Icon
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable

@@ -35,7 +35,15 @@ import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.rememberAppHaptics
+import com.alananasss.kittytune.ui.glass.GlassComponent
+import com.alananasss.kittytune.ui.glass.components.GlassChromeButton
+import com.alananasss.kittytune.ui.glass.components.GlassChromePanel
+import com.alananasss.kittytune.ui.glass.components.GlassNavItem
+import com.alananasss.kittytune.ui.glass.components.GlassNavigationTabs
+import com.alananasss.kittytune.ui.glass.glassEnabled
+import com.alananasss.kittytune.ui.design.IconButton
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.design.Icon
 
 @Composable
 fun TabletBottomDock(
@@ -55,6 +63,9 @@ fun TabletBottomDock(
     val track = playerViewModel.uiCurrentTrack
     val isPlaying = playerViewModel.uiIsPlaying
     val showMiniPlayer = track != null && !playerViewModel.isSidePlayerOpen
+    val glassNavigation = glassEnabled(GlassComponent.NAVIGATION)
+    val glassMiniPlayer = glassEnabled(GlassComponent.MINI_PLAYER)
+    val miuixNavigation = com.alananasss.kittytune.ui.design.miuixEnabled(com.alananasss.kittytune.ui.design.MiuixComponent.NAVIGATION)
 
     Row(
         modifier = modifier
@@ -69,6 +80,76 @@ fun TabletBottomDock(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Extended Navigation Dock (Spotify tablet style)
+        if (glassNavigation) {
+            val visibleTabs = tabs.filter { it.visible }
+            val items = remember(visibleTabs) { visibleTabs.map { GlassNavItem(it.route, it.title, it.icon) } }
+            Row(
+                modifier = if (showMiniPlayer) {
+                    Modifier.weight(1.25f)
+                } else {
+                    Modifier
+                        .widthIn(min = 480.dp, max = 640.dp)
+                        .fillMaxWidth()
+                },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GlassNavigationTabs(
+                    items = items,
+                    selectedKey = selectedRoute,
+                    onSelect = { item ->
+                        haptics.perform(HapticKind.UI)
+                        visibleTabs.firstOrNull { it.route == item.key }?.let(onTabSelected)
+                    },
+                    height = 68.dp,
+                    modifier = Modifier.weight(1f)
+                )
+                GlassChromeButton(
+                    icon = fabIcon,
+                    contentDescription = fabLabel,
+                    size = 68.dp,
+                    onClick = {
+                        haptics.perform(HapticKind.MEDIUM)
+                        onFabClick()
+                    }
+                )
+            }
+        } else if (miuixNavigation) {
+            val visibleTabs = tabs.filter { it.visible }
+            Row(
+                modifier = if (showMiniPlayer) Modifier.weight(1.25f) else Modifier.widthIn(min = 480.dp, max = 640.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+            ) {
+                top.yukonga.miuix.kmp.basic.FloatingNavigationBar(
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    horizontalOutSidePadding = 0.dp,
+                    defaultWindowInsetsPadding = false,
+                ) {
+                    visibleTabs.forEach { tab ->
+                        top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem(
+                            selected = selectedRoute == tab.route,
+                            onClick = {
+                                haptics.perform(HapticKind.UI)
+                                onTabSelected(tab)
+                            },
+                            icon = com.alananasss.kittytune.ui.design.miuixIconOrSelf(tab.icon),
+                            label = tab.title,
+                        )
+                    }
+                    top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem(
+                        selected = false,
+                        onClick = {
+                            haptics.perform(HapticKind.MEDIUM)
+                            onFabClick()
+                        },
+                        icon = com.alananasss.kittytune.ui.design.miuixIconOrSelf(fabIcon),
+                        label = fabLabel,
+                    )
+                }
+
+            }
+        } else {
         Surface(
             shape = RoundedCornerShape(36.dp),
             color = MaterialTheme.colorScheme.surfaceContainer,
@@ -176,6 +257,7 @@ fun TabletBottomDock(
                 }
             }
         }
+        }
 
         // Extended standalone MiniPlayer on the right
         AnimatedVisibility(
@@ -187,23 +269,7 @@ fun TabletBottomDock(
                 .height(72.dp)
         ) {
             if (track != null) {
-                Surface(
-                    onClick = {
-                        haptics.perform(HapticKind.LIGHT)
-                        onPlayerClick()
-                    },
-                    shape = RoundedCornerShape(36.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    tonalElevation = 6.dp,
-                    shadowElevation = 8.dp,
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                    ),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clipToBounds()
-                ) {
+                val dockPlayerContent: @Composable () -> Unit = {
                     Box(modifier = Modifier.fillMaxSize()) {
                         Row(
                             modifier = Modifier
@@ -346,6 +412,41 @@ fun TabletBottomDock(
                             color = MaterialTheme.colorScheme.primary,
                             trackColor = Color.Transparent
                         )
+                    }
+                }
+                if (glassMiniPlayer) {
+                    GlassChromePanel(
+                        shape = com.kyant.shapes.RoundedRectangle(36.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentModifier = Modifier.clickable(
+                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            haptics.perform(HapticKind.LIGHT)
+                            onPlayerClick()
+                        }
+                    ) {
+                        dockPlayerContent()
+                    }
+                } else {
+                    Surface(
+                        onClick = {
+                            haptics.perform(HapticKind.LIGHT)
+                            onPlayerClick()
+                        },
+                        shape = RoundedCornerShape(36.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        tonalElevation = 6.dp,
+                        shadowElevation = 8.dp,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clipToBounds()
+                    ) {
+                        dockPlayerContent()
                     }
                 }
             }

@@ -1,10 +1,10 @@
 package com.alananasss.kittytune.ui.library
 
-import androidx.compose.material3.AlertDialog
+import com.alananasss.kittytune.ui.design.AlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
+import com.alananasss.kittytune.ui.design.FilledTonalButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.alananasss.kittytune.ui.design.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

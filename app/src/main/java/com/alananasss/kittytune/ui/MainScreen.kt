@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui
 
+import com.kyant.backdrop.backdrops.layerBackdrop
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
@@ -120,6 +121,9 @@ import androidx.compose.ui.draw.clipToBounds
 import com.alananasss.kittytune.utils.Config
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.alananasss.kittytune.ui.design.IconButton
+import com.alananasss.kittytune.ui.design.TopAppBar
+import com.alananasss.kittytune.ui.design.Icon
 
 private fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
@@ -466,6 +470,17 @@ fun MainScreen(
             label = "snackbarPadding"
         )
 
+        val glassSettings = com.alananasss.kittytune.ui.glass.LocalGlassSettings.current
+        val glassChrome = glassSettings.enabled
+        val glassBackground = MaterialTheme.colorScheme.background
+        // The page content, recorded for the floating chrome (bars, dock, mini player, snackbar)
+        // to refract. Only chrome outside the NavHost samples it: content cannot sample itself,
+        // so the NavHost resets the backdrop for its own tree.
+        val contentBackdrop = com.kyant.backdrop.backdrops.rememberLayerBackdrop {
+            drawRect(glassBackground)
+            drawContent()
+        }
+
         Scaffold(
             snackbarHost = {
                 Box(
@@ -475,6 +490,29 @@ fun MainScreen(
                     contentAlignment = Alignment.BottomCenter
                 ) {
                     SnackbarHost(hostState = snackbarHostState) { data ->
+                        if (com.alananasss.kittytune.ui.design.miuixEnabled(com.alananasss.kittytune.ui.design.MiuixComponent.SNACKBARS)) {
+                            com.alananasss.kittytune.ui.design.MiuixSnackbar(
+                                message = data.visuals.message,
+                                actionLabel = data.visuals.actionLabel,
+                                onAction = { data.performAction() },
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .widthIn(max = 400.dp)
+                            )
+                        } else if (glassSettings.isOn(com.alananasss.kittytune.ui.glass.GlassComponent.SNACKBARS)) {
+                            androidx.compose.runtime.CompositionLocalProvider(
+                                com.alananasss.kittytune.ui.glass.LocalGlassBackdrop provides contentBackdrop
+                            ) {
+                                com.alananasss.kittytune.ui.glass.components.GlassSnackbar(
+                                    message = data.visuals.message,
+                                    actionLabel = data.visuals.actionLabel,
+                                    onAction = { data.performAction() },
+                                    modifier = Modifier
+                                        .padding(horizontal = 16.dp)
+                                        .widthIn(max = 400.dp)
+                                )
+                            }
+                        } else
                         Snackbar(
                             snackbarData = data,
                             shape = CircleShape,
@@ -491,6 +529,9 @@ fun MainScreen(
             },
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { _ ->
+          androidx.compose.runtime.CompositionLocalProvider(
+              com.alananasss.kittytune.ui.glass.LocalGlassBackdrop provides if (glassChrome) contentBackdrop else null
+          ) {
             val allTabKeys = listOf("home", "search", "genres", "library", "queue")
             val bottomNavItemsKeys by prefs.bottomMenuItemsFlow().collectAsState(initial = prefs.getBottomMenuItems())
             val bottomNavOrder by prefs.bottomMenuOrderFlow().collectAsState(initial = prefs.getBottomMenuOrder())
@@ -692,13 +733,21 @@ fun MainScreen(
                     )
 
                     androidx.compose.runtime.CompositionLocalProvider(
-                        LocalAyuBackState provides ayuBackState
+                        LocalAyuBackState provides ayuBackState,
+                        com.alananasss.kittytune.ui.glass.LocalGlassBackdrop provides null
                     ) {
                         NavHost(
                             navController = navController,
                             startDestination = startDestination,
                             modifier = Modifier
                                 .fillMaxSize()
+                                .then(
+                                    if (glassChrome) {
+                                        Modifier.layerBackdrop(contentBackdrop)
+                                    } else {
+                                        Modifier
+                                    }
+                                )
                                 .focusProperties {
                                     canFocus = !isFullscreenOverlayVisible
                                 }
@@ -714,7 +763,7 @@ fun MainScreen(
                                     }
                                 )
                                 .then(
-                                    if (actualBottomMenuBlurEnabled && !isFullScreenRoute && (windowSizeInfo.showPhoneBottomBar || windowSizeInfo.showTabletDock)) {
+                                    if (actualBottomMenuBlurEnabled && !glassSettings.isOn(com.alananasss.kittytune.ui.glass.GlassComponent.NAVIGATION) && !isFullScreenRoute && (windowSizeInfo.showPhoneBottomBar || windowSizeInfo.showTabletDock)) {
                                         Modifier.progressiveBlur(
                                             blurRadius = 40f,
                                             height = bottomBarHeightPx,
@@ -1701,6 +1750,27 @@ fun MainScreen(
                                 onNavigateToBottomBarSettings = { navController.navigate("bottom_bar_settings") },
                                 onNavigateToAppIconSettings = { navController.navigate("app_icon_settings") },
                                 onNavigateToPlayerCustomization = { navController.navigate("player_design_settings") },
+                                onNavigateToLiquidGlass = { navController.navigate("design_style_settings") },
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("design_style_settings") {
+                            com.alananasss.kittytune.ui.design.DesignStyleScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onOpenLiquidGlass = { navController.navigate("liquid_glass_settings") },
+                                onOpenMiuix = { navController.navigate("miuix_settings") }
+                            )
+                        }
+
+                        clippedComposable("miuix_settings") {
+                            com.alananasss.kittytune.ui.design.MiuixSettingsScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("liquid_glass_settings") {
+                            com.alananasss.kittytune.ui.glass.LiquidGlassSettingsScreen(
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
@@ -2072,7 +2142,8 @@ fun MainScreen(
                 }
             }
         }
-    }
+      }
+        }
 
         val navStackIds = navController.currentBackStack.collectAsState().value.map { it.id }
         BackHandler(enabled = ayuBackState.shouldVetoBack(navStackIds)) {

@@ -1,5 +1,7 @@
 package com.alananasss.kittytune.ui.player
 
+import com.alananasss.kittytune.ui.glass.glass
+import com.alananasss.kittytune.ui.glass.glassButtonSurface
 import androidx.compose.foundation.clickable
 import com.alananasss.kittytune.ui.common.Slider as ExpressiveSlider
 import com.alananasss.kittytune.ui.common.HapticKind
@@ -133,34 +135,34 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import com.alananasss.kittytune.ui.design.AlertDialog
+import com.alananasss.kittytune.ui.design.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.alananasss.kittytune.ui.design.TextButton
+import com.alananasss.kittytune.ui.design.Icon
+import com.alananasss.kittytune.ui.design.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Slider
+import com.alananasss.kittytune.ui.design.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Card
+import com.alananasss.kittytune.ui.design.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
+import com.alananasss.kittytune.ui.design.CenterAlignedTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.DropdownMenu
+import com.alananasss.kittytune.ui.design.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.AssistChip
+import com.alananasss.kittytune.ui.design.OutlinedButton
+import com.alananasss.kittytune.ui.design.OutlinedTextField
+import com.alananasss.kittytune.ui.design.FilledTonalButton
+import com.alananasss.kittytune.ui.design.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -183,9 +185,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.font.FontWeight
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import androidx.compose.material3.FilterChip
+import com.alananasss.kittytune.ui.design.FilterChip
 import kotlin.math.abs
 import kotlin.math.round
+import com.alananasss.kittytune.ui.design.FloatingActionButton
 
 @Composable
 fun PremiumMarqueeText(
@@ -1044,6 +1047,9 @@ fun NewPlayerScreen(
             }
             .background(if (isBlurMode) Color.Black else MaterialTheme.colorScheme.background)
     ) {
+        com.alananasss.kittytune.ui.glass.GlassBackdropScope(
+            component = com.alananasss.kittytune.ui.glass.GlassComponent.PLAYER,
+            background = {
         when (backgroundStyle) {
             FullPlayerBgStyle.BLUR -> {
                 Crossfade(
@@ -1145,7 +1151,8 @@ fun NewPlayerScreen(
                 )
             }
         }
-
+            }
+        ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val windowSizeInfo = rememberWindowSizeInfo(maxWidth, maxHeight)
             val isPhoneLandscape =
@@ -1586,6 +1593,7 @@ fun NewPlayerScreen(
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
+        }
         }
 
         if (showEffectsSheet) {
@@ -4538,11 +4546,12 @@ fun PlayerControls(
                 modifier = Modifier
                     .height(68.dp)
                     .weight(backButtonWeight)
-                    .clip(RoundedCornerShape(50))
-                    .background(sideButtonContainerColor)
-                    .clickable(
+                    .glassButtonSurface(
+                        component = com.alananasss.kittytune.ui.glass.GlassComponent.PLAYER,
+                        shape = RoundedCornerShape(50),
+                        color = sideButtonContainerColor,
                         interactionSource = backInteractionSource,
-                        indication = ripple()
+                        prominent = false
                     ) { viewModel.smartPrevious() },
                 contentAlignment = Alignment.Center
             ) {
@@ -4555,11 +4564,12 @@ fun PlayerControls(
                 modifier = Modifier
                     .height(68.dp)
                     .weight(playPauseWeight)
-                    .clip(RoundedCornerShape(50))
-                    .background(animatedMainColor)
-                    .clickable(
+                    .glassButtonSurface(
+                        component = com.alananasss.kittytune.ui.glass.GlassComponent.PLAYER,
+                        shape = RoundedCornerShape(50),
+                        color = animatedMainColor,
                         interactionSource = playPauseInteractionSource,
-                        indication = ripple()
+                        prominent = true
                     ) { viewModel.togglePlayPause() },
                 contentAlignment = Alignment.Center
             ) {
@@ -4625,11 +4635,12 @@ fun PlayerControls(
                 modifier = Modifier
                     .height(68.dp)
                     .weight(nextButtonWeight)
-                    .clip(RoundedCornerShape(50))
-                    .background(sideButtonContainerColor)
-                    .clickable(
+                    .glassButtonSurface(
+                        component = com.alananasss.kittytune.ui.glass.GlassComponent.PLAYER,
+                        shape = RoundedCornerShape(50),
+                        color = sideButtonContainerColor,
                         interactionSource = nextInteractionSource,
-                        indication = ripple()
+                        prominent = false
                     ) { viewModel.requestSkipNext() },
                 contentAlignment = Alignment.Center
             ) {
@@ -4842,12 +4853,30 @@ private fun PlayerSlotButton(
             }
         }
 
+        val glassSlot = com.alananasss.kittytune.ui.glass.glassEnabled(com.alananasss.kittytune.ui.glass.GlassComponent.PLAYER)
+        val slotHighlight = com.alananasss.kittytune.ui.glass.rememberGlassHighlight(glassSlot)
         Box(
             modifier = modifier
                 .size(42.dp)
-                .clip(shape)
-                .background(containerColor)
-                .then(clickModifier),
+                .then(
+                    if (glassSlot) {
+                        Modifier
+                            .glass(
+                                shape = shape,
+                                level = com.alananasss.kittytune.ui.glass.GlassLevel.Regular,
+                                surfaceColor = containerColor,
+                                highlight = slotHighlight,
+                                shadow = com.alananasss.kittytune.ui.glass.GlassShadow.Soft
+                            )
+                            .clip(shape)
+                    } else {
+                        Modifier
+                            .clip(shape)
+                            .background(containerColor)
+                    }
+                )
+                .then(clickModifier)
+                .then(slotHighlight?.gestureModifier ?: Modifier),
             contentAlignment = Alignment.Center
         ) {
             Icon(
