@@ -113,6 +113,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
 
     // On-device / Emulator Instrumentation Testing
+    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

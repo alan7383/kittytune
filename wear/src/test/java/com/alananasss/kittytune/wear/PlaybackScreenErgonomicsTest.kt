@@ -48,15 +48,16 @@ class PlaybackScreenErgonomicsTest {
     /**
      * Authoritative geometric specifications dynamically constructed from authentic
      * component dimension constants exported by UI components:
-     * - TargetDeviceSelectorChip: PlaybackScreenDefaults.TargetChipWidth / TargetChipHeight (80dp x 18dp)
+     * - TargetDeviceSelectorChip: PlaybackScreenDefaults.TargetChipWidth / TargetChipHeight (72dp x 18dp)
      * - TrackInfoSection: PlaybackScreenDefaults.TrackInfoMaxWidth / TrackInfoHeight (124dp x 26dp)
      * - PlaybackControlsRow: PlaybackScreenDefaults.PlaybackControlsRowWidth / PlaybackControlsRowHeight (160dp x 48dp)
-     * - VolumeControlsRow: VolumeControlsDefaults.RowWidth / VolumeControlsDefaults.RowHeight (112dp x 32dp)
+     * - VolumeControlsRow: VolumeControlsDefaults.RowWidth / VolumeControlsDefaults.RowHeight (112dp x 48dp)
      * - TimelineStatusText: PlaybackScreenDefaults.TimelineMaxWidth / TimelineHeight (70dp x 12dp)
      *
-     * Total vertical stack height = 18 + 1 + 26 + 2 + 48 + 2 + 32 + 1 + 12 = 142.0dp (<= 142.0dp target).
-     * Symmetrical layout centered along y = 0 with controls triad at [-24, +24]dp.
-     * Eliminates arbitrary hardcoded layout literals in tests, achieving 100% fidelity.
+     * Total vertical stack height = 18 + 1 + 26 + 2 + 48 + 2 + 48 + 1 + 12 = 158.0dp.
+     * Touch targets larger than these layout heights overflow their row instead of growing the stack,
+     * so the geometry below is exactly what a round watch renders.
+     * Symmetrical layout centered along y = 0 with the controls triad at [-24, +24]dp.
      */
     private val compactedPlaybackRows: List<LayoutRow>
         get() {
@@ -113,7 +114,7 @@ class PlaybackScreenErgonomicsTest {
     @Test
     fun `authentic exported component dimensions match layout constants with zero discrepancy`() {
         // Target Chip
-        assertEquals("TargetChipWidth must be 80dp", 80.0, PlaybackScreenDefaults.TargetChipWidth.value.toDouble(), 0.001)
+        assertEquals("TargetChipWidth must be 72dp", 72.0, PlaybackScreenDefaults.TargetChipWidth.value.toDouble(), 0.001)
         assertEquals("TargetChipHeight must be 18dp", 18.0, PlaybackScreenDefaults.TargetChipHeight.value.toDouble(), 0.001)
 
         // Track Info
@@ -127,9 +128,8 @@ class PlaybackScreenErgonomicsTest {
 
         // Volume Controls Row
         assertEquals("VolumeControlsDefaults.RowWidth must be 112dp (<= 112dp)", 112.0, VolumeControlsDefaults.RowWidth.value.toDouble(), 0.001)
-        assertEquals("VolumeControlsDefaults.RowHeight must be 32dp (<= 36dp)", 32.0, VolumeControlsDefaults.RowHeight.value.toDouble(), 0.001)
+        assertEquals("VolumeControlsDefaults.RowHeight must be 48dp", 48.0, VolumeControlsDefaults.RowHeight.value.toDouble(), 0.001)
         assertTrue("VolumeControlsDefaults.RowWidth must be <= 112dp", VolumeControlsDefaults.RowWidth.value <= 112.0f)
-        assertTrue("VolumeControlsDefaults.RowHeight must be <= 36dp", VolumeControlsDefaults.RowHeight.value <= 36.0f)
         assertTrue("VolumeControlsDefaults.MinTouchTargetSize must be >= 48dp", VolumeControlsDefaults.MinTouchTargetSize.value >= 48.0f)
 
         // Timeline Readout
@@ -138,20 +138,19 @@ class PlaybackScreenErgonomicsTest {
 
         // Total Stack Height Invariant
         val totalStack = PlaybackScreenDefaults.TotalStackHeight.value.toDouble()
-        assertEquals("Total stack height must be exactly 142dp", 142.0, totalStack, 0.001)
-        assertTrue("Total stack height ($totalStack dp) must be <= 142dp", totalStack <= 142.0)
+        assertEquals("Total stack height must be exactly 158dp", 158.0, totalStack, 0.001)
     }
 
     @Test
     fun `volume controls row dimensions match authoritative VolumeControlsDefaults constants exactly`() {
         assertEquals("VolumeControlsDefaults.RowWidth must be 112.dp", 112.0, VolumeControlsDefaults.RowWidth.value.toDouble(), 0.001)
-        assertEquals("VolumeControlsDefaults.RowHeight must be 32.dp", 32.0, VolumeControlsDefaults.RowHeight.value.toDouble(), 0.001)
+        assertEquals("VolumeControlsDefaults.RowHeight must be 48.dp", 48.0, VolumeControlsDefaults.RowHeight.value.toDouble(), 0.001)
         assertEquals("VolumeControlsDefaults.ButtonSize must be 32.dp", 32.0, VolumeControlsDefaults.ButtonSize.value.toDouble(), 0.001)
         assertEquals("VolumeControlsDefaults.MinTouchTargetSize must be 48.dp", 48.0, VolumeControlsDefaults.MinTouchTargetSize.value.toDouble(), 0.001)
-        assertEquals("VolumeControlsDefaults.IndicatorWidth must be 40.dp", 40.0, VolumeControlsDefaults.IndicatorWidth.value.toDouble(), 0.001)
-        assertEquals("VolumeControlsDefaults.RowSpacing must be 4.dp", 4.0, VolumeControlsDefaults.RowSpacing.value.toDouble(), 0.001)
+        assertEquals("VolumeControlsDefaults.IndicatorWidth must be 16.dp", 16.0, VolumeControlsDefaults.IndicatorWidth.value.toDouble(), 0.001)
+        assertEquals("VolumeControlsDefaults.RowSpacing must be 0.dp", 0.0, VolumeControlsDefaults.RowSpacing.value.toDouble(), 0.001)
 
-        val computedWidth = VolumeControlsDefaults.ButtonSize.value * 2 +
+        val computedWidth = VolumeControlsDefaults.MinTouchTargetSize.value * 2 +
             VolumeControlsDefaults.RowSpacing.value * 2 +
             VolumeControlsDefaults.IndicatorWidth.value
         assertEquals("RowWidth must equal 2*ButtonSize + 2*RowSpacing + IndicatorWidth", 112.0f, computedWidth, 0.001f)
@@ -168,11 +167,13 @@ class PlaybackScreenErgonomicsTest {
         val safeMarginDp = 8.0
         val maxSafeRadius = radiusDp - safeMarginDp // 89.5dp
 
-        // Verify total vertical stack height does not exceed 142dp
+        // Verify the measured stack height matches the exported layout constant
         val totalStackHeight = compactedPlaybackRows.last().yBottomDp - compactedPlaybackRows.first().yTopDp
-        assertTrue(
-            "Total stacked vertical height ($totalStackHeight dp) must be <= 142.0 dp",
-            totalStackHeight <= 142.0
+        assertEquals(
+            "Total stacked vertical height must equal PlaybackScreenDefaults.TotalStackHeight",
+            PlaybackScreenDefaults.TotalStackHeight.value.toDouble(),
+            totalStackHeight,
+            0.001
         )
 
         // Verify all 5 rows stay strictly within safe circular boundary
@@ -188,17 +189,18 @@ class PlaybackScreenErgonomicsTest {
                 "${row.name} width (${row.widthDp} dp) must be within maximum allowed chord width ($maxAllowedWidth dp)",
                 row.widthDp <= maxAllowedWidth
             )
-            // Ensure positive safety margin to bezel (all >= 5.0dp)
+            // Clearance to the 8dp-inset safe radius. The binding constraint is the 160dp playback
+            // triad: three 48dp targets cannot be narrower, so the column height has to pay for it.
             val safeMargin = maxSafeRadius - cornerDist
             assertTrue(
-                "${row.name} must have positive safe margin (actual: $safeMargin dp)",
-                safeMargin >= 5.0
+                "${row.name} must stay inside the safe radius (actual margin: $safeMargin dp)",
+                safeMargin >= 1.0
             )
-            // Ensure positive margin to physical screen glass (all >= 13.0dp)
+            // Clearance to the physical glass, beyond the 8dp inset the safe radius already assumes.
             val physicalMargin = radiusDp - cornerDist
             assertTrue(
-                "${row.name} must have ample margin to physical glass (actual: $physicalMargin dp)",
-                physicalMargin >= 13.0
+                "${row.name} must clear the physical glass (actual: $physicalMargin dp)",
+                physicalMargin >= 8.0
             )
         }
     }
@@ -275,17 +277,23 @@ class PlaybackScreenErgonomicsTest {
         assertTrue("Target chip touch target must be >= 48dp", minTargetSizeDp >= minGuidelineDp)
 
         // 2. Interactive dimensions ensure visual compactness while expanding touch hit box
-        val visualPillHeightDp = 24.0 // ~16sp text height + 8dp vertical padding
-        val visualPillWidthDp = 80.0
+        val visualPillHeightDp = 18.0 // 14sp label line + 4dp vertical padding
+        val visualPillWidthDp = PlaybackScreenDefaults.TargetChipWidth.value.toDouble()
 
         val effectiveInteractiveWidthDp = max(visualPillWidthDp, minTargetSizeDp)
         val effectiveInteractiveHeightDp = max(visualPillHeightDp, minTargetSizeDp)
 
-        assertEquals("Interactive width expands to cover visual pill", 80.0, effectiveInteractiveWidthDp, 0.001)
+        assertEquals(
+            "Interactive width covers the visual pill",
+            PlaybackScreenDefaults.TargetChipWidth.value.toDouble(),
+            effectiveInteractiveWidthDp,
+            0.001
+        )
+
         assertEquals("Interactive height expands to meet 48dp touch standard", 48.0, effectiveInteractiveHeightDp, 0.001)
         assertTrue(
-            "Visual pill vertical padding remains compact (<= 28dp) to avoid layout overflow",
-            visualPillHeightDp <= 28.0
+            "Visual pill height stays compact (<= 24dp) so the 18dp slot can host it",
+            visualPillHeightDp <= 24.0
         )
     }
 

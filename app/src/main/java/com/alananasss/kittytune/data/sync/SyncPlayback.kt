@@ -24,6 +24,18 @@ internal fun PlaybackSnapshot.sanitized(): PlaybackSnapshot? {
     return this
 }
 
+/** Connect omits unchanged queues; restore only a queue whose advertised version still matches. */
+internal fun PlaybackSnapshot.withConnectQueue(
+    previous: PlaybackSnapshot?,
+    queueVersion: String,
+    previousQueueVersion: String,
+): PlaybackSnapshot? {
+    val rawQueue = (queue as? List<*>) ?: return null
+    if (rawQueue.isNotEmpty()) return sanitized()
+    if (previous == null || queueVersion.isBlank() || queueVersion != previousQueueVersion) return null
+    return copy(queue = previous.queue).sanitized()
+}
+
 /** The last playable queue and playhead, independent of the append-only listen history. */
 data class PlaybackSnapshot(
     @SerializedName("deviceId") val deviceId: String,

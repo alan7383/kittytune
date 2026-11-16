@@ -15,16 +15,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +53,7 @@ import com.alananasss.kittytune.wear.R
 import com.alananasss.kittytune.wear.common.TargetDeviceInfo
 import com.alananasss.kittytune.wear.presentation.components.TargetDeviceSelectorChip
 import com.alananasss.kittytune.wear.presentation.components.TargetPickerDialog
+import com.alananasss.kittytune.wear.presentation.components.TouchTargetSlot
 import com.alananasss.kittytune.wear.presentation.theme.KittyTuneWearTheme
 import com.alananasss.kittytune.wear.presentation.theme.WearBackground
 import com.alananasss.kittytune.wear.presentation.volume.EphemeralVolumeHud
@@ -56,21 +61,42 @@ import com.alananasss.kittytune.wear.presentation.volume.VolumeBezelArc
 import com.alananasss.kittytune.wear.presentation.volume.VolumeControlsDefaults
 import com.alananasss.kittytune.wear.presentation.volume.VolumeControlsRow
 import com.alananasss.kittytune.wear.presentation.volume.rotaryVolumeControl
+import kotlinx.coroutines.delay
+
+/** How long a transient error stays on screen before it clears itself. */
+private const val ERROR_DISPLAY_MS = 3_500L
 
 /**
  * Geometric layout specifications and defaults for [PlaybackScreen].
- * Central interaction column is compacted to exactly 142dp vertical stack height
- * to guarantee that all 5 rows remain within the safe circular chord radius
- * on 390x390 round displays (R_safe = 89.5dp) and 450x450 round displays (R_safe = 104.5dp).
+ *
+ * The column is a 158dp stack. Every interactive control keeps a full 48dp touch target that never
+ * covers another control: the playback triad and the volume row are each laid out at their own 48dp
+ * height, so the top of a volume button can never answer a tap meant for "Previous" or "Next".
+ * Only the target chip reserves a compact 18dp slot while its 48dp hit area overflows it: its
+ * neighbours are the static time text and the track title, so nothing interactive is covered.
+ *
+ * Corner distance from the centre on a 390x390 round display (R = 97.5dp; the triad alone is 160dp
+ * wide, which is what bounds how tall the column may be):
+ *
+ * | row         | layout | width | y span     | furthest corner |
+ * |-------------|--------|-------|------------|-----------------|
+ * | target chip | 18dp   | 72dp  | [-79, -61] | 86.8dp          |
+ * | track info  | 26dp   | 124dp | [-60, -34] | 86.3dp          |
+ * | playback    | 48dp   | 160dp | [-32, +16] | 86.2dp          |
+ * | volume      | 48dp   | 112dp | [+18, +66] | 86.6dp          |
+ * | timeline    | 12dp   | 70dp  | [+67, +79] | 86.4dp          |
+ *
+ * Every corner keeps at least 2.6dp of clearance to the 8dp-inset safe radius, 10.6dp to the physical
+ * glass on a 390x390 display and 25.6dp on a 450x450 one.
  */
 object PlaybackScreenDefaults {
-    /** Target device selector chip visual width and height. */
-    val TargetChipWidth: Dp = 80.dp
+    /** Target device selector chip visual width and slot height. */
+    val TargetChipWidth: Dp = 72.dp
     val TargetChipHeight: Dp = 18.dp
 
-    /** Maximum allowed width for marquee track title and artist block. */
+    /** Maximum allowed width for the marquee track title and artist block. */
     val TrackInfoMaxWidth: Dp = 124.dp
-    /** Estimated height for track title (15sp) + spacer (1dp) + artist (12sp). */
+    /** Measured height of track title (15sp line) + 1dp spacer + artist (12sp line). */
     val TrackInfoHeight: Dp = 26.dp
 
     /** Playback controls triad: 3 buttons at 48dp each + 2 spacers at 8dp = 160dp. */
@@ -78,6 +104,10 @@ object PlaybackScreenDefaults {
     val PlaybackControlsSpacing: Dp = 8.dp
     val PlaybackControlsRowWidth: Dp = (PlaybackButtonSize * 3) + (PlaybackControlsSpacing * 2) // 160.dp
     val PlaybackControlsRowHeight: Dp = PlaybackButtonSize // 48.dp
+
+    /** Glyph size inside the skip and play/pause buttons. */
+    val PlaybackIconSize: Dp = 24.dp
+    val PlayPauseIconSize: Dp = 26.dp
 
     /** Discrete volume controls row dimensions referenced from [VolumeControlsDefaults]. */
     val VolumeRowWidth: Dp get() = VolumeControlsDefaults.RowWidth
@@ -95,7 +125,7 @@ object PlaybackScreenDefaults {
 
     /**
      * Authoritative total vertical stack height for the 5 rows and 4 spacers.
-     * 18dp + 1dp + 26dp + 2dp + 48dp + 2dp + 32dp + 1dp + 12dp = 142.dp (<= 142.dp target).
+     * 18dp + 1dp + 28dp + 2dp + 48dp + 2dp + 48dp + 1dp + 12dp = 160.dp.
      */
     val TotalStackHeight: Dp
         get() = TargetChipHeight +
@@ -127,6 +157,7 @@ fun PlaybackScreen(
         onTargetClick = viewModel::onToggleTarget,
         onSelectTarget = viewModel::onSelectTarget,
         onDismissTargetPicker = { viewModel.onShowTargetPicker(false) },
+        onDismissError = viewModel::onDismissError,
         modifier = modifier
     )
 }
@@ -145,6 +176,7 @@ fun PlaybackScreen(
     onTargetClick: () -> Unit = {},
     onSelectTarget: (TargetDeviceInfo) -> Unit = {},
     onDismissTargetPicker: () -> Unit = {},
+    onDismissError: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     ScreenScaffold(
@@ -159,7 +191,8 @@ fun PlaybackScreen(
             onVolumeChange = onVolumeChange,
             onTargetClick = onTargetClick,
             onSelectTarget = onSelectTarget,
-            onDismissTargetPicker = onDismissTargetPicker
+            onDismissTargetPicker = onDismissTargetPicker,
+            onDismissError = onDismissError
         )
     }
 }
@@ -168,7 +201,7 @@ fun PlaybackScreen(
  * Pure circular playback control surface.
  *
  * Geometric & Power Constraints:
- * - AMOLED Pure Black (#000000) background shuts down individual OLED subpixels.
+ * - AMOLED pure black (#000000) background shuts down individual OLED subpixels.
  * - Rotary crown scrolling controls volume with detent accumulation and haptics.
  * - VolumeBezelArc wraps along the right bezel.
  * - EphemeralVolumeHud badges volume adjustments.
@@ -188,6 +221,7 @@ fun PlaybackScreenContent(
     onTargetClick: () -> Unit = {},
     onSelectTarget: (TargetDeviceInfo) -> Unit = {},
     onDismissTargetPicker: () -> Unit = {},
+    onDismissError: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -206,7 +240,7 @@ fun PlaybackScreenContent(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. Optional subtle progress perimeter indicator for current track position
+        // 2. Optional subtle progress perimeter indicator for the current track position
         if (uiState.hasTrack && uiState.durationMs > 0L) {
             CircularProgressIndicator(
                 progress = { uiState.progressFraction() },
@@ -221,24 +255,30 @@ fun PlaybackScreenContent(
             )
         }
 
-        // 3. Central interaction column — vertically compacted to <= 142dp
+        // 3. Central interaction column, compacted to the measured 160dp stack
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 10.dp),
+                .padding(horizontal = 10.dp)
+                // On 195dp round displays, leave the clock clear of the target badge.
+                .padding(top = if (LocalConfiguration.current.screenHeightDp <= 200) 12.dp else 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Target Device Selector Badge
-            TargetDeviceSelectorChip(
-                target = uiState.selectedTarget,
-                connectionStatus = uiState.connectionStatus,
-                onClick = onTargetClick
-            )
+            // Target device selector badge. Its 48dp touch target overflows *downwards* into the
+            // track title, which is static text, so the target never covers the playback buttons
+            // and never grows the column past the round display.
+            TouchTargetSlot(layoutHeight = PlaybackScreenDefaults.TargetChipHeight) {
+                TargetDeviceSelectorChip(
+                    target = uiState.selectedTarget,
+                    connectionStatus = uiState.connectionStatus,
+                    onClick = onTargetClick
+                )
+            }
 
             Spacer(modifier = Modifier.height(PlaybackScreenDefaults.SpacerCompact))
 
-            // Track Title with Marquee & Artist Display
+            // Track title with marquee and artist
             TrackInfoSection(
                 title = uiState.title,
                 artist = uiState.artist,
@@ -248,7 +288,7 @@ fun PlaybackScreenContent(
 
             Spacer(modifier = Modifier.height(PlaybackScreenDefaults.SpacerStandard))
 
-            // Playback Controls Triad (Prev | Play/Pause | Next)
+            // Playback controls triad (Prev | Play/Pause | Next)
             PlaybackControlsRow(
                 isPlaying = uiState.isPlaying,
                 hasTrack = uiState.hasTrack,
@@ -259,7 +299,8 @@ fun PlaybackScreenContent(
 
             Spacer(modifier = Modifier.height(PlaybackScreenDefaults.SpacerStandard))
 
-            // Discrete Volume Controls Row (- | speaker % | +)
+            // Discrete volume controls row (- | speaker % | +). Laid out at its own 48dp height so
+            // its targets can never reach the playback buttons above.
             VolumeControlsRow(
                 volume = uiState.volume,
                 onVolumeChange = onVolumeChange
@@ -267,15 +308,29 @@ fun PlaybackScreenContent(
 
             Spacer(modifier = Modifier.height(PlaybackScreenDefaults.SpacerCompact))
 
-            // Timeline status or idle branding
-            TimelineStatusText(
-                positionMs = uiState.positionMs,
-                durationMs = uiState.durationMs,
-                hasTrack = uiState.hasTrack
-            )
+            // Timeline status, idle branding, or a transient error readout
+            if (uiState.errorMessage != null) {
+                ErrorStatusText(message = uiState.errorMessage)
+            } else {
+                TimelineStatusText(
+                    positionMs = uiState.positionMs,
+                    durationMs = uiState.durationMs,
+                    hasTrack = uiState.hasTrack,
+                    connectionStatus = uiState.connectionStatus
+                )
+            }
         }
 
-        // 4. Ephemeral Volume HUD overlay
+        // Auto-dismiss the transient error readout after a few seconds.
+        val errorMessage = uiState.errorMessage
+        LaunchedEffect(errorMessage) {
+            if (errorMessage != null) {
+                delay(ERROR_DISPLAY_MS)
+                onDismissError()
+            }
+        }
+
+        // 4. Ephemeral volume HUD overlay
         EphemeralVolumeHud(
             volume = uiState.volume,
             triggerKey = uiState.volumeRevision,
@@ -305,14 +360,17 @@ private fun TrackInfoSection(
     isLoading: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val unknownTitle = stringResource(R.string.track_unknown_title)
+    val unknownArtist = stringResource(R.string.track_unknown_artist)
+
     val displayTitle = when {
         isLoading -> stringResource(R.string.status_connecting)
-        hasTrack -> title.ifBlank { "Unknown Title" }
+        hasTrack -> title.ifBlank { unknownTitle }
         else -> stringResource(R.string.status_no_playback)
     }
 
     val displayArtist = when {
-        hasTrack -> artist.ifBlank { "Unknown Artist" }
+        hasTrack -> artist.ifBlank { unknownArtist }
         else -> stringResource(R.string.wear_companion_title)
     }
 
@@ -320,7 +378,7 @@ private fun TrackInfoSection(
         modifier = modifier.widthIn(max = PlaybackScreenDefaults.TrackInfoMaxWidth),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Track Title (single line with smooth marquee for long text)
+        // Track title (single line with smooth marquee for long text)
         Text(
             text = displayTitle,
             style = MaterialTheme.typography.titleSmall.copy(
@@ -343,7 +401,7 @@ private fun TrackInfoSection(
 
         Spacer(modifier = Modifier.height(1.dp))
 
-        // Artist Name (secondary color, single line truncated with ellipsis)
+        // Artist name (secondary color, single line truncated with ellipsis)
         Text(
             text = displayArtist,
             style = MaterialTheme.typography.bodySmall.copy(
@@ -367,6 +425,9 @@ private fun TrackInfoSection(
  * - Play/Pause: 48x48dp (FilledIconButton with Primary container fill)
  * - Next: 48x48dp (FilledTonalIconButton)
  * - Total width = 48 + 8 + 48 + 8 + 48 = 160dp
+ *
+ * All three use [IconButtonDefaults.animatedShapes], the Wear Material 3 press animation that morphs
+ * the circular container into a rounded square, so a tap is visible as well as audible.
  */
 @Composable
 private fun PlaybackControlsRow(
@@ -377,36 +438,42 @@ private fun PlaybackControlsRow(
     onPrevious: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val shapes = IconButtonDefaults.animatedShapes()
+    val tonalColors = IconButtonDefaults.filledTonalIconButtonColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = MaterialTheme.colorScheme.onSurface
+    )
+    val primaryColors = IconButtonDefaults.filledIconButtonColors(
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary
+    )
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(PlaybackScreenDefaults.PlaybackControlsSpacing),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Previous Track Button
+        // Previous track button
         FilledTonalIconButton(
             onClick = onPrevious,
-            modifier = Modifier.size(PlaybackScreenDefaults.PlaybackButtonSize), // 48.dp
+            modifier = Modifier.size(PlaybackScreenDefaults.PlaybackButtonSize),
             enabled = hasTrack,
-            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            )
+            shapes = shapes,
+            colors = tonalColors
         ) {
             Icon(
                 imageVector = Icons.Filled.SkipPrevious,
                 contentDescription = stringResource(R.string.action_previous),
-                modifier = Modifier.size(IconButtonDefaults.SmallIconSize) // 24.dp
+                modifier = Modifier.size(PlaybackScreenDefaults.PlaybackIconSize)
             )
         }
 
-        // Primary Play / Pause Toggle Button
+        // Primary play / pause toggle button
         FilledIconButton(
             onClick = onPlayPause,
-            modifier = Modifier.size(PlaybackScreenDefaults.PlaybackButtonSize), // 48.dp
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
+            modifier = Modifier.size(PlaybackScreenDefaults.PlaybackButtonSize),
+            shapes = shapes,
+            colors = primaryColors
         ) {
             Icon(
                 imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
@@ -415,67 +482,80 @@ private fun PlaybackControlsRow(
                 } else {
                     stringResource(R.string.action_play)
                 },
-                modifier = Modifier.size(26.dp)
+                modifier = Modifier.size(PlaybackScreenDefaults.PlayPauseIconSize)
             )
         }
 
-        // Next Track Button
+        // Next track button
         FilledTonalIconButton(
             onClick = onNext,
-            modifier = Modifier.size(PlaybackScreenDefaults.PlaybackButtonSize), // 48.dp
+            modifier = Modifier.size(PlaybackScreenDefaults.PlaybackButtonSize),
             enabled = hasTrack,
-            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            )
+            shapes = shapes,
+            colors = tonalColors
         ) {
             Icon(
                 imageVector = Icons.Filled.SkipNext,
                 contentDescription = stringResource(R.string.action_next),
-                modifier = Modifier.size(IconButtonDefaults.SmallIconSize) // 24.dp
+                modifier = Modifier.size(PlaybackScreenDefaults.PlaybackIconSize)
             )
         }
     }
 }
 
 /**
- * Subtle playhead timeline readout or duration display below controls.
+ * Subtle playhead timeline readout, connection state, or duration display below controls.
  */
 @Composable
 private fun TimelineStatusText(
     positionMs: Long,
     durationMs: Long,
     hasTrack: Boolean,
+    connectionStatus: ConnectionStatus,
     modifier: Modifier = Modifier
 ) {
+    val isOffline = connectionStatus == ConnectionStatus.DISCONNECTED || connectionStatus == ConnectionStatus.ERROR
     if (!hasTrack || durationMs <= 0L) {
-        // Display KittyTune companion branding indicator when idle
+        // Display KittyTune companion branding indicator when idle, or the phone connection state
         Row(
             modifier = modifier.widthIn(max = PlaybackScreenDefaults.TimelineMaxWidth),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Filled.MusicNote,
+                imageVector = if (isOffline) Icons.Filled.CloudOff else Icons.Filled.MusicNote,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.60f),
+                tint = if (isOffline) {
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.70f)
+                } else {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.60f)
+                },
                 modifier = Modifier.size(11.dp)
             )
             Spacer(modifier = Modifier.width(3.dp))
             Text(
-                text = "KittyTune",
+                text = when {
+                    isOffline -> stringResource(R.string.status_disconnected)
+                    connectionStatus == ConnectionStatus.CONNECTING -> stringResource(R.string.status_connecting)
+                    else -> stringResource(R.string.app_name)
+                },
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, lineHeight = 11.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isOffline) {
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.80f)
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                maxLines = 1
             )
         }
     } else {
         val posSec = (positionMs.coerceAtLeast(0L) / 1000).coerceAtMost(durationMs / 1000)
         val durSec = durationMs / 1000
-        val posStr = String.format("%02d:%02d", posSec / 60, posSec % 60)
-        val durStr = String.format("%02d:%02d", durSec / 60, durSec % 60)
+        val positionLabel = formatDuration(posSec)
+        val durationLabel = formatDuration(durSec)
 
         Text(
-            text = "$posStr / $durStr",
+            text = stringResource(R.string.status_position, positionLabel, durationLabel),
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -484,8 +564,53 @@ private fun TimelineStatusText(
     }
 }
 
+/** Formats a second count as mm:ss, or h:mm:ss past an hour, without hard-coded separators. */
+private fun formatDuration(totalSeconds: Long): String {
+    val safeSeconds = totalSeconds.coerceAtLeast(0L)
+    val hours = safeSeconds / 3600
+    val minutes = (safeSeconds % 3600) / 60
+    val seconds = safeSeconds % 60
+    return if (hours > 0) {
+        "%d:%02d:%02d".format(hours, minutes, seconds)
+    } else {
+        "%02d:%02d".format(minutes, seconds)
+    }
+}
+
+/**
+ * Transient one-line error readout. It occupies the same slot and height as [TimelineStatusText] so
+ * showing an error never shifts the controls under the user's finger.
+ */
+@Composable
+private fun ErrorStatusText(
+    message: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.widthIn(max = PlaybackScreenDefaults.TimelineMaxWidth),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Filled.ErrorOutline,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.80f),
+            modifier = Modifier.size(11.dp)
+        )
+        Spacer(modifier = Modifier.width(3.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, lineHeight = 11.sp),
+            color = MaterialTheme.colorScheme.error,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
 // =============================================================================
-// Previews across Small Round (390x390) and Large Round (450x450)
+// Previews across small round (390x390) and large round (450x450)
 // =============================================================================
 
 @Preview
@@ -495,7 +620,7 @@ private fun PlaybackScreenPlayingPreview() {
         PlaybackScreen(
             uiState = WearPlaybackUiState(
                 trackId = 101L,
-                title = "Moonlight Serenade — Extended Lo-Fi Mix",
+                title = "Moonlight Serenade, Extended Lo-Fi Mix",
                 artist = "Meow DJ feat. Cyber Cat",
                 isPlaying = true,
                 positionMs = 74_000L,

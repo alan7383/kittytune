@@ -40,6 +40,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import android.app.PendingIntent
 import androidx.core.net.toUri
 
@@ -107,6 +108,8 @@ class PlaybackService : MediaLibraryService() {
 
         setMediaNotificationProvider(defaultNotificationProvider)
         initVolumeObserver()
+        com.alananasss.kittytune.wear.WearableStatePublisher.ensurePhoneCapability(this)
+        com.alananasss.kittytune.wear.WearableStatePublisher.startDesktopObserver(this)
 
         // Watch for like changes to update custom layout (like button state)
         serviceScope.launch {
@@ -200,11 +203,17 @@ class PlaybackService : MediaLibraryService() {
         // Android Auto synchronized lyrics observer
         serviceScope.launch {
             combine(
+                com.alananasss.kittytune.data.auto.AndroidAutoLyricsGate.carConnectionTypeFlow(this@PlaybackService),
                 librarySessionCallback!!.isAutomotiveControllerConnected,
                 prefs.getAndroidAutoSyncedLyricsFlow()
-            ) { automotiveConnected, lyricsEnabled ->
-                automotiveConnected && lyricsEnabled
-            }.collectLatest { shouldRun ->
+            ) { carConnectionType, automotiveConnected, lyricsEnabled ->
+                android.util.Log.d("KittyTuneAA", "lyrics gate: car=$carConnectionType, controller=$automotiveConnected, enabled=$lyricsEnabled")
+                com.alananasss.kittytune.data.auto.AndroidAutoLyricsGate.shouldShowLyrics(
+                    carConnectionType = carConnectionType,
+                    automotiveControllerConnected = automotiveConnected,
+                    lyricsEnabled = lyricsEnabled,
+                )
+            }.distinctUntilChanged().collectLatest { shouldRun ->
                 automotiveLyricsJob?.cancel()
                 if (!shouldRun) {
                     automotiveLyricsJob = null
@@ -879,6 +888,7 @@ class PlaybackService : MediaLibraryService() {
             volumeReceiver = null
         }
         com.alananasss.kittytune.wear.WearableStatePublisher.publishStoppedState(this)
+        com.alananasss.kittytune.wear.WearableStatePublisher.stopDesktopObserver()
         closeDiscordRpc()
         automotiveLyricsJob?.cancel()
         // Release everything registered in onCreate: the player listener, the session-keeping

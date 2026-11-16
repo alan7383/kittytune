@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.data.sync
 
+import androidx.annotation.VisibleForTesting
 import com.google.gson.Gson
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -143,12 +144,35 @@ object ConnectManager {
     }
     fun localState(): PlaybackSnapshot? = local
     fun hasLivePeer(): Boolean = _peers.value.values.any { it.connected }
-    private fun active() = ConnectPolicy.shouldConnect(enabled, SyncPlayback.enabled, ConnectPlatform.mobile, foreground, playing)
+    @Volatile private var wearControlActive = false
+    private var wearControlExpiry: Job? = null
+    private var wearControlGeneration = 0L
+
+    /** The watch refreshes this lease while visible; an idle phone must still relay desktop controls. */
+    @Synchronized fun renewWearControlSession() {
+        wearControlExpiry?.cancel()
+        val wasActive = wearControlActive
+        val generation = ++wearControlGeneration
+        wearControlActive = true
+        wearControlExpiry = scope.launch {
+            delay(90_000)
+            expireWearControlSession(generation)
+        }
+        if (!wasActive) refresh()
+    }
+
+    @Synchronized private fun expireWearControlSession(generation: Long) {
+        if (generation != wearControlGeneration) return
+        wearControlActive = false
+        refresh()
+    }
+
+    private fun active() = ConnectPolicy.shouldConnect(enabled, SyncPlayback.enabled, ConnectPlatform.mobile, foreground, playing, wearControlActive)
 
     @Synchronized fun refresh() {
         _independent.value = !SyncPlayback.enabled
         ConnectPlatform.observeHeadphones(enabled && SyncPlayback.enabled && handler != null && (foreground || playing))
-        ConnectPlatform.setActive(!ConnectPlatform.mobile || foreground || playing)
+        ConnectPlatform.setActive(!ConnectPlatform.mobile || foreground || playing || wearControlActive)
         if (!active()) { closeConnections(); return }
         ConnectPlatform.startListener()
         val devices = SyncPeers.all().filter { it.secret.length >= 20 }
@@ -329,12 +353,14 @@ object ConnectManager {
                     // A peer built with a minifier that erased PlaybackSnapshot's
                     // List<Track> signature would send LinkedTreeMap entries. Drop the
                     // frame rather than letting them reach the player's queue.
-                    val incoming = message.state?.sanitized() ?: return
-                    val old = _peers.value[peer.deviceId]?.snapshot
-                    val queue = if (incoming.queue.isEmpty()) {
-                        if (_peers.value[peer.deviceId]?.queueVersion != message.queueVersion) { sendMessage("resync"); return }
-                        old?.queue ?: return
-                    } else incoming.queue
+                    val payload = message.state ?: return
+                    val old = _peers.value[peer.deviceId]
+                    if ((payload.queue as? List<*>)?.isEmpty() == true && old?.queueVersion != message.queueVersion) {
+                        sendMessage("resync")
+                        return
+                    }
+                    val incoming = payload.withConnectQueue(old?.snapshot, message.queueVersion, old?.queueVersion.orEmpty()) ?: return
+                    val queue = incoming.queue
                     if (incoming.deviceId != peer.deviceId || queue.size !in 1..500 ||
                         incoming.currentIndex !in queue.indices || incoming.positionMs < 0 ||
                         incoming.repeatMode !in listOf("NONE", "ALL", "ONE") ||
@@ -383,13 +409,40 @@ object ConnectManager {
         }
     }
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal var testCommandDispatcher: ((peerId: String, action: String, value: Long) -> Unit)? = null
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun setPeersForTesting(testPeers: Map<String, ConnectPeerState>) {
+        _peers.value = testPeers
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun resetForTesting() {
+        _peers.value = emptyMap()
+        _selectedDevice.value = null
+        testCommandDispatcher = null
+    }
+
     fun command(peerId: String, action: String, value: Long = 0, state: PlaybackSnapshot? = null, value2: Long = 0) {
+        val dispatcher = testCommandDispatcher
+        if (dispatcher != null) {
+            dispatcher.invoke(peerId, action, value)
+            return
+        }
         scope.launch {
             _feedback.value = ""
             val result = runCatching { executeRemote(peerId, action, value, state, value2) }
             _feedback.value = result.exceptionOrNull()?.message ?: "✓"
         }
     }
+    /** Completes only after the remote player acknowledges execution. */
+    suspend fun commandAndAwait(peerId: String, action: String, value: Long = 0) {
+        val dispatcher = testCommandDispatcher
+        if (dispatcher != null) dispatcher(peerId, action, value)
+        else executeRemote(peerId, action, value)
+    }
+
     private suspend fun executeRemote(peerId: String, action: String, value: Long = 0, state: PlaybackSnapshot? = null, value2: Long = 0) {
         val link = links[peerId]?.takeIf { _peers.value[peerId]?.connected == true } ?: error("Device is offline")
         val remote = _peers.value[peerId]

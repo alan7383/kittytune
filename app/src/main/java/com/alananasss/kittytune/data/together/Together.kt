@@ -1,6 +1,7 @@
 package com.alananasss.kittytune.data.together
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import com.alananasss.kittytune.domain.Track
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -298,8 +299,29 @@ object Together {
         publishQueue(code, force = true)
     }
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal var testControlDispatcher: ((action: String, positionMs: Long) -> Unit)? = null
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun setRoomForTesting(code: String, room: Room) {
+        _rooms.value = mapOf(code to room)
+        _active.value = code
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun resetForTesting() {
+        _rooms.value = emptyMap()
+        _active.value = null
+        testControlDispatcher = null
+    }
+
     /** A pause, play, seek, skip from this listener: the host applies it, a member asks the host. */
     fun control(action: String, positionMs: Long) {
+        val dispatcher = testControlDispatcher
+        if (dispatcher != null) {
+            dispatcher.invoke(action, positionMs)
+            return
+        }
         val code = _active.value ?: return
         if (isHostOf(code)) publishStateSoon(code)
         else send(code, TogetherMessage.Control(memberId, System.currentTimeMillis(), action, positionMs))

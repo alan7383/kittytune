@@ -12,6 +12,7 @@ lottieCompose = "6.7.1"
 navigationCompose = "2.10.2"
 coil = "2.7.0"
 media3 = "1.11.1"
+carApp = "1.7.0"
 retrofit = "3.0.0"
 okhttp = "5.5.1"
 riveAndroid = "11.16.0"
@@ -75,6 +76,7 @@ coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coi
 coil-gif = { group = "io.coil-kt", name = "coil-gif", version.ref = "coil" }
 androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
 androidx-media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
+androidx-car-app = { group = "androidx.car.app", name = "app", version.ref = "carApp" }
 lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottieCompose" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 retrofit-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }

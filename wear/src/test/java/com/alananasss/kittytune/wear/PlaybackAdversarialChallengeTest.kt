@@ -4,8 +4,11 @@ import com.alananasss.kittytune.wear.common.TargetDeviceInfo
 import com.alananasss.kittytune.wear.common.WearConstants
 import com.alananasss.kittytune.wear.common.WearPlaybackState
 import com.alananasss.kittytune.wear.presentation.ConnectionStatus
+import com.alananasss.kittytune.wear.presentation.PlaybackScreenDefaults
 import com.alananasss.kittytune.wear.presentation.PlaybackViewModel
 import com.alananasss.kittytune.wear.presentation.WearPlaybackUiState
+import com.alananasss.kittytune.wear.presentation.components.TargetDeviceSelectorChipDefaults
+import com.alananasss.kittytune.wear.presentation.volume.VolumeControlsDefaults
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -162,59 +165,90 @@ class PlaybackAdversarialChallengeTest {
 
     @Test
     fun `vector2 - volume controls and target chip touch target audit`() {
-        // In VolumeControls.kt line 65 & 120: Modifier.size(40.dp)
-        val volumeButtonSizeDp = 40.0
         val minGuidelineDp = 48.0
 
-        val volumeButtonCompliant = volumeButtonSizeDp >= minGuidelineDp
-        println("AUDIT: Volume button size: $volumeButtonSizeDp dp vs required: $minGuidelineDp dp -> Compliant: $volumeButtonCompliant")
+        // The visual glyph stays small, but the interactive box must reach 48dp in both dimensions.
+        val volumeButtonSizeDp = VolumeControlsDefaults.ButtonSize.value.toDouble()
+        val volumeTouchTargetDp = VolumeControlsDefaults.MinTouchTargetSize.value.toDouble()
 
-        // TargetDeviceSelectorChip has vertical padding 4dp + text ~16dp = ~24dp
-        val chipHeightDp = 24.0
-        val chipCompliant = chipHeightDp >= minGuidelineDp
-        println("AUDIT: Target chip height: $chipHeightDp dp vs required: $minGuidelineDp dp -> Compliant: $chipCompliant")
+        assertTrue(
+            "Volume visual button ($volumeButtonSizeDp dp) stays compact for the bezel chord",
+            volumeButtonSizeDp <= 36.0
+        )
+        assertTrue(
+            "Volume touch target ($volumeTouchTargetDp dp) must be >= $minGuidelineDp dp",
+            volumeTouchTargetDp >= minGuidelineDp
+        )
+
+        // The volume row keeps a compact 32dp layout height so the playback column stays inside the
+        // safe chord of a round display; the 48dp touch targets overflow it (TouchTargetSlot).
+        assertEquals(
+            "Volume row layout height must equal the 48dp touch target",
+            48.0,
+            VolumeControlsDefaults.RowHeight.value.toDouble(),
+            0.001
+        )
+        assertTrue(
+            "Volume touch target ($volumeTouchTargetDp dp) must reach $minGuidelineDp dp",
+            volumeTouchTargetDp >= minGuidelineDp
+        )
+
+        // The target chip keeps a 48dp interactive box while its visual pill stays compact.
+        val chipTouchTargetDp = TargetDeviceSelectorChipDefaults.MinTouchTargetSize.value.toDouble()
+        assertTrue(
+            "Target chip touch target ($chipTouchTargetDp dp) must be >= $minGuidelineDp dp",
+            chipTouchTargetDp >= minGuidelineDp
+        )
+        assertTrue(
+            "Target chip visual pill (${PlaybackScreenDefaults.TargetChipHeight}) must stay compact",
+            PlaybackScreenDefaults.TargetChipHeight.value <= 24.0f
+        )
     }
 
     @Test
     fun `vector2 - empirical geometric chord clearance on 390x390 and 450x450 displays`() {
-        // Small Round Screen: 390px at scale 2.0 = 195.0dp diameter, R = 97.5dp
-        val rSmall = 97.5
-        val safeMargin = 8.0
-        val rSafeSmall = rSmall - safeMargin // 89.5dp
+        data class WatchProfile(val name: String, val radiusDp: Double, val safeRadiusDp: Double)
 
-        // Actual layout stack heights in PlaybackScreenContent Column:
-        // 1. TargetChip: height ~24dp, width ~100dp
-        // Spacer: 2dp
-        // 2. TrackInfo: height ~37dp (title ~20dp, spacer 1dp, artist ~16dp), width = 82% of 195 = 160dp
-        // Spacer: 6dp
-        // 3. PlaybackControlsRow: height 56dp, width = 168dp
-        // Spacer: 4dp
-        // 4. VolumeControlsRow: height 40dp, width = 148dp (40 + 8 + 52 + 8 + 40)
-        // Spacer: 2dp
-        // 5. TimelineStatusText: height ~16dp, width ~80dp
-        // Total column height = 24 + 2 + 37 + 6 + 56 + 4 + 40 + 2 + 16 = 187dp
+        val profiles = listOf(
+            WatchProfile("390x390", 97.5, 89.5),
+            WatchProfile("450x450", 112.5, 104.5)
+        )
 
-        val totalHeight = 187.0
-        val halfHeight = totalHeight / 2.0 // 93.5dp
+        val rows = listOf(
+            Triple("TargetChip", PlaybackScreenDefaults.TargetChipWidth.value.toDouble(), PlaybackScreenDefaults.TargetChipHeight.value.toDouble()),
+            Triple("TrackInfo", PlaybackScreenDefaults.TrackInfoMaxWidth.value.toDouble(), PlaybackScreenDefaults.TrackInfoHeight.value.toDouble()),
+            Triple("PlaybackTriad", PlaybackScreenDefaults.PlaybackControlsRowWidth.value.toDouble(), PlaybackScreenDefaults.PlaybackControlsRowHeight.value.toDouble()),
+            Triple("VolumeRow", VolumeControlsDefaults.RowWidth.value.toDouble(), VolumeControlsDefaults.RowHeight.value.toDouble()),
+            Triple("TimelineText", PlaybackScreenDefaults.TimelineMaxWidth.value.toDouble(), PlaybackScreenDefaults.TimelineHeight.value.toDouble())
+        )
 
-        // Top element: TargetDeviceSelectorChip
-        // Y bounds: [-93.5, -69.5] dp. Corner at (x = 50.0dp, y = -93.5dp)
-        val chipCornerDist = sqrt(50.0 * 50.0 + 93.5 * 93.5)
-        println("AUDIT: Target chip top-corner distance: $chipCornerDist dp (Screen R=$rSmall, Safe R=$rSafeSmall)")
+        val totalHeight = PlaybackScreenDefaults.TotalStackHeight.value.toDouble()
+        var yCursor = -totalHeight / 2.0
 
-        // Bottom element: VolumeControlsRow
-        // Volume controls sits at y in [35.5, 75.5] dp.
-        // Width is 148dp -> half width x = 74dp.
-        // Bottom-outer corner of volume buttons at (x = 74.0, y = 75.5)
-        val volumeBtnCornerDist = sqrt(74.0 * 74.0 + 75.5 * 75.5)
-        println("AUDIT: Volume button bottom-corner distance: $volumeBtnCornerDist dp (Screen R=$rSmall, Safe R=$rSafeSmall)")
+        val bounds = rows.map { (name, width, height) ->
+            val top = yCursor
+            val bottom = top + height
+            yCursor = bottom + PlaybackScreenDefaults.SpacerCompact.value.toDouble()
+            Triple(name, width, top to bottom)
+        }
 
-        // Check if any element exceeds the physical screen radius on small round
-        val chipExceedsSmallScreen = chipCornerDist > rSmall
-        val volumeExceedsSmallScreen = volumeBtnCornerDist > rSmall
+        for (profile in profiles) {
+            for ((name, width, yRange) in bounds) {
+                val halfWidth = width / 2.0
+                val maxY = maxOf(kotlin.math.abs(yRange.first), kotlin.math.abs(yRange.second))
+                val cornerDistance = sqrt(halfWidth * halfWidth + maxY * maxY)
 
-        println("AUDIT: Chip exceeds small screen ($rSmall dp): $chipExceedsSmallScreen")
-        println("AUDIT: Volume controls exceed small screen ($rSmall dp): $volumeExceedsSmallScreen")
+                assertTrue(
+                    "${profile.name}: $name corner (${"%.2f".format(cornerDistance)} dp) must stay inside the " +
+                        "safe radius (${profile.safeRadiusDp} dp)",
+                    cornerDistance <= profile.safeRadiusDp
+                )
+                assertTrue(
+                    "${profile.name}: $name must keep clearance to the physical glass",
+                    profile.radiusDp - cornerDistance >= 5.0
+                )
+            }
+        }
     }
 
     // =========================================================================
