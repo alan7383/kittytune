@@ -309,6 +309,7 @@
     <string name="category_ambience_filters">Hangulat &amp; Szűrők</string>
     <string name="player_lyrics">Dalszöveg</string>
     <string name="lyrics_no_data">Nincs dalszöveg</string>
+    <string name="lyrics_result_instrumental">Instrumentális</string>
     <string name="lyrics_manual_search">Kézi keresés</string>
     <string name="lyrics_wrong">Hibás szöveg?</string>
     <string name="lyrics_search_hint">Keresés…</string>

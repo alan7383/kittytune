@@ -392,7 +392,10 @@ fun LyricsScreen(
                             if (viewModel.isLyricsLoading) {
                                 SearchingLyricsState()
                             } else {
-                                EmptyLyricsState(onManualSearch = { viewModel.isSearchingLyrics = true })
+                                EmptyLyricsState(
+                                    onManualSearch = if (viewModel.hasSelectedResultWithoutLyrics) null
+                                        else ({ viewModel.isSearchingLyrics = true }),
+                                )
                             }
                         } else {
                             AnimatedContent(
@@ -1112,7 +1115,7 @@ fun SearchingLyricsState() {
 }
 
 @Composable
-fun EmptyLyricsState(onManualSearch: () -> Unit) {
+fun EmptyLyricsState(onManualSearch: (() -> Unit)?) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -1123,28 +1126,30 @@ fun EmptyLyricsState(onManualSearch: () -> Unit) {
             color = Color.White.copy(0.7f),
             style = MaterialTheme.typography.titleMedium
         )
-        Spacer(Modifier.height(24.dp))
+        if (onManualSearch != null) {
+            Spacer(Modifier.height(24.dp))
 
-        Button(
-            onClick = onManualSearch,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.White.copy(alpha = 0.1f),
-                contentColor = Color.White
-            ),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Search,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = stringResource(R.string.lyrics_manual_search),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
+            Button(
+                onClick = onManualSearch,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White.copy(alpha = 0.1f),
+                    contentColor = Color.White
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = stringResource(R.string.lyrics_manual_search),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }

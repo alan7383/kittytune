@@ -637,9 +637,9 @@ private fun SearchResults(
     ) {
         items(
             items = results,
-            key = { it.provider + "/" + it.id + "/" + it.name }
+            key = { it.key }
         ) { result ->
-            val isActive = viewModel.currentLyricsSource?.equals(result.provider, ignoreCase = true) == true
+            val isActive = viewModel.currentLyricsResultKey == result.key
             ResultCard(
                 result = result,
                 isActive = isActive,
@@ -931,6 +931,8 @@ private fun ProviderBadge(text: String, isThemeBg: Boolean) {
 @Composable
 private fun TimingBadge(result: UnifiedLyricResult, isThemeBg: Boolean) {
     val (icon, label) = when {
+        result.instrumental -> Pair(Icons.AutoMirrored.Rounded.Notes, stringResource(R.string.lyrics_result_instrumental))
+        result.noLyrics -> Pair(Icons.AutoMirrored.Rounded.Notes, stringResource(R.string.lyrics_no_data))
         result.hasWordSync -> Pair(Icons.Rounded.Lyrics, stringResource(R.string.lyrics_badge_word_sync))
         result.hasLineSync -> Pair(Icons.Rounded.Timer, stringResource(R.string.lyrics_badge_line_sync))
         else -> Pair(Icons.AutoMirrored.Rounded.Notes, stringResource(R.string.lyrics_badge_plain))

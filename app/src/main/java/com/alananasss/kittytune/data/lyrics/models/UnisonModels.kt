@@ -17,6 +17,7 @@ data class UnisonEntry(
     val voteCount: Int = 0,
     val confidence: String = "low",
     val language: String? = null,
+    val duration: Double? = null,
 )
 
 @Serializable
@@ -45,6 +46,7 @@ data class UnisonSearchEntry(
     val voteCount: Int = 0,
     val confidence: String = "low",
     val language: String? = null,
+    val duration: Double? = null,
 ) {
     fun toEntry(): UnisonEntry? {
         val nonBlankLyrics = lyrics?.takeIf { it.isNotBlank() } ?: return null
@@ -61,6 +63,7 @@ data class UnisonSearchEntry(
             voteCount = voteCount,
             confidence = confidence,
             language = language,
+            duration = duration,
         )
     }
 }

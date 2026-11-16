@@ -38,6 +38,9 @@ object LyricsCache {
         val translationLang: String? = null,
         val romanized: Boolean = false,
         val savedAtMs: Long = System.currentTimeMillis(),
+        val resultId: String? = null,
+        val noLyrics: Boolean = false,
+        val selectionVersion: Int = 1,
     )
 
     private const val MAX_MEMORY_ENTRIES = 64
@@ -69,6 +72,7 @@ object LyricsCache {
         romanized: Boolean,
     ): Entry? {
         val entry = memory[trackId] ?: readFromDisk(trackId)?.also { remember(trackId, it) } ?: return null
+        if (entry.selectionVersion != 1) return null
         if (entry.providerPreference != providerPreference) return null
         if (entry.translationLang != translationLang) return null
         if (entry.romanized != romanized) return null

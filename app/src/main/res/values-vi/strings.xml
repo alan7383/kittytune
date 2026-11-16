@@ -465,6 +465,7 @@
     <string name="category_retro_vintage">Cổ điển &amp; Chất âm xưa</string>
     <string name="player_lyrics">Lời bài hát</string>
     <string name="lyrics_no_data">Không có lời bài hát</string>
+    <string name="lyrics_result_instrumental">Không lời</string>
     <string name="lyrics_manual_search">Tìm kiếm thủ công</string>
     <string name="lyrics_wrong">Sai lời bài hát?</string>
     <string name="lyrics_search_hint">Tìm lời bài hát…</string>

@@ -166,6 +166,11 @@ object LyricsMatcher {
         return titleSim >= 0.50f && artistSim >= 0.45f
     }
 
+    /** A known duration more than six seconds away usually belongs to another cut. */
+    fun durationMatches(candidateSec: Double, targetMs: Long): Boolean =
+        candidateSec <= 0.0 || targetMs <= 0L ||
+            kotlin.math.abs(candidateSec - targetMs / 1000.0) <= 6.0
+
     /**
      * 1f when the durations agree, tapering to 0f at half a minute apart. A candidate that does
      * not report a duration scores neutrally rather than being punished: LrcLib and Musixmatch
