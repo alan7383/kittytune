@@ -448,7 +448,7 @@
     <string name="label_night_drive_cabin">Acústica da cabine: %1$d%%</string>
     <string name="label_night_drive_road">Subwoofer e estrada: %1$d%%</string>
     <string name="preset_night_sedan">Sedã às 2h</string>
-    <string name="preset_night_highway">Cruzeiro na estrada</string>
+    <string name="preset_night_highway">Viagem pela estrada</string>
     <string name="preset_night_coupe">Cupê da meia-noite</string>
     <string name="effect_ambient_sound">Sons ambientes</string>
     <string name="fx_ambient_desc">Paisagens sonoras relaxantes que tocam junto com a música</string>
@@ -2272,7 +2272,7 @@
     <string name="upload_perm_geo_mode_everywhere">Mundo todo</string>
     <string name="upload_perm_geo_mode_exclusive">Permitidos</string>
     <string name="upload_perm_geo_mode_blocked">Bloqueados</string>
-    <string name="upload_perm_geo_field_exclusive_label">Códigos dos países permitidos (ex.: BR, FR, EUA como US)</string>
+    <string name="upload_perm_geo_field_exclusive_label">Códigos dos países permitidos (ex.: BR, FR, US)</string>
     <string name="upload_perm_geo_field_blocked_label">Códigos dos países bloqueados (ex.: US, GB, JP)</string>
     <string name="upload_perm_geo_field_hint">Códigos ISO de duas letras separados por vírgulas (ex.: BR, US, DE)</string>
     <string name="upload_perm_geo_exclusive_explanation">A faixa só poderá ser reproduzida nos países selecionados.</string>
@@ -3563,7 +3563,7 @@
     <string name="recap_top_artists_kicker">Seus artistas mais ouvidos</string>
     <string name="recap_top_track_kicker">Sua música do período</string>
     <string name="recap_top_tracks_kicker">Suas músicas mais tocadas</string>
-    <string name="recap_replay_kicker">No repeat</string>
+    <string name="recap_replay_kicker">Em repetição</string>
     <string name="recap_replay_body">Você ouviu %1$d vezes. Essa pegou mesmo.</string>
     <string name="recap_genres_kicker">Seus gêneros</string>
     <string name="recap_top_genre">Gênero mais ouvido</string>

@@ -51,6 +51,7 @@ class LocaleUtilsTest {
         assertEquals("ru-RU,ru;q=0.9,en;q=0.8", LocaleUtils.getAcceptLanguageForLanguage(AppLanguage.RUSSIAN))
         assertEquals("tr-TR,tr;q=0.9,en;q=0.8", LocaleUtils.getAcceptLanguageForLanguage(AppLanguage.TURKISH))
     }
+
     @Test
     fun brazilianPortugueseUsesBrazilianLocaleAndLanguageHeader() {
         val language = AppLanguage.BRAZILIAN_PORTUGUESE
