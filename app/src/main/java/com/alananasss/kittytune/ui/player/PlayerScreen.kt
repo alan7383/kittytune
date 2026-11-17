@@ -2677,6 +2677,17 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 viewModel.showConnectSheet = true
             }
         )
+        val activeTogetherCode by com.alananasss.kittytune.data.together.Together.active.collectAsState()
+        add(
+            DockOptionItem(
+                if (activeTogetherCode != null) Icons.Rounded.Podcasts else Icons.Rounded.Groups,
+                stringResource(if (activeTogetherCode != null) R.string.together_live_title else R.string.together_listen),
+                id = "listen_together"
+            ) {
+                viewModel.showMenuSheet = false
+                viewModel.showLiveListenSheet = true
+            }
+        )
     }
 
     val hiddenMenuTiles = remember(viewModel.showMenuSheet) { menuPrefs.getHiddenMenuTiles(com.alananasss.kittytune.data.local.PlayerPreferences.MENU_TRACK) }

@@ -65,12 +65,17 @@ class DiscordRPC(
         val trackTitle = track.title ?: "Unknown Title"
         val playlistInfo = contextName ?: "KittyTune"
 
+        val prefs = PlayerPreferences(context)
         val rpcButtons = mutableListOf<Pair<String, String>>()
-        if (!track.permalinkUrl.isNullOrEmpty() && track.permalinkUrl.startsWith("http")) {
+        val activeTogetherCode = com.alananasss.kittytune.data.together.Together.active.value
+        if (activeTogetherCode != null && prefs.getDiscordListenAlongEnabled()) {
+            val listenAlongLabel = context.getString(com.alananasss.kittytune.R.string.discord_rpc_btn_listen_along).take(32)
+            rpcButtons.add(listenAlongLabel to com.alananasss.kittytune.data.together.TogetherLinks.inviteUrl(activeTogetherCode))
+        }
+        if (!track.permalinkUrl.isNullOrEmpty() && track.permalinkUrl.startsWith("http") && rpcButtons.size < 2) {
             rpcButtons.add("Listen" to track.permalinkUrl)
         }
 
-        val prefs = PlayerPreferences(context)
         val displayMode = prefs.getDiscordStatusDisplay()
         val activityName: String
         val detailsLine: String

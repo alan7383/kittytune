@@ -434,6 +434,13 @@
 
             val trimmed = query.trim()
 
+            val togetherCode = com.alananasss.kittytune.data.together.TogetherLinks.extractCode(trimmed, allowRawCode = false)
+            if (togetherCode != null) {
+                com.alananasss.kittytune.data.together.Together.joinAndListen(togetherCode)
+                viewModelScope.launch { _navigateTo.emit("together_room/$togetherCode") }
+                return
+            }
+
             val isSoundCloudUrl = trimmed.contains("soundcloud.com") || trimmed.startsWith("soundcloud:")
             val isSpotifyUrl = trimmed.contains("open.spotify.com") || trimmed.contains("spotify.link") ||
                     trimmed.startsWith("spotify:") || trimmed.startsWith("spotify_") || trimmed.startsWith("station_spotify:")

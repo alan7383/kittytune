@@ -133,6 +133,8 @@ sealed interface TogetherMessage {
         val isPlaying: Boolean,
         val automix: Boolean,
         val queueVersion: Int,
+        val hostLocked: Boolean = false,
+        val hostName: String? = null,
     ) : TogetherMessage
 
     /** The host's queue from the song playing on, and the playlist's own tracks. */
