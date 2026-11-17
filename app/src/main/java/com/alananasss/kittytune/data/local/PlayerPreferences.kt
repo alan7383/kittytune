@@ -684,7 +684,8 @@ class PlayerPreferences(context: Context) {
         const val KEY_TRACK_SOURCE_BADGE_STYLE = "track_source_badge_style"
 
         // ── Ported feature keys ──
-        const val KEY_LYRICS_LINE_ANIMATION = "lyrics_line_animation"
+        // Use a new key so choices saved before this reset fall back to FADE.
+        const val KEY_LYRICS_LINE_ANIMATION = "lyrics_line_animation_v2"
         const val KEY_INSTRUMENTAL_INDICATOR = "instrumental_indicator_style"
         const val KEY_TABLET_NAV_PLACEMENT = "tablet_nav_placement"
         const val KEY_TABLET_SIDE_PLAYER = "tablet_side_player"
@@ -1029,8 +1030,8 @@ class PlayerPreferences(context: Context) {
     // ── Ported feature accessors ──────────────────────────────────────────────────
 
     fun getLyricsLineAnimation(): LyricsLineAnimation {
-        val name = prefs.getString(KEY_LYRICS_LINE_ANIMATION, LyricsLineAnimation.SWEEP.name)
-        return runCatching { LyricsLineAnimation.valueOf(name!!) }.getOrDefault(LyricsLineAnimation.SWEEP)
+        val name = prefs.getString(KEY_LYRICS_LINE_ANIMATION, LyricsLineAnimation.FADE.name)
+        return runCatching { LyricsLineAnimation.valueOf(name!!) }.getOrDefault(LyricsLineAnimation.FADE)
     }
 
     fun setLyricsLineAnimation(style: LyricsLineAnimation) = prefs.edit { putString(KEY_LYRICS_LINE_ANIMATION, style.name) }
@@ -1662,7 +1663,7 @@ class PlayerPreferences(context: Context) {
     fun getLyricsSplitBackingVocalsEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_SPLIT_BACKING_VOCALS, true)
     fun setLyricsSplitBackingVocalsEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_SPLIT_BACKING_VOCALS, enabled) }
 
-    fun getLyricsRevealWordsEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_REVEAL_WORDS, true)
+    fun getLyricsRevealWordsEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_REVEAL_WORDS, false)
     fun setLyricsRevealWordsEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_REVEAL_WORDS, enabled) }
 
     fun getWaveMode(): com.alananasss.kittytune.data.wave.MyWave.WaveMode =

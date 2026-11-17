@@ -71,6 +71,20 @@ class LineTimingPartsTest {
     }
 
     @Test
+    fun romanizedLineWrapsWithoutStaggeringItsWords() {
+        val lyrics = buildSyncedLyrics(
+            lines = listOf(
+                LyricLine(text = "два слова", startTime = 1_000, endTime = 4_000, romanization = "dva slova"),
+            ),
+            isWordSynced = false,
+        )
+        val line = lyrics.lines.single() as KaraokeLine.MainKaraokeLine
+        assertEquals(listOf("dva", "slova"), line.syllables.mapNotNull { it.phonetic })
+        assertTrue(line.syllables.all { it.start == 1_000 && it.end == 1_001 })
+        assertEquals(4_000, line.end)
+    }
+
+    @Test
     fun revealingTurnsEveryLineIntoTimedWords() {
         val lyrics = buildSyncedLyrics(
             lines = listOf(LyricLine(text = "light me up", startTime = 1_000, endTime = 4_000)),
