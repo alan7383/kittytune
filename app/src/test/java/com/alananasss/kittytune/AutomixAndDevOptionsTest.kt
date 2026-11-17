@@ -84,7 +84,7 @@ class AutomixAndDevOptionsTest {
         val (baseKeys, baseDups) = parseKeys(baseFile)
         assertTrue("Base strings.xml must have 0 duplicate keys, found: $baseDups", baseDups.isEmpty())
 
-        val locales = listOf("fr", "de", "hu", "ru", "vi", "tr")
+        val locales = listOf("fr", "de", "hu", "ru", "vi", "tr", "pt-rBR")
         for (lang in locales) {
             val locFile = java.io.File(resDir, "values-$lang/strings.xml")
             assertTrue("values-$lang/strings.xml must exist", locFile.exists())

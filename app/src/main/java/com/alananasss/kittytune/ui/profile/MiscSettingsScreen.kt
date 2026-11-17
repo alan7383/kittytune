@@ -3,6 +3,8 @@ package com.alananasss.kittytune.ui.profile
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.FilterList
@@ -108,7 +110,7 @@ fun MiscGeneralSettingsScreen(
             onDismissRequest = { showLanguageDialog = false },
             title = { Text(stringResource(R.string.pref_language)) },
             text = {
-                Column {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
                     val onSelected: (AppLanguage) -> Unit = { selected ->
                         appLanguage = selected
                         prefs.setAppLanguage(selected)
@@ -123,6 +125,7 @@ fun MiscGeneralSettingsScreen(
                     LanguageRadioButton(stringResource(R.string.lang_hungarian), AppLanguage.HUNGARIAN, appLanguage, onSelected)
                     LanguageRadioButton(stringResource(R.string.lang_vietnamese), AppLanguage.VIETNAMESE, appLanguage, onSelected)
                     LanguageRadioButton(stringResource(R.string.lang_turkish), AppLanguage.TURKISH, appLanguage, onSelected)
+                    LanguageRadioButton(stringResource(R.string.lang_brazilian_portuguese), AppLanguage.BRAZILIAN_PORTUGUESE, appLanguage, onSelected)
                 }
             },
             confirmButton = {}
@@ -230,6 +233,7 @@ fun MiscGeneralSettingsScreen(
                                     AppLanguage.RUSSIAN -> stringResource(R.string.lang_russian)
                                     AppLanguage.VIETNAMESE -> stringResource(R.string.lang_vietnamese)
                                     AppLanguage.TURKISH -> stringResource(R.string.lang_turkish)
+                                    AppLanguage.BRAZILIAN_PORTUGUESE -> stringResource(R.string.lang_brazilian_portuguese)
                                 },
                                 icon = Icons.Rounded.Translate,
                                 onClick = hapticAction(HapticKind.UI) { showLanguageDialog = true },

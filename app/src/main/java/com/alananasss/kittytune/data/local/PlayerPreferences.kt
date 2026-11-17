@@ -298,7 +298,8 @@ enum class AppLanguage(val code: String) {
     HUNGARIAN("hu"),
     RUSSIAN("ru"),
     VIETNAMESE("vi"),
-    TURKISH("tr")
+    TURKISH("tr"),
+    BRAZILIAN_PORTUGUESE("pt-BR")
 }
 
 enum class TrackRemovalMethod {
