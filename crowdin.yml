@@ -10,6 +10,10 @@
 base_path: "."
 preserve_hierarchy: true
 
+# Crowdin's default [ci skip] would bypass translation validation on PRs.
+append_commit_message: false
+commit_message: "i18n: update %original_file_name% (%language%)"
+
 # Export only the locales currently supported by the app.
 export_languages: [de, fr, hu, pt-BR, ru, tr, vi]
 
