@@ -48,6 +48,8 @@ fun DiscordSettingsScreen(
     var username by remember { mutableStateOf(prefs.getDiscordUsername()) }
     var isEnabled by remember { mutableStateOf(prefs.getDiscordRpcEnabled()) }
     var statusDisplay by remember { mutableStateOf(prefs.getDiscordStatusDisplay()) }
+    var listenAlongEnabled by remember { mutableStateOf(prefs.getDiscordListenAlongEnabled()) }
+    var autoLiveEnabled by remember { mutableStateOf(prefs.getDiscordAutoLiveEnabled()) }
     val isLoggedIn = !token.isNullOrEmpty()
 
     var showStatusDialog by remember { mutableStateOf(false) }
@@ -288,17 +290,83 @@ fun DiscordSettingsScreen(
                                 enter = expandVertically() + fadeIn(),
                                 exit = shrinkVertically() + fadeOut()
                             ) {
-                                SettingsItem(
-                                    shape = getSettingsShape(2, 1),
-                                    title = stringResource(R.string.pref_discord_status_display),
-                                    subtitle = when (statusDisplay) {
-                                        DiscordStatusDisplay.ACTIVITY -> stringResource(R.string.discord_status_activity)
-                                        DiscordStatusDisplay.SOUNDCLOUD -> stringResource(R.string.discord_status_soundcloud)
-                                        DiscordStatusDisplay.ARTIST -> stringResource(R.string.discord_status_artist)
-                                        DiscordStatusDisplay.SONG -> stringResource(R.string.discord_status_song)
-                                    },
-                                    onClick = hapticAction(HapticKind.UI) { showStatusDialog = true }
-                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    val subGroupSize = if (listenAlongEnabled) 5 else 3
+                                    SettingsItem(
+                                        shape = getSettingsShape(subGroupSize + 1, 1),
+                                        title = stringResource(R.string.pref_discord_status_display),
+                                        subtitle = when (statusDisplay) {
+                                            DiscordStatusDisplay.ACTIVITY -> stringResource(R.string.discord_status_activity)
+                                            DiscordStatusDisplay.SOUNDCLOUD -> stringResource(R.string.discord_status_soundcloud)
+                                            DiscordStatusDisplay.ARTIST -> stringResource(R.string.discord_status_artist)
+                                            DiscordStatusDisplay.SONG -> stringResource(R.string.discord_status_song)
+                                        },
+                                        onClick = hapticAction(HapticKind.UI) { showStatusDialog = true }
+                                    )
+                                    SettingsItem(
+                                        shape = getSettingsShape(subGroupSize + 1, 2),
+                                        title = stringResource(R.string.discord_listen_along_title),
+                                        subtitle = stringResource(R.string.discord_listen_along_desc),
+                                        icon = Icons.Rounded.Headphones,
+                                        hasSwitch = true,
+                                        switchState = listenAlongEnabled,
+                                        onSwitchChange = {
+                                            listenAlongEnabled = it
+                                            prefs.setDiscordListenAlongEnabled(it)
+                                            context.startService(Intent(context, PlaybackService::class.java).apply {
+                                                action = PlaybackService.ACTION_FORCE_UPDATE
+                                            })
+                                        }
+                                    )
+                                    SettingsItem(
+                                        shape = getSettingsShape(subGroupSize + 1, 3),
+                                        title = stringResource(R.string.discord_auto_live_title),
+                                        subtitle = stringResource(R.string.discord_auto_live_desc),
+                                        icon = Icons.Rounded.Podcasts,
+                                        hasSwitch = true,
+                                        switchState = autoLiveEnabled,
+                                        onSwitchChange = {
+                                            autoLiveEnabled = it
+                                            prefs.setDiscordAutoLiveEnabled(it)
+                                            if (it) {
+                                                listenAlongEnabled = true
+                                                prefs.setDiscordListenAlongEnabled(true)
+                                            }
+                                            context.startService(Intent(context, PlaybackService::class.java).apply {
+                                                action = PlaybackService.ACTION_FORCE_UPDATE
+                                            })
+                                        }
+                                    )
+                                    if (listenAlongEnabled) {
+                                        val liveCode = com.alananasss.kittytune.data.together.Together.active.collectAsState().value
+                                            ?: com.alananasss.kittytune.data.together.Together.personalLiveCode
+                                        SettingsItem(
+                                            shape = getSettingsShape(subGroupSize + 1, 4),
+                                            title = stringResource(R.string.together_share_link),
+                                            subtitle = com.alananasss.kittytune.data.together.TogetherLinks.inviteUrl(liveCode),
+                                            icon = Icons.Rounded.Share,
+                                            onClick = hapticAction(HapticKind.UI) {
+                                                com.alananasss.kittytune.data.together.TogetherLinks.shareInviteLink(context, liveCode)
+                                            }
+                                        )
+                                        SettingsItem(
+                                            shape = getSettingsShape(subGroupSize + 1, 5),
+                                            title = stringResource(R.string.together_reset_link),
+                                            subtitle = stringResource(
+                                                R.string.together_code,
+                                                com.alananasss.kittytune.data.together.TogetherWire.displayCode(liveCode)
+                                            ),
+                                            icon = Icons.Rounded.Refresh,
+                                            onClick = hapticAction(HapticKind.UI) {
+                                                val fresh = com.alananasss.kittytune.data.together.Together.regeneratePersonalLiveCode()
+                                                com.alananasss.kittytune.data.together.TogetherLinks.copyInviteLink(context, fresh)
+                                                context.startService(Intent(context, PlaybackService::class.java).apply {
+                                                    action = PlaybackService.ACTION_FORCE_UPDATE
+                                                })
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

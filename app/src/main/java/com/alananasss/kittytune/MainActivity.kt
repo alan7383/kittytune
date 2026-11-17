@@ -78,6 +78,10 @@ import com.zionhuang.innertube.models.YouTubeLocale
         private val shouldOpenSearch = _shouldOpenSearch.asStateFlow()
         private val _initialSearchQuery = MutableStateFlow<String?>(null)
         private val initialSearchQuery = _initialSearchQuery.asStateFlow()
+        private val _pendingTogetherCode = MutableStateFlow<String?>(null)
+        private val pendingTogetherCode = _pendingTogetherCode.asStateFlow()
+        private val _pendingTogetherAutoJoin = MutableStateFlow(false)
+        private val pendingTogetherAutoJoin = _pendingTogetherAutoJoin.asStateFlow()
         private var showPopups by mutableStateOf(false)
         private var customFontEnabledState by mutableStateOf(false)
         private var fontWghtState by mutableIntStateOf(400)
@@ -146,6 +150,8 @@ import com.zionhuang.innertube.models.YouTubeLocale
             setContent {
                 val openSearchState by shouldOpenSearch.collectAsState()
                 val initialQueryState by initialSearchQuery.collectAsState()
+                val pendingTogetherState by pendingTogetherCode.collectAsState()
+                val pendingTogetherAutoJoinState by pendingTogetherAutoJoin.collectAsState()
                 val scope = rememberCoroutineScope()
                 val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -219,6 +225,12 @@ import com.zionhuang.innertube.models.YouTubeLocale
                                 onSearchHandled = {
                                     _shouldOpenSearch.value = false
                                     _initialSearchQuery.value = null
+                                },
+                                pendingTogetherCode = pendingTogetherState,
+                                pendingTogetherAutoJoin = pendingTogetherAutoJoinState,
+                                onTogetherHandled = {
+                                    _pendingTogetherCode.value = null
+                                    _pendingTogetherAutoJoin.value = false
                                 }
                             )
                             com.alananasss.kittytune.ui.common.CoverViewerOverlay()
@@ -228,7 +240,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
             }
         }
 
-        override fun onNewIntent(intent: Intent) {
+        public override fun onNewIntent(intent: Intent) {
             super.onNewIntent(intent)
             setIntent(intent)
             handleIntent(intent)
@@ -258,9 +270,16 @@ import com.zionhuang.innertube.models.YouTubeLocale
                 intent.removeExtra("open_search")
             }
 
-            // 2. Capture SoundCloud OAuth callback redirects & gem imports
+            // 2. Capture Listen Along deep links, SoundCloud OAuth callback redirects & gem imports
             val data = intent.data
             if (data != null) {
+                val togetherCode = com.alananasss.kittytune.data.together.TogetherLinks.extractCodeFromUri(data)
+                if (togetherCode != null) {
+                    _pendingTogetherAutoJoin.value = com.alananasss.kittytune.data.together.TogetherLinks.isAutoJoinUri(data)
+                    _pendingTogetherCode.value = togetherCode
+                    return
+                }
+
                 val code = data.getQueryParameter("code")
                 if (code != null) {
                     com.alananasss.kittytune.data.AuthFlowManager.setAuthCode(code)

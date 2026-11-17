@@ -569,22 +569,44 @@ private fun WelcomePage() {
                 modifier = Modifier.fillMaxSize(),
                 drawableResId = R.drawable.welcome_art
             )
-            // The new expressive waves: compound-wave crests at three phase speeds breathing
-            // over a filled landscape, instead of the old pair of flat parallel sines.
-            ExpressiveWaves(
+            SineWaveLine(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .height(56.dp)
+                    .height(32.dp)
                     .padding(horizontal = 8.dp)
-                    .padding(bottom = 2.dp),
-                baseColor = MaterialTheme.colorScheme.surface,
-                accentColor = MaterialTheme.colorScheme.primary,
-                secondaryAccentColor = MaterialTheme.colorScheme.tertiary,
+                    .padding(bottom = 4.dp),
                 animate = true,
+                color = MaterialTheme.colorScheme.surface,
+                alpha = 0.95f,
+                strokeWidth = 16.dp,
+                amplitude = 4.dp,
+                waves = 7.6f,
+                phase = 0f
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .height(22.dp)
+                    .background(color = MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 8.dp)
+                    .padding(bottom = 4.dp)
+            )
+            SineWaveLine(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .height(32.dp)
+                    .padding(horizontal = 8.dp)
+                    .padding(bottom = 4.dp),
+                animate = true,
+                color = MaterialTheme.colorScheme.primary,
+                alpha = 0.95f,
                 strokeWidth = 4.dp,
                 amplitude = 4.dp,
                 waves = 7.6f,
+                phase = 0f
             )
         }
         Spacer(modifier = Modifier.height(16.dp))

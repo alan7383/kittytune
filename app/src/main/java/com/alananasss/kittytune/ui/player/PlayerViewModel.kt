@@ -370,6 +370,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     var showAiDetectionSheet by mutableStateOf(false)
     var showConnectSheet by mutableStateOf(false)
     var showConnectDialog by mutableStateOf(false)
+    var showLiveListenSheet by mutableStateOf(false)
     var showQueueHistorySheet by mutableStateOf(false)
     var showQueueArchivedUndoBar by mutableStateOf(false)
     var lastArchivedQueueId by mutableStateOf<String?>(null)
@@ -4767,9 +4768,13 @@ query CommentsWithReactions(
             return
         }
 
-        // Leaving the app's own navigation for something that is not the shared playlist means leaving it.
-        if (!applyingTogether && context?.navigationId?.startsWith(TOGETHER_NAV_PREFIX) != true) {
-            com.alananasss.kittytune.data.together.Together.stopListening()
+        // Leaving the app's own navigation for something that is not the shared playlist means leaving it
+        // only when following someone else; a host broadcasting live keeps streaming across playlists/tracks.
+        val activeTogetherCode = com.alananasss.kittytune.data.together.Together.active.value
+        if (!applyingTogether && activeTogetherCode != null && context?.navigationId?.startsWith(TOGETHER_NAV_PREFIX) != true) {
+            if (!com.alananasss.kittytune.data.together.Together.isHostOf(activeTogetherCode)) {
+                com.alananasss.kittytune.data.together.Together.stopListening()
+            }
         }
 
         SyncPlayback.claimLocal()
@@ -6110,6 +6115,17 @@ query CommentsWithReactions(
         return PlaybackContext(
             displayText = name.ifBlank { getString(R.string.together_title) },
             navigationId = TOGETHER_NAV_PREFIX + code
+        )
+    }
+
+    fun startLiveListenAlong(): String {
+        val sessionName = getString(
+            R.string.together_live_session_name,
+            com.alananasss.kittytune.data.together.Together.myName
+        )
+        return com.alananasss.kittytune.data.together.Together.startLiveBroadcast(
+            sessionName = sessionName,
+            seedTracks = emptyList()
         )
     }
 

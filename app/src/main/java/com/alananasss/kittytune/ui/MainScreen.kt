@@ -157,7 +157,10 @@ private const val AYU_BACK_KEEP_ALIVE_MS = 450
 fun MainScreen(
     shouldOpenSearch: Boolean = false,
     initialSearchQuery: String? = null,
-    onSearchHandled: () -> Unit = {}
+    onSearchHandled: () -> Unit = {},
+    pendingTogetherCode: String? = null,
+    pendingTogetherAutoJoin: Boolean = false,
+    onTogetherHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val navController = rememberNavController()
@@ -313,6 +316,24 @@ fun MainScreen(
         }
     }
 
+    var invitePromptCode by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(pendingTogetherCode, pendingTogetherAutoJoin, currentDestination) {
+        val code = pendingTogetherCode
+        if (!code.isNullOrBlank() && currentDestination != null && currentDestination.route != Screen.Welcome.route) {
+            playerViewModel.isPlayerExpanded = false
+            if (pendingTogetherAutoJoin || com.alananasss.kittytune.data.together.Together.active.value == code) {
+                com.alananasss.kittytune.data.together.Together.joinAndListen(code)
+                navController.navigate("together_room/$code") {
+                    launchSingleTop = true
+                }
+            } else {
+                invitePromptCode = code
+            }
+            onTogetherHandled()
+        }
+    }
+
     LaunchedEffect(allAchievementsUnlocked) {
         if (allAchievementsUnlocked) {
             showCompletionScreen = true
@@ -348,6 +369,8 @@ fun MainScreen(
             playerViewModel.isPlayerExpanded = false
             when {
                 destinationId == "expanded_queue" -> navController.navigate("expanded_queue")
+                destinationId == "together" -> navController.navigate("together")
+                destinationId.startsWith("together:") -> navController.navigate("together_room/${destinationId.removePrefix("together:")}")
                 destinationId == "your_mix" || destinationId == "my_wave" || destinationId == "home" -> navController.navigate(Screen.Home.route)
                 destinationId == "charts" -> navController.navigate("charts")
                 destinationId == "history" -> navController.navigate("history")
@@ -1090,7 +1113,8 @@ fun MainScreen(
                         clippedComposable("together") {
                             com.alananasss.kittytune.ui.together.TogetherHomeScreen(
                                 onBack = { navController.popBackStack() },
-                                onOpen = { code -> navController.navigate("together_room/$code") }
+                                onOpen = { code -> navController.navigate("together_room/$code") },
+                                playerViewModel = playerViewModel,
                             )
                         }
 
@@ -2356,6 +2380,17 @@ fun MainScreen(
             )
         }
 
+        if (playerViewModel.showLiveListenSheet) {
+            com.alananasss.kittytune.ui.together.LiveListenSheet(
+                playerViewModel = playerViewModel,
+                onOpenRoom = { roomCode ->
+                    playerViewModel.isPlayerExpanded = false
+                    navController.navigate("together_room/$roomCode")
+                },
+                onDismissRequest = { playerViewModel.showLiveListenSheet = false }
+            )
+        }
+
         playerViewModel.shareCardTrack?.let { cardTrack ->
             com.alananasss.kittytune.ui.share.ShareCardSheet(
                 artwork = playerViewModel.shareCardArtwork,
@@ -2601,6 +2636,27 @@ fun MainScreen(
             animatingNotification?.let {
                 AchievementPopup(notification = it)
             }
+        }
+
+        invitePromptCode?.let { promptCode ->
+            com.alananasss.kittytune.ui.together.TogetherInviteSheet(
+                code = promptCode,
+                onJoinAndListen = { joinedCode ->
+                    invitePromptCode = null
+                    com.alananasss.kittytune.data.together.Together.joinAndListen(joinedCode)
+                    navController.navigate("together_room/$joinedCode") {
+                        launchSingleTop = true
+                    }
+                },
+                onOpenRoomOnly = { viewCode ->
+                    invitePromptCode = null
+                    com.alananasss.kittytune.data.together.Together.join(viewCode)
+                    navController.navigate("together_room/$viewCode") {
+                        launchSingleTop = true
+                    }
+                },
+                onDismissRequest = { invitePromptCode = null },
+            )
         }
     }
 }
