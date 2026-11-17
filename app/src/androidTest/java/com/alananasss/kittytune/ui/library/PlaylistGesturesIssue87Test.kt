@@ -33,6 +33,8 @@ class PlaylistGesturesIssue87Test {
 
     @Test fun playlistGesturesWithMenuRemoval() = checkPlaylistGestures(TrackRemovalMethod.MENU_ONLY)
 
+    @Test fun playlistGesturesWithDisabledRemoval() = checkPlaylistGestures(TrackRemovalMethod.DISABLED)
+
     private fun checkPlaylistGestures(removalMethod: TrackRemovalMethod) {
         val context = compose.activity
         val dao = AppDatabase.getDatabase(context).downloadDao()
@@ -99,8 +101,27 @@ class PlaylistGesturesIssue87Test {
             compose.runOnIdle {
                 assertTrue(vm.showMenuSheet)
                 assertEquals(tracks[1].id, vm.trackForMenu?.id)
-                vm.showMenuSheet = false
+                if (removalMethod == TrackRemovalMethod.DISABLED) {
+                    vm.removeFromContextPlaylist(playlistId, vm.trackForMenu!!)
+                    assertFalse(vm.showMenuSheet)
+                } else {
+                    vm.showMenuSheet = false
+                }
             }
+            if (removalMethod == TrackRemovalMethod.DISABLED) {
+                assertEquals(reordered, persistedOrder())
+            }
+
+            val topBarOptions = compose.onAllNodesWithContentDescription(optionsLabel, useUnmergedTree = true)
+            val topBarIndex = topBarOptions.fetchSemanticsNodes().withIndex().minByOrNull { it.value.boundsInRoot.top }?.index ?: 0
+            topBarOptions[topBarIndex].performTouchInput { click() }
+            val trackRemovalLabel = context.getString(R.string.menu_track_removal)
+            compose.waitUntil(5_000) { compose.onAllNodesWithText(trackRemovalLabel).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText(trackRemovalLabel).performClick()
+            val dialogTitle = context.getString(R.string.pref_track_removal_title)
+            compose.waitUntil(5_000) { compose.onAllNodesWithText(dialogTitle).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText(context.getString(R.string.btn_close)).performClick()
+            compose.waitForIdle()
 
             firstVisibleTrack.performTouchInput {
                 swipe(start = centerLeft + Offset(10.dp.toPx(), 0f), end = centerRight, durationMillis = 180)

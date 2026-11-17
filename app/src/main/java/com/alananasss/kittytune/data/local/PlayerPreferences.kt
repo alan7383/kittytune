@@ -302,9 +302,25 @@ enum class AppLanguage(val code: String) {
     BRAZILIAN_PORTUGUESE("pt-BR")
 }
 
-enum class TrackRemovalMethod {
-    SWIPE_AND_MENU,
-    MENU_ONLY
+enum class TrackRemovalMethod(
+    @StringRes val titleRes: Int,
+    @StringRes val descRes: Int
+) {
+    SWIPE_AND_MENU(
+        titleRes = R.string.track_removal_swipe_and_menu,
+        descRes = R.string.track_removal_swipe_and_menu_desc
+    ),
+    MENU_ONLY(
+        titleRes = R.string.track_removal_menu_only,
+        descRes = R.string.track_removal_menu_only_desc
+    ),
+    DISABLED(
+        titleRes = R.string.track_removal_disabled,
+        descRes = R.string.track_removal_disabled_desc
+    );
+
+    val isSwipeEnabled: Boolean get() = this == SWIPE_AND_MENU
+    val isRemovalAllowed: Boolean get() = this != DISABLED
 }
 
 enum class PlayerBarStyle { DEFAULT, ROUNDED, FLOATING }
@@ -626,6 +642,7 @@ class PlayerPreferences(context: Context) {
         const val KEY_PLAYER_DESIGN = "player_design"
         private const val KEY_WAVEFORM_COMMENTS = "waveform_comments_enabled"
         private const val KEY_TRACK_REMOVAL_METHOD = "track_removal_method"
+        private const val KEY_LAST_ACTIVE_TRACK_REMOVAL_METHOD = "last_active_track_removal_method"
 
         const val KEY_APP_HAPTIC_MODE = "app_haptics_mode"
         const val KEY_HAPTICS_ENABLED = "haptics_enabled"
@@ -2749,6 +2766,16 @@ class PlayerPreferences(context: Context) {
         }
     }
 
+    fun getLastActiveTrackRemovalMethod(): TrackRemovalMethod {
+        val raw = prefs.getString(KEY_LAST_ACTIVE_TRACK_REMOVAL_METHOD, TrackRemovalMethod.SWIPE_AND_MENU.name)
+        return try {
+            val parsed = TrackRemovalMethod.valueOf(raw ?: TrackRemovalMethod.SWIPE_AND_MENU.name)
+            if (parsed == TrackRemovalMethod.DISABLED) TrackRemovalMethod.SWIPE_AND_MENU else parsed
+        } catch (_: Exception) {
+            TrackRemovalMethod.SWIPE_AND_MENU
+        }
+    }
+
     fun getTrackRemovalMethodFlow(): kotlinx.coroutines.flow.Flow<TrackRemovalMethod> = kotlinx.coroutines.flow.callbackFlow {
         trySend(getTrackRemovalMethod())
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -2761,7 +2788,25 @@ class PlayerPreferences(context: Context) {
     }
 
     fun setTrackRemovalMethod(method: TrackRemovalMethod) {
-        prefs.edit { putString(KEY_TRACK_REMOVAL_METHOD, method.name) }
+        val current = getTrackRemovalMethod()
+        prefs.edit {
+            if (method != TrackRemovalMethod.DISABLED) {
+                putString(KEY_LAST_ACTIVE_TRACK_REMOVAL_METHOD, method.name)
+            } else if (current != TrackRemovalMethod.DISABLED) {
+                putString(KEY_LAST_ACTIVE_TRACK_REMOVAL_METHOD, current.name)
+            }
+            putString(KEY_TRACK_REMOVAL_METHOD, method.name)
+        }
+    }
+
+    fun setTrackRemovalEnabled(enabled: Boolean) {
+        if (enabled) {
+            if (getTrackRemovalMethod() == TrackRemovalMethod.DISABLED) {
+                setTrackRemovalMethod(getLastActiveTrackRemovalMethod())
+            }
+        } else {
+            setTrackRemovalMethod(TrackRemovalMethod.DISABLED)
+        }
     }
 
     fun setCachedUserId(id: Long) {

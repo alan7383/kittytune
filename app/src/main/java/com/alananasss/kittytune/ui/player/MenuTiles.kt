@@ -55,6 +55,7 @@ object MenuTiles {
         Tile("go_artist", R.string.menu_go_artist),
         Tile("share", R.string.btn_share),
         Tile("download", R.string.btn_download),
+        Tile("track_removal", R.string.menu_track_removal),
     )
 
     fun defaultHidden(menu: String): Set<String> =
@@ -109,6 +110,7 @@ object MenuTiles {
         "block_artist" -> Icons.Rounded.PersonOff
         "play" -> Icons.Rounded.PlayArrow
         "connect" -> Icons.Rounded.Devices
+        "track_removal" -> Icons.Rounded.DeleteSweep
         else -> Icons.Rounded.Apps
     }
 }

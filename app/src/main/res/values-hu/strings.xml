@@ -213,8 +213,13 @@
     <string name="tracks_added_to_playlist_success">%1$d szám hozzáadva ehhez: %2$s</string>
     <string name="pref_track_removal_title">Számok törlésének módja</string>
     <string name="pref_track_removal_subtitle">Válaszd ki, hogyan törlődjenek a számok a lejátszási listákból</string>
+    <string name="menu_track_removal">Számok törlése</string>
     <string name="track_removal_swipe_and_menu">Csúsztatás és menü</string>
+    <string name="track_removal_swipe_and_menu_desc">Húzz el egy számot balra vagy jobbra, vagy használd a hárompontos menüt</string>
     <string name="track_removal_menu_only">Csak hárompontos menü</string>
+    <string name="track_removal_menu_only_desc">Csúsztatás kikapcsolása a görgetés közbeni véletlen törlések elkerüléséhez</string>
+    <string name="track_removal_disabled">Kikapcsolva</string>
+    <string name="track_removal_disabled_desc">Megakadályozza a számok eltávolítását a lejátszási listákból</string>
     <string name="dialog_delete_playlist_title">Playlist törlése?</string>
     <string name="dialog_delete_playlist_msg">Ez a művelet nem vonható vissza</string>
     <string name="dialog_delete_playlist_from_lib_title">Eltávolítja a könyvtárból?</string>

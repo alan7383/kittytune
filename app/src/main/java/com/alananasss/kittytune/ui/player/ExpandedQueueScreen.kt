@@ -606,7 +606,7 @@ private fun QueueRow(
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
     val trackRemovalMethod by prefs.getTrackRemovalMethodFlow().collectAsState(initial = prefs.getTrackRemovalMethod())
-    val isSwipeRemovalEnabled = trackRemovalMethod == TrackRemovalMethod.SWIPE_AND_MENU
+    val isSwipeRemovalEnabled = trackRemovalMethod.isSwipeEnabled
 
     val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
     val background by animateColorAsState(

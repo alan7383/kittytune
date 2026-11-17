@@ -220,8 +220,13 @@
     <string name="tracks_added_to_playlist_success">Добавлено %1$d треков в %2$s</string>
     <string name="pref_track_removal_title">Способ удаления треков</string>
     <string name="pref_track_removal_subtitle">Выберите способ удаления треков из плейлистов</string>
+    <string name="menu_track_removal">Удаление треков</string>
     <string name="track_removal_swipe_and_menu">Свайп и меню</string>
+    <string name="track_removal_swipe_and_menu_desc">Свайп влево или вправо по треку или через меню (3 точки)</string>
     <string name="track_removal_menu_only">Только через меню (3 точки)</string>
+    <string name="track_removal_menu_only_desc">Отключить удаление свайпом, чтобы не удалять треки случайно при прокрутке</string>
+    <string name="track_removal_disabled">Отключено</string>
+    <string name="track_removal_disabled_desc">Полностью запретить удаление треков из плейлистов</string>
     <string name="dialog_delete_playlist_title">Удалить плейлист?</string>
     <string name="dialog_delete_playlist_msg">Это действие нельзя будет отменить</string>
     <string name="dialog_delete_playlist_from_lib_title">Удалить из библиотеки?</string>

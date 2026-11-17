@@ -222,8 +222,13 @@
     <string name="tracks_added_to_playlist_success">%1$d faixas adicionadas a %2$s</string>
     <string name="pref_track_removal_title">Remoção de faixas</string>
     <string name="pref_track_removal_subtitle">Escolha como remover faixas das playlists</string>
+    <string name="menu_track_removal">Remoção de faixas</string>
     <string name="track_removal_swipe_and_menu">Deslizar ou usar o menu</string>
+    <string name="track_removal_swipe_and_menu_desc">Deslize uma faixa para a esquerda ou direita, ou use o menu de três pontos</string>
     <string name="track_removal_menu_only">Só pelo menu de três pontos</string>
+    <string name="track_removal_menu_only_desc">Desativa o gesto de deslizar para evitar remoções acidentais ao rolar</string>
+    <string name="track_removal_disabled">Desativada</string>
+    <string name="track_removal_disabled_desc">Impede completamente a remoção de faixas das playlists</string>
     <string name="dialog_delete_playlist_title">Excluir playlist?</string>
     <string name="dialog_delete_playlist_msg">Esta ação não pode ser desfeita</string>
     <string name="dialog_delete_playlist_from_lib_title">Remover da biblioteca?</string>

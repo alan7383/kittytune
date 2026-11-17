@@ -159,7 +159,8 @@ fun PlaylistDetailScreen(
     val prefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
     val showTotalDuration by prefs.getShowPlaylistTotalDurationFlow().collectAsState(initial = prefs.getShowPlaylistTotalDuration())
     val trackRemovalMethod by prefs.getTrackRemovalMethodFlow().collectAsState(initial = prefs.getTrackRemovalMethod())
-    val isSwipeRemovalEnabled = trackRemovalMethod == com.alananasss.kittytune.data.local.TrackRemovalMethod.SWIPE_AND_MENU
+    val isSwipeRemovalEnabled = trackRemovalMethod.isSwipeEnabled
+    val isTrackRemovalAllowed = trackRemovalMethod.isRemovalAllowed
     val storageTrigger by DownloadManager.storageTrigger.collectAsState()
     val isYoutubeRadio = playlistId.startsWith("yt_radio:")
     val isGuest = remember { TokenManager(context).isGuestMode() }
@@ -369,6 +370,7 @@ fun PlaylistDetailScreen(
     var showPlaylistOptionsSheet by remember { mutableStateOf(false) }
     var showPlaylistDetailsSheet by remember { mutableStateOf(false) }
     var showPlaylistSortSheet by remember { mutableStateOf(false) }
+    var showTrackRemovalDialog by remember { mutableStateOf(false) }
 
     var playlistPermalinkUrl by remember { mutableStateOf<String?>(null) }
 
@@ -2833,21 +2835,23 @@ fun PlaylistDetailScreen(
                                         }
 
                                         val onRemoveAction: () -> Unit = {
-                                            when {
-                                                playlistId == "likes" -> {
-                                                    LikeRepository.removeLike(track.id)
-                                                }
-                                                playlistId == "downloads" -> {
-                                                    tracks.removeAll { it.id == track.id }
-                                                    DownloadManager.deleteTrack(track.id)
-                                                }
-                                                else -> {
-                                                    tracks.removeAll { it.id == track.id }
-                                                    DownloadManager.removeTrackFromPlaylist(
-                                                        playlistId = stableId,
-                                                        trackId = track.id,
-                                                        syncToCloud = isUserCreated && !isDownloadedView && currentIdLong > 0
-                                                    )
+                                            if (isTrackRemovalAllowed) {
+                                                when {
+                                                    playlistId == "likes" -> {
+                                                        LikeRepository.removeLike(track.id)
+                                                    }
+                                                    playlistId == "downloads" -> {
+                                                        tracks.removeAll { it.id == track.id }
+                                                        DownloadManager.deleteTrack(track.id)
+                                                    }
+                                                    else -> {
+                                                        tracks.removeAll { it.id == track.id }
+                                                        DownloadManager.removeTrackFromPlaylist(
+                                                            playlistId = stableId,
+                                                            trackId = track.id,
+                                                            syncToCloud = isUserCreated && !isDownloadedView && currentIdLong > 0
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
@@ -3169,12 +3173,29 @@ fun PlaylistDetailScreen(
                         showPlaylistOptionsSheet = false
                         showPlaylistDetailsSheet = true
                     },
+                    canRemoveTracks = isUserCreated || isDownloadedView || playlistId == "downloads" || playlistId == "likes",
+                    trackRemovalMethod = trackRemovalMethod,
+                    onTrackRemovalClick = {
+                        showPlaylistOptionsSheet = false
+                        showTrackRemovalDialog = true
+                    },
                     onDeleteClick = {
                         showPlaylistOptionsSheet = false
                         showDeleteDialog = true
                     }
                 )
             }
+        }
+
+        if (showTrackRemovalDialog) {
+            com.alananasss.kittytune.ui.common.TrackRemovalMethodDialog(
+                selectedMethod = trackRemovalMethod,
+                onMethodSelected = { method ->
+                    prefs.setTrackRemovalMethod(method)
+                    showTrackRemovalDialog = false
+                },
+                onDismissRequest = { showTrackRemovalDialog = false }
+            )
         }
 
         if (showPlaylistDetailsSheet) {
@@ -3271,7 +3292,13 @@ fun PlaylistSquareCard(playlist: Playlist, onClick: () -> Unit) {
     }
 }
 
-data class DockOptionItem(val icon: ImageVector, val text: String, val onClick: () -> Unit)
+data class DockOptionItem(
+    val icon: ImageVector,
+    val text: String,
+    val subtitle: String? = null,
+    val tint: Color? = null,
+    val onClick: () -> Unit
+)
 
 @Composable
 fun PlaylistOptionsSheet(
@@ -3292,6 +3319,9 @@ fun PlaylistOptionsSheet(
     isAlbum: Boolean = false,
     onSharingToggle: (String) -> Unit = {},
     onDetailsClick: () -> Unit = {},
+    canRemoveTracks: Boolean = false,
+    trackRemovalMethod: com.alananasss.kittytune.data.local.TrackRemovalMethod = com.alananasss.kittytune.data.local.TrackRemovalMethod.SWIPE_AND_MENU,
+    onTrackRemovalClick: () -> Unit = {},
     onDeleteClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -3364,7 +3394,8 @@ fun PlaylistOptionsSheet(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        val items = remember(isLocal, playlistId, isYoutubeRadio, isUserOwned, playlistSharing, onDeleteClick, isAlbum, tracks) {
+        val primaryColor = MaterialTheme.colorScheme.primary
+        val items = remember(isLocal, playlistId, isYoutubeRadio, isUserOwned, playlistSharing, onDeleteClick, isAlbum, tracks, canRemoveTracks, trackRemovalMethod, primaryColor) {
             mutableListOf(
                 DockOptionItem(
                     Icons.Rounded.PlayArrow,
@@ -3452,6 +3483,17 @@ fun PlaylistOptionsSheet(
                         }
                     ))
                 }
+                if (canRemoveTracks) {
+                    add(
+                        DockOptionItem(
+                            icon = com.alananasss.kittytune.ui.common.trackRemovalMethodIcon(trackRemovalMethod),
+                            text = context.getString(R.string.menu_track_removal),
+                            subtitle = context.getString(trackRemovalMethod.titleRes),
+                            tint = if (trackRemovalMethod != com.alananasss.kittytune.data.local.TrackRemovalMethod.SWIPE_AND_MENU) primaryColor else null,
+                            onClick = { onTrackRemovalClick() }
+                        )
+                    )
+                }
                 if (onDeleteClick != null && playlistId != 0L && !isYoutubeRadio && playlistId != DownloadManager.LIKES_BATCH_ID) {
                     add(
                         DockOptionItem(
@@ -3474,17 +3516,29 @@ fun PlaylistOptionsSheet(
             modifier = Modifier.padding(bottom = 24.dp)
         ) {
             items(items) { item ->
+                val itemTint = item.tint ?: MaterialTheme.colorScheme.onSurface
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.hapticClickable { item.onClick() }) {
-                    Icon(item.icon, null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurface)
+                    Icon(item.icon, null, modifier = Modifier.size(32.dp), tint = itemTint)
                     Spacer(Modifier.height(8.dp))
                     Text(
                         item.text,
                         style = MaterialTheme.typography.labelMedium,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = itemTint
                     )
+                    if (!item.subtitle.isNullOrBlank()) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            item.subtitle,
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.Center,
+                            color = item.tint?.copy(alpha = 0.85f) ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
             if ((!isLocal || isFullyDownloaded) && tracks.isNotEmpty() && !isYoutubeRadio) {
