@@ -19,9 +19,28 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.UpdateStatus
 import com.alananasss.kittytune.data.network.GithubRelease
 import dev.jeziellago.compose.markdowntext.MarkdownText
+
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.WarningAmber
+import androidx.compose.runtime.*
+import com.alananasss.kittytune.utils.NetworkUtils
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -30,7 +49,9 @@ fun UpdateScreen(
     status: UpdateStatus,
     progress: Float,
     totalSize: Long,
+    isDownloaded: Boolean = false,
     onDownload: () -> Unit,
+    onForceRedownload: (() -> Unit)? = null,
     onDismiss: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -39,8 +60,39 @@ fun UpdateScreen(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val isDownloading = status == UpdateStatus.DOWNLOADING
 
+    var isMobileData by remember { mutableStateOf(NetworkUtils.isMobileData(context)) }
+    DisposableEffect(context) {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                isMobileData = NetworkUtils.isMobileData(context)
+            }
+            override fun onLost(network: Network) {
+                isMobileData = NetworkUtils.isMobileData(context)
+            }
+            override fun onAvailable(network: Network) {
+                isMobileData = NetworkUtils.isMobileData(context)
+            }
+        }
+        try {
+            cm?.registerDefaultNetworkCallback(callback)
+        } catch (_: Exception) {}
+        onDispose {
+            try {
+                cm?.unregisterNetworkCallback(callback)
+            } catch (_: Exception) {}
+        }
+    }
+
+    val asset = release.assets.find { it.name.endsWith(".apk", ignoreCase = true) }
+    val updateSize = if (totalSize > 0L) totalSize else (asset?.size ?: 0L)
+    val formattedSize = if (updateSize > 0L) Formatter.formatFileSize(context, updateSize) else null
+
     val buttonConfig = when (status) {
-        UpdateStatus.AVAILABLE -> Triple(onDownload, R.string.update_btn_download, Icons.Outlined.InstallMobile)
+        UpdateStatus.AVAILABLE -> {
+            val labelRes = if (isDownloaded) R.string.update_btn_install else R.string.update_btn_download
+            Triple(onDownload, labelRes, Icons.Outlined.InstallMobile)
+        }
         UpdateStatus.DOWNLOADING -> Triple(onDismiss, R.string.btn_cancel, Icons.Outlined.Cancel)
         else -> null
     }
@@ -82,8 +134,48 @@ fun UpdateScreen(
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.background)
                         .navigationBarsPadding()
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    AnimatedVisibility(
+                        visible = isMobileData && !isDownloaded && !isDownloading,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.85f),
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.WarningAmber,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                val warningText = if (formattedSize != null) {
+                                    stringResource(R.string.update_mobile_data_warning_with_size, formattedSize)
+                                } else {
+                                    stringResource(R.string.update_mobile_data_warning)
+                                }
+                                Text(
+                                    text = warningText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
+
                     FilledTonalButton(
                         onClick = onClick,
                         modifier = Modifier
@@ -98,6 +190,25 @@ fun UpdateScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
+                    }
+
+                    if (isDownloaded && !isDownloading && onForceRedownload != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(
+                            onClick = onForceRedownload,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Rounded.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.update_btn_redownload),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             }
@@ -140,6 +251,21 @@ fun UpdateScreen(
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.primary
                         )
+
+                        if (isDownloaded && !isDownloading) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = CircleShape
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.update_cached_info),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
 
                     Text(

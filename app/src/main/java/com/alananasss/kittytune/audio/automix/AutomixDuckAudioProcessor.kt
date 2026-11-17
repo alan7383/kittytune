@@ -1,0 +1,213 @@
+package com.alananasss.kittytune.audio.automix
+
+import androidx.media3.common.C
+import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.audio.BaseAudioProcessor
+import androidx.media3.common.util.UnstableApi
+import java.nio.ByteBuffer
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
+
+/**
+ * Low-shelf ducking processor used during AutoMix DJ-blend crossfades, so two full
+ * basslines don't sum into mud during the overlap.
+ *
+ * Extends [BaseAudioProcessor] to comply with ExoPlayer / Media3 AudioSink pipeline invariants,
+ * buffer lifecycle, and End-of-Stream (EOS) draining.
+ *
+ * The shelf filter's coefficients are fixed once at configure time and never change again —
+ * changing an IIR filter's coefficients on the fly while its delay-line memory carries state
+ * from the old coefficients produces audible clicks ("zipper noise"). Instead, the filter runs
+ * continuously (its own signal stays perfectly smooth) and the duck amount is a linear blend
+ * between the dry and fully-filtered signal, ramped smoothly per-sample toward whatever mix the
+ * crossfade loop last requested.
+ */
+@UnstableApi
+class AutomixDuckAudioProcessor(
+    private val shelfFrequencyHz: Double = 150.0,
+    private val maxDuckDb: Double = -10.0,
+) : BaseAudioProcessor() {
+
+    private var sampleRate = 0
+    private var channelCount = 0
+
+    /** Target blend, 0=dry (no duck) .. 1=fully filtered (maxDuckDb). Set from the fade loop. */
+    @Volatile
+    private var targetMix: Float = 0f
+
+    /** Currently applied blend; eases toward targetMix a little every sample, never jumps. */
+    private var currentMix: Float = 0f
+
+    private var b0 = 1.0
+    private var b1 = 0.0
+    private var b2 = 0.0
+    private var a1 = 0.0
+    private var a2 = 0.0
+
+    private var x1L = 0.0
+    private var x2L = 0.0
+    private var y1L = 0.0
+    private var y2L = 0.0
+    private var x1R = 0.0
+    private var x2R = 0.0
+    private var y1R = 0.0
+    private var y2R = 0.0
+
+    companion object {
+        // Time constant for the per-sample mix ease, independent of sample rate.
+        private const val MIX_EASE_MS = 15.0
+    }
+
+    /** Duck toward [fraction] of maxDuckDb, where 0=no duck and 1=full duck. */
+    fun setMix(fraction: Float) {
+        targetMix = fraction.coerceIn(0f, 1f)
+    }
+
+    fun resetGain() {
+        targetMix = 0f
+    }
+
+    private fun computeShelfCoefficients() {
+        if (sampleRate <= 0) return
+        val A = sqrt(10.0.pow(maxDuckDb / 20.0))
+        val omega = 2.0 * PI * shelfFrequencyHz / sampleRate
+        val sinOmega = sin(omega)
+        val cosOmega = cos(omega)
+        val alpha = sinOmega / 2.0 * sqrt(2.0) // S=1 shelf slope
+        val sqrtA = sqrt(A)
+        val aPlusOne = A + 1.0
+        val aMinusOne = A - 1.0
+        val twoSqrtAAlpha = 2.0 * sqrtA * alpha
+
+        var rb0 = A * (aPlusOne - aMinusOne * cosOmega + twoSqrtAAlpha)
+        var rb1 = 2.0 * A * (aMinusOne - aPlusOne * cosOmega)
+        var rb2 = A * (aPlusOne - aMinusOne * cosOmega - twoSqrtAAlpha)
+        val ra0 = aPlusOne + aMinusOne * cosOmega + twoSqrtAAlpha
+        var ra1 = -2.0 * (aMinusOne + aPlusOne * cosOmega)
+        var ra2 = aPlusOne + aMinusOne * cosOmega - twoSqrtAAlpha
+
+        rb0 /= ra0; rb1 /= ra0; rb2 /= ra0; ra1 /= ra0; ra2 /= ra0
+        b0 = rb0; b1 = rb1; b2 = rb2; a1 = ra1; a2 = ra2
+    }
+
+    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+        // Format fields and shelf coefficients are computed BEFORE the Bit-Perfect
+        // bypass: computeShelfCoefficients() is idempotent and sampleRate-guarded, and
+        // a hot-unplug (DAC off mid-playback) must find the shelf ready to engage the
+        // moment the bypass lifts - not stuck on the passthrough dry defaults.
+        sampleRate = inputAudioFormat.sampleRate
+        channelCount = inputAudioFormat.channelCount
+        computeShelfCoefficients()
+
+        // Bit-Perfect: identity configuration for ANY PCM encoding - the chain format
+        // must stay 1:1 so the queueInput byte passthrough is bit-exact (never NOT_SET
+        // and never a negotiated conversion while the DAC owns the output).
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.AUTOMIX_DUCK)) {
+            return inputAudioFormat
+        }
+        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT || inputAudioFormat.channelCount > 2) {
+            return AudioProcessor.AudioFormat.NOT_SET
+        }
+        return inputAudioFormat
+    }
+
+    override fun queueInput(inputBuffer: ByteBuffer) {
+        val remaining = inputBuffer.remaining()
+        if (remaining == 0) return
+
+        // Bit-Perfect on a USB DAC: bit-transparent copy - the shelf stays dry and the
+        // PCM bytes reach the DAC untouched. Per-buffer check, no per-sample cost.
+        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.AUTOMIX_DUCK)) {
+            val passthrough = replaceOutputBuffer(remaining)
+            passthrough.put(inputBuffer)
+            passthrough.flip()
+            return
+        }
+
+        // Fast path: no duck requested and the eased blend has fully settled back to dry.
+        // With mix == 0 the output is bit-identical to the input (out = in + (filtered-in)*0),
+        // so the whole biquad loop is skipped and audio is copied through. This keeps the
+        // audio thread free of continuous DSP work for the ~99% of playback time where no
+        // AutoMix blend is active. Filter memory is reset so a later ramp-up starts clean.
+        if (targetMix <= 0f && currentMix < 1e-4f) {
+            currentMix = 0f
+            x1L = 0.0; x2L = 0.0; y1L = 0.0; y2L = 0.0
+            x1R = 0.0; x2R = 0.0; y1R = 0.0; y2R = 0.0
+            val outputBuffer = replaceOutputBuffer(remaining)
+            outputBuffer.put(inputBuffer)
+            outputBuffer.flip()
+            return
+        }
+
+        val outputBuffer = replaceOutputBuffer(remaining)
+
+        // Per-sample ease toward targetMix: at 44.1-48kHz this settles in a few ms, fast
+        // enough to track the fade loop's ~15ms updates while never stepping abruptly.
+        val easePerSample = if (sampleRate > 0) (1000.0 / (MIX_EASE_MS * sampleRate)).toFloat().coerceIn(0f, 1f) else 1f
+
+        val sampleCount = remaining / 2
+        when (channelCount) {
+            1 -> repeat(sampleCount) {
+                currentMix += (targetMix - currentMix) * easePerSample
+                val input = inputBuffer.short.toDouble() / 32768.0
+                val filtered = b0 * input + b1 * x1L + b2 * x2L - a1 * y1L - a2 * y2L
+                x2L = x1L; x1L = input; y2L = y1L; y1L = filtered
+                val output = input + (filtered - input) * currentMix
+                outputBuffer.putShort((output * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort())
+            }
+            2 -> repeat(sampleCount / 2) {
+                currentMix += (targetMix - currentMix) * easePerSample
+                val inL = inputBuffer.short.toDouble() / 32768.0
+                val inR = inputBuffer.short.toDouble() / 32768.0
+
+                val filteredL = b0 * inL + b1 * x1L + b2 * x2L - a1 * y1L - a2 * y2L
+                x2L = x1L; x1L = inL; y2L = y1L; y1L = filteredL
+
+                val filteredR = b0 * inR + b1 * x1R + b2 * x2R - a1 * y1R - a2 * y2R
+                x2R = x1R; x1R = inR; y2R = y1R; y1R = filteredR
+
+                val outL = inL + (filteredL - inL) * currentMix
+                val outR = inR + (filteredR - inR) * currentMix
+
+                outputBuffer.putShort((outL * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort())
+                outputBuffer.putShort((outR * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort())
+            }
+            else -> {
+                outputBuffer.put(inputBuffer)
+            }
+        }
+
+        // Absorb a trailing partial frame (an odd byte on mono, a half frame on stereo)
+        // instead of leaving it behind: Media3's audio thread loops on
+        // while(inputBuffer.hasRemaining()) - an unread tail would spin it forever.
+        if (inputBuffer.hasRemaining()) {
+            inputBuffer.position(inputBuffer.limit())
+        }
+
+        outputBuffer.flip()
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onFlush() {
+        // Flush arrives on seeks - including the phase-lock correction seeks made
+        // mid-transition while the duck shelf is engaged. The biquad memory (z1/z2
+        // equivalents: x1/x2/y1/y2) carries the running filter state; zeroing it then
+        // is a step discontinuity = a click right inside the blend. Only a dry shelf
+        // (no duck requested) keeps the old always-clean-restart contract.
+        if (targetMix <= 0f) {
+            x1L = 0.0; x2L = 0.0; y1L = 0.0; y2L = 0.0
+            x1R = 0.0; x2R = 0.0; y1R = 0.0; y2R = 0.0
+        }
+    }
+
+    override fun onReset() {
+        onFlush()
+        sampleRate = 0
+        channelCount = 0
+        currentMix = 0f
+        targetMix = 0f
+    }
+}

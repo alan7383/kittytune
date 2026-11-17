@@ -1,0 +1,196 @@
+/**
+ * Developed by Jason-Marshall Fastner, Germany <jasonfastner@protonmail.com>
+ * Questions, feedback, or beat-matching debates? Feel free to reach out via email!
+ * 
+ * Note: Cats always land on their feet, and with this engine, your transitions will too.
+ */
+package com.alananasss.kittytune.ui.player.automix
+
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.alananasss.kittytune.R
+import com.alananasss.kittytune.audio.automix.AutomixManager
+import com.alananasss.kittytune.data.local.PlayerPreferences
+
+@Composable
+fun AutomixBadge(
+    textColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val prefs = remember(context) { PlayerPreferences(context) }
+    var showCrossfadeIndicator by remember { mutableStateOf(prefs.getCrossfadeIndicatorEnabled()) }
+    var showAutomixIndicator by remember { mutableStateOf(prefs.getAutomixIndicatorEnabled()) }
+
+    DisposableEffect(context) {
+        val sharedPrefs = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == PlayerPreferences.KEY_CROSSFADE_INDICATOR) {
+                showCrossfadeIndicator = prefs.getCrossfadeIndicatorEnabled()
+            } else if (key == PlayerPreferences.KEY_AUTOMIX_INDICATOR) {
+                showAutomixIndicator = prefs.getAutomixIndicatorEnabled()
+            }
+        }
+        sharedPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            sharedPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+
+    val isAutomixing by AutomixManager.isAutomixing.collectAsState()
+    val automixDebug by AutomixManager.automixDebugInfo.collectAsState()
+    val mixBeatsLeft by AutomixManager.mixBeatsLeft.collectAsState()
+    val isCrossfading by com.alananasss.kittytune.data.MusicManager.isCrossfadingOutFlow.collectAsState()
+    val beats = mixBeatsLeft
+
+    // Dynamic tempo-synced beat period (ms) based on outgoing track BPM
+        val rawMixBeatMs = automixDebug?.outBpm?.takeIf { it > 0f }?.let { 60_000f / it } ?: 500f
+    // Quantize pulse to 50ms buckets to prevent micro-jitter restarts
+    val mixBeatMs = ((rawMixBeatMs / 50f).toInt() * 50).coerceIn(200, 1000)
+
+    val shouldShowAutomix = showAutomixIndicator && (isAutomixing || (beats != null && beats > 0))
+    val shouldShowCrossfade = showCrossfadeIndicator && isCrossfading && !isAutomixing
+
+    val visible = shouldShowAutomix || shouldShowCrossfade
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(animationSpec = tween(400)),
+        exit = fadeOut(animationSpec = tween(400)),
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(textColor.copy(alpha = 0.12f))
+                .border(
+                    width = 1.dp,
+                    color = textColor.copy(alpha = 0.22f),
+                    shape = RoundedCornerShape(20.dp)
+                )
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+        ) {
+            if ((shouldShowAutomix && isAutomixing) || shouldShowCrossfade) {
+                val infiniteTransition = rememberInfiniteTransition(label = "CrossfadePulse")
+                val alpha by infiniteTransition.animateFloat(
+                    initialValue = 0.35f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(600, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "CrossfadeAlpha"
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        imageVector = if (shouldShowAutomix && isAutomixing) Icons.Rounded.GraphicEq else Icons.Rounded.Repeat,
+                        contentDescription = if (shouldShowAutomix && isAutomixing) "Automixing" else "Crossfading",
+                        tint = textColor.copy(alpha = alpha),
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = stringResource(if (shouldShowAutomix && isAutomixing) R.string.automixing else R.string.crossfading),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.2.sp
+                        ),
+                        color = textColor.copy(alpha = alpha),
+                        maxLines = 1,
+                    )
+                }
+            } else if (shouldShowAutomix && beats != null) {
+                val beatTransition = rememberInfiniteTransition(label = "MixCountdownBeat")
+                val beatAlpha by beatTransition.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 0.35f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(mixBeatMs, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart
+                    ),
+                    label = "MixCountdownAlpha"
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.GraphicEq,
+                        contentDescription = null,
+                        tint = textColor.copy(alpha = beatAlpha),
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.automix_mix_in, beats),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.4.sp
+                        ),
+                        color = textColor.copy(alpha = beatAlpha),
+                        maxLines = 1,
+                    )
+                    // Animated 4-Beat LED grid
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        (1..4).forEach { dotIdx ->
+                            val isCurrentBeat = (Math.floorMod(32 - beats, 4) + 1) == dotIdx
+                            Box(
+                                modifier = Modifier
+                                    .size(if (isCurrentBeat) 6.dp else 4.dp)
+                                    .clip(androidx.compose.foundation.shape.CircleShape)
+                                    .background(if (isCurrentBeat) textColor else textColor.copy(alpha = 0.3f))
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

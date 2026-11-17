@@ -2,11 +2,12 @@
      * Fichier : app/src/main/java/com/alananasss/kittytune/data/KittyTuneMediaLibrarySessionCallback.kt
      */
     package com.alananasss.kittytune.data
-    
+
     import android.content.Context
     import android.net.Uri
     import android.os.Bundle
-    import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.common.MediaItem
     import androidx.media3.common.MediaMetadata
     import androidx.media3.common.C
     import androidx.media3.common.MimeTypes
@@ -24,6 +25,8 @@
     import com.alananasss.kittytune.data.GenreData
     import com.alananasss.kittytune.data.SearchCategory
     import com.alananasss.kittytune.ui.player.PlaybackContext
+    import com.alananasss.kittytune.audio.haptics.PlayerHapticManager
+    import com.alananasss.kittytune.data.local.LastUsedPlaylist
     import com.alananasss.kittytune.data.local.PlayerPreferences
     import com.google.common.collect.ImmutableList
     import com.google.common.util.concurrent.Futures
@@ -38,15 +41,28 @@
     import android.content.Intent
     import kotlinx.coroutines.withContext
     import kotlinx.coroutines.flow.first
+    import kotlinx.coroutines.flow.MutableStateFlow
+    import kotlinx.coroutines.flow.StateFlow
+    import kotlinx.coroutines.flow.asStateFlow
     import kotlinx.coroutines.CoroutineScope
-    
+
     class KittyTuneMediaLibrarySessionCallback(
         private val context: Context,
         private val likeRepository: LikeRepository,
         private val api: SoundCloudApi,
-        private val serviceScope: CoroutineScope
+        private val serviceScope: CoroutineScope,
+        private val onControllerConnected: () -> Unit = {}
     ) : MediaLibraryService.MediaLibrarySession.Callback {
-    
+
+        private val automotiveControllers = mutableSetOf<MediaSession.ControllerInfo>()
+        private val _isAutomotiveControllerConnected = MutableStateFlow(false)
+        val isAutomotiveControllerConnected: StateFlow<Boolean> = _isAutomotiveControllerConnected.asStateFlow()
+
+        fun release() {
+            automotiveControllers.clear()
+            _isAutomotiveControllerConnected.value = false
+        }
+
         companion object {
             const val ROOT_ID = "kittytune_root"
             const val LIBRARY_ROOT_ID = "kittytune_library_root"
@@ -61,43 +77,248 @@
             const val CONTEXT_SEPARATOR = ":context:"
             const val API_BATCH_LIMIT = 50
         }
-    
-        override fun onConnect(
+
+        @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+        override fun onConnectAsync(
             session: MediaSession,
             controller: MediaSession.ControllerInfo
-        ): MediaSession.ConnectionResult {
-            val connectionResult = super.onConnect(session, controller)
-            val availableSessionCommands = connectionResult.availableSessionCommands
+        ): ListenableFuture<MediaSession.ConnectionResult> {
+            val isAuto = session.isAutomotiveController(controller) ||
+                    session.isAutoCompanionController(controller) ||
+                    controller.packageName.let { it.contains("gearhead") || it.contains("automotive") }
+            android.util.Log.d("KittyTuneAA", "onConnectAsync: pkg=${controller.packageName}, isAuto=$isAuto")
+            if (isAuto) {
+                automotiveControllers += controller
+                _isAutomotiveControllerConnected.value = true
+            }
+
+            val builder = MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
+            val defaultResult = builder.build()
+
+            val availableSessionCommands = defaultResult.availableSessionCommands
                 .buildUpon()
-                .add(SessionCommand(KittyTuneMediaLibraryService.CUSTOM_ACTION_LIKE, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_LIKE, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_REPEAT, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_DISLIKE, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_SHUFFLE, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_ADD_TO_PLAYLIST, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_HAPTICS, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_SHARE, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_DOWNLOAD, Bundle.EMPTY))
                 .build()
-    
-            return MediaSession.ConnectionResult.accept(
-                availableSessionCommands,
-                connectionResult.availablePlayerCommands
-            )
+
+            val availablePlayerCommands = defaultResult.availablePlayerCommands
+                .buildUpon()
+                .add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_NEXT)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS)
+                .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                .add(Player.COMMAND_GET_CURRENT_MEDIA_ITEM)
+                .add(Player.COMMAND_GET_TIMELINE)
+                .add(Player.COMMAND_GET_METADATA)
+                .add(Player.COMMAND_PLAY_PAUSE)
+                .build()
+
+            builder.setAvailableSessionCommands(availableSessionCommands)
+            builder.setAvailablePlayerCommands(availablePlayerCommands)
+
+            return Futures.immediateFuture(builder.build())
         }
-    
+
+        @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+        override fun onPostConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ) {
+            val isAuto = session.isAutomotiveController(controller) ||
+                    session.isAutoCompanionController(controller) ||
+                    controller.packageName.let { it.contains("gearhead") || it.contains("automotive") }
+            android.util.Log.d("KittyTuneAA", "onPostConnect: pkg=${controller.packageName}, isAuto=$isAuto")
+            if (isAuto) {
+                automotiveControllers += controller
+                _isAutomotiveControllerConnected.value = true
+            }
+            super.onPostConnect(session, controller)
+            onControllerConnected()
+        }
+
+        override fun onDisconnected(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ) {
+            android.util.Log.d("KittyTuneAA", "onDisconnected: pkg=${controller.packageName}")
+            automotiveControllers -= controller
+            _isAutomotiveControllerConnected.value = automotiveControllers.isNotEmpty()
+            super.onDisconnected(session, controller)
+        }
+
         override fun onCustomCommand(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
             customCommand: SessionCommand,
             args: Bundle
         ): ListenableFuture<SessionResult> {
-            if (customCommand.customAction == KittyTuneMediaLibraryService.CUSTOM_ACTION_LIKE) {
-                val currentTrack = MusicManager.currentTrack
-                if (currentTrack != null) {
-                    if (likeRepository.isTrackLiked(currentTrack.id)) {
-                        likeRepository.removeLike(currentTrack.id)
-                    } else {
-                        likeRepository.addLike(currentTrack)
+            when (customCommand.customAction) {
+                PlaybackService.CUSTOM_ACTION_LIKE -> {
+                    val currentTrack = MusicManager.currentTrack
+                    if (currentTrack != null) {
+                        if (likeRepository.isTrackLiked(currentTrack.id)) {
+                            likeRepository.removeLike(currentTrack.id)
+                        } else {
+                            likeRepository.addLike(currentTrack)
+                        }
                     }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                 }
-                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                PlaybackService.CUSTOM_ACTION_REPEAT -> {
+                    val player = MusicManager.player
+                    val nextMode = when (player.repeatMode) {
+                        androidx.media3.common.Player.REPEAT_MODE_OFF -> androidx.media3.common.Player.REPEAT_MODE_ALL
+                        androidx.media3.common.Player.REPEAT_MODE_ALL -> androidx.media3.common.Player.REPEAT_MODE_ONE
+                        else -> androidx.media3.common.Player.REPEAT_MODE_OFF
+                    }
+                    player.repeatMode = nextMode
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+                PlaybackService.CUSTOM_ACTION_DISLIKE -> {
+                    val currentTrack = MusicManager.currentTrack
+                    if (currentTrack != null) {
+                        serviceScope.launch(Dispatchers.Main) {
+                            if (BlockManager.onCurrentTrackBlocked != null) {
+                                BlockManager.blockTrack(currentTrack, skipIfCurrent = true, currentlyPlayingId = currentTrack.id)
+                            } else {
+                                BlockManager.blockTrack(currentTrack, skipIfCurrent = false)
+                                MusicManager.onNextClick?.invoke() ?: run {
+                                    if (MusicManager.player.hasNextMediaItem()) {
+                                        MusicManager.player.seekToNextMediaItem()
+                                    }
+                                }
+                            }
+                            android.widget.Toast.makeText(
+                                context,
+                                context.getString(R.string.notif_dislike_toast, currentTrack.title ?: ""),
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+                PlaybackService.CUSTOM_ACTION_SHUFFLE -> {
+                    serviceScope.launch(Dispatchers.Main) {
+                        if (MusicManager.onShuffleClick != null) {
+                            MusicManager.onShuffleClick?.invoke()
+                        } else {
+                            val player = MusicManager.player
+                            player.shuffleModeEnabled = !player.shuffleModeEnabled
+                        }
+                    }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+                PlaybackService.CUSTOM_ACTION_ADD_TO_PLAYLIST -> {
+                    val currentTrack = MusicManager.currentTrack
+                    if (currentTrack == null) {
+                        serviceScope.launch(Dispatchers.Main) {
+                            android.widget.Toast.makeText(
+                                context,
+                                context.getString(R.string.notif_no_track_playing),
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                    }
+                    val playerPrefs = PlayerPreferences(context)
+                    val playlistId = playerPrefs.getLastUsedPlaylistId()
+                    if (!LastUsedPlaylist.isValidId(playlistId)) {
+                        serviceScope.launch(Dispatchers.Main) {
+                            android.widget.Toast.makeText(
+                                context,
+                                context.getString(R.string.notif_no_playlist_available),
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                    }
+                    serviceScope.launch {
+                        // The name is decoration: the id identifies the playlist. A bookmark made
+                        // before the name was stored still has to work, so the library is asked for
+                        // the name when the bookmark has none.
+                        val playlistTitle = LastUsedPlaylist.resolveTitle(
+                            playerPrefs.getLastUsedPlaylistTitle(),
+                            DownloadManager.getPlaylistTitle(playlistId)
+                        )
+                        DownloadManager.addTrackToPlaylist(playlistId, currentTrack)
+                        withContext(Dispatchers.Main) {
+                            android.widget.Toast.makeText(
+                                context,
+                                if (playlistTitle != null) {
+                                    context.getString(R.string.notif_added_to_playlist, playlistTitle)
+                                } else {
+                                    context.getString(R.string.notif_added_to_playlist_unnamed)
+                                },
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+                PlaybackService.CUSTOM_ACTION_HAPTICS -> {
+                    val playerPrefs = PlayerPreferences(context)
+                    val newHaptics = !playerPrefs.getHapticsEnabled()
+                    playerPrefs.setHapticsEnabled(newHaptics)
+                    // The engine keeps its own copy of the flag, so it is told about the change
+                    // here instead of waiting for the preference listener - otherwise the toggle
+                    // could stay silent until the next reload.
+                    val hapticManager = PlayerHapticManager.getInstance(context)
+                    hapticManager.setHapticsEnabled(newHaptics)
+                    if (newHaptics) {
+                        // A short pulse confirms the switch, the same way the settings screen does.
+                        hapticManager.triggerTestVibration(playerPrefs.getHapticsStrength())
+                    }
+                    serviceScope.launch(Dispatchers.Main) {
+                        android.widget.Toast.makeText(
+                            context,
+                            context.getString(
+                                if (newHaptics) R.string.notif_btn_haptics_on
+                                else R.string.notif_btn_haptics_off
+                            ),
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    // Rebuild the notification so the button shows the new state.
+                    val updateIntent = Intent(context, PlaybackService::class.java).apply {
+                        action = PlaybackService.ACTION_FORCE_UPDATE
+                    }
+                    context.startService(updateIntent)
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+                PlaybackService.CUSTOM_ACTION_SHARE -> {
+                    val currentTrack = MusicManager.currentTrack
+                    if (currentTrack != null) {
+                        val urlToShare = currentTrack.permalinkUrl ?: "https://soundcloud.com/tracks/${currentTrack.id}"
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, urlToShare)
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, context.getString(R.string.share_via)).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(shareIntent)
+                    }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+                PlaybackService.CUSTOM_ACTION_DOWNLOAD -> {
+                    val currentTrack = MusicManager.currentTrack
+                    if (currentTrack != null) {
+                        DownloadManager.downloadTrack(currentTrack)
+                    }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
             }
             return super.onCustomCommand(session, controller, customCommand, args)
         }
-    
+
         override fun onSetMediaItems(
             mediaSession: MediaSession,
             controller: MediaSession.ControllerInfo,
@@ -110,23 +331,23 @@
                 if (item == null) {
                     return@future MediaItemsWithStartPosition(emptyList(), startIndex, startPositionMs)
                 }
-    
+
                 val id = item.mediaId
                 val defaultResult = MediaItemsWithStartPosition(emptyList(), startIndex, startPositionMs)
-    
+
                 try {
                     val queueData: Triple<List<MediaItem>, Int, Long> = when {
                         id.contains(CONTEXT_SEPARATOR) -> {
                             val parts = id.split(CONTEXT_SEPARATOR)
                             val trackPart = parts[0].removePrefix(TRACK_PREFIX)
                             val contextId = parts.getOrNull(1)
-    
+
                             val trackId = trackPart.toLongOrNull()
                             val playlistId = contextId?.toLongOrNull()
-    
+
                             if (trackId != null && playlistId != null) {
                                 val tracks: List<Track>
-    
+
                                 if (playlistId == -1L) {
                                     tracks = likeRepository.likedTracks.value
                                     val ctx = PlaybackContext(
@@ -140,7 +361,7 @@
                                     val playlist = api.getPlaylist(playlistId)
                                     val rawTracks = playlist.tracks ?: emptyList()
                                     tracks = hydrateTracksSafe(rawTracks)
-    
+
                                     val ctx = PlaybackContext(
                                         displayText = context.getString(R.string.context_playlist, playlist.title ?: "Playlist"),
                                         navigationId = "playlist_detail:${playlist.id}",
@@ -150,12 +371,12 @@
                                     )
                                     MusicManager.updateContext(ctx)
                                 }
-    
+
                                 val index = tracks.indexOfFirst { it.id == trackId }.coerceAtLeast(0)
-    
+
                                 val startTrack = tracks[index]
                                 val resolvedUrl = StreamResolver.resolveStream(context, startTrack)
-    
+
                                 val mediaList = tracks.mapIndexed { i, track ->
                                     if (i == index && resolvedUrl != null) {
                                         trackToMediaItem(track, playlistId, resolvedUrl)
@@ -163,13 +384,13 @@
                                         trackToMediaItem(track, playlistId)
                                     }
                                 }
-    
+
                                 Triple(mediaList, index, C.TIME_UNSET)
                             } else {
                                 Triple(emptyList(), 0, C.TIME_UNSET)
                             }
                         }
-    
+
                         id.startsWith(PLAYLIST_PREFIX_ID) -> {
                             val playlistId = id.removePrefix(PLAYLIST_PREFIX_ID).toLongOrNull()
                             if (playlistId != null) {
@@ -182,12 +403,12 @@
                                     isVerified = playlist.user?.verified == true
                                 )
                                 MusicManager.updateContext(ctx)
-    
+
                                 val rawTracks = playlist.tracks ?: emptyList()
                                 val hydrated = hydrateTracksSafe(rawTracks)
-    
+
                                 val resolvedUrl = if (hydrated.isNotEmpty()) StreamResolver.resolveStream(context, hydrated[0]) else null
-    
+
                                 val items = hydrated.mapIndexed { i, track ->
                                     if (i == 0 && resolvedUrl != null) {
                                         trackToMediaItem(track, playlistId, resolvedUrl)
@@ -200,7 +421,7 @@
                                 Triple(emptyList(), 0, C.TIME_UNSET)
                             }
                         }
-    
+
                         id == LIKES_ID -> {
                             val liked = likeRepository.likedTracks.value
                             val ctx = PlaybackContext(
@@ -210,9 +431,9 @@
                                 artistName = null
                             )
                             MusicManager.updateContext(ctx)
-    
+
                             val resolvedUrl = if (liked.isNotEmpty()) StreamResolver.resolveStream(context, liked[0]) else null
-    
+
                             val items = liked.mapIndexed { i, track ->
                                 if (i == 0 && resolvedUrl != null) {
                                     trackToMediaItem(track, -1L, resolvedUrl)
@@ -222,21 +443,21 @@
                             }
                             Triple(items, 0, C.TIME_UNSET)
                         }
-    
+
                         id == RECOMMENDATIONS_ID -> {
                             val response = api.searchTracks("trending", limit = 50)
                             val items = response.collection.map { trackToMediaItem(it, null) }
                             Triple(items, 0, C.TIME_UNSET)
                         }
-    
+
                         else -> {
                             val trackId = id.toLongOrNull()
                             if (trackId != null) {
                                 MusicManager.updateContext(null)
                                 val trackList = hydrateTracksSafe(listOf(Track(id = trackId, title = "", user = null, artworkUrl = null, permalinkUrl = "", durationMs = 0)))
-    
+
                                 val resolvedUrl = if (trackList.isNotEmpty()) StreamResolver.resolveStream(context, trackList[0]) else null
-    
+
                                 val items = trackList.map {
                                     trackToMediaItem(it, null, resolvedUrl)
                                 }
@@ -246,7 +467,7 @@
                             }
                         }
                     }
-    
+
                     if (queueData.first.isNotEmpty()) {
                         withContext(Dispatchers.Main) {
                             val player = mediaSession.player
@@ -258,7 +479,7 @@
                     } else {
                         defaultResult
                     }
-    
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                     defaultResult
@@ -278,7 +499,7 @@
                 updatedList
             }
         }
-    
+
         override fun onGetLibraryRoot(
             session: MediaLibraryService.MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
@@ -296,7 +517,7 @@
                 .build()
             return Futures.immediateFuture(LibraryResult.ofItem(rootItem, params))
         }
-    
+
         override fun onGetChildren(
             session: MediaLibraryService.MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
@@ -339,7 +560,7 @@
             return serviceScope.future {
                 val items = mutableListOf<MediaItem>()
                 items.add(createBrowsableMediaItem(LIKES_ID, context.getString(R.string.lib_liked_tracks)))
-    
+
                 try {
                     val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(context).downloadDao()
                     val localPlaylists = db.getAllPlaylists().first()
@@ -356,38 +577,38 @@
                         items.add(playlistToMediaItem(playlist))
                     }
                 } catch (e: Exception) { e.printStackTrace() }
-    
+
                 try {
                     val me = api.getMe()
                     coroutineScope {
-                        val createdDef = async { api.getUserCreatedPlaylists(me.id, limit = 50) }
+                        val createdDef = async { api.getMyPlaylistPosts(limit = 50) }
                         val likedDef = async { api.getUserPlaylistLikes(me.id, limit = 50) }
-                        val created = createdDef.await().collection
-                        val liked = likedDef.await().collection.map { it.playlist }
+                        val created = createdDef.await().collection.mapNotNull { it.playlist }
+                        val liked = likedDef.await().collection.mapNotNull { it.playlist }
                         created.forEach { items.add(playlistToMediaItem(it)) }
                         liked.forEach { items.add(playlistToMediaItem(it)) }
                     }
                 } catch (e: Exception) { e.printStackTrace() }
-    
+
                 val distinctItems = items.distinctBy { it.mediaId }
                 val pagedItems = paginate(distinctItems, page, pageSize)
                 LibraryResult.ofItemList(ImmutableList.copyOf(pagedItems), null)
             }
         }
-    
+
         private fun getLikedTracks(page: Int, pageSize: Int): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             val likedTracks = likeRepository.likedTracks.value
             val pagedTracks = paginate(likedTracks, page, pageSize)
             val mediaItems = pagedTracks.map { trackToMediaItem(it, -1L) }
             return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.copyOf(mediaItems), null))
         }
-    
+
         private fun getRecommendations(page: Int, pageSize: Int): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             return serviceScope.future {
                 try {
                     val likedTracks = likeRepository.likedTracks.value
                     val historyItems = HistoryRepository.getHistory().first()
-    
+
                     val seedTracks = mutableListOf<Track>()
                     seedTracks.addAll(likedTracks)
                     seedTracks.addAll(historyItems
@@ -396,16 +617,16 @@
                             Track(id = it.numericId, title = it.title, user = null, artworkUrl = null, durationMs = 0L)
                         }
                     )
-    
+
                     if (seedTracks.isEmpty()) {
                         val response = api.searchTracks("trending", limit = 50)
                         val pagedTracks = paginate(response.collection, page, pageSize)
                         val mediaItems = pagedTracks.map { trackToMediaItem(it, null) }
                         return@future LibraryResult.ofItemList(ImmutableList.copyOf(mediaItems), null)
                     }
-    
+
                     val seedsToUse = seedTracks.shuffled().take(5)
-    
+
                     val deferredRecommendations = coroutineScope {
                         seedsToUse.map { seed ->
                             async {
@@ -418,20 +639,20 @@
                         }
                     }
                     val allRelatedTracks = deferredRecommendations.awaitAll().flatten().distinctBy { it.id }.shuffled()
-    
+
                     val likedIds = likedTracks.map { it.id }.toSet()
                     val historyIds = historyItems.map { it.numericId }.toSet()
-    
+
                     val freshRecommendations = allRelatedTracks.filter {
                         !likedIds.contains(it.id) && !historyIds.contains(it.id)
                     }
-    
+
                     val finalTracks = if (freshRecommendations.isEmpty()) allRelatedTracks else freshRecommendations
-    
+
                     val pagedTracks = paginate(finalTracks, page, pageSize)
                     val mediaItems = pagedTracks.map { trackToMediaItem(it, null) }
                     LibraryResult.ofItemList(ImmutableList.copyOf(mediaItems), null)
-    
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                     try {
@@ -445,18 +666,18 @@
                 }
             }
         }
-    
+
         override fun onPlaybackResumption(
             mediaSession: MediaSession,
             controller: MediaSession.ControllerInfo
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
             return serviceScope.future {
                 val prefs = PlayerPreferences(context)
-    
+
                 val lastTrack = prefs.getLastTrack()
                 val lastQueue = prefs.getLastQueue()
                 val lastPosition = prefs.getLastPosition()
-    
+
                 if (lastTrack == null || lastQueue.isEmpty()) {
                     return@future MediaSession.MediaItemsWithStartPosition(
                         emptyList(),
@@ -464,26 +685,26 @@
                         C.TIME_UNSET
                     )
                 }
-    
+
                 val startIndex = lastQueue.indexOfFirst { it.id == lastTrack.id }.coerceAtLeast(0)
                 val mediaItems = lastQueue.map { trackToMediaItem(it, null) }
-    
+
                 MediaSession.MediaItemsWithStartPosition(mediaItems, startIndex, lastPosition)
             }
         }
-    
+
         private fun getGenres(page: Int, pageSize: Int): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             val allCategories = GenreData.getMoods(context) + GenreData.getGenres(context)
             val pagedCategories = paginate(allCategories, page, pageSize)
             val mediaItems = pagedCategories.map { category -> genreToBrowsableMediaItem(category) }
             return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.copyOf(mediaItems), null))
         }
-    
+
         private fun genreToBrowsableMediaItem(category: SearchCategory): MediaItem {
             val metadata = MediaMetadata.Builder().setTitle(category.title).setIsBrowsable(true).setIsPlayable(false).build()
             return MediaItem.Builder().setMediaId("$GENRE_PREFIX_ID${category.query}").setMediaMetadata(metadata).build()
         }
-    
+
         private fun getPlaylistsForGenre(genreQuery: String, page: Int, pageSize: Int): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             return serviceScope.future {
                 try {
@@ -496,7 +717,7 @@
                 }
             }
         }
-    
+
         private fun getTracksForPlaylist(playlistId: Long, page: Int, pageSize: Int): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             return serviceScope.future {
                 try {
@@ -513,14 +734,14 @@
                 }
             }
         }
-    
+
         private fun <T> paginate(list: List<T>, page: Int, pageSize: Int): List<T> {
             val fromIndex = page * pageSize
             if (fromIndex >= list.size) return emptyList()
             val toIndex = min(fromIndex + pageSize, list.size)
             return list.subList(fromIndex, toIndex)
         }
-    
+
         private suspend fun hydrateTracksSafe(tracksToHydrate: List<Track>): List<Track> {
             if (tracksToHydrate.isEmpty()) return emptyList()
             val chunks = tracksToHydrate.chunked(API_BATCH_LIMIT)
@@ -544,7 +765,7 @@
             } catch (e: Exception) { e.printStackTrace() }
             return tracksToHydrate.map { original -> hydratedMap[original.id] ?: original }
         }
-    
+
         override fun onSearch(
             session: MediaLibraryService.MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
@@ -554,7 +775,7 @@
             session.notifySearchResultChanged(browser, query, 0, params)
             return Futures.immediateFuture(LibraryResult.ofVoid())
         }
-    
+
         override fun onGetSearchResult(
             session: MediaLibraryService.MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
@@ -574,40 +795,57 @@
                 }
             }
         }
-    
+
         private fun createBrowsableMediaItem(id: String, title: String): MediaItem {
             val metadata = MediaMetadata.Builder().setTitle(title).setIsBrowsable(true).setIsPlayable(false).build()
             return MediaItem.Builder().setMediaId(id).setMediaMetadata(metadata).build()
         }
-    
+
         private fun trackToMediaItem(track: Track, contextPlaylistId: Long?, urlOverride: String? = null): MediaItem {
             val mediaId = if (contextPlaylistId != null) {
                 "$TRACK_PREFIX${track.id}$CONTEXT_SEPARATOR$contextPlaylistId"
             } else {
                 track.id.toString()
             }
-    
+
             val uri = if (urlOverride != null) Uri.parse(urlOverride) else Uri.parse("soundtune://track/${track.id}")
-    
+
+            val artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) }
             val metadataBuilder = MediaMetadata.Builder()
                 .setTitle(track.title ?: context.getString(R.string.untitled_track))
-                .setArtist(track.user?.username ?: context.getString(R.string.unknown_artist))
+                .setArtist(artist)
+                .setSubtitle(artist)
                 .setArtworkUri(Uri.parse(track.fullResArtwork))
                 .setIsBrowsable(false)
                 .setIsPlayable(true)
-    
+
             val builder = MediaItem.Builder()
                 .setMediaId(mediaId)
                 .setUri(uri)
                 .setMediaMetadata(metadataBuilder.build())
-    
-            if (urlOverride != null && urlOverride.contains(".m3u8")) {
+
+            if (urlOverride != null && (urlOverride.contains(".m3u8") || urlOverride.contains("m3u8"))) {
                 builder.setMimeType(MimeTypes.APPLICATION_M3U8)
+            } else if (urlOverride != null && (urlOverride.contains(".mpd") || urlOverride.contains("mpd") || com.alananasss.kittytune.audio.providers.tidal.TidalAudioProvider.isLiveManifestUri(urlOverride))) {
+                builder.setMimeType(MimeTypes.APPLICATION_MPD)
             }
-    
+
+            // Configure Widevine DRM if a license token is cached for this track and URL is not a non-DRM fallback
+            val isNonDrmUrl = urlOverride?.contains("youtube") == true || urlOverride?.contains("youtu.be") == true ||
+                urlOverride?.contains(".mp3") == true || urlOverride?.contains(".m4a") == true ||
+                urlOverride?.startsWith("/data/") == true || urlOverride?.startsWith("file://") == true
+            val drmToken = if (isNonDrmUrl) null else MusicManager.getDrmToken(track.id)
+            if (drmToken != null) {
+                builder.setMimeType(MimeTypes.APPLICATION_M3U8)
+                builder.setDrmConfiguration(
+                    MediaItem.DrmConfiguration.Builder(androidx.media3.common.C.WIDEVINE_UUID)
+                        .build()
+                )
+            }
+
             return builder.build()
         }
-    
+
         private fun playlistToMediaItem(playlist: Playlist): MediaItem {
             val metadata = MediaMetadata.Builder()
                 .setTitle(playlist.title ?: context.getString(R.string.generic_title))
@@ -619,5 +857,4 @@
             return MediaItem.Builder().setMediaId("$PLAYLIST_PREFIX_ID${playlist.id}").setMediaMetadata(metadata).build()
         }
     }
-
 

@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import androidx.compose.animation.core.Spring
     import androidx.compose.animation.core.spring
     import androidx.compose.foundation.ExperimentalFoundationApi
@@ -39,7 +39,10 @@
     import android.text.format.DateFormat
     import coil.compose.AsyncImage
     import com.alananasss.kittytune.R
-    import com.alananasss.kittytune.domain.Message
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
+    import com.alananasss.kittytune.domain.InboxMessage
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.Track
     import com.alananasss.kittytune.domain.User
@@ -47,10 +50,11 @@
     import kotlinx.coroutines.launch
     import java.util.regex.Pattern
     import androidx.compose.animation.core.animateDpAsState
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun ChatScreen(
+        conversationId: String,
         otherUserId: String,
         username: String,
         onBackClick: () -> Unit,
@@ -59,32 +63,33 @@
         viewModel: ChatViewModel = viewModel(),
         onNavigate: (String) -> Unit = {}
     ) {
-        LaunchedEffect(otherUserId) {
-            viewModel.loadMessages(otherUserId)
+        LaunchedEffect(conversationId) {
+            viewModel.loadMessages(conversationId)
         }
-    
+
         DisposableEffect(Unit) {
             onDispose { viewModel.stopPolling() }
         }
-    
+
         var messageText by remember { mutableStateOf("") }
-        val isMiniPlayerVisible = playerViewModel.currentTrack != null
-    
+        val isMiniPlayerVisible = playerViewModel.uiCurrentTrack != null
+
         val otherUserAvatar by remember {
             derivedStateOf {
                 viewModel.messages.find { it.sender?.username == username }?.sender?.avatarUrl
+                    ?: viewModel.messages.find { it.sender?.urn != viewModel.myUserUrn }?.sender?.avatarUrl
             }
         }
-    
+
         val listState = rememberLazyListState()
         val scope = rememberCoroutineScope()
-    
+
         LaunchedEffect(viewModel.messages.size) {
             if (viewModel.messages.isNotEmpty()) {
                 scope.launch { listState.animateScrollToItem(0) }
             }
         }
-    
+
         Scaffold(
             topBar = {
                 CenterAlignedTopAppBar(
@@ -93,7 +98,7 @@
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable { onProfileClick(otherUserId) }
+                                .hapticClickable { onProfileClick(otherUserId) }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             ArtistAvatar(
@@ -127,7 +132,7 @@
             },
             containerColor = MaterialTheme.colorScheme.surface
         ) { innerPadding ->
-    
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -135,9 +140,9 @@
             ) {
                 val baseInputHeight = 90.dp
                 val playerHeight = if (isMiniPlayerVisible) 80.dp else 0.dp
-    
+
                 val listBottomPadding = baseInputHeight + playerHeight
-    
+
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -152,9 +157,9 @@
                 ) {
                     items(
                         items = viewModel.messages,
-                        key = { it.hashCode() }
+                        key = { it.urn }
                     ) { message ->
-                        val isMe = message.sender?.id == viewModel.myUser?.id
+                        val isMe = message.sender?.urn == viewModel.myUserUrn
                         MessageBubble(
                             message = message,
                             isMe = isMe,
@@ -175,7 +180,7 @@
                         )
                     }
                 }
-    
+
                 ChatInputBar(
                     text = messageText,
                     onTextChange = { messageText = it },
@@ -193,10 +198,10 @@
             }
         }
     }
-    
+
     @Composable
     fun MessageBubble(
-        message: Message,
+        message: InboxMessage,
         isMe: Boolean,
         viewModel: ChatViewModel,
         onPreviewClick: (Any) -> Unit,
@@ -207,25 +212,25 @@
         } else {
             RoundedCornerShape(20.dp, 20.dp, 20.dp, 4.dp)
         }
-    
+
         val containerColor = if (isMe) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
         val contentColor = if (isMe) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-    
-        val content = message.content ?: ""
+
+        val content = message.content
         val formattedTime = formatMessageDate(message.sentAt)
-    
+
         val urlPattern = Pattern.compile("(https?://(on\\.)?soundcloud\\.com/\\S+)")
         val matcher = urlPattern.matcher(content)
         val foundUrl = if (matcher.find()) matcher.group(1) else null
-    
+
         if (foundUrl != null) {
             LaunchedEffect(foundUrl) {
                 viewModel.fetchLinkMetadata(foundUrl)
             }
         }
-    
+
         val richData = if (foundUrl != null) viewModel.linkMetadataCache[foundUrl] else null
-    
+
         Column(
             modifier = modifier.fillMaxWidth(),
             horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
@@ -235,7 +240,7 @@
                     SoundCloudPreviewCard(
                         data = richData,
                         isMe = isMe,
-                        onClick = { onPreviewClick(richData) }
+                        onClick = hapticAction(HapticKind.UI) { onPreviewClick(richData) }
                     )
                     if (formattedTime.isNotEmpty()) {
                         Text(
@@ -246,7 +251,7 @@
                         )
                     }
                 }
-    
+
                 if (content.trim() != foundUrl) {
                     Spacer(Modifier.height(4.dp))
                     Surface(
@@ -287,7 +292,7 @@
                             style = MaterialTheme.typography.bodyLarge,
                             color = contentColor
                         )
-    
+
                         if (formattedTime.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
@@ -305,7 +310,7 @@
             }
         }
     }
-    
+
     @Composable
     fun SoundCloudPreviewCard(
         data: Any,
@@ -314,7 +319,7 @@
     ) {
         val cardBgColor = if (isMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer
         val cardContentColor = if (isMe) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-    
+
         val (title, subtitle, imageUrl, icon) = when (data) {
             is Track -> Quadruple(
                 data.title ?: "Track",
@@ -336,7 +341,7 @@
             )
             else -> Quadruple("SoundCloud Link", "", null, Icons.Rounded.GraphicEq)
         }
-    
+
         Card(
             onClick = onClick,
             shape = RoundedCornerShape(16.dp),
@@ -364,9 +369,9 @@
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 )
-    
+
                 Spacer(Modifier.width(12.dp))
-    
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = title,
@@ -385,9 +390,9 @@
                         )
                     }
                 }
-    
+
                 Spacer(Modifier.width(8.dp))
-    
+
                 Surface(
                     shape = CircleShape,
                     color = cardContentColor.copy(alpha = 0.1f),
@@ -405,13 +410,13 @@
             }
         }
     }
-    
+
     fun Modifier.rotate(degrees: Float) = this.then(
         Modifier.graphicsLayer(rotationZ = degrees)
     )
-    
+
     data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
-    
+
     @OptIn(ExperimentalLayoutApi::class)
     @Composable
     fun ChatInputBar(
@@ -430,7 +435,7 @@
             ),
             label = "keyboardBottomPadding"
         )
-    
+
         Box(
             modifier = modifier
                 .fillMaxWidth()
@@ -458,7 +463,7 @@
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                     }
-    
+
                     BasicTextField(
                         value = text,
                         onValueChange = onTextChange,
@@ -472,9 +477,9 @@
                         keyboardActions = KeyboardActions(onSend = { onSend() })
                     )
                 }
-    
+
                 Spacer(Modifier.width(4.dp))
-    
+
                 FilledIconButton(
                     onClick = onSend,
                     enabled = text.isNotBlank() && !isLoading,
@@ -503,28 +508,28 @@
             }
         }
     }
-    
+
     @Composable
     fun formatMessageDate(dateStr: String?): String {
         if (dateStr.isNullOrEmpty()) return ""
         val context = androidx.compose.ui.platform.LocalContext.current
-    
+
         return remember(dateStr) {
             try {
                 val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
                 inputFormat.timeZone = java.util.TimeZone.getTimeZone("UTC")
                 val date = inputFormat.parse(dateStr) ?: return@remember ""
-    
+
                 val now = java.util.Calendar.getInstance()
                 val msgTime = java.util.Calendar.getInstance().apply { time = date }
-    
+
                 val isToday = now.get(java.util.Calendar.YEAR) == msgTime.get(java.util.Calendar.YEAR) &&
                         now.get(java.util.Calendar.DAY_OF_YEAR) == msgTime.get(java.util.Calendar.DAY_OF_YEAR)
-    
+
                 // Get the user's preferred time format (12h or 24h)
                 val timeFormat = DateFormat.getTimeFormat(context)
                 val timeStr = timeFormat.format(date)
-    
+
                 if (isToday) {
                     timeStr // e.g., "14:30" or "2:30 PM"
                 } else {
@@ -540,5 +545,4 @@
             }
         }
     }
-
 

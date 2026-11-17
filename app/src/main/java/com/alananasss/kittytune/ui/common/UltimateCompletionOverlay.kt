@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.common
-    
+
     import androidx.compose.animation.AnimatedVisibility
     import androidx.compose.animation.core.*
     import androidx.compose.animation.fadeIn
@@ -31,35 +31,36 @@
     import androidx.compose.ui.unit.dp
     import androidx.compose.ui.unit.sp
     import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
     import kotlinx.coroutines.delay
     import kotlin.math.cos
     import kotlin.math.sin
     import kotlin.random.Random
-    
+
     @OptIn(ExperimentalTextApi::class)
     @Composable
     fun UltimateCompletionOverlay(onDismiss: () -> Unit) {
         var phase by remember { mutableIntStateOf(0) } // 0: LEGEND animation, 1: THANKS
         var canDismiss by remember { mutableStateOf(false) } // Locks the click
-    
-        // --- Time sequence (5s + 5s = 10s total) ---
+
         LaunchedEffect(Unit) {
             delay(5000) // 5 seconds on the LEGEND screen
             phase = 1   // Transition to thanks
             delay(5000) // 5 seconds on the thanks text (reading)
             canDismiss = true // Unlocks output
         }
-    
-        // --- Infinite animations for the background ---
+
         val infiniteTransition = rememberInfiniteTransition(label = "infinite")
-    
+
         // Rays rotation
         val raysRotation by infiniteTransition.animateFloat(
             initialValue = 0f, targetValue = 360f,
             animationSpec = infiniteRepeatable(tween(20000, easing = LinearEasing)),
             label = "rotation"
         )
-    
+
         // Disk pulsation (Breathing)
         val pulseScale by infiniteTransition.animateFloat(
             initialValue = 1f, targetValue = 1.1f,
@@ -69,7 +70,7 @@
             ),
             label = "pulse"
         )
-    
+
         // Particles (One-time random generation)
         val particles = remember { List(30) { ParticleData.random() } }
         // Animation to move particles
@@ -78,7 +79,7 @@
             animationSpec = infiniteRepeatable(tween(5000, easing = LinearEasing)),
             label = "particles"
         )
-    
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -91,17 +92,16 @@
                 },
             contentAlignment = Alignment.Center
         ) {
-    
-            // --- ANIMATED BACKGROUND (Common to both phases) ---
+
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val center = this.center
-    
+
                 // 1. Divine light rays (Rotating slowly)
                 val rayGradient = Brush.sweepGradient(
                     colors = listOf(Color(0xFFD4AF37), Color(0xFFFFD700), Color.Transparent),
                     center = center
                 )
-    
+
                 // Fix here: Removed unnecessary with(drawContext.canvas.nativeCanvas)
                 val count = 12
                 for (i in 0 until count) {
@@ -109,22 +109,22 @@
                     val rad = Math.toRadians(angle.toDouble())
                     val endX = center.x + (size.width * 1.5f * cos(rad)).toFloat()
                     val endY = center.y + (size.height * 1.5f * sin(rad)).toFloat()
-    
+
                     drawLine(
                         brush = rayGradient,
                         start = center,
                         end = Offset(endX, endY),
-                        strokeWidth = 150f, // Rayons plus larges
-                        alpha = 0.05f // Très subtil
+                        strokeWidth = 150f, // Wider rays
+                        alpha = 0.05f // Very subtle
                     )
                 }
-    
+
                 // 2. Floating gold particles (Stardust)
                 particles.forEach { p ->
                     // Slight orbital movement
                     val offsetX = cos(particleAnim + p.offsetSeed) * 20.dp.toPx()
                     val offsetY = sin(particleAnim + p.offsetSeed) * 20.dp.toPx()
-    
+
                     drawCircle(
                         color = Color(0xFFFFD700),
                         radius = p.radius.dp.toPx(),
@@ -136,8 +136,7 @@
                     )
                 }
             }
-    
-            // --- PHASE 1: LEGEND (0s -> 5s) ---
+
             AnimatedVisibility(
                 visible = phase == 0,
                 enter = scaleIn(initialScale = 0.8f) + fadeIn(),
@@ -157,7 +156,7 @@
                                 )
                             )
                         }
-    
+
                         // The Record
                         Canvas(modifier = Modifier.size(180.dp)) {
                             // Record body (Metallic radial gradient)
@@ -174,9 +173,9 @@
                             drawCircle(Color.Black, radius = size.width * 0.12f)
                         }
                     }
-    
+
                     Spacer(Modifier.height(48.dp))
-    
+
                     // LEGEND text with Gradient (Expressive Typography)
                     val goldTextGradient = Brush.verticalGradient(
                         colors = listOf(
@@ -186,7 +185,7 @@
                         ),
                         tileMode = TileMode.Mirror
                     )
-    
+
                     Text(
                         text = stringResource(R.string.completion_legend).uppercase(),
                         style = TextStyle(
@@ -202,9 +201,9 @@
                             scaleY = pulseScale
                         }
                     )
-    
+
                     Spacer(Modifier.height(16.dp))
-    
+
                     Text(
                         text = stringResource(R.string.completion_message),
                         style = MaterialTheme.typography.titleLarge,
@@ -215,8 +214,7 @@
                     )
                 }
             }
-    
-            // --- PHASE 2: THANKS (5s -> Infinity) ---
+
             AnimatedVisibility(
                 visible = phase == 1,
                 enter = fadeIn(animationSpec = tween(1000)) + scaleIn(initialScale = 0.9f)
@@ -231,7 +229,7 @@
                         fontSize = 48.sp,
                         modifier = Modifier.padding(bottom = 24.dp)
                     )
-    
+
                     Text(
                         text = stringResource(R.string.completion_thanks),
                         style = MaterialTheme.typography.displayMedium.copy(
@@ -239,9 +237,9 @@
                             color = Color(0xFFFFD700)
                         )
                     )
-    
+
                     Spacer(Modifier.height(32.dp))
-    
+
                     // More readable message
                     Text(
                         text = stringResource(R.string.completion_thanks_message),
@@ -252,9 +250,9 @@
                         color = Color.White.copy(0.9f),
                         textAlign = TextAlign.Center
                     )
-    
+
                     Spacer(Modifier.height(64.dp))
-    
+
                     // Exit indicator (Appears only after total 10s)
                     AnimatedVisibility(
                         visible = canDismiss,
@@ -282,7 +280,7 @@
             }
         }
     }
-    
+
     // Simple data for particles
     private data class ParticleData(
         val relX: Float,
@@ -301,5 +299,4 @@
             )
         }
     }
-
 

@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.home
-    
+
     import androidx.compose.foundation.background
     import androidx.compose.foundation.layout.*
     import androidx.compose.foundation.lazy.grid.GridCells
@@ -33,9 +33,12 @@
     import androidx.lifecycle.viewmodel.compose.viewModel
     import coil.compose.AsyncImage
     import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.ui.common.SquareCardShimmer
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun GenrePlaylistsScreen(
@@ -46,11 +49,11 @@
         viewModel: GenrePlaylistsViewModel = viewModel()
     ) {
         val listState = rememberLazyGridState()
-    
+
         LaunchedEffect(query) {
             viewModel.loadGenre(genreTitle, query)
         }
-    
+
         val shouldLoadMore by remember {
             derivedStateOf {
                 val layoutInfo = listState.layoutInfo
@@ -59,13 +62,13 @@
                 totalItems > 0 && lastVisibleItemIndex >= totalItems - 10
             }
         }
-    
+
         LaunchedEffect(shouldLoadMore) {
             if (shouldLoadMore && !viewModel.isLoadingMore) {
                 viewModel.loadMore()
             }
         }
-    
+
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -97,7 +100,7 @@
         ) { innerPadding ->
             if (viewModel.isLoading) {
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
+                    columns = GridCells.Adaptive(minSize = 160.dp),
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -112,8 +115,8 @@
             } else {
                 LazyVerticalGrid(
                     state = listState,
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 80.dp),
+                    columns = GridCells.Adaptive(minSize = 160.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 180.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.padding(innerPadding)
@@ -121,7 +124,7 @@
                     items(viewModel.playlists) { playlist ->
                         CinematicPlaylistCard(
                             playlist = playlist,
-                            onClick = { onPlaylistClick(playlist.id) }
+                            onClick = hapticAction(HapticKind.UI) { onPlaylistClick(playlist.id) }
                         )
                     }
 
@@ -141,7 +144,7 @@
             }
         }
     }
-    
+
     @Composable
     fun CinematicPlaylistCard(
         playlist: Playlist,
@@ -163,7 +166,7 @@
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-    
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -178,7 +181,7 @@
                             )
                         )
                 )
-    
+
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -193,9 +196,9 @@
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-    
+
                     Spacer(modifier = Modifier.height(4.dp))
-    
+
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (playlist.user?.avatarUrl != null) {
                             AsyncImage(
@@ -207,7 +210,7 @@
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                         }
-    
+
                         Text(
                             text = playlist.user?.username ?: stringResource(R.string.unknown_artist),
                             style = MaterialTheme.typography.labelSmall,
@@ -216,23 +219,24 @@
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-    
-                    Spacer(modifier = Modifier.height(4.dp))
-    
-                    Surface(
-                        color = Color.White.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.playlist_num_tracks, playlist.trackCount ?: 0),
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                        )
+
+                    if (playlist.trackCount != null && playlist.trackCount > 0) {
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Surface(
+                            color = Color.White.copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.playlist_num_tracks, playlist.trackCount),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }
         }
     }
-
 

@@ -10,7 +10,9 @@ build/
 *.dex
 output-metadata.json
 lint-results-*.xml
-.idea/
+.idea/*
+!.idea/runConfigurations/
+!.idea/runConfigurations/*.xml
 *.iml
 *.ipr
 *.iws
@@ -25,4 +27,18 @@ dump_project_context.txt
 *.dm
 .kotlin/
 *.txt
+!CMakeLists.txt
 .vscode/
+node_modules/
+site/dist/
+site/.astro/
+!site/public/robots.txt
+
+# Custom temporary/junk files and build products
+/.artifacts/
+/SoundCloud v2025.12.10-release (Premium)/
+/*.json
+.cxx/
+app/.cxx/
+
+.agents/

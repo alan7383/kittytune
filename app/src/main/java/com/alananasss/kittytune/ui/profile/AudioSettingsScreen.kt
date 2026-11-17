@@ -1,8 +1,17 @@
 package com.alananasss.kittytune.ui.profile
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -10,105 +19,121 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
+import com.alananasss.kittytune.ui.common.Slider
+import com.alananasss.kittytune.ui.common.SplitSettingsItem
 import com.alananasss.kittytune.ui.common.getSettingsShape
+import com.alananasss.kittytune.ui.player.AudioPathDiagnosticSheet
+import com.alananasss.kittytune.ui.player.AudioPathHeroCard
+import com.alananasss.kittytune.ui.common.settingHighlight
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.audio.EqualizerSheet
+import kotlin.math.roundToInt
 
+/**
+ * The Audio category folder hub:
+ * Playback, Sound & Output, Transitions & Mix, Sleep Timer, Haptic Feedback.
+ */
 @Composable
 fun AudioSettingsScreen(
+    navController: NavController,
+    onBackClick: () -> Unit
+) {
+    SettingsFolderScreen(
+        title = stringResource(R.string.settings_cat_audio),
+        pages = SettingsSubPage.audioPages,
+        navController = navController,
+        onBackClick = onBackClick
+    )
+}
+
+/**
+ * Audio Playback subpage:
+ * Autoplay, queue persistence, position saving, YouTube fallback, speed.
+ */
+@Composable
+fun AudioPlaybackSettingsScreen(
     onBackClick: () -> Unit,
     playerViewModel: PlayerViewModel
 ) {
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
-
     val tokenManager = remember { TokenManager(context) }
-    val isLoggedIn = remember {
-        !tokenManager.isGuestMode() && !tokenManager.getAccessToken().isNullOrEmpty()
-    }
+    val isGuest = remember { tokenManager.isGuestMode() }
 
     var autoplayEnabled by remember { mutableStateOf(prefs.getAutoplayEnabled()) }
-    var syncLikes by remember { mutableStateOf(prefs.getSyncLikesEnabled()) }
+    var stopOnTaskClear by remember { mutableStateOf(prefs.getStopOnTaskClear()) }
     var persistentQueueEnabled by remember { mutableStateOf(prefs.getPersistentQueueEnabled()) }
-    var audioQuality by remember { mutableStateOf(prefs.getAudioQuality()) }
-
+    var queueAutoArchiveEnabled by remember { mutableStateOf(prefs.getQueueAutoArchiveEnabled()) }
+    var savePositionEnabled by remember { mutableStateOf(prefs.getSavePositionEnabled()) }
     var youtubeFallbackEnabled by remember { mutableStateOf(prefs.getYouTubeFallbackEnabled()) }
+    var hideVideoSongsEnabled by remember { mutableStateOf(prefs.getHideVideoSongs()) }
+    var hideYoutubeShortsEnabled by remember { mutableStateOf(prefs.getHideYoutubeShorts()) }
+    var scHistorySyncEnabled by remember { mutableStateOf(prefs.getSoundCloudHistorySyncEnabled()) }
+    var skipSilenceEnabled by remember { mutableStateOf(prefs.getSkipSilence()) }
+    var instantSkipSilenceEnabled by remember { mutableStateOf(prefs.getInstantSkipSilence()) }
+    var resumeOnBluetooth by remember { mutableStateOf(prefs.getResumeOnBluetoothConnect()) }
+    var pauseOnMute by remember { mutableStateOf(prefs.getPauseOnMute()) }
+    var keepScreenOn by remember { mutableStateOf(prefs.getKeepScreenOn()) }
+    var pauseListenHistory by remember { mutableStateOf(prefs.getPauseListenHistory()) }
+    var pauseSearchHistory by remember { mutableStateOf(prefs.getPauseSearchHistory()) }
+    var usbBitPerfect by remember { mutableStateOf(prefs.getUsbBitPerfect()) }
+    var usbShowStatus by remember { mutableStateOf(prefs.getUsbShowStatus()) }
+    var dapExclusive by remember { mutableStateOf(prefs.getDapAaudioExclusive()) }
+    var showAudioPathSheet by remember { mutableStateOf(false) }
+    val usbStatus by com.alananasss.kittytune.audio.usb.UsbAudioManager.status.collectAsState()
+    val automixConflictsWithBitPerfect by com.alananasss.kittytune.audio.usb.UsbAudioManager
+        .automixConflictsWithBitPerfect.collectAsState()
 
-    var showQualityDialog by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
-    if (showQualityDialog) {
-        AlertDialog(
-            onDismissRequest = { showQualityDialog = false },
-            title = { Text(stringResource(R.string.pref_quality)) },
-            text = {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable { audioQuality = "HIGH"; prefs.setAudioQuality("HIGH"); showQualityDialog = false }.padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = audioQuality == "HIGH", onClick = null)
-                        Spacer(Modifier.width(8.dp))
-                        Column { Text(stringResource(R.string.quality_high), fontWeight = FontWeight.SemiBold); Text(stringResource(R.string.quality_high_sub), style = MaterialTheme.typography.bodySmall) }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable { audioQuality = "LOW"; prefs.setAudioQuality("LOW"); showQualityDialog = false }.padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = audioQuality == "LOW", onClick = null)
-                        Spacer(Modifier.width(8.dp))
-                        Column { Text(stringResource(R.string.quality_low), fontWeight = FontWeight.SemiBold); Text(stringResource(R.string.quality_low_sub), style = MaterialTheme.typography.bodySmall) }
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showQualityDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "pref_autoplay" to 0,
+            "pref_stop_on_task_clear" to 0,
+            "pref_persist_queue" to 0,
+            "pref_queue_auto_archive" to 0,
+            "pref_save_position" to 0,
+            "pref_youtube_fallback" to 0,
+            "pref_hide_youtube_videos" to 0,
+            "pref_precise_speed" to 0,
+            "pref_resume_on_bluetooth" to 0,
+            "pref_pause_on_mute" to 0,
+            "pref_keep_screen_on" to 0,
+            "pref_sc_sync" to 0
         )
-    }
+    )
 
     SettingsScaffold(
-        title = stringResource(R.string.pref_audio_title),
+        title = stringResource(R.string.settings_cat_playback),
         onBackClick = onBackClick
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 120.dp)
+            contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp)
         ) {
-            if (isLoggedIn) {
-                item {
-                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                        SettingsGroupTitle(stringResource(R.string.settings_cat_general))
-
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            SettingsItem(
-                                shape = com.alananasss.kittytune.ui.common.getSettingsShape(1, 0),
-                                title = stringResource(R.string.pref_sync_likes),
-                                subtitle = stringResource(R.string.pref_sync_likes_sub),
-                                hasSwitch = true,
-                                switchState = syncLikes,
-                                onSwitchChange = {
-                                    syncLikes = it
-                                    prefs.setSyncLikesEnabled(it)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
             item {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = 4
+                        val totalVisibleItems = if (!isGuest) 13 else 12
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
@@ -116,53 +141,1034 @@ fun AudioSettingsScreen(
                             subtitle = stringResource(R.string.pref_autoplay_sub),
                             hasSwitch = true,
                             switchState = autoplayEnabled,
-                            onSwitchChange = { autoplayEnabled = it; prefs.setAutoplayEnabled(it) }
+                            onSwitchChange = { autoplayEnabled = it; prefs.setAutoplayEnabled(it) },
+                            highlightKey = "pref_autoplay"
                         )
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 1),
-                            title = stringResource(R.string.pref_persist_queue),
-                            subtitle = stringResource(R.string.pref_persist_queue_sub),
+                            title = stringResource(R.string.pref_stop_on_task_clear),
                             hasSwitch = true,
-                            switchState = persistentQueueEnabled,
-                            onSwitchChange = { persistentQueueEnabled = it; prefs.setPersistentQueueEnabled(it) }
+                            switchState = stopOnTaskClear,
+                            onSwitchChange = { stopOnTaskClear = it; prefs.setStopOnTaskClear(it) },
+                            highlightKey = "pref_stop_on_task_clear"
                         )
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 2),
-                            title = stringResource(R.string.pref_youtube_fallback),
-                            subtitle = stringResource(R.string.pref_youtube_fallback_sub),
+                            title = stringResource(R.string.pref_persist_queue),
+                            subtitle = stringResource(R.string.pref_persist_queue_sub),
                             hasSwitch = true,
-                            switchState = youtubeFallbackEnabled,
-                            onSwitchChange = { youtubeFallbackEnabled = it; prefs.setYouTubeFallbackEnabled(it) }
+                            switchState = persistentQueueEnabled,
+                            onSwitchChange = { persistentQueueEnabled = it; prefs.setPersistentQueueEnabled(it) },
+                            highlightKey = "pref_persist_queue"
                         )
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 3),
+                            title = stringResource(R.string.pref_queue_auto_archive),
+                            subtitle = stringResource(R.string.pref_queue_auto_archive_sub),
+                            hasSwitch = true,
+                            switchState = queueAutoArchiveEnabled,
+                            onSwitchChange = {
+                                queueAutoArchiveEnabled = it
+                                prefs.setQueueAutoArchiveEnabled(it)
+                            },
+                            highlightKey = "pref_queue_auto_archive"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 4),
+                            title = stringResource(R.string.pref_save_position),
+                            subtitle = stringResource(R.string.pref_save_position_sub),
+                            hasSwitch = true,
+                            switchState = savePositionEnabled,
+                            onSwitchChange = { savePositionEnabled = it; prefs.setSavePositionEnabled(it) },
+                            highlightKey = "pref_save_position"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 5),
+                            title = stringResource(R.string.pref_youtube_fallback),
+                            subtitle = stringResource(R.string.pref_youtube_fallback_sub),
+                            hasSwitch = true,
+                            switchState = youtubeFallbackEnabled,
+                            onSwitchChange = { youtubeFallbackEnabled = it; prefs.setYouTubeFallbackEnabled(it) },
+                            highlightKey = "pref_youtube_fallback"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 6),
+                            title = stringResource(R.string.pref_hide_video_songs),
+                            subtitle = stringResource(R.string.pref_hide_video_songs_sub),
+                            hasSwitch = true,
+                            switchState = hideVideoSongsEnabled,
+                            onSwitchChange = {
+                                hideVideoSongsEnabled = it
+                                prefs.setHideVideoSongs(it)
+                            },
+                            highlightKey = "pref_hide_video_songs"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 7),
+                            title = stringResource(R.string.pref_hide_youtube_shorts),
+                            subtitle = stringResource(R.string.pref_hide_youtube_shorts_sub),
+                            hasSwitch = true,
+                            switchState = hideYoutubeShortsEnabled,
+                            onSwitchChange = {
+                                hideYoutubeShortsEnabled = it
+                                prefs.setHideYoutubeShorts(it)
+                            },
+                            highlightKey = "pref_hide_youtube_shorts"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 8),
                             title = stringResource(R.string.pref_precise_speed),
                             subtitle = stringResource(R.string.pref_precise_speed_sub),
                             hasSwitch = true,
                             switchState = playerViewModel.isPreciseSpeedEnabled,
-                            onSwitchChange = { playerViewModel.togglePreciseSpeedEnabled(it) }
+                            onSwitchChange = { playerViewModel.togglePreciseSpeedEnabled(it) },
+                            highlightKey = "pref_precise_speed"
                         )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 9),
+                            title = stringResource(R.string.pref_resume_on_bluetooth),
+                            subtitle = stringResource(R.string.pref_resume_on_bluetooth_sub),
+                            hasSwitch = true,
+                            switchState = resumeOnBluetooth,
+                            onSwitchChange = { resumeOnBluetooth = it; prefs.setResumeOnBluetoothConnect(it) },
+                            highlightKey = "pref_resume_on_bluetooth"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 10),
+                            title = stringResource(R.string.pref_pause_on_mute),
+                            subtitle = stringResource(R.string.pref_pause_on_mute_sub),
+                            hasSwitch = true,
+                            switchState = pauseOnMute,
+                            onSwitchChange = { pauseOnMute = it; prefs.setPauseOnMute(it) },
+                            highlightKey = "pref_pause_on_mute"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 11),
+                            title = stringResource(R.string.pref_keep_screen_on),
+                            subtitle = stringResource(R.string.pref_keep_screen_on_sub),
+                            hasSwitch = true,
+                            switchState = keepScreenOn,
+                            onSwitchChange = { keepScreenOn = it; prefs.setKeepScreenOn(it) },
+                            highlightKey = "pref_keep_screen_on"
+                        )
+
+
+                        if (!isGuest) {
+                            SettingsItem(
+                                shape = getSettingsShape(totalVisibleItems, 12),
+                                title = stringResource(R.string.pref_sc_sync_title),
+                                subtitle = stringResource(R.string.pref_sc_sync_sub),
+                                hasSwitch = true,
+                                switchState = scHistorySyncEnabled,
+                                onSwitchChange = {
+                                    scHistorySyncEnabled = it
+                                    prefs.setSoundCloudHistorySyncEnabled(it)
+                                },
+                                highlightKey = "pref_sc_sync"
+                            )
+                        }
+                    }
+
+                    SettingsGroupTitle(stringResource(R.string.pref_skip_silence))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val skipGroupItems = if (skipSilenceEnabled) 2 else 1
+                        SettingsItem(
+                            shape = getSettingsShape(skipGroupItems, 0),
+                            title = stringResource(R.string.pref_skip_silence),
+                            subtitle = stringResource(R.string.pref_skip_silence_sub),
+                            hasSwitch = true,
+                            switchState = skipSilenceEnabled,
+                            onSwitchChange = { on ->
+                                skipSilenceEnabled = on
+                                prefs.setSkipSilence(on)
+                                com.alananasss.kittytune.data.MusicManager.applySkipSilenceSettings()
+                            },
+                            highlightKey = "pref_skip_silence"
+                        )
+                        if (skipSilenceEnabled) {
+                            SettingsItem(
+                                shape = getSettingsShape(skipGroupItems, 1),
+                                title = stringResource(R.string.pref_instant_skip_silence),
+                                subtitle = stringResource(R.string.pref_instant_skip_silence_sub),
+                                hasSwitch = true,
+                                switchState = instantSkipSilenceEnabled,
+                                onSwitchChange = { on ->
+                                    instantSkipSilenceEnabled = on
+                                    prefs.setInstantSkipSilence(on)
+                                    com.alananasss.kittytune.data.MusicManager.applySkipSilenceSettings()
+                                },
+                                highlightKey = "pref_instant_skip_silence"
+                            )
+                        }
+                    }
+
+                    SettingsGroupTitle(stringResource(R.string.pref_pause_listen_history))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        SettingsItem(
+                            shape = getSettingsShape(2, 0),
+                            title = stringResource(R.string.pref_pause_listen_history),
+                            subtitle = stringResource(R.string.pref_pause_listen_history_sub),
+                            hasSwitch = true,
+                            switchState = pauseListenHistory,
+                            onSwitchChange = { pauseListenHistory = it; prefs.setPauseListenHistory(it) },
+                            highlightKey = "pref_pause_listen_history"
+                        )
+                        SettingsItem(
+                            shape = getSettingsShape(2, 1),
+                            title = stringResource(R.string.pref_pause_search_history),
+                            subtitle = stringResource(R.string.pref_pause_search_history_sub),
+                            hasSwitch = true,
+                            switchState = pauseSearchHistory,
+                            onSwitchChange = { pauseSearchHistory = it; prefs.setPauseSearchHistory(it) },
+                            highlightKey = "pref_pause_search_history"
+                        )
+                    }
+
+                    SettingsGroupTitle(stringResource(R.string.usb_section_title))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val usbStatusText = when {
+                            usbStatus.reason == "android_version" -> stringResource(R.string.usb_status_android_version)
+                            usbStatus.reason == "track_format_mismatch" -> stringResource(R.string.usb_status_track_mismatch)
+                            usbStatus.bitPerfectActive -> stringResource(R.string.usb_status_active) +
+                                    if (usbStatus.activeSampleRate > 0) " · ${usbStatus.activeSampleRate / 1000} kHz" else ""
+                            usbStatus.usbDacConnected -> stringResource(R.string.usb_status_unsupported)
+                            else -> stringResource(R.string.usb_status_no_device)
+                        }
+                        // Bit-perfect and automix cannot coexist (two decks cannot be summed
+                        // bit-exactly): say so instead of silently falling back to hard switches.
+                        val usbSubtitle = if (automixConflictsWithBitPerfect) {
+                            usbStatusText + "\n" + stringResource(R.string.usb_automix_conflict)
+                        } else usbStatusText
+                        SettingsItem(
+                            shape = getSettingsShape(3, 0),
+                            title = stringResource(R.string.pref_usb_bit_perfect),
+                            subtitle = usbSubtitle,
+                            hasSwitch = true,
+                            switchState = usbBitPerfect,
+                            onSwitchChange = { on ->
+                                usbBitPerfect = on
+                                prefs.setUsbBitPerfect(on)
+                                com.alananasss.kittytune.audio.usb.UsbAudioManager.refresh()
+                            },
+                            highlightKey = "pref_usb_bit_perfect"
+                        )
+                        SettingsItem(
+                            shape = getSettingsShape(3, 1),
+                            title = stringResource(R.string.pref_usb_show_status),
+                            subtitle = stringResource(R.string.pref_usb_show_status_sub),
+                            hasSwitch = true,
+                            switchState = usbShowStatus,
+                            onSwitchChange = { usbShowStatus = it; prefs.setUsbShowStatus(it) },
+                            highlightKey = "pref_usb_show_status"
+                        )
+                        SettingsItem(
+                            shape = getSettingsShape(3, 2),
+                            title = stringResource(R.string.pref_dap_exclusive),
+                            subtitle = stringResource(R.string.pref_dap_exclusive_sub),
+                            hasSwitch = true,
+                            switchState = dapExclusive,
+                            onSwitchChange = { on ->
+                                dapExclusive = on
+                                prefs.setDapAaudioExclusive(on)
+                                com.alananasss.kittytune.audio.usb.UsbAudioManager.refresh()
+                            },
+                            highlightKey = "pref_dap_exclusive"
+                        )
+                    }
+
+                    // Audio path diagnostics - under the USB DAC / Bit-Perfect section.
+                    AudioPathHeroCard(
+                        playerViewModel = playerViewModel,
+                        onOpen = hapticAction(HapticKind.UI) { showAudioPathSheet = true },
+                        modifier = Modifier.padding(top = 16.dp).settingHighlight("diag_hero_title", RoundedCornerShape(24.dp))
+                    )
+                }
+            }
+        }
+    }
+
+    if (showAudioPathSheet) {
+        AudioPathDiagnosticSheet(
+            visible = true,
+            onDismiss = { showAudioPathSheet = false },
+            playerViewModel = playerViewModel
+        )
+    }
+}
+
+/**
+ * Sound & Output subpage:
+ * Equalizer, volume normalization, mono audio, DRM download.
+ */
+@Composable
+fun AudioQualitySettingsScreen(
+    onBackClick: () -> Unit,
+    onNavigateToDrmExplanation: () -> Unit,
+    onNavigateToEqualizer: () -> Unit,
+    playerViewModel: PlayerViewModel
+) {
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+    var downloadDrmEnabled by remember { mutableStateOf(prefs.getDownloadDrmStreamsEnabled()) }
+
+    var showNormalizationDialog by remember { mutableStateOf(false) }
+    var showNormalizationInfoDialog by remember { mutableStateOf(false) }
+
+    if (showNormalizationDialog) {
+        AlertDialog(
+            onDismissRequest = { showNormalizationDialog = false },
+            icon = { Icon(Icons.Rounded.Equalizer, null) },
+            title = {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = stringResource(R.string.pref_norm_title),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(horizontal = 32.dp)
+                    )
+                    IconButton(
+                        onClick = hapticAction(HapticKind.UI) { showNormalizationInfoDialog = true },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .size(32.dp),
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Info,
+                            contentDescription = stringResource(R.string.pref_norm_info_title),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+            },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.pref_norm_sub), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(16.dp))
+                    com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup(
+                        options = com.alananasss.kittytune.ui.player.NormalizationLevel.entries,
+                        selectedOption = playerViewModel.effectsState.normalizationLevel,
+                        onOptionSelected = { level ->
+                            playerViewModel.setNormalizationLevel(level)
+                            if (!playerViewModel.effectsState.isNormalizationEnabled) playerViewModel.toggleNormalization()
+                        },
+                        labelProvider = { level ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = when (level) {
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.QUIET -> stringResource(R.string.pref_norm_level_quiet)
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.NORMAL -> stringResource(R.string.pref_norm_level_normal)
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.LOUD -> stringResource(R.string.pref_norm_level_loud)
+                                    },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = when (level) {
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.QUIET -> "\u221219 LUFS"
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.NORMAL -> "\u221214 LUFS"
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.LOUD -> "\u221211 LUFS"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = androidx.compose.material3.LocalContentColor.current.copy(alpha = 0.8f),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    )
+                }
+            },
+            confirmButton = { TextButton(onClick = hapticAction(HapticKind.UI) { showNormalizationDialog = false }) { Text(stringResource(R.string.btn_ok)) } }
+        )
+    }
+
+    if (showNormalizationInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showNormalizationInfoDialog = false },
+            icon = { Icon(Icons.Rounded.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_norm_info_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.pref_norm_info_body_1),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.pref_norm_info_body_2),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showNormalizationInfoDialog = false }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            }
+        )
+    }
+
+    val listState = rememberLazyListState()
+
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "equalizer" to 0,
+            "pref_audio_mono" to 0,
+            "pref_norm" to 0,
+            "pref_download_drm" to 0
+        )
+    )
+
+    SettingsScaffold(
+        title = stringResource(R.string.settings_audio_quality_title),
+        onBackClick = onBackClick
+    ) { innerPadding ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp)
+        ) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.settings_audio_quality_title))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val totalVisibleItems = 4
+
+                        SplitSettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 0),
+                            title = stringResource(R.string.equalizer_title),
+                            subtitle = if (playerViewModel.equalizerState.isEnabled) {
+                                playerViewModel.equalizerState.selectedPreset
+                            } else {
+                                stringResource(R.string.equalizer_subtitle)
+                            },
+                            onClick = hapticAction(HapticKind.UI) { onNavigateToEqualizer() },
+                            switchState = playerViewModel.equalizerState.isEnabled,
+                            onSwitchChange = { playerViewModel.toggleEqualizer() },
+                            highlightKey = "equalizer"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 1),
+                            title = stringResource(R.string.pref_audio_mono),
+                            subtitle = stringResource(R.string.pref_audio_mono_sub),
+                            hasSwitch = true,
+                            switchState = playerViewModel.effectsState.isMonoEnabled,
+                            onSwitchChange = { playerViewModel.toggleMono() },
+                            highlightKey = "pref_audio_mono"
+                        )
+
+                        SplitSettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 2),
+                            title = stringResource(R.string.pref_norm_title),
+                            subtitle = stringResource(R.string.pref_norm_sub),
+                            onClick = hapticAction(HapticKind.UI) { showNormalizationDialog = true },
+                            switchState = playerViewModel.effectsState.isNormalizationEnabled,
+                            onSwitchChange = { playerViewModel.toggleNormalization() },
+                            highlightKey = "pref_norm"
+                        )
+
+                        SplitSettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 3),
+                            title = stringResource(R.string.pref_download_drm),
+                            subtitle = stringResource(R.string.pref_download_drm_sub),
+                            onClick = onNavigateToDrmExplanation,
+                            switchState = downloadDrmEnabled,
+                            onSwitchChange = { downloadDrmEnabled = it; prefs.setDownloadDrmStreamsEnabled(it) },
+                            highlightKey = "pref_download_drm"
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Transitions & Mix subpage:
+ * Crossfade and DJ Automix.
+ */
+@Composable
+fun AudioTransitionsSettingsScreen(
+    onBackClick: () -> Unit,
+    playerViewModel: PlayerViewModel
+) {
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+
+    var crossfadeEnabled by remember { mutableStateOf(prefs.getCrossfadeEnabled()) }
+    var crossfadeDuration by remember { mutableStateOf(prefs.getCrossfadeDuration()) }
+    var crossfadeGapless by remember { mutableStateOf(prefs.getCrossfadeGapless()) }
+    var crossfadeIndicator by remember { mutableStateOf(prefs.getCrossfadeIndicatorEnabled()) }
+
+    var automixEnabled by remember { mutableStateOf(prefs.getAutomixEnabled()) }
+    var automixDebugOverlay by remember { mutableStateOf(prefs.getAutomixDebugOverlayEnabled()) }
+    var automixTempoMatch by remember { mutableStateOf(prefs.getAutomixTempoMatchEnabled()) }
+    var automixHarmonicMix by remember { mutableStateOf(prefs.getAutomixHarmonicMixEnabled()) }
+    var automixDynamicMix by remember { mutableStateOf(prefs.getAutomixDynamicMixPointsEnabled()) }
+    var automixBassDucking by remember { mutableStateOf(prefs.getAutomixBassDuckingEnabled()) }
+    var automixOverlapMode by remember { mutableStateOf(prefs.getAutomixOverlapMode()) }
+    var automixOverlapCustomSec by remember { mutableStateOf(prefs.getAutomixOverlapCustomSec()) }
+    var automixStartOffsetMode by remember { mutableStateOf(prefs.getAutomixStartOffsetMode()) }
+    var automixStartOffsetCustomSec by remember { mutableStateOf(prefs.getAutomixStartOffsetCustomSec()) }
+    var automixIndicator by remember { mutableStateOf(prefs.getAutomixIndicatorEnabled()) }
+
+    var showAutomixOverlapDialog by remember { mutableStateOf(false) }
+    var showAutomixStartOffsetDialog by remember { mutableStateOf(false) }
+    var showCrossfadeDurationDialog by remember { mutableStateOf(false) }
+
+    if (showCrossfadeDurationDialog) {
+        AlertDialog(
+            onDismissRequest = { showCrossfadeDurationDialog = false },
+            title = { Text(stringResource(R.string.pref_crossfade_title)) },
+            text = {
+                Column {
+                    Text(
+                        text = "${crossfadeDuration}s",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Slider(
+                        value = crossfadeDuration.toFloat(),
+                        onValueChange = {
+                            crossfadeDuration = it.toInt()
+                            prefs.setCrossfadeDuration(it.toInt())
+                        },
+                        valueRange = 1f..12f,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showCrossfadeDurationDialog = false }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            }
+        )
+    }
+
+    if (showAutomixOverlapDialog) {
+        var tempMode by remember { mutableStateOf(automixOverlapMode) }
+        var tempCustomSec by remember { mutableStateOf(automixOverlapCustomSec) }
+        val overlapOptions = listOf(
+            PlayerPreferences.AUTOMIX_OVERLAP_AUTO to stringResource(R.string.automix_overlap_auto),
+            PlayerPreferences.AUTOMIX_OVERLAP_2BARS to stringResource(R.string.automix_overlap_2bars),
+            PlayerPreferences.AUTOMIX_OVERLAP_4BARS to stringResource(R.string.automix_overlap_4bars),
+            PlayerPreferences.AUTOMIX_OVERLAP_8BARS to stringResource(R.string.automix_overlap_8bars),
+            PlayerPreferences.AUTOMIX_OVERLAP_CUSTOM to stringResource(R.string.automix_overlap_custom)
+        )
+        AlertDialog(
+            onDismissRequest = { showAutomixOverlapDialog = false },
+            title = { Text(stringResource(R.string.automix_overlap_mode)) },
+            text = {
+                Column {
+                    overlapOptions.forEach { (mode, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { tempMode = mode }
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = tempMode == mode,
+                                onClick = null
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(label, fontWeight = FontWeight.Normal)
+                        }
+                    }
+                    if (tempMode == PlayerPreferences.AUTOMIX_OVERLAP_CUSTOM) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.automix_overlap_custom_value, tempCustomSec),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Slider(
+                            value = tempCustomSec.toFloat(),
+                            onValueChange = { tempCustomSec = it.roundToInt() },
+                            valueRange = 1f..30f,
+                            steps = 28,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = hapticAction(HapticKind.UI) {
+                    automixOverlapMode = tempMode
+                    automixOverlapCustomSec = tempCustomSec
+                    prefs.setAutomixOverlapMode(tempMode)
+                    prefs.setAutomixOverlapCustomSec(tempCustomSec)
+                    com.alananasss.kittytune.audio.automix.AutomixManager.clearPlan()
+                    showAutomixOverlapDialog = false
+                }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showAutomixOverlapDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (showAutomixStartOffsetDialog) {
+        var tempMode by remember { mutableStateOf(automixStartOffsetMode) }
+        var tempCustomSec by remember { mutableStateOf(automixStartOffsetCustomSec) }
+        val offsetOptions = listOf(
+            PlayerPreferences.AUTOMIX_START_OFFSET_AUTO to stringResource(R.string.automix_start_offset_auto),
+            PlayerPreferences.AUTOMIX_START_OFFSET_BEGINNING to stringResource(R.string.automix_start_offset_beginning),
+            PlayerPreferences.AUTOMIX_START_OFFSET_CUSTOM to stringResource(R.string.automix_start_offset_custom),
+        )
+        AlertDialog(
+            onDismissRequest = { showAutomixStartOffsetDialog = false },
+            title = { Text(stringResource(R.string.automix_start_offset)) },
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.automix_start_offset_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    offsetOptions.forEach { (mode, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { tempMode = mode }
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = tempMode == mode,
+                                onClick = null
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(label, fontWeight = FontWeight.Normal)
+                        }
+                    }
+                    if (tempMode == PlayerPreferences.AUTOMIX_START_OFFSET_CUSTOM) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.automix_start_offset_custom_value, tempCustomSec),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Slider(
+                            value = tempCustomSec.toFloat(),
+                            onValueChange = { tempCustomSec = it.toInt() },
+                            valueRange = 1f..30f,
+                            steps = 28,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = hapticAction(HapticKind.UI) {
+                    automixStartOffsetMode = tempMode
+                    automixStartOffsetCustomSec = tempCustomSec
+                    prefs.setAutomixStartOffsetMode(tempMode)
+                    prefs.setAutomixStartOffsetCustomSec(tempCustomSec)
+                    com.alananasss.kittytune.audio.automix.AutomixManager.clearPlan()
+                    showAutomixStartOffsetDialog = false
+                }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showAutomixStartOffsetDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    val listState = rememberLazyListState()
+
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "pref_crossfade" to 0,
+            "pref_automix" to 1
+        )
+    )
+
+    SettingsScaffold(
+        title = stringResource(R.string.settings_audio_transitions_title),
+        onBackClick = onBackClick
+    ) { innerPadding ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp)
+        ) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.pref_crossfade_title))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val crossfadeBottomRadius by animateDpAsState(
+                            targetValue = if (crossfadeEnabled) 4.dp else 24.dp,
+                            label = "CrossfadeCornerAnimation"
+                        )
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(
+                                topStart = 24.dp,
+                                topEnd = 24.dp,
+                                bottomStart = crossfadeBottomRadius,
+                                bottomEnd = crossfadeBottomRadius
+                            ),
+                            title = stringResource(R.string.pref_crossfade_title),
+                            subtitle = stringResource(R.string.pref_crossfade_sub),
+                            hasSwitch = true,
+                            switchState = crossfadeEnabled,
+                            onSwitchChange = { 
+                                crossfadeEnabled = it
+                                prefs.setCrossfadeEnabled(it)
+                            },
+                            highlightKey = "pref_crossfade"
+                        )
+
+                        AnimatedVisibility(
+                            visible = crossfadeEnabled,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                SettingsItem(
+                                    shape = RoundedCornerShape(4.dp),
+                                    title = stringResource(R.string.label_duration),
+                                    subtitle = "${crossfadeDuration}s",
+                                    onClick = hapticAction(HapticKind.UI) { showCrossfadeDurationDialog = true }
+                                )
+                                SettingsItem(
+                                    shape = RoundedCornerShape(4.dp),
+                                    title = stringResource(R.string.crossfade_gapless),
+                                    subtitle = stringResource(R.string.crossfade_gapless_desc),
+                                    hasSwitch = true,
+                                    switchState = crossfadeGapless,
+                                    onSwitchChange = {
+                                        crossfadeGapless = it
+                                        prefs.setCrossfadeGapless(it)
+                                    }
+                                )
+                                SettingsItem(
+                                    shape = RoundedCornerShape(
+                                        topStart = 4.dp,
+                                        topEnd = 4.dp,
+                                        bottomStart = 24.dp,
+                                        bottomEnd = 24.dp
+                                    ),
+                                    title = stringResource(R.string.pref_crossfade_indicator_title),
+                                    subtitle = stringResource(R.string.pref_crossfade_indicator_desc),
+                                    hasSwitch = true,
+                                    switchState = crossfadeIndicator,
+                                    onSwitchChange = {
+                                        crossfadeIndicator = it
+                                        prefs.setCrossfadeIndicatorEnabled(it)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
 
             item {
-                SettingsGroup(
-                    title = stringResource(R.string.settings_cat_audio),
-                    items = listOf(
-                        { shape ->
+                val automixOverlapLabel = when (automixOverlapMode) {
+                    PlayerPreferences.AUTOMIX_OVERLAP_2BARS -> stringResource(R.string.automix_overlap_2bars)
+                    PlayerPreferences.AUTOMIX_OVERLAP_4BARS -> stringResource(R.string.automix_overlap_4bars)
+                    PlayerPreferences.AUTOMIX_OVERLAP_8BARS -> stringResource(R.string.automix_overlap_8bars)
+                    PlayerPreferences.AUTOMIX_OVERLAP_CUSTOM -> "${stringResource(R.string.automix_overlap_custom)} (${automixOverlapCustomSec}s)"
+                    else -> stringResource(R.string.automix_overlap_auto)
+                }
+                val automixStartOffsetLabel = when (automixStartOffsetMode) {
+                    PlayerPreferences.AUTOMIX_START_OFFSET_BEGINNING -> stringResource(R.string.automix_start_offset_beginning)
+                    PlayerPreferences.AUTOMIX_START_OFFSET_CUSTOM -> "${stringResource(R.string.automix_start_offset_custom)} (${automixStartOffsetCustomSec}s)"
+                    else -> stringResource(R.string.automix_start_offset_auto)
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.automix))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val automixBottomRadius by animateDpAsState(
+                            targetValue = if (automixEnabled) 4.dp else 24.dp,
+                            label = "AutomixCornerAnimation"
+                        )
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(
+                                topStart = 24.dp,
+                                topEnd = 24.dp,
+                                bottomStart = automixBottomRadius,
+                                bottomEnd = automixBottomRadius
+                            ),
+                            title = stringResource(R.string.automix),
+                            subtitle = stringResource(R.string.automix_desc),
+                            hasSwitch = true,
+                            switchState = automixEnabled,
+                            onSwitchChange = {
+                                automixEnabled = it
+                                prefs.setAutomixEnabled(it)
+                                // Turning Mix on restores playlist order: pair transitions
+                                // only fire on the exact track sequence they were saved for.
+                                playerViewModel.onAutomixEnabledChanged(it)
+                                if (it) {
+                                    crossfadeEnabled = true
+                                    prefs.setCrossfadeEnabled(true)
+                                } else {
+                                    automixDebugOverlay = false
+                                    prefs.setAutomixDebugOverlayEnabled(false)
+                                }
+                            },
+                            highlightKey = "pref_automix"
+                        )
+
+                        AnimatedVisibility(
+                            visible = automixEnabled,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                SettingsItem(
+                                    shape = RoundedCornerShape(4.dp),
+                                    title = stringResource(R.string.automix_overlap_mode),
+                                    subtitle = automixOverlapLabel,
+                                    onClick = hapticAction(HapticKind.UI) { showAutomixOverlapDialog = true }
+                                )
+                                SettingsItem(
+                                    shape = RoundedCornerShape(4.dp),
+                                    title = stringResource(R.string.automix_start_offset),
+                                    subtitle = automixStartOffsetLabel,
+                                    onClick = hapticAction(HapticKind.UI) { showAutomixStartOffsetDialog = true }
+                                )
+                                SettingsItem(
+                                    shape = RoundedCornerShape(4.dp),
+                                    title = stringResource(R.string.automix_tempo_match),
+                                    subtitle = stringResource(R.string.automix_tempo_match_desc),
+                                    hasSwitch = true,
+                                    switchState = automixTempoMatch,
+                                    onSwitchChange = {
+                                        automixTempoMatch = it
+                                        prefs.setAutomixTempoMatchEnabled(it)
+                                    }
+                                )
+                                SettingsItem(
+                                    shape = RoundedCornerShape(4.dp),
+                                    title = stringResource(R.string.automix_harmonic_mix),
+                                    subtitle = stringResource(R.string.automix_harmonic_mix_desc),
+                                    hasSwitch = true,
+                                    switchState = automixHarmonicMix,
+                                    onSwitchChange = {
+                                        automixHarmonicMix = it
+                                        prefs.setAutomixHarmonicMixEnabled(it)
+                                    }
+                                )
+                                SettingsItem(
+                                    shape = RoundedCornerShape(4.dp),
+                                    title = stringResource(R.string.automix_dynamic_mix),
+                                    subtitle = stringResource(R.string.automix_dynamic_mix_desc),
+                                    hasSwitch = true,
+                                    switchState = automixDynamicMix,
+                                    onSwitchChange = {
+                                        automixDynamicMix = it
+                                        prefs.setAutomixDynamicMixPointsEnabled(it)
+                                    }
+                                )
+                                SettingsItem(
+                                    shape = RoundedCornerShape(4.dp),
+                                    title = stringResource(R.string.automix_bass_ducking),
+                                    subtitle = stringResource(R.string.automix_bass_ducking_desc),
+                                    hasSwitch = true,
+                                    switchState = automixBassDucking,
+                                    onSwitchChange = {
+                                        automixBassDucking = it
+                                        prefs.setAutomixBassDuckingEnabled(it)
+                                    }
+                                )
+                                SettingsItem(
+                                    shape = RoundedCornerShape(
+                                        topStart = 4.dp,
+                                        topEnd = 4.dp,
+                                        bottomStart = 24.dp,
+                                        bottomEnd = 24.dp
+                                    ),
+                                    title = stringResource(R.string.pref_automix_indicator_title),
+                                    subtitle = stringResource(R.string.pref_automix_indicator_desc),
+                                    hasSwitch = true,
+                                    switchState = automixIndicator,
+                                    onSwitchChange = {
+                                        automixIndicator = it
+                                        prefs.setAutomixIndicatorEnabled(it)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Sleep Timer subpage:
+ * Fade out and duration.
+ */
+@Composable
+fun AudioSleepTimerSettingsScreen(
+    onBackClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+
+    var fadeEnabled by remember { mutableStateOf(prefs.getSleepTimerFadeEnabled()) }
+    var fadeDuration by remember { mutableStateOf(prefs.getSleepTimerFadeDuration()) }
+    var showFadeDurationDialog by remember { mutableStateOf(false) }
+
+    if (showFadeDurationDialog) {
+        AlertDialog(
+            onDismissRequest = { showFadeDurationDialog = false },
+            title = { Text(stringResource(R.string.sleep_timer_fade_title)) },
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Slider(
+                        value = fadeDuration.toFloat(),
+                        onValueChange = {
+                            fadeDuration = it.toInt()
+                            prefs.setSleepTimerFadeDuration(it.toInt())
+                        },
+                        valueRange = PlayerPreferences.SLEEP_TIMER_FADE_DURATION_MIN.toFloat()..PlayerPreferences.SLEEP_TIMER_FADE_DURATION_MAX.toFloat(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showFadeDurationDialog = false }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            }
+        )
+    }
+
+    val listState = rememberLazyListState()
+
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "sleep_timer_fade" to 0
+        )
+    )
+
+    SettingsScaffold(
+        title = stringResource(R.string.sleep_timer_title),
+        onBackClick = onBackClick
+    ) { innerPadding ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp)
+        ) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.sleep_timer_title))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val fadeBottomRadius by animateDpAsState(
+                            targetValue = if (fadeEnabled) 4.dp else 24.dp,
+                            label = "FadeCornerAnimation"
+                        )
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(
+                                topStart = 24.dp,
+                                topEnd = 24.dp,
+                                bottomStart = fadeBottomRadius,
+                                bottomEnd = fadeBottomRadius
+                            ),
+                            title = stringResource(R.string.sleep_timer_fade_title),
+                            subtitle = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
+                            hasSwitch = true,
+                            switchState = fadeEnabled,
+                            onSwitchChange = { 
+                                fadeEnabled = it
+                                prefs.setSleepTimerFadeEnabled(it)
+                            },
+                            highlightKey = "sleep_timer_fade"
+                        )
+
+                        AnimatedVisibility(
+                            visible = fadeEnabled,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
                             SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_quality),
-                                subtitle = if (audioQuality == "HIGH") stringResource(R.string.quality_high) else stringResource(R.string.quality_low),
-                                onClick = { showQualityDialog = true }
+                                shape = RoundedCornerShape(
+                                    topStart = 4.dp,
+                                    topEnd = 4.dp,
+                                    bottomStart = 24.dp,
+                                    bottomEnd = 24.dp
+                                ),
+                                title = stringResource(R.string.label_duration),
+                                subtitle = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
+                                onClick = hapticAction(HapticKind.UI) { showFadeDurationDialog = true }
                             )
                         }
-                    )
-                )
+                    }
+                }
             }
         }
     }

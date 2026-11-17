@@ -22,3 +22,9 @@
     rootProject.name = "KittyTune"
     include(":app")
     include(":kizzy")
+    include(":shazamkit")
+    include(":innertube")
+    include(":lrclib")
+    include(":kugou")
+    include(":wear-common")
+    include(":wear")

@@ -1,8 +1,12 @@
     package com.alananasss.kittytune.ui.home
-    
+
+    import android.view.HapticFeedbackConstants
+    import androidx.compose.foundation.ExperimentalFoundationApi
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
+    import androidx.compose.foundation.combinedClickable
     import androidx.compose.foundation.layout.*
+    import androidx.compose.ui.platform.LocalView
     import androidx.compose.foundation.lazy.LazyColumn
     import androidx.compose.foundation.lazy.LazyRow
     import androidx.compose.foundation.lazy.items
@@ -15,6 +19,9 @@
     import androidx.compose.material3.*
     import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     import androidx.compose.runtime.Composable
+    import androidx.compose.runtime.collectAsState
+    import androidx.compose.runtime.getValue
+    import androidx.compose.runtime.remember
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
     import androidx.compose.ui.draw.clip
@@ -29,13 +36,17 @@
     import androidx.lifecycle.viewmodel.compose.viewModel
     import coil.compose.AsyncImage
     import com.alananasss.kittytune.R
+    import com.alananasss.kittytune.audio.haptics.performAppHaptic
+    import com.alananasss.kittytune.ui.common.HapticKind
+    import com.alananasss.kittytune.ui.common.hapticAction
+    import com.alananasss.kittytune.ui.common.hapticClickable
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.Track
     import com.alananasss.kittytune.ui.common.SquareCardShimmer
     import com.alananasss.kittytune.ui.common.TrackListItemShimmer
     import com.alananasss.kittytune.ui.player.PlayerViewModel
     import java.util.Locale
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun NewReleasesScreen(
@@ -45,7 +56,7 @@
         viewModel: NewReleasesViewModel = viewModel()
     ) {
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    
+
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
@@ -117,10 +128,16 @@
                     Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
+                val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+                val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+                val unblockedTracks = remember(viewModel.popularTracks, blockedTrackIds, blockedArtistIds) {
+                    viewModel.popularTracks.filter { it.id !in blockedTrackIds && (it.user?.id == null || it.user.id !in blockedArtistIds) }
+                }
+
                 // main content in a vertically scrollable column
                 LazyColumn(
                     modifier = Modifier.padding(innerPadding),
-                    contentPadding = PaddingValues(bottom = 120.dp),
+                    contentPadding = PaddingValues(bottom = 180.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // playlists section in a horizontal row
@@ -147,9 +164,9 @@
                             }
                         }
                     }
-    
+
                     // popular tracks section with horizontal swiping by groups of 5
-                    if (viewModel.popularTracks.isNotEmpty()) {
+                    if (unblockedTracks.isNotEmpty()) {
                         item {
                             Text(
                                 text = stringResource(R.string.new_releases_popular_tracks),
@@ -158,9 +175,9 @@
                                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
                             )
                         }
-    
+
                         // split the list into pages of 5 tracks
-                        val pages = viewModel.popularTracks.chunked(5)
+                        val pages = unblockedTracks.chunked(5)
                         item {
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 16.dp),
@@ -177,8 +194,8 @@
                                             PopularTrackRow(
                                                 track = track,
                                                 rank = absoluteIndex + 1,
-                                                currentlyPlayingTrack = playerViewModel.currentTrack,
-                                                onClick = { playerViewModel.playPlaylist(viewModel.popularTracks, absoluteIndex) },
+                                                currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
+                                                onClick = { playerViewModel.playPlaylist(unblockedTracks, absoluteIndex) },
                                                 onOptionClick = { playerViewModel.showTrackOptions(track) }
                                             )
                                         }
@@ -191,8 +208,8 @@
             }
         }
     }
-    
-    // this is the track row with rank and play count
+
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun PopularTrackRow(
         track: Track,
@@ -201,13 +218,27 @@
         onClick: () -> Unit,
         onOptionClick: () -> Unit
     ) {
+        val view = LocalView.current
+        val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+        val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+        if (track.id in blockedTrackIds || (track.user?.id != null && track.user.id in blockedArtistIds)) {
+            return
+        }
+
         val isCurrent = currentlyPlayingTrack?.id == track.id
         val titleColor = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-    
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .clip(RoundedCornerShape(12.dp))
+                .combinedClickable(
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = {
+                        view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
+                        onOptionClick()
+                    }
+                )
                 .padding(vertical = 6.dp), // no horizontal padding here, it's on the column
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -220,7 +251,7 @@
                 modifier = Modifier.width(32.dp),
                 textAlign = TextAlign.Center
             )
-    
+
             // artwork + playing indicator overlay
             Box(contentAlignment = Alignment.Center) {
                 AsyncImage(
@@ -231,7 +262,7 @@
                         .clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop
                 )
-    
+
                 if (isCurrent) {
                     Box(
                         modifier = Modifier
@@ -249,9 +280,9 @@
                     }
                 }
             }
-    
+
             Spacer(Modifier.width(16.dp))
-    
+
             // track details
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -264,29 +295,28 @@
                 )
                 // artist and play count
                 Text(
-                    text = "${track.user?.username ?: stringResource(R.string.unknown_artist)} • ${formatNumber(track.playbackCount)} ${stringResource(R.string.playback_count_formatted)}",
+                    text = "${track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.unknown_artist) }} • ${formatNumber(track.playbackCount)} ${stringResource(R.string.playback_count_formatted)}",
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-    
+
             // kebab menu
             IconButton(onClick = onOptionClick) {
                 Icon(Icons.Default.MoreVert, stringResource(R.string.btn_options))
             }
         }
     }
-    
-    
+
     @Composable
     fun NewReleasePlaylistCard(
         playlist: Playlist,
         onClick: () -> Unit
     ) {
         Card(
-            onClick = onClick,
+            onClick = hapticAction(HapticKind.MEDIUM, onClick),
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier.width(160.dp)
@@ -312,17 +342,23 @@
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    val subtitle = when {
+                        !playlist.user?.username.isNullOrBlank() -> playlist.user?.username.orEmpty()
+                        playlist.trackCount != null && playlist.trackCount > 0 -> stringResource(R.string.playlist_num_tracks, playlist.trackCount)
+                        else -> stringResource(R.string.lib_playlists)
+                    }
                     Text(
-                        text = stringResource(R.string.playlist_num_tracks, playlist.trackCount ?: 0),
+                        text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
         }
     }
-    
+
     // helper to format big numbers (1k, 1m...)
     private fun formatNumber(count: Int): String {
         if (count < 1000) return count.toString()
@@ -334,5 +370,4 @@
             else -> count.toString()
         }
     }
-
 

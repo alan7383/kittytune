@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.net.Uri
     import android.widget.Toast
     import androidx.activity.compose.rememberLauncherForActivityResult
@@ -26,31 +26,34 @@
     import androidx.compose.ui.unit.sp
     import androidx.lifecycle.viewmodel.compose.viewModel
     import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
     import com.alananasss.kittytune.data.BackupManager
     import com.alananasss.kittytune.ui.common.SettingsGroup
     import com.alananasss.kittytune.ui.common.SettingsItem
     import com.alananasss.kittytune.ui.common.SettingsScaffold
     import kotlinx.coroutines.launch
-    
+
     @Composable
     fun BackupRestoreScreen(
         onBackClick: () -> Unit,
         viewModel: BackupViewModel = viewModel()
     ) {
         val context = LocalContext.current
-    
+
         val createDocumentLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.CreateDocument("application/octet-stream")
         ) { uri ->
             uri?.let { viewModel.backup(it) }
         }
-    
+
         val openDocumentLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument()
         ) { uri ->
             uri?.let { viewModel.restore(it) }
         }
-    
+
         SettingsScaffold(
             title = stringResource(R.string.pref_backup_title),
             onBackClick = onBackClick
@@ -59,7 +62,7 @@
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                    contentPadding = PaddingValues(bottom = 180.dp)
                 ) {
                     // ACTIONS GROUP
                     item {
@@ -71,7 +74,7 @@
                                         shape = shape,
                                         title = stringResource(R.string.backup_action),
                                         subtitle = stringResource(R.string.backup_desc),
-                                        onClick = { createDocumentLauncher.launch(BackupManager.getBackupFileName()) }
+                                        onClick = hapticAction(HapticKind.UI) { createDocumentLauncher.launch(BackupManager.getBackupFileName()) }
                                     )
                                 },
                                 { shape ->
@@ -79,13 +82,13 @@
                                         shape = shape,
                                         title = stringResource(R.string.restore_action),
                                         subtitle = stringResource(R.string.restore_desc),
-                                        onClick = { openDocumentLauncher.launch(arrayOf("*/*")) }
+                                        onClick = hapticAction(HapticKind.UI) { openDocumentLauncher.launch(arrayOf("*/*")) }
                                     )
                                 }
                             )
                         )
                     }
-    
+
                     // INFO SECTION
                     item {
                         Column(
@@ -98,7 +101,7 @@
                             InfoCard(text = stringResource(R.string.backup_info_guest))
                         }
                     }
-    
+
                     // STATUS MESSAGE
                     if (viewModel.statusMessage != null) {
                         item {
@@ -114,7 +117,7 @@
                         }
                     }
                 }
-    
+
                 // LOADING OVERLAY
                 if (viewModel.isLoading) {
                     Box(
@@ -139,7 +142,7 @@
             }
         }
     }
-    
+
     @Composable
     fun InfoCard(text: String) {
         Row(
@@ -161,5 +164,4 @@
             )
         }
     }
-
 

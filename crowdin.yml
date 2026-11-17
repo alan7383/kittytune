@@ -10,8 +10,19 @@
 base_path: "."
 preserve_hierarchy: true
 
+# Export only the locales currently supported by the app.
+export_languages: [de, fr, hu, pt-BR, ru, tr, vi]
+
 files:
   - source: /app/src/main/res/values/strings.xml
     translation: /app/src/main/res/values-%android_code%/strings.xml
-    # If the language code is something like 'zh-CN', Android needs 'zh-rCN' or similar. 
-    # Crowdin's GitHub integration usually handles Android locales automatically.
+    # Match the shipped resource paths; regional copies override these on Android.
+    languages_mapping:
+      android_code:
+        de: de
+        fr: fr
+        hu: hu
+        pt-BR: pt-rBR
+        ru: ru
+        tr: tr
+        vi: vi

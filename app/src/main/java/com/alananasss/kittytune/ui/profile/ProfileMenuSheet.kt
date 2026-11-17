@@ -1,17 +1,17 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.layout.*
+    import androidx.compose.foundation.rememberScrollState
+    import androidx.compose.foundation.verticalScroll
     import androidx.compose.foundation.shape.CircleShape
     import androidx.compose.foundation.shape.RoundedCornerShape
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.automirrored.rounded.Logout
+    import androidx.compose.material.icons.rounded.Celebration
     import androidx.compose.material.icons.rounded.BarChart
-    import androidx.compose.material.icons.rounded.Close
     import androidx.compose.material.icons.rounded.EmojiEvents
-    import androidx.compose.material.icons.rounded.Notifications
-    import androidx.compose.material.icons.rounded.Mail
     import androidx.compose.material.icons.rounded.Settings
     import androidx.compose.material3.*
     import androidx.compose.runtime.Composable
@@ -24,18 +24,20 @@
     import androidx.compose.ui.text.style.TextOverflow
     import androidx.compose.ui.unit.dp
     import com.alananasss.kittytune.R
+    import com.alananasss.kittytune.ui.common.HapticKind
+    import com.alananasss.kittytune.ui.common.hapticAction
+    import com.alananasss.kittytune.ui.common.hapticClickable
     import com.alananasss.kittytune.domain.User
-    
+
     @Composable
     fun ProfileMenuSheet(
         user: User?,
         isGuest: Boolean,
         onDismiss: () -> Unit,
         onViewProfile: () -> Unit,
-        onNotificationsClick: () -> Unit,
-        onMessagesClick: () -> Unit,
         onAchievementsClick: () -> Unit,
         onListeningStatsClick: () -> Unit,
+        onYearlyPlaybackClick: () -> Unit = {},
         onSettingsClick: () -> Unit,
         onLogoutClick: () -> Unit
     ) {
@@ -44,6 +46,7 @@
                 .fillMaxWidth()
                 .padding(16.dp)
                 .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -51,13 +54,19 @@
             ) {
                 Text(stringResource(id = R.string.app_name), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             }
-    
+
             Spacer(Modifier.height(16.dp))
-    
+
+            // Profile card — tapping avatar or name opens the profile, logout button lives inside
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (!isGuest) Modifier.hapticClickable { onDismiss(); onViewProfile() }
+                        else Modifier
+                    )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -75,15 +84,15 @@
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = if(isGuest) "G" else user?.username?.take(1)?.uppercase() ?: "U",
+                                    text = if (isGuest) "G" else user?.username?.take(1)?.uppercase() ?: "U",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
                         }
-    
+
                         Spacer(Modifier.width(16.dp))
-    
+
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = if (isGuest) stringResource(R.string.guest_user) else user?.username ?: stringResource(R.string.unknown_user),
@@ -98,68 +107,38 @@
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-    
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Rounded.Close, stringResource(R.string.btn_close))
-                        }
-                    }
-    
-                    Spacer(Modifier.height(16.dp))
-    
-                    if (!isGuest) {
-                        OutlinedButton(
-                            onClick = { onDismiss(); onViewProfile() },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(stringResource(R.string.profile_menu_manage_account))
-                        }
-                    } else {
-                        OutlinedButton(
-                            onClick = { onDismiss(); onLogoutClick() },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(stringResource(R.string.profile_menu_login))
+
+                        // Logout button lives here — adaptive red that fits the current theme
+                        if (!isGuest) {
+                            IconButton(onClick = hapticAction(HapticKind.UI) { onDismiss(); onLogoutClick() }) {
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.Logout,
+                                    contentDescription = stringResource(R.string.profile_menu_logout),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        } else {
+                            // Guest: show login button instead
+                            TextButton(onClick = hapticAction(HapticKind.UI) { onDismiss(); onLogoutClick() }) {
+                                Text(stringResource(R.string.profile_menu_login))
+                            }
                         }
                     }
                 }
             }
-    
+
             Spacer(Modifier.height(8.dp))
-    
+
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column {
-                    if (!isGuest) {
-                        MenuRowItem(
-                            icon = Icons.Rounded.Notifications,
-                            label = stringResource(R.string.profile_menu_notifications),
-                            onClick = {
-                                onDismiss()
-                                onNotificationsClick()
-                            }
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
-                    }
-    
-                    MenuRowItem(
-                        icon = Icons.Rounded.Mail,
-                        label = stringResource(R.string.profile_menu_messages),
-                        onClick = {
-                            onDismiss()
-                            onMessagesClick()
-                        }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
-
                     MenuRowItem(
                         icon = Icons.Rounded.EmojiEvents,
                         label = stringResource(R.string.profile_menu_achievements),
-                        onClick = { onDismiss(); onAchievementsClick() }
+                        onClick = hapticAction(HapticKind.UI) { onDismiss(); onAchievementsClick() }
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
@@ -167,32 +146,31 @@
                     MenuRowItem(
                         icon = Icons.Rounded.BarChart,
                         label = stringResource(R.string.profile_menu_listening_stats),
-                        onClick = { onDismiss(); onListeningStatsClick() },
-                        isNew = true
+                        onClick = hapticAction(HapticKind.UI) { onDismiss(); onListeningStatsClick() }
                     )
+
+                    if (!isGuest) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
+
+                        MenuRowItem(
+                            icon = Icons.Rounded.Celebration,
+                            label = stringResource(R.string.yearly_playback_menu_title),
+                            onClick = hapticAction(HapticKind.UI) { onDismiss(); onYearlyPlaybackClick() }
+                        )
+                    }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
 
                     MenuRowItem(
                         icon = Icons.Rounded.Settings,
                         label = stringResource(R.string.profile_menu_settings),
-                        onClick = { onDismiss(); onSettingsClick() }
+                        onClick = hapticAction(HapticKind.UI) { onDismiss(); onSettingsClick() }
                     )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
-
-                    if (!isGuest) {
-                        MenuRowItem(
-                            icon = Icons.AutoMirrored.Rounded.Logout,
-                            label = stringResource(R.string.profile_menu_logout),
-                            onClick = { onDismiss(); onLogoutClick() }
-                        )
-                    }
                 }
             }
         }
     }
-    
+
     @Composable
     fun MenuRowItem(
         icon: ImageVector,
@@ -203,7 +181,7 @@
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .hapticClickable(onClick = onClick)
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -220,5 +198,3 @@
             }
         }
     }
-
-

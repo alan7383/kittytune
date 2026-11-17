@@ -11,7 +11,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.outlined.InstallMobile
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,15 +23,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.data.UpdateManager
 import com.alananasss.kittytune.data.UpdateStatus
 import com.alananasss.kittytune.ui.common.AchievementNotification
@@ -40,26 +48,23 @@ import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.utils.AppUtils
 import kotlinx.coroutines.launch
 
-data class Contributor(
-    val name: String,
-    val roleResId: Int,
-    val url: String
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AboutScreen(
     onBackClick: () -> Unit,
-    onLicensesClick: () -> Unit
+    onLicensesClick: () -> Unit,
+    onCreditsClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val view = androidx.compose.ui.platform.LocalView.current
     val appVersion = AppUtils.getAppVersion(context)
     val scope = rememberCoroutineScope()
     var tapCount by remember { mutableIntStateOf(0) }
+    var showLogsSheet by remember { mutableStateOf(false) }
 
-    var showCreditsSheet by remember { mutableStateOf(false) }
     val updateStatus by UpdateManager.status.collectAsState()
+    val isUpdateDownloaded by UpdateManager.isDownloaded.collectAsState()
 
     LaunchedEffect(updateStatus) {
         if (updateStatus == UpdateStatus.NO_UPDATE) {
@@ -71,52 +76,6 @@ fun AboutScreen(
         }
     }
 
-    val contributors = listOf(
-        Contributor("alananasss", R.string.about_role_dev, "https://github.com/alan7383"),
-        Contributor("mattdotcat", R.string.about_role_translation, "https://t.me/b37246")
-    )
-
-    if (showCreditsSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showCreditsSheet = false },
-            containerColor = MaterialTheme.colorScheme.surface,
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
-                Text(
-                    text = stringResource(R.string.about_credits),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 24.dp, bottom = 16.dp)
-                )
-                LazyColumn {
-                    items(contributors) { person ->
-                        ListItem(
-                            headlineContent = { Text(person.name, fontWeight = FontWeight.SemiBold) },
-                            supportingContent = { Text(stringResource(person.roleResId)) },
-                            leadingContent = {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    modifier = Modifier.size(40.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = person.name.take(1).uppercase(),
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                    }
-                                }
-                            },
-                            modifier = Modifier.clickable { uriHandler.openUri(person.url) }
-                        )
-                    }
-                }
-            }
-        }
-    }
-
     SettingsScaffold(
         title = stringResource(R.string.pref_about_title),
         onBackClick = onBackClick
@@ -125,10 +84,9 @@ fun AboutScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 32.dp)
+            contentPadding = PaddingValues(bottom = 180.dp)
         ) {
 
-            // --- COOL HERO SECTION ---
             item {
                 Card(
                     modifier = Modifier
@@ -143,48 +101,44 @@ fun AboutScreen(
                             .padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // App Logo - Material You Style
-                        Surface(
-                            modifier = Modifier.size(110.dp),
-                            shape = RoundedCornerShape(32.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shadowElevation = 6.dp // Légère ombre pour le faire ressortir
+                        // App Logo
+                        Box(
+                            modifier = Modifier
+                                .size(110.dp)
+                                .clickable(
+                                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    tapCount++
+                                    if (tapCount >= 7) {
+                                        tapCount = 0
+                                        scope.launch {
+                                            AchievementNotificationManager.showNotification(
+                                                AchievementNotification(
+                                                    title = context.getString(R.string.achievement_unlocked),
+                                                    subtitle = "Meow Mode Activated 🐱",
+                                                    iconEmoji = "🧶",
+                                                    xpReward = 1337
+                                                )
+                                            )
+                                        }
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.test_notification_triggered),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(
+                            Icon(
+                                imageVector = ImageVector.vectorResource(id = R.drawable.ic_kittytune_logo),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .clickable {
-                                        tapCount++
-                                        if (tapCount >= 7) {
-                                            tapCount = 0
-                                            scope.launch {
-                                                AchievementNotificationManager.showNotification(
-                                                    AchievementNotification(
-                                                        title = context.getString(R.string.achievement_unlocked),
-                                                        subtitle = "Meow Mode Activated 🐱",
-                                                        iconEmoji = "🧶",
-                                                        xpReward = 1337
-                                                    )
-                                                )
-                                            }
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.test_notification_triggered),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_launcher_monochrome),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .scale(1.5f) // Bypass de la marge invisible
-                                )
-                            }
+                                    .padding(20.dp)
+                            )
                         }
 
                         Spacer(Modifier.height(24.dp))
@@ -214,18 +168,21 @@ fun AboutScreen(
 
                         Spacer(Modifier.height(32.dp))
 
-                        FilledTonalButton(
+                        Button(
                             onClick = {
+                                view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                                 scope.launch {
                                     UpdateManager.checkForUpdate(context, isManual = true)
                                 }
                             },
                             enabled = updateStatus != UpdateStatus.CHECKING && updateStatus != UpdateStatus.DOWNLOADING,
-                            shape = RoundedCornerShape(16.dp),
+                            shapes = ButtonDefaults.shapes(),
                             modifier = Modifier.fillMaxWidth().height(52.dp),
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                contentColor = MaterialTheme.colorScheme.onSurface
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isUpdateDownloaded) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                                contentColor = if (isUpdateDownloaded) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+                                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )
                         ) {
                             if (updateStatus == UpdateStatus.CHECKING) {
@@ -237,7 +194,7 @@ fun AboutScreen(
                                 Spacer(Modifier.width(12.dp))
                             } else {
                                 Icon(
-                                    Icons.Rounded.Refresh,
+                                    imageVector = if (isUpdateDownloaded) Icons.Outlined.InstallMobile else Icons.Rounded.Refresh,
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp),
                                     tint = MaterialTheme.colorScheme.primary
@@ -245,13 +202,95 @@ fun AboutScreen(
                                 Spacer(Modifier.width(12.dp))
                             }
                             Text(
-                                stringResource(R.string.update_check_manual),
+                                stringResource(if (isUpdateDownloaded) R.string.update_btn_install else R.string.update_check_manual),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
                 }
+            }
+
+            item {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = stringResource(R.string.about_kofi_title),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Icon(
+                                    painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_kofi_symbol),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp),
+                                    tint = androidx.compose.ui.graphics.Color.Unspecified
+                                )
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = stringResource(R.string.about_kofi_desc),
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Button(
+                                onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://ko-fi.com/alan7383") },
+                                shapes = ButtonDefaults.shapes(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+                            ) {
+                                Icon(
+                                    painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_kofi_logo),
+                                    contentDescription = stringResource(R.string.about_kofi_btn),
+                                    modifier = Modifier.width(62.dp).height(17.dp),
+                                    tint = androidx.compose.ui.graphics.Color.Unspecified
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.about_website_group),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                icon = Icons.Rounded.Language,
+                                title = stringResource(R.string.about_website_title),
+                                onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://alan7383.github.io/kittytune-website/") }
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                icon = Icons.Rounded.Download,
+                                title = stringResource(R.string.about_downloads_title),
+                                subtitle = stringResource(R.string.about_downloads_desc),
+                                onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://alan7383.github.io/kittytune-website/download") }
+                            )
+                        }
+                    )
+                )
             }
 
             item {
@@ -263,7 +302,7 @@ fun AboutScreen(
                                 shape = shape,
                                 icon = Icons.Rounded.Groups,
                                 title = stringResource(R.string.about_credits),
-                                onClick = { showCreditsSheet = true }
+                                onClick = onCreditsClick
                             )
                         },
                         { shape ->
@@ -271,7 +310,7 @@ fun AboutScreen(
                                 shape = shape,
                                 icon = Icons.Rounded.Code,
                                 title = stringResource(R.string.about_github),
-                                onClick = { uriHandler.openUri("https://github.com/alan7383/kittytune") }
+                                onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://github.com/alan7383/kittytune") }
                             )
                         },
                         { shape ->
@@ -279,13 +318,22 @@ fun AboutScreen(
                                 shape = shape,
                                 icon = Icons.Filled.BugReport,
                                 title = stringResource(R.string.about_bug_report),
-                                onClick = { uriHandler.openUri("https://github.com/alan7383/kittytune/issues") }
+                                onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://github.com/alan7383/kittytune/issues") }
                             )
                         },
                         { shape ->
                             SettingsItem(
                                 shape = shape,
-                                icon = Icons.Rounded.OpenInNew,
+                                icon = Icons.Rounded.Info,
+                                title = stringResource(R.string.logs_title),
+                                subtitle = stringResource(R.string.logs_subtitle),
+                                onClick = hapticAction(HapticKind.UI) { showLogsSheet = true }
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                icon = Icons.AutoMirrored.Rounded.OpenInNew,
                                 title = stringResource(R.string.about_licenses),
                                 onClick = onLicensesClick
                             )
@@ -297,7 +345,7 @@ fun AboutScreen(
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
                     Card(
-                        onClick = { uriHandler.openUri("https://crowdin.com/project/kittytune") },
+                        onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://crowdin.com/project/kittytune") },
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                         shape = RoundedCornerShape(24.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -359,6 +407,12 @@ fun AboutScreen(
             }
         }
     }
+
+    if (showLogsSheet) {
+        AppLogsSheet(
+            onDismissRequest = { showLogsSheet = false }
+        )
+    }
 }
 
 @Composable
@@ -368,7 +422,7 @@ fun ExpandableTechInfo(packageName: String, shape: androidx.compose.ui.graphics.
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = shape,
-        onClick = { expanded = !expanded },
+        onClick = hapticAction(HapticKind.UI) { expanded = !expanded },
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(

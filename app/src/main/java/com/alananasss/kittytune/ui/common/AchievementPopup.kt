@@ -1,10 +1,11 @@
     package com.alananasss.kittytune.ui.common
-    
+
     import androidx.compose.foundation.Canvas
     import androidx.compose.foundation.layout.*
     import androidx.compose.foundation.shape.CircleShape
     import androidx.compose.material3.Card
     import androidx.compose.material3.CardDefaults
+    import androidx.compose.material3.Icon
     import androidx.compose.material3.MaterialTheme
     import androidx.compose.material3.Text
     import androidx.compose.runtime.Composable
@@ -17,7 +18,10 @@
     import androidx.compose.ui.unit.dp
     import androidx.compose.ui.unit.sp
     import com.alananasss.kittytune.R
-    
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
+
     @Composable
     fun AchievementPopup(notification: AchievementNotification) {
         Card(
@@ -40,13 +44,20 @@
                             style = Stroke(width = 6f)
                         )
                     }
-                    if(notification.iconEmoji != null) {
+                    if (notification.iconVector != null) {
+                        Icon(
+                            imageVector = notification.iconVector,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    } else if (notification.iconEmoji != null) {
                         Text(text = notification.iconEmoji, fontSize = 16.sp)
                     }
                 }
-    
+
                 Spacer(Modifier.width(12.dp))
-    
+
                 Column(modifier = Modifier.padding(end = 12.dp)) {
                     Text(
                         text = notification.title,
@@ -78,5 +89,3 @@
             }
         }
     }
-
-

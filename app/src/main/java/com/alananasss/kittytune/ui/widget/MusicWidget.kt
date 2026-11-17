@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.widget
-    
+
     import android.content.Context
     import android.graphics.Bitmap
     import android.graphics.BitmapFactory
@@ -48,22 +48,26 @@
     import com.alananasss.kittytune.data.LikeRepository
     import com.alananasss.kittytune.data.MusicManager
     import com.alananasss.kittytune.data.local.PlayerPreferences
-    import kotlinx.coroutines.MainScope
+    import com.alananasss.kittytune.ui.player.AudioEffectsState
+    import kotlinx.coroutines.CoroutineScope
+    import kotlinx.coroutines.Dispatchers
+    import kotlinx.coroutines.SupervisorJob
     import kotlinx.coroutines.launch
+    import kotlinx.coroutines.withContext
     import java.io.File
-    
+
     // simple data class to type speeds without error
     data class WidgetSpeedOption(val label: String, val value: Float)
-    
+
     class MusicWidget : GlanceAppWidget() {
-    
+
         companion object {
             val KEY_TITLE = stringPreferencesKey("title")
             val KEY_ARTIST = stringPreferencesKey("artist")
             val KEY_COVER_PATH = stringPreferencesKey("cover_path")
             val KEY_IS_PLAYING = booleanPreferencesKey("is_playing")
             val KEY_IS_LIKED = booleanPreferencesKey("is_liked")
-    
+
             // configuration keys
             val KEY_SHOW_BASS = booleanPreferencesKey("show_bass")
             val KEY_SHOW_8D = booleanPreferencesKey("show_8d")
@@ -71,7 +75,7 @@
             val KEY_SHOW_REVERB = booleanPreferencesKey("show_reverb")
             val KEY_SHOW_PITCH = booleanPreferencesKey("show_pitch")
             val KEY_CUSTOM_SPEEDS = stringPreferencesKey("custom_speeds_str")
-    
+
             // state keys
             val KEY_CURRENT_SPEED = stringPreferencesKey("curr_speed")
             val KEY_BASS_ACTIVE = booleanPreferencesKey("bass_active")
@@ -79,25 +83,67 @@
             val KEY_MUFFLED_ACTIVE = booleanPreferencesKey("muffled_active")
             val KEY_REVERB_ACTIVE = booleanPreferencesKey("reverb_active")
             val KEY_PITCH_ACTIVE = booleanPreferencesKey("pitch_active")
-    
+
+            // One shared scope instead of a throwaway MainScope() per call: each update() used
+            // to leak a new scope, and every BUFFERING/READY transition fired one.
+            private val widgetUpdateScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+            private var lastUpdateSignature: String? = null
+            private var lastUpdateAt = 0L
+
+            // Effects are parsed from JSON on each update; during playback those updates can
+            // arrive in bursts, so the parsed state is memoised for a short window.
+            private var effectsCache: AudioEffectsState? = null
+            private var effectsCacheReadAt = 0L
+            private const val EFFECTS_CACHE_TTL_MS = 10_000L
+
+            /** Called by widget actions that just changed the effects so the next update re-reads them. */
+            fun invalidateEffectsCache() {
+                effectsCacheReadAt = 0L
+                lastUpdateSignature = null
+            }
+
+            private suspend fun getEffectsCached(context: Context): AudioEffectsState {
+                val cached = effectsCache
+                if (cached != null && System.currentTimeMillis() - effectsCacheReadAt < EFFECTS_CACHE_TTL_MS) {
+                    return cached
+                }
+                val fresh = withContext(Dispatchers.IO) { PlayerPreferences(context).getLastEffects() }
+                effectsCache = fresh
+                effectsCacheReadAt = System.currentTimeMillis()
+                return fresh
+            }
+
             fun update(context: Context) {
-                MainScope().launch {
+                widgetUpdateScope.launch {
                     val track = MusicManager.currentTrack
-                    val isPlaying = try { MusicManager.player.isPlaying } catch(e: Exception) { false }
+                    val isPlaying = try {
+                        MusicManager.player.isPlaying || (MusicManager.isLoadingTrack && MusicManager.playWhenReadyRequested)
+                    } catch(e: Exception) { false }
                     val isLiked = if (track != null) LikeRepository.isTrackLiked(track.id) else false
-    
-                    val prefsRepo = PlayerPreferences(context)
-                    val effects = prefsRepo.getLastEffects()
-    
+
+                    // The home-screen kitty reacts to every play/pause/track change.
+                    PetWidget.onPlaybackChanged(context)
+
+                    // Skip redundant refreshes: playback state changes fire in bursts (each
+                    // BUFFERING/READY transition, every like toggle), and each refresh costs a
+                    // DataStore write + AppWidgetManager IPC + a remote view relayout. Nothing
+                    // observable changes when the shown state is identical.
+                    val signature = "${track?.id}|$isPlaying|$isLiked"
+                    if (signature == lastUpdateSignature && System.currentTimeMillis() - lastUpdateAt < 10_000L) return@launch
+                    lastUpdateSignature = signature
+                    lastUpdateAt = System.currentTimeMillis()
+
+                    val effects = getEffectsCached(context)
+
                     val manager = GlanceAppWidgetManager(context)
-    
+
                     // update main widgets
                     val mainWidget = MusicWidget()
                     val mainIds = manager.getGlanceIds(MusicWidget::class.java)
                     mainIds.forEach { glanceId ->
                         updateAppWidgetState(context, glanceId) { prefs ->
                             updateCommonState(context, prefs, track, isPlaying, isLiked)
-    
+
                             prefs[KEY_CURRENT_SPEED] = effects.speed.toString()
                             prefs[KEY_BASS_ACTIVE] = effects.isBassBoostEnabled
                             prefs[KEY_8D_ACTIVE] = effects.is8DEnabled
@@ -107,7 +153,7 @@
                         }
                         mainWidget.update(context, glanceId)
                     }
-    
+
                     // update mini widgets
                     val miniWidget = MiniMusicWidget()
                     val miniIds = manager.getGlanceIds(MiniMusicWidget::class.java)
@@ -119,13 +165,13 @@
                     }
                 }
             }
-    
+
             private fun getCachedArtworkPath(context: Context, trackId: Long): String? {
                 val artFile = File(context.filesDir, "art_${trackId}.jpg")
                 if (artFile.exists()) return artFile.absolutePath
                 return null
             }
-    
+
             private fun updateCommonState(
                 context: Context,
                 prefs: androidx.datastore.preferences.core.MutablePreferences,
@@ -135,7 +181,7 @@
             ) {
                 if (track != null) {
                     prefs[KEY_TITLE] = track.title ?: context.getString(R.string.widget_unknown)
-                    prefs[KEY_ARTIST] = track.user?.username ?: context.getString(R.string.widget_unknown)
+                    prefs[KEY_ARTIST] = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.widget_unknown) }
                     val path = getCachedArtworkPath(context, track.id)
                     prefs[KEY_COVER_PATH] = path ?: ""
                 } else {
@@ -147,7 +193,7 @@
                 prefs[KEY_IS_LIKED] = isLiked
             }
         }
-    
+
         override suspend fun provideGlance(context: Context, id: GlanceId) {
             provideContent {
                 GlanceTheme {
@@ -155,26 +201,26 @@
                 }
             }
         }
-    
+
         @Composable
         fun WidgetContent() {
             val context = LocalContext.current
             val prefs = currentState<Preferences>()
-    
+
             val title = prefs[KEY_TITLE] ?: context.getString(R.string.widget_default_title)
             val artist = prefs[KEY_ARTIST] ?: context.getString(R.string.widget_select_track)
             val coverPath = prefs[KEY_COVER_PATH] ?: ""
             val isPlaying = prefs[KEY_IS_PLAYING] ?: false
             val isLiked = prefs[KEY_IS_LIKED] ?: false
-    
+
             val showBass = prefs[KEY_SHOW_BASS] ?: false
             val show8D = prefs[KEY_SHOW_8D] ?: false
             val showMuffled = prefs[KEY_SHOW_MUFFLED] ?: false
             val showReverb = prefs[KEY_SHOW_REVERB] ?: false
             val showPitch = prefs[KEY_SHOW_PITCH] ?: false
-    
+
             val customSpeedsRaw = prefs[KEY_CUSTOM_SPEEDS] ?: ""
-    
+
             // transforming string data into typed objects
             val customSpeedsList: List<WidgetSpeedOption> = if (customSpeedsRaw.isNotEmpty()) {
                 customSpeedsRaw.split("|").mapNotNull {
@@ -186,14 +232,14 @@
                     } else null
                 }
             } else emptyList()
-    
+
             val currentSpeedVal = (prefs[KEY_CURRENT_SPEED] ?: "1.0").toFloatOrNull() ?: 1.0f
             val isBassActive = prefs[KEY_BASS_ACTIVE] ?: false
             val is8DActive = prefs[KEY_8D_ACTIVE] ?: false
             val isMuffledActive = prefs[KEY_MUFFLED_ACTIVE] ?: false
             val isReverbActive = prefs[KEY_REVERB_ACTIVE] ?: false
             val isPitchActive = prefs[KEY_PITCH_ACTIVE] ?: false
-    
+
             Box(
                 modifier = GlanceModifier
                     .fillMaxSize()
@@ -205,7 +251,6 @@
                     modifier = GlanceModifier.fillMaxSize().padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // --- album art (full height) ---
                     val bitmap = rememberBitmapFromPath(coverPath)
                     Box(
                         modifier = GlanceModifier
@@ -232,10 +277,9 @@
                             }
                         }
                     }
-    
+
                     Spacer(GlanceModifier.width(16.dp))
-    
-                    // --- info & controls ---
+
                     Column(
                         modifier = GlanceModifier.fillMaxHeight().defaultWeight(),
                         verticalAlignment = Alignment.CenterVertically
@@ -257,10 +301,10 @@
                                     maxLines = 1
                                 )
                             }
-    
+
                             val heartIcon = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
                             val tintProvider = if (isLiked) ColorProvider(Color(0xFFFF4081)) else GlanceTheme.colors.onSurfaceVariant
-    
+
                             Image(
                                 provider = ImageProvider(heartIcon),
                                 contentDescription = context.getString(R.string.desc_like),
@@ -268,9 +312,9 @@
                                 modifier = GlanceModifier.size(24.dp).clickable(actionRunCallback<ToggleLikeAction>())
                             )
                         }
-    
+
                         Spacer(GlanceModifier.defaultWeight())
-    
+
                         // 2. playback controls
                         Row(
                             modifier = GlanceModifier.fillMaxWidth(),
@@ -290,11 +334,11 @@
                             Spacer(GlanceModifier.width(12.dp))
                             Image(provider = ImageProvider(R.drawable.ic_skip_next), contentDescription = context.getString(R.string.desc_next), colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurface), modifier = GlanceModifier.size(32.dp).clickable(actionRunCallback<SkipNextAction>()).padding(4.dp))
                         }
-    
+
                         // 3. custom buttons row (replacing lazyrow with row + foreach)
                         if (showBass || show8D || showMuffled || showReverb || showPitch || customSpeedsList.isNotEmpty()) {
                             Spacer(GlanceModifier.height(8.dp))
-    
+
                             Row(
                                 modifier = GlanceModifier.fillMaxWidth(),
                                 horizontalAlignment = Alignment.End
@@ -304,7 +348,7 @@
                                 if (showMuffled) { PillButton(context.getString(R.string.effect_muffled).take(4), isMuffledActive, "MUFFLED"); Spacer(GlanceModifier.width(4.dp)) }
                                 if (showReverb) { PillButton("Verb", isReverbActive, "REVERB"); Spacer(GlanceModifier.width(4.dp)) }
                                 if (showPitch) { PillButton("Ptch", isPitchActive, "PITCH"); Spacer(GlanceModifier.width(4.dp)) }
-    
+
                                 // standard loop on list, limited to 3 items to avoid overflow
                                 customSpeedsList.take(3).forEach { option ->
                                     val isActive = (option.value == currentSpeedVal)
@@ -317,12 +361,12 @@
                 }
             }
         }
-    
+
         @Composable
         fun PillButton(text: String, isActive: Boolean, effectKey: String) {
             val bgColor = if(isActive) GlanceTheme.colors.primary else GlanceTheme.colors.surfaceVariant
             val contentColor = if(isActive) GlanceTheme.colors.onPrimary else GlanceTheme.colors.onSurfaceVariant
-    
+
             Box(
                 modifier = GlanceModifier
                     .background(bgColor)
@@ -343,12 +387,12 @@
                 )
             }
         }
-    
+
         @Composable
         fun SpeedPillButton(text: String, isActive: Boolean, speedValue: Float) {
             val bgColor = if(isActive) GlanceTheme.colors.tertiary else GlanceTheme.colors.surfaceVariant
             val contentColor = if(isActive) GlanceTheme.colors.onTertiary else GlanceTheme.colors.onSurfaceVariant
-    
+
             Box(
                 modifier = GlanceModifier
                     .background(bgColor)
@@ -369,12 +413,11 @@
                 )
             }
         }
-    
+
         @Composable
         private fun rememberBitmapFromPath(path: String): Bitmap? {
             if (path.isEmpty()) return null
             return try { BitmapFactory.decodeFile(path) } catch (e: Exception) { null }
         }
     }
-
 

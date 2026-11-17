@@ -2,128 +2,172 @@ package com.alananasss.kittytune.ui.profile
 
 import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
-import androidx.compose.animation.AnimatedVisibility
+import android.content.SharedPreferences
+import androidx.annotation.StringRes
+import androidx.compose.animation.*
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BrightnessAuto
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.outlined.BrightnessAuto
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.AppLanguage
 import com.alananasss.kittytune.data.local.AppThemeMode
+import com.alananasss.kittytune.data.local.LibraryCategoryLayout
+import com.alananasss.kittytune.data.local.PlayerActionButtonSlot
 import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.StartDestination
+import com.alananasss.kittytune.data.local.TrackRemovalMethod
+import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
+import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
+import com.alananasss.kittytune.ui.common.Slider
+import com.alananasss.kittytune.ui.common.SplitSettingsItem
+import com.alananasss.kittytune.ui.common.TrackRemovalMethodDialog
 import com.alananasss.kittytune.ui.common.getSettingsShape
+import com.alananasss.kittytune.ui.common.trackRemovalMethodIcon
+import com.alananasss.kittytune.ui.theme.KittyTuneDefaultSeedColor
+import com.materialkolor.PaletteStyle
+import com.materialkolor.rememberDynamicColorScheme
+
+private enum class ThemeLook(
+    val mode: AppThemeMode,
+    @StringRes val labelRes: Int,
+    val icon: ImageVector
+) {
+    SYSTEM(AppThemeMode.SYSTEM, R.string.theme_system, Icons.Rounded.BrightnessAuto),
+    LIGHT(AppThemeMode.LIGHT, R.string.theme_light, Icons.Rounded.LightMode),
+    DARK(AppThemeMode.DARK, R.string.theme_dark, Icons.Rounded.DarkMode),
+    AMOLED(AppThemeMode.DARK, R.string.theme_amoled, Icons.Rounded.Contrast),
+}
+
+private class ThemePreset(
+    @StringRes val labelRes: Int,
+    val seed: Int,
+    val style: PaletteStyle
+) {
+    val styleName: String get() = if (seed == 0) "System" else style.name
+}
+
+private val themePresets = listOf(
+    ThemePreset(R.string.theme_preset_ocean, 0xFF1565C0.toInt(), PaletteStyle.Vibrant),
+    ThemePreset(R.string.theme_preset_forest, 0xFF2E7D32.toInt(), PaletteStyle.Vibrant),
+    ThemePreset(R.string.theme_preset_sunset, 0xFFE64A19.toInt(), PaletteStyle.Vibrant),
+    ThemePreset(R.string.theme_preset_rose, 0xFFD81B60.toInt(), PaletteStyle.Vibrant),
+    ThemePreset(R.string.theme_preset_lavender, 0xFF7E57C2.toInt(), PaletteStyle.Vibrant),
+    ThemePreset(R.string.theme_preset_mint, 0xFF00A884.toInt(), PaletteStyle.Vibrant),
+)
 
 @Composable
 fun AppearanceSettingsScreen(
     onNavigateToColors: () -> Unit,
+    onNavigateToBottomBarSettings: () -> Unit,
+    onNavigateToAppIconSettings: () -> Unit,
+    onNavigateToPlayerCustomization: () -> Unit,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
     val isSystemDark = isSystemInDarkTheme()
 
-    var startDestination by remember { mutableStateOf(prefs.getStartDestination()) }
     var dynamicTheme by remember { mutableStateOf(prefs.getDynamicTheme()) }
+    var trackDynamicTheme by remember { mutableStateOf(prefs.getTrackDynamicTheme()) }
     var themeMode by remember { mutableStateOf(prefs.getThemeMode()) }
     var pureBlack by remember { mutableStateOf(prefs.getPureBlack()) }
-    var playerStyle by remember { mutableStateOf(prefs.getPlayerStyle()) }
-    var appLanguage by remember { mutableStateOf(prefs.getAppLanguage()) }
-    var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
-    var autoUpdate by remember { mutableStateOf(prefs.getAutoUpdateEnabled()) }
+    var keyColor by remember { mutableIntStateOf(prefs.getKeyColor()) }
+
     var customFontEnabled by remember { mutableStateOf(prefs.getCustomFontEnabled()) }
+    var appIcon by remember { mutableStateOf(prefs.getAppIconId()) }
+    var lyricsUnderCover by remember { mutableStateOf(prefs.getLyricsUnderCoverEnabled()) }
+    var animatedCovers by remember { mutableStateOf(prefs.getAnimatedCoversEnabled()) }
+    var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
+    var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
+    var libraryCategoryLayout by remember { mutableStateOf(prefs.getLibraryCategoryLayout()) }
+    var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
+    var showHomeListeningStats by remember { mutableStateOf(prefs.getShowHomeListeningStats()) }
+    var showHomeYourMix by remember { mutableStateOf(prefs.getShowHomeYourMix()) }
+    var showHomeMyWave by remember { mutableStateOf(prefs.getShowHomeMyWave()) }
+    var showHomeCharts by remember { mutableStateOf(prefs.getShowHomeCharts()) }
 
-    var showPlayerStyleDialog by remember { mutableStateOf(false) }
-    var showStartDestDialog by remember { mutableStateOf(false) }
-    var showLanguageDialog by remember { mutableStateOf(false) }
     var showFontConfigDialog by remember { mutableStateOf(false) }
+    var showCategoryLayoutDialog by remember { mutableStateOf(false) }
+    val trackRemovalMethodPref by prefs.getTrackRemovalMethodFlow().collectAsState(initial = prefs.getTrackRemovalMethod())
+    var trackRemovalMethod by remember { mutableStateOf(prefs.getTrackRemovalMethod()) }
+    LaunchedEffect(trackRemovalMethodPref) {
+        trackRemovalMethod = trackRemovalMethodPref
+    }
+    var showTrackRemovalDialog by remember { mutableStateOf(false) }
 
-    val isPureBlackVisible = themeMode == AppThemeMode.DARK || (themeMode == AppThemeMode.SYSTEM && isSystemDark)
-
-    if (showStartDestDialog) {
-        AlertDialog(
-            onDismissRequest = { showStartDestDialog = false },
-            title = { Text(stringResource(R.string.pref_start_screen)) },
-            text = {
-                Column {
-                    StartDestRadioButton(stringResource(R.string.nav_home), StartDestination.HOME, startDestination) { startDestination = it; prefs.setStartDestination(it); showStartDestDialog = false }
-                    StartDestRadioButton(stringResource(R.string.nav_library), StartDestination.LIBRARY, startDestination) { startDestination = it; prefs.setStartDestination(it); showStartDestDialog = false }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showStartDestDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
-        )
+    DisposableEffect(Unit) {
+        val sp = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == PlayerPreferences.KEY_DYNAMIC_THEME) {
+                dynamicTheme = prefs.getDynamicTheme()
+            } else if (key == PlayerPreferences.KEY_TRACK_DYNAMIC_THEME) {
+                trackDynamicTheme = prefs.getTrackDynamicTheme()
+            } else if (key == PlayerPreferences.KEY_KEY_COLOR) {
+                keyColor = prefs.getKeyColor()
+            } else if (key == PlayerPreferences.KEY_THEME_MODE) {
+                themeMode = prefs.getThemeMode()
+            } else if (key == PlayerPreferences.KEY_PURE_BLACK) {
+                pureBlack = prefs.getPureBlack()
+            }
+        }
+        sp.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { sp.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
-    if (showPlayerStyleDialog) {
-        AlertDialog(
-            onDismissRequest = { showPlayerStyleDialog = false },
-            title = { Text(stringResource(R.string.pref_player_style)) },
-            text = {
-                Column {
-                    PlayerStyleRadioButton(stringResource(R.string.style_theme), PlayerBackgroundStyle.THEME, playerStyle) { playerStyle = it; prefs.setPlayerStyle(it); showPlayerStyleDialog = false }
-                    PlayerStyleRadioButton(stringResource(R.string.style_gradient), PlayerBackgroundStyle.GRADIENT, playerStyle) { playerStyle = it; prefs.setPlayerStyle(it); showPlayerStyleDialog = false }
-                    PlayerStyleRadioButton(stringResource(R.string.style_blur), PlayerBackgroundStyle.BLUR, playerStyle) { playerStyle = it; prefs.setPlayerStyle(it); showPlayerStyleDialog = false }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showPlayerStyleDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
-        )
+    val look = remember(themeMode, pureBlack) {
+        when {
+            themeMode == AppThemeMode.DARK && pureBlack -> ThemeLook.AMOLED
+            themeMode == AppThemeMode.DARK -> ThemeLook.DARK
+            themeMode == AppThemeMode.LIGHT -> ThemeLook.LIGHT
+            else -> ThemeLook.SYSTEM
+        }
     }
 
-    if (showLanguageDialog) {
-        AlertDialog(
-            onDismissRequest = { showLanguageDialog = false },
-            title = { Text(stringResource(R.string.pref_language)) },
-            text = {
-                Column {
-                    LanguageRadioButton(stringResource(R.string.theme_system), AppLanguage.SYSTEM, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
-                    LanguageRadioButton(stringResource(R.string.lang_french), AppLanguage.FRENCH, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
-                    LanguageRadioButton(stringResource(R.string.lang_english), AppLanguage.ENGLISH, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
-                    LanguageRadioButton(stringResource(R.string.lang_hungarian), AppLanguage.HUNGARIAN, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showLanguageDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
-        )
+    val isDark = when (themeMode) {
+        AppThemeMode.SYSTEM -> isSystemDark
+        AppThemeMode.DARK -> true
+        AppThemeMode.LIGHT -> false
     }
 
     if (showFontConfigDialog) {
-        // Font logic remains unchanged
         var wght by remember { mutableFloatStateOf(prefs.getFontWght().toFloat()) }
         var wdth by remember { mutableFloatStateOf(prefs.getFontWdth()) }
         var slnt by remember { mutableFloatStateOf(prefs.getFontSlnt()) }
@@ -149,143 +193,450 @@ fun AppearanceSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        item { AssistChip(onClick = { applyPreset(400f, 100f, 0f, 0f, 0f, 14f) }, label = { Text(stringResource(R.string.font_preset_default)) }) }
-                        item { AssistChip(onClick = { applyPreset(600f, 100f, 0f, 100f, 0f, 14f) }, label = { Text(stringResource(R.string.font_preset_rounded)) }) }
-                        item { AssistChip(onClick = { applyPreset(250f, 105f, 0f, 0f, 0f, 14f) }, label = { Text(stringResource(R.string.font_preset_elegant)) }) }
-                        item { AssistChip(onClick = { applyPreset(900f, 110f, 0f, 50f, 0f, 14f) }, label = { Text(stringResource(R.string.font_preset_chunky)) }) }
+                        item {
+                            AssistChip(
+                                onClick = hapticAction(HapticKind.UI) { applyPreset(400f, 100f, 0f, 0f, 0f, 14f) },
+                                label = { Text(stringResource(R.string.font_preset_default)) }
+                            )
+                        }
+                        item {
+                            AssistChip(
+                                onClick = hapticAction(HapticKind.UI) { applyPreset(600f, 100f, 0f, 100f, 0f, 14f) },
+                                label = { Text(stringResource(R.string.font_preset_rounded)) }
+                            )
+                        }
+                        item {
+                            AssistChip(
+                                onClick = hapticAction(HapticKind.UI) { applyPreset(250f, 105f, 0f, 0f, 0f, 14f) },
+                                label = { Text(stringResource(R.string.font_preset_elegant)) }
+                            )
+                        }
+                        item {
+                            AssistChip(
+                                onClick = hapticAction(HapticKind.UI) { applyPreset(900f, 110f, 0f, 50f, 0f, 14f) },
+                                label = { Text(stringResource(R.string.font_preset_chunky)) }
+                            )
+                        }
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    Column { Text(stringResource(R.string.dialog_font_weight, wght.toInt()), style = MaterialTheme.typography.labelLarge); Slider(value = wght, onValueChange = { wght = it; prefs.setFontWght(it.toInt()) }, valueRange = 100f..1000f) }
-                    Column { Text(stringResource(R.string.dialog_font_width, wdth.toInt()), style = MaterialTheme.typography.labelLarge); Slider(value = wdth, onValueChange = { wdth = it; prefs.setFontWdth(it) }, valueRange = 25f..151f) }
-                    Column { Text(stringResource(R.string.dialog_font_slant, slnt.toInt()), style = MaterialTheme.typography.labelLarge); Slider(value = slnt, onValueChange = { slnt = it; prefs.setFontSlnt(it) }, valueRange = -10f..0f) }
-                    Column { Text(stringResource(R.string.dialog_font_roundness, rond.toInt()), style = MaterialTheme.typography.labelLarge); Slider(value = rond, onValueChange = { rond = it; prefs.setFontRond(it) }, valueRange = 0f..100f) }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(stringResource(R.string.dialog_font_weight, wght.toInt()), style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Slider(
+                            value = wght,
+                            onValueChange = { wght = it; prefs.setFontWght(it.toInt()) },
+                            valueRange = 100f..1000f,
+                            steps = 18
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(stringResource(R.string.dialog_font_width, wdth.toInt()), style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Slider(
+                            value = wdth,
+                            onValueChange = { wdth = it; prefs.setFontWdth(it) },
+                            valueRange = 25f..151f
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(stringResource(R.string.dialog_font_slant, slnt.toInt()), style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Slider(
+                            value = slnt,
+                            onValueChange = { slnt = it; prefs.setFontSlnt(it) },
+                            valueRange = -10f..0f
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(stringResource(R.string.dialog_font_roundness, rond.toInt()), style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Slider(
+                            value = rond,
+                            onValueChange = { rond = it; prefs.setFontRond(it) },
+                            valueRange = 0f..100f
+                        )
+                    }
                 }
             },
-            confirmButton = { TextButton(onClick = { showFontConfigDialog = false }) { Text(stringResource(R.string.btn_close)) } },
-            dismissButton = { TextButton(onClick = { applyPreset(400f, 100f, 0f, 0f, 0f, 14f) }) { Text(stringResource(R.string.btn_reset)) } }
+            confirmButton = {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showFontConfigDialog = false }) {
+                    Text(stringResource(R.string.btn_close))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = hapticAction(HapticKind.UI) { applyPreset(400f, 100f, 0f, 0f, 0f, 14f) }) {
+                    Text(stringResource(R.string.btn_reset))
+                }
+            }
         )
     }
+
+    if (showCategoryLayoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showCategoryLayoutDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_library_category_layout_title),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LibraryCategoryLayout.entries.forEach { layoutOption ->
+                        val isSelected = libraryCategoryLayout == layoutOption
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .hapticClickable {
+                                    libraryCategoryLayout = layoutOption
+                                    prefs.setLibraryCategoryLayout(layoutOption)
+                                    showCategoryLayoutDialog = false
+                                }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = null
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = stringResource(layoutOption.titleRes),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = stringResource(layoutOption.descRes),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showCategoryLayoutDialog = false }) {
+                    Text(stringResource(R.string.btn_close))
+                }
+            }
+        )
+    }
+
+    if (showTrackRemovalDialog) {
+        TrackRemovalMethodDialog(
+            selectedMethod = trackRemovalMethod,
+            onMethodSelected = { method ->
+                trackRemovalMethod = method
+                prefs.setTrackRemovalMethod(method)
+                showTrackRemovalDialog = false
+            },
+            onDismissRequest = { showTrackRemovalDialog = false }
+        )
+    }
+
+    val listState = rememberLazyListState()
+
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "pref_theme_dynamic" to 0,
+            "pref_theme_track_dynamic" to 0,
+            "settings_page_themes" to 1,
+            "pref_font_custom" to 2,
+            "pref_font_variations" to 2,
+            "pref_app_icon" to 2,
+            "pref_animated_covers" to 3,
+            "pref_animated_covers_fade_ui" to 3,
+            "pref_animated_artist_profiles" to 3,
+            "pref_lyrics_under_cover" to 3,
+            "pref_library_category_layout" to 4,
+            "pref_track_removal" to 4,
+            "pref_achievement_popups" to 4,
+            "pref_home_listening_stats" to 5,
+            "pref_home_your_mix" to 5,
+            "pref_home_my_wave" to 5,
+            "pref_home_charts" to 5
+        )
+    )
 
     SettingsScaffold(
         title = stringResource(R.string.pref_appearance_title),
         onBackClick = onBackClick
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 100.dp)
+            contentPadding = PaddingValues(bottom = 180.dp)
         ) {
-
+            // Section: Dynamic Colors
             item {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    SettingsGroupTitle(stringResource(R.string.settings_cat_appearance)) // "Apparence"
-                    ThemeSelector(
-                        currentTheme = themeMode,
-                        onThemeSelected = {
-                            themeMode = it
-                            prefs.setThemeMode(it)
-                        },
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = if (isPureBlackVisible) 4 else 3
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 0),
-                            title = stringResource(R.string.pref_language),
-                            subtitle = stringResource(R.string.pref_language_sub),
-                            trailingText = when(appLanguage) {
-                                AppLanguage.SYSTEM -> stringResource(R.string.theme_system)
-                                AppLanguage.FRENCH -> stringResource(R.string.lang_french)
-                                AppLanguage.ENGLISH -> stringResource(R.string.lang_english)
-                                AppLanguage.HUNGARIAN -> stringResource(R.string.lang_hungarian)
-                            },
-                            onClick = { showLanguageDialog = true }
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 1),
-                            title = stringResource(R.string.pref_theme_dynamic),
-                            subtitle = stringResource(R.string.pref_theme_dynamic_sub),
-                            hasSwitch = true,
-                            switchState = dynamicTheme,
-                            onSwitchChange = { dynamicTheme = it; prefs.setDynamicTheme(it) }
-                        )
-
-                        AnimatedVisibility(
-                            visible = isPureBlackVisible,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_cat_appearance),
+                    items = listOf(
+                        { shape ->
                             SettingsItem(
-                                shape = getSettingsShape(totalVisibleItems, 2),
-                                title = stringResource(R.string.pref_theme_pure_black),
-                                subtitle = stringResource(R.string.pref_theme_pure_black_sub),
+                                shape = shape,
+                                title = stringResource(R.string.pref_theme_dynamic),
+                                subtitle = stringResource(R.string.pref_theme_dynamic_sub),
+                                icon = Icons.Rounded.AutoAwesome,
                                 hasSwitch = true,
-                                switchState = pureBlack,
-                                onSwitchChange = { pureBlack = it; prefs.setPureBlack(it) }
+                                switchState = dynamicTheme,
+                                onSwitchChange = { on ->
+                                    dynamicTheme = on
+                                    prefs.setDynamicTheme(on)
+                                    // Both dynamic themes may be on at once: while a track is
+                                    // loaded the artwork seed wins, and Material You takes over
+                                    // once the mini player is emptied. (See Theme.kt.)
+                                    if (!on && keyColor == 0) {
+                                        val defaultPreset = themePresets.first()
+                                        keyColor = defaultPreset.seed
+                                        prefs.setKeyColor(defaultPreset.seed)
+                                        prefs.setColorStyle(defaultPreset.styleName)
+                                    }
+                                },
+                                highlightKey = "pref_theme_dynamic"
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_theme_track_dynamic),
+                                subtitle = stringResource(R.string.pref_theme_track_dynamic_sub),
+                                icon = Icons.Rounded.Album,
+                                hasSwitch = true,
+                                switchState = trackDynamicTheme,
+                                onSwitchChange = { on ->
+                                    trackDynamicTheme = on
+                                    prefs.setTrackDynamicTheme(on)
+                                    // Coexists with Dynamic Theme (Material You): the track seed
+                                    // wins while there is a track, Material You takes over when
+                                    // the player is emptied. (See Theme.kt.)
+                                },
+                                highlightKey = "pref_theme_track_dynamic"
                             )
                         }
+                    )
+                )
+            }
 
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, if (isPureBlackVisible) 3 else 2),
-                            title = stringResource(R.string.pref_color_palette_title),
-                            subtitle = stringResource(R.string.pref_color_palette_subtitle),
-                            onClick = onNavigateToColors
-                        )
+            // Section: Thèmes prêts (Ready-made themes) - Desktop screenshot 1
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    SettingsGroupTitle(stringResource(R.string.theme_presets_title))
+
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp, bottom = 4.dp)
+                        ) {
+                            // Compact row for mode selection + AMOLED
+                            ExpressiveConnectedButtonGroup(
+                                options = ThemeLook.entries,
+                                selectedOption = look,
+                                onOptionSelected = { chosen ->
+                                    themeMode = chosen.mode
+                                    pureBlack = chosen == ThemeLook.AMOLED
+                                    prefs.setThemeMode(chosen.mode)
+                                    prefs.setPureBlack(pureBlack)
+                                },
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp),
+                                iconSpacing = 2.dp,
+                                iconProvider = {
+                                    Icon(it.icon, contentDescription = null, modifier = Modifier.size(15.dp))
+                                },
+                                labelProvider = {
+                                    Text(
+                                        text = stringResource(it.labelRes),
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 11.5.sp,
+                                            letterSpacing = (-0.3).sp
+                                        ),
+                                        autoSize = TextAutoSize.StepBased(
+                                            minFontSize = 7.5.sp,
+                                            maxFontSize = 11.5.sp,
+                                            stepSize = 0.5.sp
+                                        ),
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            )
+
+                            // Preset Cards Carousel
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
+                                themePresets.forEach { preset ->
+                                    ThemePresetCard(
+                                        label = stringResource(preset.labelRes),
+                                        seed = preset.seed,
+                                        style = preset.style,
+                                        isSelected = !dynamicTheme && !trackDynamicTheme && (keyColor == preset.seed),
+                                        isDark = isDark,
+                                        pureBlack = pureBlack && isDark,
+                                        onClick = hapticAction(HapticKind.UI) {
+                                            keyColor = preset.seed
+                                            prefs.setKeyColor(preset.seed)
+                                            prefs.setColorStyle(preset.styleName)
+                                            dynamicTheme = false
+                                            prefs.setDynamicTheme(false)
+                                            trackDynamicTheme = false
+                                            prefs.setTrackDynamicTheme(false)
+                                        }
+                                    )
+                                }
+                                CustomThemeCard(onClick = onNavigateToColors)
+                            }
+                        }
                     }
                 }
             }
 
+            // Section: Fenêtre et texte (Window & Text / Typography)
             item {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    SettingsGroupTitle(stringResource(R.string.settings_cat_typography))
-
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val customFontBottomRadius by animateDpAsState(
-                            targetValue = if (customFontEnabled) 4.dp else 24.dp,
-                            label = "CustomFontCornerAnimation"
-                        )
-
-                        SettingsItem(
-                            shape = RoundedCornerShape(
-                                topStart = 24.dp,
-                                topEnd = 24.dp,
-                                bottomStart = customFontBottomRadius,
-                                bottomEnd = customFontBottomRadius
-                            ),
-                            title = stringResource(R.string.pref_font_custom_title),
-                            subtitle = stringResource(R.string.pref_font_custom_subtitle),
-                            hasSwitch = true,
-                            switchState = customFontEnabled,
-                            onSwitchChange = {
-                                customFontEnabled = it
-                                prefs.setCustomFontEnabled(it)
-                            }
-                        )
-
-                        AnimatedVisibility(
-                            visible = customFontEnabled,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_group_window),
+                    items = listOf(
+                        { shape ->
                             SettingsItem(
-                                shape = RoundedCornerShape(
-                                    topStart = 4.dp,
-                                    topEnd = 4.dp,
-                                    bottomStart = 24.dp,
-                                    bottomEnd = 24.dp
-                                ),
+                                shape = shape,
+                                title = stringResource(R.string.pref_font_custom_title),
+                                subtitle = stringResource(R.string.pref_font_custom_subtitle),
+                                icon = Icons.Rounded.TextFields,
+                                hasSwitch = true,
+                                switchState = customFontEnabled,
+                                onSwitchChange = {
+                                    customFontEnabled = it
+                                    prefs.setCustomFontEnabled(it)
+                                },
+                                highlightKey = "pref_font_custom"
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
                                 title = stringResource(R.string.pref_font_variations_title),
                                 subtitle = stringResource(R.string.pref_font_variations_subtitle),
-                                onClick = { showFontConfigDialog = true }
+                                icon = Icons.Rounded.Tune,
+                                onClick = hapticAction(HapticKind.UI) { showFontConfigDialog = true },
+                                highlightKey = "pref_font_variations"
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_app_icon_title),
+                                subtitle = stringResource(R.string.pref_app_icon_subtitle),
+                                trailingText = getAppIconDisplayName(context, appIcon),
+                                icon = Icons.Rounded.Apps,
+                                onClick = onNavigateToAppIconSettings,
+                                highlightKey = "pref_app_icon"
+                            )
+                        }
+                    )
+                )
+            }
+
+            // Section: Pochettes (Covers & Artwork)
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_group_covers),
+                    items = buildList {
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_animated_covers),
+                                subtitle = stringResource(R.string.pref_animated_covers_desc),
+                                icon = Icons.Rounded.PlayCircle,
+                                hasSwitch = true,
+                                switchState = animatedCovers,
+                                onSwitchChange = {
+                                    animatedCovers = it
+                                    prefs.setAnimatedCoversEnabled(it)
+                                },
+                                highlightKey = "pref_animated_covers"
+                            )
+                        }
+                        if (animatedCovers) {
+                            add { shape ->
+                                SettingsItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.pref_animated_covers_fade_ui),
+                                    subtitle = stringResource(R.string.pref_animated_covers_fade_ui_desc),
+                                    icon = Icons.Rounded.Opacity,
+                                    hasSwitch = true,
+                                    switchState = animatedCoversFadeUi,
+                                    onSwitchChange = {
+                                        animatedCoversFadeUi = it
+                                        prefs.setAnimatedCoversFadeUiEnabled(it)
+                                    },
+                                    highlightKey = "pref_animated_covers_fade_ui"
+                                )
+                            }
+                        }
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_animated_artist_profiles),
+                                subtitle = stringResource(R.string.pref_animated_artist_profiles_desc),
+                                icon = Icons.Rounded.AccountCircle,
+                                hasSwitch = true,
+                                switchState = animatedArtistProfiles,
+                                onSwitchChange = {
+                                    animatedArtistProfiles = it
+                                    prefs.setAnimatedArtistProfilesEnabled(it)
+                                },
+                                highlightKey = "pref_animated_artist_profiles"
+                            )
+                        }
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_lyrics_under_cover),
+                                subtitle = stringResource(R.string.pref_lyrics_under_cover_sub),
+                                icon = Icons.Rounded.Lyrics,
+                                hasSwitch = true,
+                                switchState = lyricsUnderCover,
+                                onSwitchChange = {
+                                    lyricsUnderCover = it
+                                    prefs.setLyricsUnderCoverEnabled(it)
+                                },
+                                highlightKey = "pref_lyrics_under_cover"
                             )
                         }
                     }
-                }
+                )
             }
 
+            // Section: Layouts & UI Display
             item {
                 SettingsGroup(
                     title = stringResource(R.string.settings_cat_general),
@@ -293,47 +644,112 @@ fun AppearanceSettingsScreen(
                         { shape ->
                             SettingsItem(
                                 shape = shape,
-                                title = stringResource(R.string.pref_player_style),
-                                subtitle = when(playerStyle) {
-                                    PlayerBackgroundStyle.THEME -> stringResource(R.string.style_theme)
-                                    PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.style_gradient)
-                                    PlayerBackgroundStyle.BLUR -> stringResource(R.string.style_blur)
+                                title = stringResource(R.string.pref_library_category_layout_title),
+                                subtitle = stringResource(libraryCategoryLayout.titleRes),
+                                icon = Icons.Rounded.FilterList,
+                                onClick = hapticAction(HapticKind.UI) { showCategoryLayoutDialog = true },
+                                highlightKey = "pref_library_category_layout"
+                            )
+                        },
+
+                        { shape ->
+                            SplitSettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_track_removal_title),
+                                subtitle = stringResource(trackRemovalMethod.titleRes),
+                                icon = trackRemovalMethodIcon(trackRemovalMethod),
+                                onClick = hapticAction(HapticKind.UI) { showTrackRemovalDialog = true },
+                                switchState = trackRemovalMethod.isRemovalAllowed,
+                                onSwitchChange = { enabled ->
+                                    prefs.setTrackRemovalEnabled(enabled)
+                                    trackRemovalMethod = prefs.getTrackRemovalMethod()
                                 },
-                                onClick = { showPlayerStyleDialog = true }
+                                highlightKey = "pref_track_removal"
                             )
                         },
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_start_screen),
-                                subtitle = if (startDestination == StartDestination.HOME) stringResource(R.string.nav_home) else stringResource(R.string.nav_library),
-                                onClick = { showStartDestDialog = true }
-                            )
-                        },
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_auto_update),
-                                subtitle = stringResource(R.string.pref_auto_update_sub),
-                                hasSwitch = true,
-                                switchState = autoUpdate,
-                                onSwitchChange = {
-                                    autoUpdate = it
-                                    prefs.setAutoUpdateEnabled(it)
-                                }
-                            )
-                        },
+
                         { shape ->
                             SettingsItem(
                                 shape = shape,
                                 title = stringResource(R.string.pref_achievement_popups),
                                 subtitle = stringResource(R.string.pref_achievement_popups_sub),
+                                icon = Icons.Rounded.EmojiEvents,
                                 hasSwitch = true,
                                 switchState = achievementPopupsEnabled,
                                 onSwitchChange = {
                                     achievementPopupsEnabled = it
                                     prefs.setAchievementPopupsEnabled(it)
-                                }
+                                },
+                                highlightKey = "pref_achievement_popups"
+                            )
+                        }
+                    )
+                )
+            }
+
+            // Section: Home Screen Cards
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.pref_home_cards_group_title),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.listening_stats_title),
+                                subtitle = stringResource(R.string.pref_home_listening_stats_desc),
+                                icon = Icons.Rounded.BarChart,
+                                hasSwitch = true,
+                                switchState = showHomeListeningStats,
+                                onSwitchChange = {
+                                    showHomeListeningStats = it
+                                    prefs.setShowHomeListeningStats(it)
+                                },
+                                highlightKey = "pref_home_listening_stats"
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.mix_title),
+                                subtitle = stringResource(R.string.pref_home_your_mix_desc),
+                                icon = Icons.Rounded.AutoAwesome,
+                                hasSwitch = true,
+                                switchState = showHomeYourMix,
+                                onSwitchChange = {
+                                    showHomeYourMix = it
+                                    prefs.setShowHomeYourMix(it)
+                                },
+                                highlightKey = "pref_home_your_mix"
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.wave_title),
+                                subtitle = stringResource(R.string.pref_home_my_wave_desc),
+                                icon = Icons.Rounded.Waves,
+                                hasSwitch = true,
+                                switchState = showHomeMyWave,
+                                onSwitchChange = {
+                                    showHomeMyWave = it
+                                    prefs.setShowHomeMyWave(it)
+                                },
+                                highlightKey = "pref_home_my_wave"
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.chart_section_title),
+                                subtitle = stringResource(R.string.pref_home_charts_desc),
+                                icon = Icons.Rounded.TrendingUp,
+                                hasSwitch = true,
+                                switchState = showHomeCharts,
+                                onSwitchChange = {
+                                    showHomeCharts = it
+                                    prefs.setShowHomeCharts(it)
+                                },
+                                highlightKey = "pref_home_charts"
                             )
                         }
                     )
@@ -341,136 +757,136 @@ fun AppearanceSettingsScreen(
             }
         }
     }
+
 }
 
 @Composable
-fun ThemeSelector(
-    currentTheme: AppThemeMode,
-    onThemeSelected: (AppThemeMode) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 24.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ThemeOption(
-                icon = Icons.Outlined.BrightnessAuto,
-                selectedIcon = Icons.Filled.BrightnessAuto,
-                label = stringResource(R.string.theme_system),
-                isSelected = currentTheme == AppThemeMode.SYSTEM,
-                onClick = { onThemeSelected(AppThemeMode.SYSTEM) },
-                modifier = Modifier.weight(1f)
-            )
-            ThemeOption(
-                icon = Icons.Outlined.LightMode,
-                selectedIcon = Icons.Filled.LightMode,
-                label = stringResource(R.string.theme_light),
-                isSelected = currentTheme == AppThemeMode.LIGHT,
-                onClick = { onThemeSelected(AppThemeMode.LIGHT) },
-                modifier = Modifier.weight(1f)
-            )
-            ThemeOption(
-                icon = Icons.Outlined.DarkMode,
-                selectedIcon = Icons.Filled.DarkMode,
-                label = stringResource(R.string.theme_dark),
-                isSelected = currentTheme == AppThemeMode.DARK,
-                onClick = { onThemeSelected(AppThemeMode.DARK) },
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun ThemeOption(
-    icon: ImageVector,
-    selectedIcon: ImageVector,
+private fun ThemePresetCard(
     label: String,
+    seed: Int,
+    style: PaletteStyle,
     isSelected: Boolean,
+    isDark: Boolean,
+    pureBlack: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
 ) {
+    val scheme = rememberDynamicColorScheme(
+        seedColor = if (seed == 0) KittyTuneDefaultSeedColor else Color(seed),
+        isDark = isDark,
+        isAmoled = pureBlack,
+        style = style,
+    )
+    val interaction = remember { MutableInteractionSource() }
+    val ring by animateColorAsState(
+        if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+        label = "presetRing",
+    )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier
-            .clickable(
-                onClick = onClick,
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            )
-            .padding(vertical = 4.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        FilledTonalIconToggleButton(
-            checked = isSelected,
-            onCheckedChange = { onClick() },
-            modifier = Modifier.size(56.dp),
-            // THE REVANCED EFFECT IS HERE:
-            shapes = IconToggleButtonShapes(
-                shape = CircleShape, // Base shape (round)
-                pressedShape = RoundedCornerShape(16.dp), // Becomes rounded square on touch
-                checkedShape = RoundedCornerShape(16.dp)  // Stays rounded square if selected
-            ),
-            colors = IconButtonDefaults.filledTonalIconToggleButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                checkedContentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
+        Surface(
+            onClick = onClick,
+            interactionSource = interaction,
+            shape = RoundedCornerShape(18.dp),
+            color = scheme.surfaceContainer,
+            border = BorderStroke(if (isSelected) 2.dp else 1.dp, ring),
+            modifier = Modifier.size(width = 96.dp, height = 72.dp)
         ) {
-            Icon(
-                imageVector = if (isSelected) selectedIcon else icon,
-                contentDescription = label,
-                modifier = Modifier.size(28.dp)
-            )
+            Box(Modifier.fillMaxSize().padding(10.dp)) {
+                Canvas(Modifier.fillMaxSize()) {
+                    val radius = size.height * 0.28f
+                    drawCircle(scheme.primary, radius, Offset(radius, radius))
+                    val barHeight = size.height * 0.16f
+                    val barLeft = radius * 2 + 8.dp.toPx()
+                    drawRoundRect(
+                        scheme.secondaryContainer,
+                        topLeft = Offset(barLeft, radius - barHeight),
+                        size = Size(size.width - barLeft, barHeight),
+                        cornerRadius = CornerRadius(barHeight / 2),
+                    )
+                    drawRoundRect(
+                        scheme.tertiary,
+                        topLeft = Offset(barLeft, radius + 2.dp.toPx()),
+                        size = Size((size.width - barLeft) * 0.6f, barHeight),
+                        cornerRadius = CornerRadius(barHeight / 2),
+                    )
+                    drawRoundRect(
+                        scheme.primaryContainer,
+                        topLeft = Offset(0f, size.height - barHeight * 1.4f),
+                        size = Size(size.width, barHeight * 1.4f),
+                        cornerRadius = CornerRadius(barHeight),
+                    )
+                }
+                if (isSelected) {
+                    Icon(
+                        Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint = scheme.primary,
+                        modifier = Modifier.align(Alignment.TopEnd).size(18.dp),
+                    )
+                }
+            }
         }
         Text(
-            text = label,
+            label,
             style = MaterialTheme.typography.labelMedium,
-            color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+            color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
         )
     }
 }
 
-// Dialog Helpers
 @Composable
-fun PlayerStyleRadioButton(text: String, style: PlayerBackgroundStyle, selected: PlayerBackgroundStyle, onSelect: (PlayerBackgroundStyle) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onSelect(style) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        RadioButton(selected = (style == selected), onClick = null)
-        Spacer(Modifier.width(8.dp))
-        Text(text)
-    }
-}
-
-@Composable
-fun StartDestRadioButton(text: String, dest: StartDestination, selected: StartDestination, onSelect: (StartDestination) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onSelect(dest) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        RadioButton(selected = (dest == selected), onClick = null)
-        Spacer(Modifier.width(8.dp))
-        Text(text)
-    }
-}
-
-@Composable
-fun LanguageRadioButton(text: String, lang: AppLanguage, selected: AppLanguage, onSelect: (AppLanguage) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onSelect(lang) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        RadioButton(selected = (lang == selected), onClick = null)
-        Spacer(Modifier.width(8.dp))
-        Text(text)
+private fun CustomThemeCard(onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Surface(
+            onClick = onClick,
+            interactionSource = interaction,
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+            modifier = Modifier.size(width = 96.dp, height = 72.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.Palette,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
+        Text(
+            stringResource(R.string.theme_custom_short),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
 fun restartApp(context: Context) {
-    if (context is Activity) {
-        context.recreate()
+    com.alananasss.kittytune.utils.LocaleUtils.applyAppLanguage(context)
+    com.alananasss.kittytune.data.network.RetrofitClient.resetClient()
+    val activity = context.findActivity()
+    if (activity != null) {
+        val intent = Intent(activity, activity.javaClass)
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        activity.startActivity(intent)
+        activity.finish()
     } else {
         val packageManager = context.packageManager
         val intent = packageManager.getLaunchIntentForPackage(context.packageName)
@@ -479,4 +895,10 @@ fun restartApp(context: Context) {
         context.startActivity(mainIntent)
         Runtime.getRuntime().exit(0)
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

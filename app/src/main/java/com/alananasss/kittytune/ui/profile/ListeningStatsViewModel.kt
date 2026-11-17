@@ -1,202 +1,197 @@
-    package com.alananasss.kittytune.ui.profile
+package com.alananasss.kittytune.ui.profile
 
-    import android.app.Application
-    import androidx.compose.runtime.getValue
-    import androidx.compose.runtime.mutableIntStateOf
-    import androidx.compose.runtime.mutableStateOf
-    import androidx.compose.runtime.setValue
-    import androidx.lifecycle.AndroidViewModel
-    import androidx.lifecycle.viewModelScope
-    import com.alananasss.kittytune.data.ListeningStatsRepository
-    import com.alananasss.kittytune.data.local.TopArtistResult
-    import com.alananasss.kittytune.data.local.TopTrackResult
-    import kotlinx.coroutines.Dispatchers
-    import kotlinx.coroutines.launch
-    import kotlinx.coroutines.withContext
-    import java.util.Calendar
+import android.app.Application
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.alananasss.kittytune.data.ListeningStatsRepository
+import com.alananasss.kittytune.data.local.ListeningStatsEvent
+import com.alananasss.kittytune.data.stats.ListeningReport
+import com.alananasss.kittytune.data.stats.ListeningReports
+import com.alananasss.kittytune.data.stats.ReportPeriod
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.launch
+import java.time.DayOfWeek
+import java.time.ZoneId
+import java.util.Calendar
 
-    data class PeriodStats(
-        val totalListenTimeMs: Long = 0,
-        val totalEvents: Int = 0,
-        val completedSongs: Int = 0,
-        val skippedNext: Int = 0,
-        val skippedPrevious: Int = 0,
-        val manualReplays: Int = 0,
-        val repeatOneLoops: Int = 0,
-        val uniqueTracks: Int = 0,
-        val uniqueArtists: Int = 0,
-        val topTracks: List<TopTrackResult> = emptyList(),
-        val topArtists: List<TopArtistResult> = emptyList()
-    ) {
-        val totalPlays: Int get() = completedSongs + manualReplays + repeatOneLoops
-        val totalSkips: Int get() = skippedNext + skippedPrevious
-        val skipRate: Float get() = if (totalEvents > 0) totalSkips.toFloat() / totalEvents else 0f
-        val completionRate: Float get() = if (totalEvents > 0) totalPlays.toFloat() / totalEvents else 0f
+enum class StatsPeriod { WEEK, MONTH, YEAR, ALL_TIME }
+
+/** [StatsPeriod] as the report layer names it. */
+fun StatsPeriod.toReportPeriod(): ReportPeriod = when (this) {
+    StatsPeriod.WEEK -> ReportPeriod.WEEK
+    StatsPeriod.MONTH -> ReportPeriod.MONTH
+    StatsPeriod.YEAR -> ReportPeriod.YEAR
+    StatsPeriod.ALL_TIME -> ReportPeriod.ALL_TIME
+}
+
+/**
+ * The statistics screen's state.
+ *
+ * One load produces one [ListeningReport] and the rows behind it, rather than a query per number:
+ * the totals, the activity chart, the hours, the streak and the three top lists all read the same
+ * span, so they are read once and derived together. A week therefore has a week before it to be
+ * compared against, and a year can be asked for at all.
+ *
+ * It also follows [ListeningStatsRepository.revision], so a sync landing while the screen is open
+ * shows up rather than waiting for the next visit.
+ */
+class ListeningStatsViewModel(application: Application) : AndroidViewModel(application) {
+
+    var selectedPeriod by mutableStateOf(StatsPeriod.WEEK)
+        private set
+
+    /** Offset from current period: 0 = current, -1 = previous, -2 = 2 periods ago, etc. */
+    var periodOffset by mutableStateOf(0)
+        private set
+
+    var canGoBack by mutableStateOf(false)
+        private set
+
+    var canGoForward by mutableStateOf(false)
+        private set
+
+    private var oldestEventMs: Long? = null
+
+    /** Everything the screen shows for the selected span. Null until the first load lands. */
+    var report by mutableStateOf<ListeningReport?>(null)
+        private set
+
+    /**
+     * The rows the report was built from, newest first.
+     *
+     * Kept so the "every play" list can show what actually happened rather than only the aggregates:
+     * which track, at what time, for how long. It is the same read the report used, not a second one.
+     */
+    var events by mutableStateOf<List<ListeningStatsEvent>>(emptyList())
+        private set
+
+    var isLoading by mutableStateOf(true)
+        private set
+
+    private var loadJob: Job? = null
+
+    /** The repository's own split, so the report and the top-artist list cannot disagree. */
+    private val splitter = ListeningReports.ArtistSplitter { raw ->
+        ListeningStatsRepository.splitArtistNames(raw)
     }
 
-    data class TimelineChunk(
-        val startDateMs: Long,
-        val endDateMs: Long,
-        val topTrack: TopTrackResult?,
-        val topArtist: TopArtistResult?
-    )
-
-    enum class StatsPeriod { WEEK, MONTH, ALL_TIME }
-
-    class ListeningStatsViewModel(application: Application) : AndroidViewModel(application) {
-
-        var selectedPeriod by mutableStateOf(StatsPeriod.WEEK)
-            private set
-        var stats by mutableStateOf(PeriodStats())
-            private set
-        var isLoading by mutableStateOf(true)
-            private set
-
-        var timelineChunks = mutableStateOf<List<TimelineChunk>>(emptyList())
-            private set
-        var isTimelineLoading by mutableStateOf(false)
-            private set
-        var timelineHasMore by mutableStateOf(true)
-            private set
-
-        private var currentTimelineOffsetMonths: Int = 0
-
-        init {
-            loadStats()
-        }
-
-        fun selectPeriod(period: StatsPeriod) {
-            if (period == selectedPeriod) return
-            selectedPeriod = period
-            loadStats()
-            if (period == StatsPeriod.ALL_TIME) {
-                resetAndLoadTimeline()
-            }
-        }
-
-        fun refreshStats() {
-            loadStats()
-            if (selectedPeriod == StatsPeriod.ALL_TIME) {
-                resetAndLoadTimeline()
-            }
-        }
-
-        private fun loadStats() {
-            isLoading = true
-            viewModelScope.launch {
-                val since = getSinceTimestamp(selectedPeriod)
-                val newStats = withContext(Dispatchers.IO) {
-                    val totalListenTime = ListeningStatsRepository.getTotalListenTime(since)
-                    val totalEvents = ListeningStatsRepository.getTotalEvents(since)
-                    val completed = ListeningStatsRepository.getEventCount("PLAY_COMPLETE", since)
-                    val skipNext = ListeningStatsRepository.getEventCount("SKIP_NEXT", since)
-                    val skipPrev = ListeningStatsRepository.getEventCount("SKIP_PREVIOUS", since)
-                    val replays = ListeningStatsRepository.getEventCount("MANUAL_REPLAY", since)
-                    val repeatLoops = ListeningStatsRepository.getEventCount("REPEAT_ONE_LOOP", since)
-                    val uniqueTracks = ListeningStatsRepository.getUniqueTracks(since)
-                    val uniqueArtists = ListeningStatsRepository.getUniqueArtists(since)
-                    val topTracks = ListeningStatsRepository.getTopTracks(since, 10)
-                    val topArtists = ListeningStatsRepository.getTopArtists(since, 10)
-
-                    PeriodStats(
-                        totalListenTimeMs = totalListenTime,
-                        totalEvents = totalEvents,
-                        completedSongs = completed,
-                        skippedNext = skipNext,
-                        skippedPrevious = skipPrev,
-                        manualReplays = replays,
-                        repeatOneLoops = repeatLoops,
-                        uniqueTracks = uniqueTracks,
-                        uniqueArtists = uniqueArtists,
-                        topTracks = topTracks,
-                        topArtists = topArtists
-                    )
-                }
-                stats = newStats
-                isLoading = false
-            }
-        }
-
-        private fun getSinceTimestamp(period: StatsPeriod): Long {
-            val cal = Calendar.getInstance()
-            return when (period) {
-                StatsPeriod.WEEK -> {
-                    cal.set(Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
-                    cal.set(Calendar.HOUR_OF_DAY, 0)
-                    cal.set(Calendar.MINUTE, 0)
-                    cal.set(Calendar.SECOND, 0)
-                    cal.set(Calendar.MILLISECOND, 0)
-                    cal.timeInMillis
-                }
-                StatsPeriod.MONTH -> {
-                    cal.set(Calendar.DAY_OF_MONTH, 1)
-                    cal.set(Calendar.HOUR_OF_DAY, 0)
-                    cal.set(Calendar.MINUTE, 0)
-                    cal.set(Calendar.SECOND, 0)
-                    cal.set(Calendar.MILLISECOND, 0)
-                    cal.timeInMillis
-                }
-                StatsPeriod.ALL_TIME -> 0L
-            }
-        }
-
-        private fun resetAndLoadTimeline() {
-            timelineChunks.value = emptyList()
-            currentTimelineOffsetMonths = 0
-            timelineHasMore = true
-            loadNextTimelineChunk()
-        }
-
-        fun loadNextTimelineChunk() {
-            if (isTimelineLoading || !timelineHasMore) return
-            isTimelineLoading = true
-
-            viewModelScope.launch {
-                val chunks = withContext(Dispatchers.IO) {
-                    val newChunks = mutableListOf<TimelineChunk>()
-                    
-                    // Load 3 months per request
-                    for (i in 0 until 3) {
-                        val calEnd = Calendar.getInstance().apply {
-                            set(Calendar.DAY_OF_MONTH, 1)
-                            set(Calendar.HOUR_OF_DAY, 0)
-                            set(Calendar.MINUTE, 0)
-                            set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0)
-                            add(Calendar.MONTH, -currentTimelineOffsetMonths)
-                        }
-                        val untilMs = if (currentTimelineOffsetMonths == 0) System.currentTimeMillis() else calEnd.timeInMillis
-
-                        val calStart = calEnd.clone() as Calendar
-                        calStart.add(Calendar.MONTH, -1)
-                        val sinceMs = calStart.timeInMillis
-
-                        val topTrack = ListeningStatsRepository.getTopTracksBetween(sinceMs, untilMs, 1).firstOrNull()
-                        val topArtist = ListeningStatsRepository.getTopArtistsBetween(sinceMs, untilMs, 1).firstOrNull()
-
-                        if (topTrack != null || topArtist != null) {
-                            newChunks.add(TimelineChunk(sinceMs, untilMs, topTrack, topArtist))
-                        }
-
-                        currentTimelineOffsetMonths++
-                        
-                        val totalBefore = ListeningStatsRepository.getTotalEvents(0)
-                        val eventsAfterStart = ListeningStatsRepository.getTotalEvents(sinceMs)
-                        if (eventsAfterStart >= totalBefore) {
-                            timelineHasMore = false
-                            break
-                        }
-                    }
-                    newChunks
-                }
-
-                if (chunks.isEmpty() && timelineHasMore) {
-                    isTimelineLoading = false
-                    loadNextTimelineChunk()
-                } else {
-                    timelineChunks.value = timelineChunks.value + chunks
-                    isTimelineLoading = false
-                }
-            }
+    init {
+        load()
+        viewModelScope.launch {
+            // drop(1): the current value is what the first load already used.
+            ListeningStatsRepository.revision.drop(1).collect { load() }
         }
     }
+
+    fun selectPeriod(period: StatsPeriod) {
+        if (period == selectedPeriod && periodOffset == 0) return
+        selectedPeriod = period
+        periodOffset = 0
+        load()
+    }
+
+    fun previousPeriod() {
+        if (selectedPeriod == StatsPeriod.ALL_TIME || !canGoBack) return
+        periodOffset--
+        load()
+    }
+
+    fun nextPeriod() {
+        if (selectedPeriod == StatsPeriod.ALL_TIME || !canGoForward) return
+        periodOffset++
+        load()
+    }
+
+    fun resetToCurrentPeriod() {
+        if (periodOffset == 0) return
+        periodOffset = 0
+        load()
+    }
+
+    fun refreshStats() = load()
+
+    /**
+     * Loads the selected period, replacing any load still in flight.
+     *
+     * Cancelling matters: tapping through the periods used to leave several loads racing, and the
+     * slowest one won — so the screen could settle on the numbers for a period that was no longer
+     * selected.
+     */
+    private fun load() {
+        val period = selectedPeriod
+        val offset = periodOffset
+        loadJob?.cancel()
+        isLoading = true
+        loadJob = viewModelScope.launch {
+            val zone = ZoneId.systemDefault()
+            val weekStartsOn = firstDayOfWeekAsDayOfWeek()
+            val now = System.currentTimeMillis()
+
+            // "All time" has to start where the history does, not at the epoch: the window is what
+            // the activity chart is measured against, and a chart that opens on years of empty
+            // months says nothing.
+            if (oldestEventMs == null) {
+                oldestEventMs = ListeningStatsRepository.getOldestEventAt()
+            }
+            val firstEventMs = oldestEventMs
+
+            val window = ListeningReports.windowFor(
+                period.toReportPeriod(), now, zone, firstEventMs, weekStartsOn, offset
+            )
+            val previous = ListeningReports.previousWindow(period.toReportPeriod(), window, zone, weekStartsOn)
+
+            // One read of the rows serves the whole report. Bounded, because the report is built in
+            // memory and a heavy year of listening is tens of thousands of rows.
+            val rows = ListeningStatsRepository.getRecentEventsBetween(window.startMs, window.endMs, REPORT_EVENT_LIMIT)
+            val previousListenMs = previous?.let { ListeningStatsRepository.getTotalListenTime(it.startMs, it.endMs) }
+
+            report = ListeningReports.build(
+                period = period.toReportPeriod(),
+                window = window,
+                events = rows,
+                previousListenMs = previousListenMs,
+                zone = zone,
+                splitter = splitter,
+                nowMs = now,
+            )
+            events = rows.filter { it.timestamp >= window.startMs && it.timestamp < window.endMs }
+            canGoForward = period != StatsPeriod.ALL_TIME && offset < 0
+            canGoBack = period != StatsPeriod.ALL_TIME && (firstEventMs == null || window.endMs > firstEventMs || offset > -52)
+            isLoading = false
+        }
+    }
+
+    /**
+     * The locale's first day of the week, so "this week" starts on Sunday in the US and Monday
+     * nearly everywhere else. Guessing Monday would shift every weekly figure for half the users.
+     */
+    private fun firstDayOfWeekAsDayOfWeek(): DayOfWeek = when (Calendar.getInstance().firstDayOfWeek) {
+        Calendar.SUNDAY -> DayOfWeek.SUNDAY
+        Calendar.MONDAY -> DayOfWeek.MONDAY
+        Calendar.TUESDAY -> DayOfWeek.TUESDAY
+        Calendar.WEDNESDAY -> DayOfWeek.WEDNESDAY
+        Calendar.THURSDAY -> DayOfWeek.THURSDAY
+        Calendar.FRIDAY -> DayOfWeek.FRIDAY
+        else -> DayOfWeek.SATURDAY
+    }
+
+    private companion object {
+        /**
+         * Rows read to build the report. It is computed in memory from these, so it is capped rather
+         * than pulling in a whole history.
+         */
+        const val REPORT_EVENT_LIMIT = 40_000
+    }
+}
+
+/** [ReportPeriod] as the screen's selector names it. */
+fun ReportPeriod.toStatsPeriod(): StatsPeriod = when (this) {
+    ReportPeriod.WEEK -> StatsPeriod.WEEK
+    ReportPeriod.MONTH -> StatsPeriod.MONTH
+    ReportPeriod.YEAR -> StatsPeriod.YEAR
+    ReportPeriod.ALL_TIME -> StatsPeriod.ALL_TIME
+}
