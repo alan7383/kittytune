@@ -222,8 +222,13 @@
     <string name="tracks_added_to_playlist_success">Added %1$d tracks to %2$s</string>
     <string name="pref_track_removal_title">Track removal method</string>
     <string name="pref_track_removal_subtitle">Choose how tracks are removed from playlists</string>
+    <string name="menu_track_removal">Track removal</string>
     <string name="track_removal_swipe_and_menu">Swipe and menu</string>
+    <string name="track_removal_swipe_and_menu_desc">Swipe left or right on a track, or use its three-dot menu</string>
     <string name="track_removal_menu_only">Three-dot menu only</string>
+    <string name="track_removal_menu_only_desc">Turn off swipe-to-delete to avoid accidental removals while scrolling</string>
+    <string name="track_removal_disabled">Disabled</string>
+    <string name="track_removal_disabled_desc">Prevent tracks from being removed from playlists</string>
     <string name="dialog_delete_playlist_title">Supprimer la playlist ?</string>
     <string name="dialog_delete_playlist_msg">Cette action est irréversible</string>
     <string name="dialog_delete_playlist_from_lib_title">Retirer de la bibliothèque ?</string>
