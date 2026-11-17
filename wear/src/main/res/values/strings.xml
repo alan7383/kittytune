@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Application title -->
+    <string name="app_name">KittyTune</string>
+    <string name="wear_companion_title">KittyTune Companion</string>
+
+    <!-- Playback control actions -->
+    <string name="action_play">Play</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_previous">Previous</string>
+    <string name="action_next">Next</string>
+    <string name="action_volume_up">Volume up</string>
+    <string name="action_volume_down">Volume down</string>
+    <string name="action_select_target">Change playback device</string>
+
+    <!-- Target selector devices -->
+    <string name="target_phone">Phone</string>
+    <string name="target_desktop">Desktop</string>
+    <string name="target_selector_description">Playing on %1$s, %2$s</string>
+    <string name="target_status_connected">connected</string>
+    <string name="target_status_connecting">connecting</string>
+    <string name="target_status_disconnected">disconnected</string>
+    <string name="target_status_error">unreachable</string>
+
+    <!-- Device picker dialog -->
+    <string name="target_picker_title">Select device</string>
+    <string name="target_picker_connected">Connected</string>
+    <string name="target_picker_offline">Offline</string>
+
+    <!-- Track information -->
+    <string name="track_unknown_title">Unknown title</string>
+    <string name="track_unknown_artist">Unknown artist</string>
+
+    <!-- Volume controls -->
+    <string name="volume_decrease">Decrease volume by %1$d percent</string>
+    <string name="volume_increase">Increase volume by %1$d percent</string>
+    <string name="volume_current">Current volume %1$d percent</string>
+
+    <!-- Status descriptions -->
+    <string name="status_connecting">Connecting…</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_no_playback">Nothing playing</string>
+    <string name="status_position">%1$s of %2$s</string>
+</resources>

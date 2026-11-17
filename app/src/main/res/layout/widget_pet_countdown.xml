@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Live countdown to midnight on New Year's Eve: a Chronometer keeps ticking inside the launcher. -->
+<Chronometer xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pet_countdown"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:fontFamily="monospace"
+    android:maxLines="1"
+    android:textSize="12sp"
+    android:textStyle="bold" />

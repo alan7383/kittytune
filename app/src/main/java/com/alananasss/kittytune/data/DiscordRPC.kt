@@ -16,44 +16,40 @@ class DiscordRPC(
 
     private val applicationId = "1473071817693331540"
     private val logoAssetId = "1473370878195794073"
-    private var lastTrackId: Long = -1L
 
-    suspend fun updateTrack(track: Track, contextName: String?) {
-        if (track.id == lastTrackId) return
-        lastTrackId = track.id
+    suspend fun updatePresence(
+        track: Track,
+        contextName: String?,
+        isPlaying: Boolean,
+        position: Long
+    ) {
+        val duration = track.durationMs ?: 0L
 
-        val isPlaying = try {
-            MusicManager.player.isPlaying
-        } catch (e: Exception) {
-            false
-        }
-        val position = try {
-            MusicManager.player.currentPosition
-        } catch (e: Exception) {
-            0L
-        }
-        val duration = try {
-            MusicManager.player.duration
-        } catch (e: Exception) {
-            0L
-        }
+        val startTime: Long?
+        val endTime: Long?
 
-        val startTime = if (isPlaying && duration > 0) {
-            System.currentTimeMillis() - position
+        if (isPlaying && duration > 0) {
+            startTime = System.currentTimeMillis() - position
+            endTime = startTime + duration
         } else {
-            null
+            startTime = null
+            endTime = null
         }
+
+        val trackArtwork = track.fullResArtwork
+
+        Log.d("DiscordRPC", "Presence update - playing=$isPlaying pos=$position dur=$duration start=$startTime end=$endTime")
 
         try {
             sendPresence(
                 track = track,
                 contextName = contextName,
-                largeImage = RpcImage.DiscordImage(logoAssetId),
-                startTime = startTime
+                largeImage = if (trackArtwork.isNotEmpty() && !trackArtwork.contains("picsum")) RpcImage.ExternalImage(trackArtwork) else RpcImage.DiscordImage(logoAssetId),
+                startTime = startTime,
+                endTime = endTime
             )
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            lastTrackId = -1L
             Log.e("DiscordRPC", "RPC Error: ${e.message}")
         }
     }
@@ -62,9 +58,10 @@ class DiscordRPC(
         track: Track,
         contextName: String?,
         largeImage: RpcImage?,
-        startTime: Long?
+        startTime: Long?,
+        endTime: Long?
     ) {
-        val artistName = track.user?.username ?: "Unknown Artist"
+        val artistName = track.displayArtist.ifBlank { track.user?.username ?: "Unknown Artist" }
         val trackTitle = track.title ?: "Unknown Title"
         val playlistInfo = contextName ?: "KittyTune"
 
@@ -97,6 +94,12 @@ class DiscordRPC(
                 detailsLine = trackTitle
                 stateLine = "by $artistName"
             }
+
+            DiscordStatusDisplay.SOUNDCLOUD -> {
+                activityName = "SoundCloud"
+                detailsLine = trackTitle
+                stateLine = "by $artistName"
+            }
         }
 
         setActivity(
@@ -111,7 +114,7 @@ class DiscordRPC(
             buttons = rpcButtons.takeIf { it.isNotEmpty() },
             type = Type.LISTENING,
             startTime = startTime,
-            endTime = null
+            endTime = endTime
         )
     }
 }

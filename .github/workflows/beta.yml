@@ -1,0 +1,186 @@
+name: Beta
+
+# Automatic pre-releases, Morphe-style: every push to `dev` publishes a beta
+# build as a GitHub pre-release. Merging `dev` into `main` publishes the
+# stable automatically (see release.yml, version from versionName).
+# Betas never ping Discord and never pop up in the app:
+# the in-app auto-check only looks at stable releases, betas require the
+# opt-in toggle in About.
+#
+# Versioning: tag v<base>-beta.<run_number>, e.g. v2.68.0-beta.12. The
+# versionCode is timestamp-based (see app/build.gradle.kts), so any newer
+# build — beta or stable — installs over any older one: leaving beta for a
+# newer stable keeps user data, no reinstall needed.
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  beta:
+    name: Build & Publish Beta
+    runs-on: ubuntu-22.04
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # required by git-cliff to walk the full history
+          ref: dev
+
+      # ── Beta version ────────────────────────────────────────────────────────
+      - name: Compute beta version
+        id: beta
+        run: |
+          git fetch --tags || true
+          BASE_NAME=$(grep -m1 'versionName = ' app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          if git rev-parse "v${BASE_NAME}" >/dev/null 2>&1; then
+            echo "Stable tag v${BASE_NAME} already exists — skipping beta build for already released version."
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "skip=false" >> $GITHUB_OUTPUT
+          LATEST_NUM=$(git tag -l "v${BASE_NAME}-beta.*" | sed "s/.*-beta\.//" | sort -n | tail -n1)
+          if [ -z "$LATEST_NUM" ]; then
+            BETA_NUM=1
+          else
+            BETA_NUM=$((LATEST_NUM + 1))
+          fi
+          TAG="v${BASE_NAME}-beta.${BETA_NUM}"
+          echo "Base $BASE_NAME -> beta $TAG (versionCode is timestamp-based, see app/build.gradle.kts)"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "name=${BASE_NAME}-beta.${BETA_NUM}" >> $GITHUB_OUTPUT
+          # Bake the beta version name into the build (fresh checkout, nothing committed)
+          sed -i "s/versionName = \".*\"/versionName = \"${BASE_NAME}-beta.${BETA_NUM}\"/" app/build.gradle.kts
+          grep -m1 'versionName = ' app/build.gradle.kts
+
+      # ── Java ────────────────────────────────────────────────────────────────
+      - name: Set up JDK 21
+        if: steps.beta.outputs.skip != 'true'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # ── Gradle cache (build outputs, not just dependencies) ─────────────────
+      - name: Cache Gradle
+        if: steps.beta.outputs.skip != 'true'
+        uses: burrunan/gradle-cache-action@v3
+
+      # ── ccache (native CMake code) ──────────────────────────────────────────
+      - name: Install ccache
+        if: steps.beta.outputs.skip != 'true'
+        run: sudo apt-get update && sudo apt-get install -y ccache
+
+      - name: Cache ccache
+        if: steps.beta.outputs.skip != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}-ndk27.1.12297006-${{ hashFiles('app/src/main/cpp/**') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-ndk27.1.12297006-
+
+      # ── Android NDK ─────────────────────────────────────────────────────────
+      - name: Setup Android NDK
+        if: steps.beta.outputs.skip != 'true'
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.1.12297006"
+
+      - name: Accept Android SDK Licenses
+        if: steps.beta.outputs.skip != 'true'
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      # ── Signing keystore ────────────────────────────────────────────────────
+      - name: Decode keystore
+        if: steps.beta.outputs.skip != 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > app/keystore.jks
+
+      # ── Build signed APK ────────────────────────────────────────────────────
+      - name: Build release APK
+        if: steps.beta.outputs.skip != 'true'
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS:         ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD:      ${{ secrets.KEY_PASSWORD }}
+          USE_CCACHE: '1'
+          CCACHE_DIR: ~/.ccache
+          CCACHE_MAXSIZE: 2G
+        run: |
+          ./gradlew assembleRelease -x lintVitalRelease --stacktrace \
+            -Pandroid.injected.signing.store.file=$PWD/app/keystore.jks \
+            -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$KEY_PASSWORD
+
+      # ── Changelog (git-cliff, since previous tag, beta included) ────────────
+      - name: Get previous tag
+        if: steps.beta.outputs.skip != 'true'
+        id: prev_tag
+        run: |
+          # Most recent reachable tag of any kind: each beta only lists what
+          # changed since the previous beta (or the last stable for the first
+          # beta of a cycle). Ranging from the last *stable* would repeat the
+          # whole cycle's notes on every beta.
+          PREV=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")
+          echo "Previous tag found: $PREV"
+          if [ -z "$PREV" ]; then
+            echo "range=HEAD" >> $GITHUB_OUTPUT
+          else
+            echo "range=${PREV}..HEAD" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Tag now (prev already computed) so cliff attributes commits to it ───
+      - name: Create beta tag
+        if: steps.beta.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag "${{ steps.beta.outputs.tag }}" || true
+          git push origin "${{ steps.beta.outputs.tag }}" || true
+
+      - name: Generate changelog
+        if: steps.beta.outputs.skip != 'true'
+        uses: orhun/git-cliff-action@v4
+        id: cliff
+        with:
+          config: cliff.toml
+          args: --strip header -- ${{ steps.prev_tag.outputs.range }}
+
+      # ── GitHub Pre-Release (no Discord ping: betas stay quiet) ─────────────
+      - name: Delete existing beta release if present
+        if: steps.beta.outputs.skip != 'true'
+        run: gh release delete ${{ steps.beta.outputs.tag }} --yes || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write changelog to file
+        if: steps.beta.outputs.skip != 'true'
+        run: |
+          {
+            echo "> [!WARNING]"
+            echo "> **Beta build** — may be unstable. [How to report bugs](https://github.com/alan7383/kittytune/issues/new)."
+            echo ""
+            echo "${{ steps.cliff.outputs.content }}"
+          } > CHANGELOG_BETA.md
+
+      - name: Create GitHub Pre-Release
+        if: steps.beta.outputs.skip != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.beta.outputs.tag }}
+          target_commitish: dev
+          name: "KittyTune ${{ steps.beta.outputs.tag }} (Beta)"
+          body_path: CHANGELOG_BETA.md
+          files: app/build/outputs/apk/release/*.apk
+          prerelease: true
+          make_latest: false
+          token: ${{ secrets.GITHUB_TOKEN }}

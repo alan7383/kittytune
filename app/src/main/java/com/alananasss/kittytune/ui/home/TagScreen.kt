@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.ui.library.TrackListItem
 import com.alananasss.kittytune.ui.player.PlayerViewModel
@@ -48,6 +52,7 @@ fun TagScreen(
 ) {
     val context = LocalContext.current
     val downloadProgress by DownloadManager.downloadProgress.collectAsState()
+    val downloadedIds by DownloadManager.downloadedIds.collectAsState()
     val listState = rememberLazyListState()
 
     LaunchedEffect(tagName) {
@@ -82,6 +87,25 @@ fun TagScreen(
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.btn_close))
                         }
                     },
+                    actions = {
+                        if (currentTracks.isNotEmpty()) {
+                            FilledTonalIconButton(
+                                onClick = hapticAction(HapticKind.UI) {
+                                    playerViewModel.prepareBulkAdd(currentTracks)
+                                },
+                                shapes = IconButtonDefaults.shapes(),
+                                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = stringResource(R.string.menu_add_playlist)
+                                )
+                            }
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface
                     )
@@ -94,12 +118,12 @@ fun TagScreen(
                 ) {
                     Tab(
                         selected = tagViewModel.selectedTabIndex == 0,
-                        onClick = { tagViewModel.onTabSelected(0) },
+                        onClick = hapticAction(HapticKind.UI) { tagViewModel.onTabSelected(0) },
                         text = { Text(stringResource(R.string.profile_tab_popular)) }
                     )
                     Tab(
                         selected = tagViewModel.selectedTabIndex == 1,
-                        onClick = { tagViewModel.onTabSelected(1) },
+                        onClick = hapticAction(HapticKind.UI) { tagViewModel.onTabSelected(1) },
                         text = { Text(stringResource(R.string.profile_latest_tracks)) }
                     )
                 }
@@ -135,7 +159,7 @@ fun TagScreen(
                     "SUCCESS" -> {
                         LazyColumn(
                             state = listState,
-                            contentPadding = PaddingValues(bottom = 120.dp)
+                            contentPadding = PaddingValues(bottom = 180.dp)
                         ) {
                             itemsIndexed(currentTracks) { index, track ->
                                 if (index >= currentTracks.size - 3) {
@@ -145,7 +169,9 @@ fun TagScreen(
                                 }
 
                                 val progress = downloadProgress[track.id]
-                                val isDownloaded = File(context.filesDir, "track_${track.id}.mp3").exists()
+                                val isDownloaded = remember(track.id, downloadedIds) {
+                                    downloadedIds.contains(track.id)
+                                }
 
                                 TagStaggeredItem(
                                     index = index,
@@ -154,15 +180,15 @@ fun TagScreen(
                                 ) {
                                     TrackListItem(
                                         track = track,
-                                        currentlyPlayingTrack = playerViewModel.currentTrack,
+                                        currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                                         index = index,
                                         isDownloading = progress != null,
                                         isDownloaded = isDownloaded,
                                         downloadProgress = progress ?: 0,
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             playerViewModel.playPlaylist(currentTracks.toList(), index, context = null)
                                         },
-                                        onOptionClick = { playerViewModel.showTrackOptions(track) }
+                                        onOptionClick = hapticAction(HapticKind.UI) { playerViewModel.showTrackOptions(track) }
                                     )
                                 }
                             }
@@ -206,7 +232,7 @@ fun TagStaggeredItem(
             hasAnimated = true
         }
     }
-    
+
     Box(
         modifier = Modifier
             .graphicsLayer {

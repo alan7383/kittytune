@@ -1,0 +1,1366 @@
+package com.alananasss.kittytune.ui.player.pixel
+
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.SharedPreferences
+import android.os.Build
+import android.view.HapticFeedbackConstants
+import android.view.WindowManager
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.OpenInFull
+import androidx.compose.material.icons.rounded.Verified
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.input.pointer.pointerInput
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
+import com.alananasss.kittytune.ui.player.playerDismissGesture
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.util.lerp
+import kotlin.math.absoluteValue
+import kotlin.math.roundToLong
+import coil.compose.AsyncImage
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
+import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
+import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.local.PlayerSliderStyle
+import com.alananasss.kittytune.ui.player.slider.PlayerSliderTrack
+import com.alananasss.kittytune.ui.player.slider.SquigglySlider
+import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
+import com.alananasss.kittytune.ui.player.FluidArtworkBackground
+import com.alananasss.kittytune.ui.player.CodecBadge
+import com.alananasss.kittytune.ui.player.InlineLyricsContent
+import com.alananasss.kittytune.ui.player.rememberInlineLyricsSide
+import com.alananasss.kittytune.data.local.InlineLyricsSide
+import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.QueueContent
+import com.alananasss.kittytune.ui.player.SleepTimerDialog
+import com.alananasss.kittytune.ui.player.TrackTrimDialog
+import com.alananasss.kittytune.ui.player.DjDevDebugSheet
+import com.alananasss.kittytune.ui.player.cover.AnimatedArtwork
+import com.alananasss.kittytune.ui.player.cover.gyroscopeCoverContainer
+import com.alananasss.kittytune.ui.player.cover.CanvasVideo
+import com.alananasss.kittytune.ui.theme.GoogleSansRounded
+import com.alananasss.kittytune.utils.makeTimeString
+import com.alananasss.kittytune.utils.makeRemainingTimeString
+import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
+
+private fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)
+@Composable
+fun PixelPlayerScreen(
+    viewModel: PlayerViewModel,
+    onClose: () -> Unit
+) {
+    val track = viewModel.uiCurrentTrack ?: return
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+    val screenHeightPx = remember(configuration, density) {
+        with(density) { configuration.screenHeightDp.dp.toPx() }
+    }
+    val sheetCollapsedTargetY = remember(screenHeightPx) {
+        screenHeightPx * 0.88f
+    }
+    val predictiveBackProgress = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(viewModel.isPlayerExpanded) {
+        if (viewModel.isPlayerExpanded) {
+            predictiveBackProgress.snapTo(0f)
+        }
+    }
+
+    val handleClose: () -> Unit = {
+        scope.launch {
+            predictiveBackProgress.animateTo(
+                1f,
+                animationSpec = tween(150, easing = LinearEasing)
+            )
+            onClose()
+        }
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        PredictiveBackHandler(enabled = !viewModel.showLyricsSheet) { progressFlow ->
+            try {
+                progressFlow.collect { backEvent ->
+                    predictiveBackProgress.snapTo(backEvent.progress)
+                }
+                handleClose()
+            } catch (e: Exception) {
+                scope.launch {
+                    predictiveBackProgress.animateTo(
+                        0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    )
+                }
+            }
+        }
+    } else {
+        BackHandler(enabled = !viewModel.showLyricsSheet, onBack = handleClose)
+    }
+
+    val context = LocalContext.current
+    val view = LocalView.current
+    val prefs = remember { PlayerPreferences(context) }
+
+    DisposableEffect(viewModel.showInlineLyrics) {
+        val activity = context.findActivity()
+        if (viewModel.showInlineLyrics) {
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    var backgroundStyle by remember { mutableStateOf(prefs.getPlayerStyle()) }
+    val fadeUiEnabled by prefs.getAnimatedCoversFadeUiFlow().collectAsState(initial = prefs.getAnimatedCoversFadeUiEnabled())
+    val backdropAnimatedUrl = if (fadeUiEnabled) {
+        viewModel.currentAnimatedCoverTallUrl ?: viewModel.currentAnimatedCoverUrl
+    } else null
+
+    var pixelSlots by remember { mutableStateOf(List(4) { i -> prefs.getPixelSlot(i) }) }
+    var sliderStyle by remember { mutableStateOf(prefs.getPlayerSliderStyle()) }
+
+    DisposableEffect(Unit) {
+        val sharedPrefs = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == PlayerPreferences.KEY_PLAYER_STYLE) {
+                backgroundStyle = prefs.getPlayerStyle()
+            } else if (key?.startsWith(PlayerPreferences.KEY_PIXEL_SLOT_PREFIX) == true) {
+                pixelSlots = List(4) { i -> prefs.getPixelSlot(i) }
+            } else if (key == PlayerPreferences.KEY_PLAYER_SLIDER_STYLE) {
+                sliderStyle = prefs.getPlayerSliderStyle()
+            }
+        }
+        sharedPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            sharedPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+
+    val isBlurMode = backgroundStyle == PlayerBackgroundStyle.BLUR || backgroundStyle == PlayerBackgroundStyle.APPLE_MUSIC
+
+    val animatedColor by animateColorAsState(
+        targetValue = viewModel.backgroundColor,
+        animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+        label = "backgroundColor"
+    )
+
+    // Palette tokens tailored for PixelPlayer
+    val colorScheme = MaterialTheme.colorScheme
+    val mainTextColor by animateColorAsState(
+        targetValue = if (isBlurMode) Color.White else colorScheme.onSurface,
+        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        label = "mainText"
+    )
+    val subTextColor by animateColorAsState(
+        targetValue = if (isBlurMode) Color.White.copy(alpha = 0.7f) else colorScheme.onSurfaceVariant,
+        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        label = "subText"
+    )
+    val topBarBtnBg by animateColorAsState(
+        targetValue = if (isBlurMode) Color.White.copy(alpha = 0.15f) else colorScheme.onSurface.copy(alpha = 0.08f),
+        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        label = "topBarBg"
+    )
+    val topBarBtnTint by animateColorAsState(
+        targetValue = if (isBlurMode) Color.White else colorScheme.onSurface,
+        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        label = "topBarTint"
+    )
+    val activeChipBg by animateColorAsState(
+        targetValue = if (isBlurMode) Color.White.copy(alpha = 0.35f) else colorScheme.primary,
+        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        label = "activeChipBg"
+    )
+    val activeChipTint by animateColorAsState(
+        targetValue = if (isBlurMode) Color.White else colorScheme.onPrimary,
+        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        label = "activeChipTint"
+    )
+
+    val playPauseContainer = if (isBlurMode) Color.White.copy(alpha = 0.3f) else colorScheme.tertiaryFixedDim
+    val playPauseContent = if (isBlurMode) Color.White else colorScheme.onTertiaryFixed
+    val skipContainer = if (isBlurMode) Color.White.copy(alpha = 0.15f) else colorScheme.secondaryFixedDim
+    val skipContent = if (isBlurMode) Color.White else colorScheme.onSecondaryFixed
+
+    val sliderActiveColor = if (isBlurMode) Color.White else colorScheme.primary
+    val sliderInactiveColor = if (isBlurMode) Color.White.copy(alpha = 0.25f) else colorScheme.onSurface.copy(alpha = 0.15f)
+
+    var showQueueSheet by remember { mutableStateOf(false) }
+    var showEffectsSheet by remember { mutableStateOf(false) }
+
+    // "Full screen" mode for mini-style lyrics in landscape: reset when the lyrics are closed
+    var isImmersiveLyrics by remember { mutableStateOf(false) }
+    LaunchedEffect(viewModel.showInlineLyrics) {
+        if (!viewModel.showInlineLyrics) isImmersiveLyrics = false
+    }
+
+    val pProgress = predictiveBackProgress.value
+    val clampedProgress = if (pProgress.isFinite()) pProgress.coerceIn(0f, 1f) else 0f
+    val predictiveScaleX = if (pProgress.isFinite()) (1f - (clampedProgress * 0.06f)).coerceIn(0.8f, 1f) else 1f
+    val predictiveScaleY = if (pProgress.isFinite()) (1f - (clampedProgress * 0.04f)).coerceIn(0.8f, 1f) else 1f
+    val predictiveTranslationY = if (pProgress.isFinite()) (pProgress.coerceAtLeast(0f) * sheetCollapsedTargetY) else 0f
+    val predictiveCorner = (clampedProgress * 32.dp.value).coerceAtLeast(0f).dp
+
+    // Orientation MUST come from the real layout constraints, not LocalConfiguration:
+    // on several tablets Configuration keeps reporting the natural (landscape) width/height
+    // even in portrait, which forced the landscape two-pane layout onto the portrait screen.
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .playerDismissGesture(
+                dismissTargetY = sheetCollapsedTargetY,
+                dismissProgress = predictiveBackProgress,
+                scope = scope,
+                onDismiss = handleClose
+            )
+            .graphicsLayer {
+                scaleX = predictiveScaleX
+                scaleY = predictiveScaleY
+                translationY = predictiveTranslationY
+                transformOrigin = TransformOrigin(0.5f, 1.0f)
+                shape = AbsoluteSmoothCornerShape(predictiveCorner, 60)
+                clip = clampedProgress > 0.001f
+                alpha = (1f - (clampedProgress * 0.15f)).coerceIn(0f, 1f)
+            }
+            .background(if (isBlurMode) Color.Black else colorScheme.surface)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {})
+            }
+    ) {
+        // Background layer
+        when (backgroundStyle) {
+            PlayerBackgroundStyle.BLUR -> {
+                Crossfade(
+                    targetState = track.fullResArtwork,
+                    animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+                    label = "BlurBackgroundTransition"
+                ) { artworkUrl ->
+                    AsyncImage(
+                        model = artworkUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = 1.25f
+                                scaleY = 1.25f
+                            }
+                            .blur(90.dp)
+                            .alpha(0.75f)
+                    )
+                }
+                if (!backdropAnimatedUrl.isNullOrBlank()) {
+                    CanvasVideo(
+                        canvasUrl = backdropAnimatedUrl,
+                        isPlaying = viewModel.uiIsPlaying,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(40.dp)
+                            .alpha(0.85f)
+                    )
+                }
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0.0f to Color.Black.copy(alpha = 0.45f),
+                                0.35f to Color.Black.copy(alpha = 0.20f),
+                                0.65f to Color.Black.copy(alpha = 0.35f),
+                                1.0f to Color.Black.copy(alpha = 0.65f)
+                            )
+                        )
+                )
+            }
+
+            PlayerBackgroundStyle.GRADIENT -> {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    animatedColor.copy(alpha = 0.7f),
+                                    animatedColor.copy(alpha = 0.3f),
+                                    colorScheme.surface
+                                )
+                            )
+                        )
+                )
+            }
+
+            PlayerBackgroundStyle.THEME -> {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(colorScheme.surface)
+                )
+            }
+
+            PlayerBackgroundStyle.APPLE_MUSIC -> {
+                FluidArtworkBackground(
+                    artworkUrl = track.fullResArtwork,
+                    modifier = Modifier.fillMaxSize(),
+                    animate = viewModel.uiIsPlaying
+                ) {
+                    AsyncImage(
+                        model = track.fullResArtwork,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(120.dp)
+                            .alpha(0.6f)
+                    )
+                }
+                if (!backdropAnimatedUrl.isNullOrBlank()) {
+                    CanvasVideo(
+                        canvasUrl = backdropAnimatedUrl,
+                        isPlaying = viewModel.uiIsPlaying,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(40.dp)
+                            .alpha(0.85f)
+                    )
+                }
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0.0f to Color.Black.copy(alpha = 0.35f),
+                                0.35f to Color.Black.copy(alpha = 0.15f),
+                                0.65f to Color.Black.copy(alpha = 0.30f),
+                                1.0f to Color.Black.copy(alpha = 0.50f)
+                            )
+                        )
+                )
+            }
+
+            PlayerBackgroundStyle.LIVE_MESH -> {
+                // The rotating mesh of blurred artwork layers, same as the main player.
+                com.alananasss.kittytune.ui.player.LiveMeshBackground(
+                    thumbnailUrl = track.fullResArtwork,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScrim = true
+                )
+            }
+        }
+
+        val verticalDragModifier = Modifier
+        val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo(maxWidth, maxHeight)
+        // "Text on the left / on the right" setting (phone AND tablet landscape):
+        // RIGHT keeps the cover visible and shows the lyrics in place of the controls
+        // pane; LEFT keeps the original behaviour (lyrics replace the cover).
+        val inlineLyricsSide = rememberInlineLyricsSide()
+        val lyricsOnRight = windowSizeInfo.isLandscape &&
+            inlineLyricsSide == InlineLyricsSide.RIGHT
+        // Mini-style lyrics in landscape (the landscape mini-style lyrics setting,
+        // on by default): lyrics on the left, the cover at the track title + slider
+        // on the right, and a "Full screen" mode.
+        val miniLandscapeLyrics = remember { prefs.getLandscapeMiniLyrics() }
+        val miniLyricsLandscape = windowSizeInfo.isLandscape && viewModel.showInlineLyrics &&
+            miniLandscapeLyrics
+
+        // Main Player Column Layout
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+                    bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Top Bar (hidden in the mini-style lyrics full-screen mode - only the lyrics,
+            // the cover with the title and the slider remain)
+            AnimatedVisibility(visible = !(miniLyricsLandscape && isImmersiveLyrics)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .padding(horizontal = 20.dp)
+                    .then(verticalDragModifier),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Collapse button with expressive morphing shapes
+                FilledIconButton(
+                    onClick = handleClose,
+                    modifier = Modifier.size(42.dp),
+                    shapes = IconButtonDefaults.shapes(),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = topBarBtnBg,
+                        contentColor = topBarBtnTint
+                    )
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.rounded_keyboard_arrow_down_24),
+                        contentDescription = stringResource(R.string.btn_close),
+                        tint = topBarBtnTint
+                    )
+                }
+
+                // Center "Now Playing" title
+                Text(
+                    text = viewModel.playbackDeviceLabel ?: stringResource(R.string.player_now_playing),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontFamily = GoogleSansRounded,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = mainTextColor,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 18.dp, end = 6.dp),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+
+                // Right connected buttons: Lyrics + Queue
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Lyrics Squircle
+                    Box(
+                        modifier = Modifier
+                            .size(height = 42.dp, width = 50.dp)
+                            .clip(
+                                RoundedCornerShape(
+                                    topStart = 50.dp,
+                                    topEnd = 6.dp,
+                                    bottomStart = 50.dp,
+                                    bottomEnd = 6.dp
+                                )
+                            )
+                            .background(if (viewModel.showInlineLyrics) activeChipBg else topBarBtnBg)
+                            .combinedClickable(
+                                onClick = {
+                                    viewModel.showInlineLyrics = !viewModel.showInlineLyrics
+                                },
+                                onLongClick = {
+                                    view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
+                                    viewModel.openLyrics(forceSheet = true)
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.rounded_lyrics_24),
+                            contentDescription = stringResource(R.string.player_lyrics),
+                            tint = if (viewModel.showInlineLyrics) activeChipTint else topBarBtnTint
+                        )
+                    }
+
+                    // Queue Squircle
+                    Box(
+                        modifier = Modifier
+                            .size(height = 42.dp, width = 50.dp)
+                            .clip(
+                                RoundedCornerShape(
+                                    topStart = 6.dp,
+                                    topEnd = 50.dp,
+                                    bottomStart = 6.dp,
+                                    bottomEnd = 50.dp
+                                )
+                            )
+                            .background(topBarBtnBg)
+                            .hapticClickable { showQueueSheet = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.rounded_queue_music_24),
+                            contentDescription = stringResource(R.string.player_queue),
+                            tint = topBarBtnTint
+                        )
+                    }
+                }
+            }
+            } // AnimatedVisibility (Top Bar)
+
+            // Artwork / inline-lyrics pager block, shared by the portrait and landscape
+            // layouts (portrait sizes the square by width, landscape by height).
+            val pixelArtworkBlock: @Composable (Modifier) -> Unit = { blockModifier ->
+            // Pager for swipe animation between queue tracks
+            val queueSize = viewModel.uiQueueState.size
+            val currentIdx = viewModel.uiCurrentQueueIndex
+            val pagerState = rememberPagerState(
+                initialPage = currentIdx.coerceIn(0, (queueSize - 1).coerceAtLeast(0)),
+                pageCount = { queueSize.coerceAtLeast(1) }
+            )
+
+            LaunchedEffect(viewModel.uiCurrentQueueIndex) {
+                if (viewModel.uiCurrentQueueIndex in 0 until pagerState.pageCount &&
+                    viewModel.uiCurrentQueueIndex != pagerState.currentPage
+                ) {
+                    try {
+                        pagerState.animateScrollToPage(viewModel.uiCurrentQueueIndex)
+                    } catch (_: Exception) {
+                        pagerState.scrollToPage(viewModel.uiCurrentQueueIndex)
+                    }
+                }
+            }
+
+            LaunchedEffect(pagerState) {
+                snapshotFlow { pagerState.settledPage }.collect { settledPage ->
+                    if (settledPage != viewModel.uiCurrentQueueIndex && settledPage in viewModel.uiQueueState.indices) {
+                        viewModel.skipToQueueItem(settledPage)
+                    }
+                }
+            }
+
+            // Center Artwork Section (32.dp, 60 smooth corner) with swipe animation
+            val showLyrics = viewModel.showInlineLyrics
+            // In "text on the right" landscape mode the cover never fades and the artwork
+            // block never hosts the lyrics layer - the lyrics live in the right pane instead.
+            val showLyricsOverCover = showLyrics && !lyricsOnRight
+            val lyricsAlpha by animateFloatAsState(
+                targetValue = if (showLyricsOverCover) 1f else 0f,
+                animationSpec = tween(400),
+                label = "pixelLyricsAlpha"
+            )
+            val coverAlpha by animateFloatAsState(
+                targetValue = if (showLyricsOverCover) 0f else 1f,
+                animationSpec = tween(400),
+                label = "pixelCoverAlpha"
+            )
+
+            Box(
+                modifier = blockModifier
+                    .then(if (!showLyrics) verticalDragModifier else Modifier),
+                contentAlignment = Alignment.Center
+            ) {
+                // Cover Layer (Carousel with swipe animation)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .alpha(coverAlpha)
+                        .zIndex(if (showLyrics) 0f else 1f)
+                ) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize(),
+                        pageSpacing = 16.dp,
+                        // Equal padding on all sides keeps every pager page a perfect square
+                        // (the artwork is never stretched or cropped) and centers it in the
+                        // bounded artwork pane on both phone and tablet screens.
+                        contentPadding = PaddingValues(24.dp)
+                    ) { page ->
+                        val pageTrack = viewModel.uiQueueState.getOrNull(page) ?: track
+                        val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
+                        val scale = lerp(0.88f, 1f, (1f - pageOffset.coerceIn(0f, 1f)))
+                        val alpha = lerp(0.5f, 1f, (1f - pageOffset.coerceIn(0f, 1f)))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                    this.alpha = alpha
+                                }
+                                .gyroscopeCoverContainer()
+                                .shadow(
+                                    elevation = 16.dp,
+                                    shape = AbsoluteSmoothCornerShape(32.dp, 60),
+                                    ambientColor = Color.Black.copy(alpha = 0.25f),
+                                    spotColor = Color.Black.copy(alpha = 0.35f)
+                                )
+                                .clip(AbsoluteSmoothCornerShape(32.dp, 60))
+                                .background(colorScheme.surfaceVariant)
+                        ) {
+                            AnimatedArtwork(
+                                artworkUrl = pageTrack.fullResArtwork,
+                                animatedCoverUrl = if (pageTrack.id == track.id) (viewModel.currentAnimatedCoverTallUrl ?: viewModel.currentAnimatedCoverUrl) else null,
+                                isPlaying = viewModel.uiIsPlaying && (pageTrack.id == track.id),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .hapticClickable {
+                                        viewModel.showInlineLyrics = !viewModel.showInlineLyrics
+                                    }
+                            )
+                        }
+                    }
+                }
+
+                // Lyrics Layer
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp)
+                        .alpha(lyricsAlpha)
+                        .zIndex(if (showLyrics) 1f else 0f)
+                ) {
+                    if (lyricsAlpha > 0f) {
+                        InlineLyricsContent(viewModel = viewModel)
+                    }
+                }
+            }
+            }
+
+            // Progress slider + timecodes extracted into a separate block:
+            // used both in the regular layout (inside pixelMetaBlock) and in the
+            // right pane of the landscape mini-style lyrics.
+            val pixelSliderBlock: @Composable (Boolean) -> Unit = { compactMeta ->
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Expressive Wavy Slider
+                val clip = viewModel.uiClipWindow
+                val shownOf = { songMs: Long -> clip?.toShown(songMs) ?: songMs }
+                val songOf = { shownMs: Long -> clip?.toSong(shownMs) ?: shownMs }
+                val totalDuration = (clip?.lengthMs ?: (if (viewModel.uiDuration > 1000) {
+                    viewModel.uiDuration
+                } else {
+                    track.actualDurationMs.takeIf { it > 1000 } ?: 180000L
+                })).coerceAtLeast(1L)
+
+                val (smoothProgressState, _) = rememberSmoothProgress(
+                    isPlayingProvider = { viewModel.uiIsPlaying },
+                    currentPositionProvider = { shownOf(viewModel.uiCurrentPosition) },
+                    totalDuration = totalDuration,
+                    trackId = track.id
+                )
+
+                var sliderDragValue by remember(track.id) { mutableStateOf<Float?>(null) }
+                var targetSeekFraction by remember(track.id) { mutableFloatStateOf(-1f) }
+                var lastSeekFinishedTime by remember(track.id) { mutableLongStateOf(0L) }
+
+                LaunchedEffect(track.id) {
+                    sliderDragValue = null
+                    targetSeekFraction = -1f
+                    lastSeekFinishedTime = 0L
+                }
+
+                LaunchedEffect(track.id) {
+                    snapshotFlow { smoothProgressState.value }.collect { progress ->
+                        if (sliderDragValue != null) return@collect
+                        val target = targetSeekFraction
+                        if (target < 0f) return@collect
+                        val timeSinceSeek = System.currentTimeMillis() - lastSeekFinishedTime
+                        val diff = kotlin.math.abs(progress - target)
+                        if (timeSinceSeek > 5000L || diff < 0.04f) {
+                            targetSeekFraction = -1f
+                        }
+                    }
+                }
+
+                val animatedProgressState = remember(smoothProgressState) {
+                    derivedStateOf {
+                        when {
+                            sliderDragValue != null -> sliderDragValue!!
+                            targetSeekFraction >= 0f -> targetSeekFraction
+                            else -> smoothProgressState.value
+                        }
+                    }
+                }
+
+                val effectivePositionState = remember(totalDuration, animatedProgressState) {
+                    derivedStateOf {
+                        (animatedProgressState.value * totalDuration).roundToLong().coerceIn(0L, totalDuration)
+                    }
+                }
+
+                val sliderColors = SliderDefaults.colors(
+                    thumbColor = sliderActiveColor,
+                    activeTrackColor = sliderActiveColor,
+                    inactiveTrackColor = sliderInactiveColor
+                )
+
+                when (sliderStyle) {
+                    PlayerSliderStyle.WAVY -> {
+                        WavySliderExpressive(
+                            // v8-API: value is a lambda so the wave reads the position without recomposition
+                            value = { animatedProgressState.value },
+                            onValueChange = { newFraction ->
+                                sliderDragValue = newFraction
+                                val targetMs = (newFraction * totalDuration).roundToLong()
+                                viewModel.updateScrubPosition(targetMs)
+                            },
+                            onValueCommit = { finalFraction ->
+                                val targetMs = (finalFraction * totalDuration).roundToLong()
+                                targetSeekFraction = finalFraction
+                                lastSeekFinishedTime = System.currentTimeMillis()
+                                viewModel.seekTo(songOf(targetMs))
+                                sliderDragValue = null
+                            },
+                            onValueChangeFinished = {
+                                sliderDragValue?.let { finalFraction ->
+                                    val targetMs = (finalFraction * totalDuration).roundToLong()
+                                    targetSeekFraction = finalFraction
+                                    lastSeekFinishedTime = System.currentTimeMillis()
+                                    viewModel.seekTo(songOf(targetMs))
+                                    sliderDragValue = null
+                                }
+                            },
+                            isPlaying = viewModel.uiIsPlaying,
+                            activeTrackColor = sliderActiveColor,
+                            inactiveTrackColor = sliderInactiveColor,
+                            thumbColor = sliderActiveColor,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    PlayerSliderStyle.BAR -> {
+                        Slider(
+                            value = animatedProgressState.value.coerceIn(0f, 1f),
+                            valueRange = 0f..1f,
+                            onValueChange = { newFraction ->
+                                sliderDragValue = newFraction
+                                val targetMs = (newFraction * totalDuration).roundToLong()
+                                viewModel.updateScrubPosition(targetMs)
+                            },
+                            onValueChangeFinished = {
+                                sliderDragValue?.let { finalFraction ->
+                                    val targetMs = (finalFraction * totalDuration).roundToLong()
+                                    targetSeekFraction = finalFraction
+                                    lastSeekFinishedTime = System.currentTimeMillis()
+                                    viewModel.seekTo(songOf(targetMs))
+                                    sliderDragValue = null
+                                }
+                            },
+                            colors = sliderColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    PlayerSliderStyle.SLIM -> {
+                        val trackInteractionSource = remember { MutableInteractionSource() }
+                        val isTrackDragged by trackInteractionSource.collectIsDraggedAsState()
+                        val isTrackPressed by trackInteractionSource.collectIsPressedAsState()
+                        val isTrackActive = isTrackDragged || isTrackPressed || (sliderDragValue != null)
+
+                        val trackHeight by animateDpAsState(
+                            targetValue = if (isTrackActive) 16.dp else 10.dp,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ),
+                            label = "trackHeight"
+                        )
+
+                        val slimState = remember(track.id) {
+                            SliderState(
+                                value = animatedProgressState.value.coerceIn(0f, 1f),
+                                steps = 0,
+                                trackRange = 0f..1f
+                            )
+                        }
+                        slimState.value = animatedProgressState.value.coerceIn(0f, 1f)
+
+                        Slider(
+                            state = slimState,
+                            onValueChange = { newFraction ->
+                                sliderDragValue = newFraction
+                                val targetMs = (newFraction * totalDuration).roundToLong()
+                                viewModel.updateScrubPosition(targetMs)
+                            },
+                            onValueChangeFinished = {
+                                sliderDragValue?.let { finalFraction ->
+                                    val targetMs = (finalFraction * totalDuration).roundToLong()
+                                    targetSeekFraction = finalFraction
+                                    lastSeekFinishedTime = System.currentTimeMillis()
+                                    viewModel.seekTo(songOf(targetMs))
+                                    sliderDragValue = null
+                                }
+                            },
+                            interactionSource = trackInteractionSource,
+                            thumb = { Spacer(modifier = Modifier.size(0.dp)) },
+                            track = { state ->
+                                PlayerSliderTrack(
+                                    sliderState = state,
+                                    trackHeight = trackHeight,
+                                    colors = sliderColors
+                                )
+                            },
+                            colors = sliderColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    PlayerSliderStyle.SQUIGGLY -> {
+                        SquigglySlider(
+                            value = animatedProgressState.value.coerceIn(0f, 1f),
+                            valueRange = 0f..1f,
+                            onValueChange = { newFraction ->
+                                sliderDragValue = newFraction
+                                val targetMs = (newFraction * totalDuration).roundToLong()
+                                viewModel.updateScrubPosition(targetMs)
+                            },
+                            onValueChangeFinished = {
+                                sliderDragValue?.let { finalFraction ->
+                                    val targetMs = (finalFraction * totalDuration).roundToLong()
+                                    targetSeekFraction = finalFraction
+                                    lastSeekFinishedTime = System.currentTimeMillis()
+                                    viewModel.seekTo(songOf(targetMs))
+                                    sliderDragValue = null
+                                }
+                            },
+                            colors = sliderColors,
+                            isPlaying = viewModel.uiIsPlaying,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    PlayerSliderStyle.EXPRESSIVE -> {
+                        com.alananasss.kittytune.ui.player.slider.ExpressiveWavesSlider(
+                            value = animatedProgressState.value.coerceIn(0f, 1f),
+                            valueRange = 0f..1f,
+                            onValueChange = { newFraction ->
+                                sliderDragValue = newFraction
+                                val targetMs = (newFraction * totalDuration).roundToLong()
+                                viewModel.updateScrubPosition(targetMs)
+                            },
+                            onValueChangeFinished = {
+                                sliderDragValue?.let { finalFraction ->
+                                    val targetMs = (finalFraction * totalDuration).roundToLong()
+                                    targetSeekFraction = finalFraction
+                                    lastSeekFinishedTime = System.currentTimeMillis()
+                                    viewModel.seekTo(songOf(targetMs))
+                                    sliderDragValue = null
+                                }
+                            },
+                            colors = sliderColors,
+                            isPlaying = viewModel.uiIsPlaying,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                // Timestamps: current on left, duration on right
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = makeTimeString(effectivePositionState.value),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontFamily = GoogleSansRounded,
+                            color = subTextColor
+                        )
+                    )
+                    val showRemaining by prefs.getShowRemainingTimeFlow().collectAsState(initial = prefs.getShowRemainingTime())
+                    Text(
+                        text = if (showRemaining) com.alananasss.kittytune.utils.makeRemainingTimeString(effectivePositionState.value, totalDuration) else makeTimeString(totalDuration),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontFamily = GoogleSansRounded,
+                            color = subTextColor
+                        ),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .hapticClickable { prefs.setShowRemainingTime(!showRemaining) }
+                            .padding(horizontal = 8.dp, vertical = if (compactMeta) 2.dp else 8.dp)
+                    )
+                }
+            }
+            }
+
+            // Track Metadata + Wavy Progress Slider
+            // compactMeta=true (phone landscape): tighter title style and spacers so the
+            // metadata + slider + full controls stack always fits the short landscape window
+            // and the bottom toggle row stays on screen.
+            val pixelMetaBlock: @Composable (Boolean) -> Unit = { compactMeta ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Track Title (GoogleSansRounded Bold)
+                Text(
+                    text = track.title ?: stringResource(R.string.untitled_track),
+                    style = (if (compactMeta) {
+                        MaterialTheme.typography.titleLarge
+                    } else {
+                        MaterialTheme.typography.headlineSmall
+                    }).copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = GoogleSansRounded,
+                        color = mainTextColor
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .hapticClickable { viewModel.navigateToTrackDetails(track.id, 0) }
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // Artist (GoogleSansRounded Medium)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .clip(RoundedCornerShape(8.dp))
+                            .hapticClickable { viewModel.navigateToTrackArtist(track) }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = track.displayArtist.ifBlank {
+                                track.user?.username ?: stringResource(R.string.unknown_artist)
+                            },
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontFamily = GoogleSansRounded,
+                                color = subTextColor
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        val isAnyVerified = track.user?.verified == true || track.artists?.any { it.verified } == true
+                        if (isAnyVerified) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.Verified,
+                                contentDescription = stringResource(R.string.user_type_verified_artist),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    val aiResult by com.alananasss.kittytune.audio.ai.AiDetectionManager.result.collectAsState()
+                    com.alananasss.kittytune.ui.player.ai.AiDetectionBadge(
+                        result = aiResult,
+                        textColor = mainTextColor,
+                        onClick = hapticAction(HapticKind.LIGHT) { viewModel.showAiDetectionSheet = true },
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+                    com.alananasss.kittytune.ui.common.TrackSourceBadge(
+                        track = track,
+                        resolvedSource = viewModel.currentStreamSource,
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(if (compactMeta) 4.dp else 12.dp))
+
+                // Progress slider + timecodes (the block shared with the mini-style lyrics)
+                pixelSliderBlock(compactMeta)
+            }
+            }
+
+            // Controls Section: AnimatedPlaybackControls + BottomToggleRow.
+            // compactStack=true (phone landscape): the full-size stack (~370dp together with
+            // the 56dp top bar) does not fit a ~360dp tall landscape window and used to push
+            // the bottom toggle row off-screen. Tablets keep the full-size stack.
+            val pixelControlsBlock: @Composable (Boolean) -> Unit = { compactStack ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = if (compactStack) 4.dp else 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                AnimatedPlaybackControls(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    isPlayingProvider = { viewModel.uiIsPlaying },
+                    isLoadingProvider = { viewModel.isLoading },
+                    onPrevious = { viewModel.smartPrevious() },
+                    onPlayPause = { viewModel.togglePlayPause() },
+                    onNext = { viewModel.requestSkipNext() },
+                    height = if (compactStack) 52.dp else 80.dp,
+                    colorOtherButtons = skipContainer,
+                    colorPlayPause = playPauseContainer,
+                    tintPlayPauseIcon = playPauseContent,
+                    tintOtherIcons = skipContent,
+                    colorPreviousButton = skipContainer,
+                    colorNextButton = skipContainer,
+                    tintPreviousIcon = skipContent,
+                    tintNextIcon = skipContent
+                )
+
+                Spacer(modifier = Modifier.height(if (compactStack) 6.dp else 14.dp))
+
+                BottomToggleRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(if (compactStack) 50.dp else 66.dp)
+                        .padding(horizontal = 24.dp),
+                    slots = pixelSlots,
+                    isShuffleEnabled = viewModel.uiShuffleEnabled,
+                    repeatMode = viewModel.uiRepeatMode,
+                    isFavorite = viewModel.uiIsLiked,
+                    isLyricsActive = viewModel.showInlineLyrics || viewModel.isLyricsUnderCoverActive,
+                    isFullscreenLyricsActive = viewModel.showLyricsSheet,
+                    isSleepTimerActive = viewModel.isSleepTimerActive,
+                    isHapticsActive = viewModel.isHapticsEnabled,
+                    isConnectActive = com.alananasss.kittytune.data.sync.ConnectManager.selectedDevice.value != null,
+                    onShuffleToggle = { viewModel.toggleShuffle() },
+                    onRepeatToggle = { viewModel.toggleRepeatMode() },
+                    onFavoriteToggle = { viewModel.toggleLike() },
+                    onQueueClick = { showQueueSheet = true },
+                    onEffectsClick = { showEffectsSheet = true },
+                    onLyricsClick = { viewModel.openLyrics() },
+                    onFullscreenLyricsClick = { viewModel.openLyrics(forceSheet = true) },
+                    onShareClick = { viewModel.uiCurrentTrack?.let { viewModel.openShareCard(it) } },
+                    onCommentsClick = {
+                        viewModel.openComments(viewModel.uiCurrentTrack)
+                    },
+                    onSleepTimerClick = { viewModel.showSleepTimerDialog = true },
+                    onHapticsToggle = { viewModel.toggleHaptics() },
+                    onConnectClick = { viewModel.showConnectSheet = true },
+                    onMoreClick = { viewModel.uiCurrentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) } },
+                    onDevicesClick = { viewModel.showConnectSheet = true },
+                    activeColorMain = colorScheme.primary,
+                    activeColorSecondary = colorScheme.secondary,
+                    activeColorTertiary = colorScheme.tertiary,
+                    onActiveColorMain = colorScheme.onPrimary,
+                    onActiveColorSecondary = colorScheme.onSecondary,
+                    onActiveColorTertiary = colorScheme.onTertiary,
+                    inactiveColor = if (isBlurMode) Color.White.copy(alpha = 0.12f) else colorScheme.onSurface.copy(alpha = 0.08f),
+                    inactiveContentColor = if (isBlurMode) Color.White else colorScheme.onSurface,
+                    containerColor = if (isBlurMode) Color.White.copy(alpha = 0.12f) else colorScheme.surfaceContainerLowest.copy(alpha = 0.7f)
+                )
+            }
+            }
+
+            if (windowSizeInfo.isLandscape) {
+                if (miniLyricsLandscape) {
+                    // ── Mini-style lyrics in landscape: lyrics on the left; on the right - the
+                    //    cover at the track title, the slider with timecodes and the codec badge;
+                    //    the controls are hidden by "Full screen" mode (pill in the header). ──
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(horizontal = 12.dp)
+                    ) {
+                        com.alananasss.kittytune.ui.player.lyrics.MiniImmersiveLyricsView(
+                            viewModel = viewModel,
+                            isImmersive = isImmersiveLyrics,
+                            onToggleImmersive = { isImmersiveLyrics = !isImmersiveLyrics },
+                            onCloseLyrics = { viewModel.showInlineLyrics = false },
+                            onOpenMenu = { viewModel.showTrackOptions(track, fromPlayer = true) },
+                            accentColor = if (isBlurMode) Color.White.copy(alpha = 0.22f) else colorScheme.primary.copy(alpha = 0.88f),
+                            onAccentColor = if (isBlurMode) Color.White else colorScheme.onPrimary,
+                            sliderComposable = { pixelSliderBlock(!windowSizeInfo.isTablet) },
+                            codecBadgeComposable = {
+                                CodecBadge(viewModel = viewModel, textColor = mainTextColor)
+                            },
+                            playbackControlsComposable = { pixelControlsBlock(!windowSizeInfo.isTablet) },
+                            bottomRowComposable = null,
+                            applyInsets = false
+                        )
+                    }
+                } else {
+                // ── Landscape: artwork on the left, metadata + slider + controls on the
+                //    right, so the square cover can never push them off-screen. ──
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(0.45f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Bounded square: on short/wide tablet screens (e.g. 1280x800) a
+                        // fillMaxHeight square overflows its pane, bleeds off the screen edge
+                        // and slides under the controls column. Sizing by
+                        // min(paneWidth, paneHeight) keeps the artwork fully on screen.
+                        BoxWithConstraints(contentAlignment = Alignment.Center) {
+                            val coverSquareSize = minOf(maxWidth - 8.dp, maxHeight - 16.dp)
+                                .coerceAtLeast(220.dp)
+                            pixelArtworkBlock(Modifier.size(coverSquareSize))
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(
+                        modifier = Modifier
+                            .weight(0.55f)
+                            .fillMaxHeight()
+                    ) {
+                        // "Text on the right" mode: the lyrics replace the meta + controls
+                        // pane (the cover stays visible on the left). No X here - the pixel
+                        // player has its own lyrics button in the top bar, always visible.
+                        AnimatedContent(
+                            targetState = lyricsOnRight && viewModel.showInlineLyrics,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(300))
+                                    .togetherWith(fadeOut(animationSpec = tween(300)))
+                            },
+                            label = "pixelLandscapeControlsOrLyrics",
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) { isLyrics ->
+                            if (isLyrics) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    InlineLyricsContent(viewModel = viewModel)
+                                }
+                            } else {
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    pixelMetaBlock(!windowSizeInfo.isTablet)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    pixelControlsBlock(!windowSizeInfo.isTablet)
+                                }
+                            }
+                        }
+                    }
+                }
+                } // else (not mini-style lyrics)
+            } else {
+                // Portrait (phone & tablet): the artwork lives in a weighted box and is sized
+                // as a square bounded by BOTH the width and the actual leftover height, so
+                // the meta + controls below always stay on screen and the cover is never
+                // cropped on tall tablet displays.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    BoxWithConstraints(contentAlignment = Alignment.Center) {
+                        val coverSquareSize = minOf(maxWidth - 16.dp, maxHeight - 12.dp)
+                            .coerceAtLeast(220.dp)
+                        pixelArtworkBlock(Modifier.size(coverSquareSize))
+                    }
+                }
+                pixelMetaBlock(false)
+                pixelControlsBlock(false)
+            }
+        }
+
+        // Queue Modal Bottom Sheet
+        if (showQueueSheet) {
+            KittyModalBottomSheet(
+                onDismissRequest = { showQueueSheet = false },
+                containerColor = colorScheme.surfaceContainer,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ) {
+                QueueContent(
+                    viewModel = viewModel,
+                    isQueueOpen = true,
+                    onCloseQueue = { showQueueSheet = false },
+                    onOpenExpandedQueue = {
+                        showQueueSheet = false
+                        viewModel.navigateToExpandedQueue()
+                    }
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+        }
+
+        // Audio Effects Sheet
+        if (showEffectsSheet) {
+            KittyModalBottomSheet(
+                onDismissRequest = { showEffectsSheet = false },
+                containerColor = colorScheme.surfaceContainer,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ) {
+                com.alananasss.kittytune.ui.player.AudioControlDock(viewModel)
+                Spacer(Modifier.height(32.dp))
+            }
+        }
+
+        SleepTimerDialog(viewModel)
+        TrackTrimDialog(viewModel)
+        DjDevDebugSheet(viewModel)
+    }
+}
+
+@Composable
+private fun rememberSmoothProgress(
+    isPlayingProvider: () -> Boolean,
+    currentPositionProvider: () -> Long,
+    totalDuration: Long,
+    trackId: Any?,
+    sampleWhilePlayingMs: Long = 180L,
+    sampleWhilePausedMs: Long = 800L,
+    isVisible: Boolean = true
+): Pair<androidx.compose.runtime.State<Float>, androidx.compose.runtime.State<Long>> {
+    var sampledPosition by remember(trackId) { mutableLongStateOf(0L) }
+    var sampledFraction by remember(trackId) { mutableFloatStateOf(0f) }
+
+    val latestPositionProvider by rememberUpdatedState(newValue = currentPositionProvider)
+    val latestIsPlayingProvider by rememberUpdatedState(newValue = isPlayingProvider)
+    val latestSampleWhilePlayingMs by rememberUpdatedState(sampleWhilePlayingMs)
+    val latestSampleWhilePausedMs by rememberUpdatedState(sampleWhilePausedMs)
+    val latestIsVisible by rememberUpdatedState(isVisible)
+
+    val safeUpperBound = totalDuration.coerceAtLeast(0L)
+    val safeDuration = totalDuration.coerceAtLeast(1L)
+
+    LaunchedEffect(totalDuration, trackId) {
+        fun sampleNow() {
+            val rawPosition = latestPositionProvider()
+            val clampedPosition = rawPosition.coerceIn(0L, safeUpperBound)
+            sampledPosition = clampedPosition
+            sampledFraction = (clampedPosition / safeDuration.toFloat()).coerceIn(0f, 1f)
+        }
+
+        sampleNow()
+
+        while (isActive) {
+            val visible = latestIsVisible
+            val playing = latestIsPlayingProvider()
+
+            if (!visible || !playing) {
+                val initialPos = latestPositionProvider()
+                snapshotFlow {
+                    latestIsVisible && (latestIsPlayingProvider() || latestPositionProvider() != initialPos)
+                }.first { it }
+
+                sampleNow()
+                if (!latestIsVisible || !latestIsPlayingProvider()) {
+                    continue
+                }
+            }
+
+            val delayMillis = latestSampleWhilePlayingMs
+            delay(delayMillis.coerceAtLeast(1L))
+            sampleNow()
+        }
+    }
+
+    val fractionState = remember(trackId) {
+        derivedStateOf { sampledFraction }
+    }
+
+    val displayedPositionState = remember(totalDuration, trackId) {
+        derivedStateOf {
+            sampledPosition.coerceIn(0L, totalDuration.coerceAtLeast(0L))
+        }
+    }
+
+    return fractionState to displayedPositionState
+}

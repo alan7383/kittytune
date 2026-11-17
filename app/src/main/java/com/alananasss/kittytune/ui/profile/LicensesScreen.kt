@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.content.Intent
     import android.net.Uri
     import androidx.compose.animation.*
@@ -14,6 +14,7 @@
     import androidx.compose.material.icons.automirrored.rounded.OpenInNew
     import androidx.compose.material.icons.rounded.*
     import androidx.compose.material3.*
+import com.alananasss.kittytune.ui.common.KittyOutlinedTextField
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     import androidx.compose.runtime.*
     import androidx.compose.ui.Alignment
@@ -27,9 +28,12 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     import androidx.compose.ui.text.style.TextOverflow
     import androidx.compose.ui.unit.dp
     import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
     import com.mikepenz.aboutlibraries.Libs
     import com.mikepenz.aboutlibraries.util.withContext
-    
+
     data class OpenSourceLibrary(
         val id: String,
         val name: String,
@@ -38,7 +42,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
         val url: String,
         val version: String
     )
-    
+
     @Composable
     private fun getLicenseBadgeColors(license: String): Pair<Color, Color> {
         val scheme = MaterialTheme.colorScheme
@@ -49,18 +53,25 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
             else -> scheme.secondaryContainer to scheme.onSecondaryContainer
         }
     }
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun LicensesScreen(onBackClick: () -> Unit) {
         val context = LocalContext.current
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    
+
         val unknownString = stringResource(R.string.unknown)
         val unknownLicenseString = stringResource(R.string.license_unknown)
-    
-        val libs = remember { Libs.Builder().withContext(context).build() }
-    
+
+        val libs = remember {
+            try {
+                val json = context.resources.openRawResource(R.raw.aboutlibraries).bufferedReader().use { it.readText() }
+                Libs.Builder().withJson(json).build()
+            } catch (_: Throwable) {
+                Libs.Builder().withContext(context).build()
+            }
+        }
+
         val allLibraries = remember(libs) {
             libs.libraries.map { lib ->
                 OpenSourceLibrary(
@@ -76,14 +87,14 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                 )
             }.sortedBy { it.name.lowercase() }
         }
-    
+
         var searchQuery by remember { mutableStateOf("") }
         var activeFilter by remember { mutableStateOf<String?>(null) }
-    
+
         val licenseTypes = remember(allLibraries) {
             allLibraries.map { it.license }.distinct().sorted()
         }
-    
+
         val filteredList = remember(allLibraries, searchQuery, activeFilter) {
             allLibraries.filter { lib ->
                 val matchSearch = searchQuery.isBlank() ||
@@ -93,7 +104,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                 matchSearch && matchFilter
             }
         }
-    
+
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
@@ -130,7 +141,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(bottom = 180.dp)
             ) {
                 item {
                     Column(
@@ -142,9 +153,9 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                             query = searchQuery,
                             onQueryChange = { searchQuery = it }
                         )
-    
+
                         Spacer(Modifier.height(16.dp))
-    
+
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -153,7 +164,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                                 val isSelected = activeFilter == null
                                 FilterChip(
                                     selected = isSelected,
-                                    onClick = { activeFilter = null },
+                                    onClick = hapticAction(HapticKind.UI) { activeFilter = null },
                                     label = { Text(stringResource(R.string.filter_all)) },
                                     leadingIcon = if (isSelected) {
                                         {
@@ -179,7 +190,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                                 val isSelected = activeFilter == type
                                 FilterChip(
                                     selected = isSelected,
-                                    onClick = { activeFilter = if (isSelected) null else type },
+                                    onClick = hapticAction(HapticKind.UI) { activeFilter = if (isSelected) null else type },
                                     label = { Text(type) },
                                     leadingIcon = if (isSelected) {
                                         { Icon(Icons.Rounded.Check, null, Modifier.size(16.dp)) }
@@ -197,7 +208,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                         }
                     }
                 }
-    
+
                 item {
                     Row(
                         modifier = Modifier
@@ -216,7 +227,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )
                 }
-    
+
                 if (filteredList.isEmpty()) {
                     item {
                         Box(
@@ -245,7 +256,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                     items(filteredList, key = { it.id }) { lib ->
                         LibraryItemExpressive(
                             library = lib,
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 if (lib.url.isNotEmpty()) {
                                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(lib.url))
                                     context.startActivity(intent)
@@ -254,7 +265,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                         )
                     }
                 }
-    
+
                 item {
                     Box(
                         modifier = Modifier
@@ -272,13 +283,13 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
             }
         }
     }
-    
+
     @Composable
     fun SearchBarCustom(
         query: String,
         onQueryChange: (String) -> Unit
     ) {
-        TextField(
+        KittyOutlinedTextField(
             value = query,
             onValueChange = onQueryChange,
             placeholder = {
@@ -296,7 +307,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
             },
             trailingIcon = if (query.isNotEmpty()) {
                 {
-                    IconButton(onClick = { onQueryChange("") }) {
+                    IconButton(onClick = hapticAction(HapticKind.UI) { onQueryChange("") }) {
                         Icon(Icons.Rounded.Close, contentDescription = null)
                     }
                 }
@@ -314,7 +325,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
             singleLine = true
         )
     }
-    
+
     @Composable
     fun LibraryItemExpressive(
         library: OpenSourceLibrary,
@@ -322,10 +333,10 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     ) {
         val (badgeBg, badgeContent) = getLicenseBadgeColors(library.license)
         val initial = library.name.firstOrNull()?.uppercase() ?: "?"
-    
+
         ListItem(
             modifier = Modifier
-                .clickable(onClick = onClick)
+                .hapticClickable(onClick = onClick)
                 .fillMaxWidth(),
             headlineContent = {
                 Text(
@@ -401,5 +412,4 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
         )
     }
-
 

@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.library
-    
+
     import android.app.Application
     import androidx.compose.runtime.getValue
     import androidx.compose.runtime.mutableStateListOf
@@ -15,18 +15,18 @@
     import kotlinx.coroutines.Dispatchers
     import kotlinx.coroutines.launch
     import kotlinx.coroutines.withContext
-    
+
     class YoutubeRadioViewModel(application: Application) : AndroidViewModel(application) {
         val tracks = mutableStateListOf<Track>()
         var isLoading by mutableStateOf(true)
         var isLoadingMore by mutableStateOf(false)
-    
+
         var playlistTitle by mutableStateOf("")
         var playlistCover by mutableStateOf<String?>(null)
         var playlistUser by mutableStateOf<User?>(null)
-    
+
         private var videoId: String? = null
-    
+
         fun loadInitial(youtubeUrl: String) {
             if (tracks.isNotEmpty()) return
             viewModelScope.launch {
@@ -35,15 +35,15 @@
                     try {
                         val cleanId = youtubeUrl.substringAfter("v=").substringBefore("&")
                         videoId = cleanId
-    
+
                         val endpoint = WatchEndpoint(videoId = cleanId)
                         val result = YouTube.next(endpoint).getOrNull()
-    
+
                         val items = result?.items ?: emptyList()
-    
+
                         val newTracks = items.filterIsInstance<SongItem>().map { item ->
                             Track(
-                                id = item.id.hashCode().toLong(),
+                                id = kotlin.math.abs(item.id.hashCode().toLong()),
                                 title = item.title,
                                 user = User(0L, item.artists.firstOrNull()?.name ?: "YouTube", null),
                                 artworkUrl = item.thumbnail,
@@ -52,7 +52,7 @@
                                 source = "youtube"
                             )
                         }
-    
+
                         withContext(Dispatchers.Main) {
                             val firstArtist = newTracks.firstOrNull()?.user?.username
                             playlistTitle = if (firstArtist != null) "Mix • $firstArtist" else "YouTube Mix"
@@ -61,7 +61,7 @@
                             tracks.clear()
                             tracks.addAll(newTracks)
                         }
-    
+
                     } catch (e: Exception) {
                         e.printStackTrace()
                     } finally {
@@ -70,7 +70,7 @@
                 }
             }
         }
-    
+
         fun loadMore() {
             if (isLoadingMore) return
             viewModelScope.launch {
@@ -78,20 +78,21 @@
                 withContext(Dispatchers.IO) {
                     try {
                         val query = tracks.randomOrNull()?.title ?: "music"
-                        val result = YouTube.search(query, YouTube.SearchFilter.FILTER_VIDEO).getOrNull()
-    
+                        val result = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()
+
                         val newTracks = result?.items?.filterIsInstance<SongItem>()?.map { item ->
+                            val displayArtist = item.artists.joinToString(", ") { it.name }.ifEmpty { "YouTube Music" }
                             Track(
-                                id = item.id.hashCode().toLong(),
+                                id = kotlin.math.abs(item.id.hashCode().toLong()),
                                 title = item.title,
-                                user = User(0L, item.artists.firstOrNull()?.name ?: "YouTube", null),
+                                user = User(0L, displayArtist, null),
                                 artworkUrl = item.thumbnail,
                                 durationMs = (item.duration ?: 0) * 1000L,
                                 permalinkUrl = "https://youtube.com/watch?v=${item.id}",
                                 source = "youtube"
                             )
                         } ?: emptyList()
-    
+
                         withContext(Dispatchers.Main) {
                             val existingIds = tracks.map { it.id }.toSet()
                             tracks.addAll(newTracks.filter { !existingIds.contains(it.id) })
@@ -105,5 +106,4 @@
             }
         }
     }
-
 

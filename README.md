@@ -1,58 +1,278 @@
-<img src="https://raw.githubusercontent.com/alan7383/kittytune/refs/heads/main/app/src/main/ic_launcher-playstore.png" alt="KittyTune Logo" width="150" align="right"/>
+<p align="center">
+  <a href="https://alan7383.github.io/kittytune-website/download" title="Download KittyTune"><img src="images/banner.png" alt="KittyTune - click to download"></a>
+</p>
 
-# KittyTune ( ◡‿◡ *)
+<p align="center">
+  <img src=".github/assets/badges.svg" alt="Android | Kotlin | Material Design | Jetpack Compose" width="100%"/>
+</p>
+<p align="center">
+  <a href="https://alan7383.github.io/kittytune-website/download" title="Download KittyTune"><img src=".github/assets/download-kittytune.svg" alt="Download KittyTune" width="460"/></a>
+</p>
 
-**SoundCloud, YouTube, and local files in one place. No ads, no tracking, and zero account dependencies.**
+<p align="center">
+  <sub>[!] <b>KittyTune is in active beta</b> - some features may be incomplete. Found a bug? Feel free to <a href="https://github.com/alan7383/kittytune/issues">open an issue</a>!</sub><br/>
+  <sub>[&gt;] <b>Looking for desktop?</b> KittyTune is also available for <b>Windows</b>, <b>Linux</b>, and <b>macOS</b> on <a href="https://github.com/alan7383/KittyTuneDesktop"><b>KittyTuneDesktop</b></a>.</sub>
+</p>
 
-I built KittyTune because I was tired of jumping between different apps just to listen to my own library. It pulls SoundCloud likes, YouTube playlists, and local MP3s into a single, unified list. If a song disappears from one platform, the app automatically finds a backup on the other so your music never stops.
+---
 
-### The Core Experience
-Most players are just wrappers. I wanted KittyTune to be a standalone machine that handles the mess of modern streaming for you.
-- **Unified Library**: SoundCloud, YouTube, and local files live in the same UI. No more switching.
-- **Smart Fallback**: If a track is geo-blocked or deleted, the app resolves a backup stream from a different platform instantly.
-- **Ghost Mode**: You don't need a login. I use scraping and direct extraction to keep your data private and avoid official API limits.
-- **Gapless flow**: Background token refreshes and adjustable crossfade (up to 12s) keep the playback moving.
+### ~ what is this
 
-### Serious Audio Engineering
-Usually, you need a desktop DAW for these effects. I've baked a custom DSP pipeline directly into the engine.
-- **DSP Suite**: Real-time 8D spatial audio, reverb with adjustable decay, and heavy bass boost.
-- **Nightcore & Vaporwave**: You can shift pitch and speed independently to change the vibe of any track.
-- **Rain Ambience**: There's a toggleable rain overlay that plays alongside your music when you need to focus.
-- **Precision**: Fine-grained speed sliders and precise seek controls for the perfectionists.
+KittyTune is an open-source Android music player built around **SoundCloud**, with optional login, a real **guest mode**, and a **YouTube search / stream fallback** for tracks that are restricted, missing, or annoying to access normally.
 
-### Progression & Stats
-I wanted the app to feel alive, like an RPG for your ears. The more you listen, the more your profile grows.
-- **Achievements**: Unlock over 40 badges (like "Vampire", "Night Owl", or "Ghost") and earn XP for your listener level.
-- **Real Stats**: See your play counts and genre breakdowns whenever you want. No need to wait for a yearly "wrapped" event.
-- **Discord RPC**: Automatically show what you're listening to on your Discord profile with rich media status.
-- **Backup**: Export your entire library, history, and stats to a JSON file whenever you need to move device.
+It also pulls in the things a lot of music apps either skip or hide behind rough UX: **offline downloads**, **local folder scanning**, **lyrics**, **audio recognition**, **audio effects**, **Discord Rich Presence**, **widgets**, **listening stats**, **achievements**, and **Android Auto** support.
 
-### Your UI, Your Way
-KittyTune uses the latest Material 3 Expressive guidelines. It's fluid, translucent, and scales to whatever style you prefer.
-- **Dynamic Themes**: Full support for Monet (Material You), custom primary colors, and high-contrast OLED black modes.
-- **Variable Fonts**: You can tweak font weight, width, and slant directly in the settings.
-- **Adaptive**: Built-in support for home screen widgets and Android Auto.
+<p align="center">
+  <img src="docs/screenshots/homescreen.png" width="31%" alt="Home Screen">
+  <img src="docs/screenshots/playerscreen.png" width="31%" alt="Player Screen">
+  <img src="docs/screenshots/lyrics.png" width="31%" alt="Synced Lyrics">
+</p>
 
-### Under the Hood
-- **Language**: 100% Kotlin.
-- **Interface**: Jetpack Compose (MVVM).
-- **Audio Core**: Media3 / ExoPlayer.
-- **Scrapers**: NewPipeExtractor for YouTube and custom SoundCloud resolvers.
-- **Persistence**: Room database for fast local metadata access.
+---
 
-### Installation
-You won't find this on the Play Store. Download the latest APK from the [releases page](https://github.com/alan7383/kittytune/releases/latest) and install it manually. 
+### * features
 
-To build it yourself:
+<details open>
+<summary><b>$ music import & transfer</b></summary>
+
+* **Import your music & playlists** from 7 major platforms (**Spotify, Apple Music, YouTube Music, Deezer, Tidal, Amazon Music, BoomPlay**) straight into your SoundCloud account.
+* **Powered by the native SoundCloud mobile GraphQL API**, analyzed and integrated directly for account sync and progress tracking.
+
+<p align="center">
+  <img src="docs/screenshots/transferyourgems.png" width="280" alt="Music Import & Transfer Preview">
+</p>
+</details>
+
+<details>
+<summary><b>~ discovery & sources</b></summary>
+
+* **SoundCloud-first discovery** with home feed, stream, charts, moods, genres, tags, albums, and radio/station flows.
+* **Search tracks, artists, playlists, and albums** from SoundCloud.
+* **Verified search filter** compares title, artist, cover art, and duration with Deezer, Tidal, Qobuz, and Spotify so re-uploads and mislabelled copies stay out of the way.
+* **Track recognition** built right in via ShazamKit to identify songs playing around you and find them instantly.
+* **Switch search source to YouTube** when you want direct video/audio results instead.
+* **Paste SoundCloud or YouTube links** directly into search and jump to the right track, playlist, profile, or station.
+* **Guest mode** works without connecting a SoundCloud account.
+
+<p align="center">
+  <img src="docs/screenshots/welcomescreen.png" width="250" alt="Welcome & Guest Mode">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/homescreen.png" width="250" alt="Home Feed & Stations">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/shazam.png" width="250" alt="Shazam Track Recognition">
+</p>
+</details>
+
+<details>
+<summary><b>> library & offline</b></summary>
+
+* Keep **liked tracks, liked playlists, saved artists, local playlists, and downloads** in one library.
+* **Download single tracks or full playlists** for offline playback.
+* **Choose a custom download location** and keep tagged files with embedded artwork when possible.
+* **Import local music folders** and scan subfolders recursively.
+* Supports local audio formats including **MP3, FLAC, WAV, M4A, AAC, OGG, WMA, OPUS, AMR, and MP4 audio**.
+* **Backup and restore** playlists, favorites, history, stats, achievements, and app settings.
+</details>
+
+<details>
+<summary><b>+ player & lyrics</b></summary>
+
+* **Background playback** with notification controls, media buttons, and persistent queue restore.
+* **Autoplay radio**, **shuffle / repeat**, **stream quality selection**, and **precise speed control**.
+* **Sleep timer** with custom duration, end-of-track mode, and optional progressive fade-out.
+* **Synced or plain lyrics** with fullscreen view, inline player mode, manual search, and copy support.
+* **Live lyrics translation** to quickly understand songs in your native language.
+* **Local lyrics support** for files that already contain embedded lyrics.
+* **YouTube fallback for restricted SoundCloud tracks** when enabled in settings.
+
+<p align="center">
+  <img src="docs/screenshots/playerscreen.png" width="250" alt="Expressive Player">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/lyrics.png" width="250" alt="Synced Lyrics">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/lyricssettings.png" width="250" alt="Lyrics Settings">
+</p>
+</details>
+
+<details>
+<summary><b># audio & widgets</b></summary>
+
+* Built-in audio effects: **bass boost**, **8D audio**, **muffled filter**, **reverb**, **rain overlay**, and **pitch/speed control**.
+* **True loudness normalization (EBU R128)** processed natively in C++ for perfectly matched volume across all your tracks.
+* Effects are processed directly in the playback pipeline with Media3 / ExoPlayer.
+* **Configurable home widget** with playback controls, like toggle, speed shortcuts, and effect toggles.
+* **Mini player widget** for quick controls.
+* **Search widget** to jump straight into app search.
+
+<p align="center">
+  <img src="docs/screenshots/audiofx.png" width="280" alt="Audio Effects & Normalization">
+</p>
+</details>
+
+<details>
+<summary><b>% account, social & extras</b></summary>
+
+* When signed in, KittyTune can handle **likes sync, reposts, comments, notifications, conversations, and profile access**.
+* **Edit your SoundCloud profile**, including avatar and banner, from inside the app.
+* **Discord Rich Presence** integration with configurable status display.
+* **Listening stats** for top tracks, top artists, play history, and total listening time.
+* **47 achievements** with XP, streak tracking, and optional popup notifications.
+* **Android Auto** media support.
+
+<p align="center">
+  <img src="docs/screenshots/profile.png" width="280" alt="Profile & Conversations">
+</p>
+</details>
+
+<details>
+<summary><b>@ ui & customization</b></summary>
+
+* **Jetpack Compose + Material 3** interface utilizing the latest **Material 3 Expressive** shapes.
+* **Dynamic color / Material You**, light mode, dark mode, and pure black mode.
+* **Custom color palette controls** and multiple player background styles.
+* **Variable font controls** for weight, width, slant, roundness, and more.
+* Translated resources for **many locales**, with explicit in-app language switching for **French, English, German, Hungarian, Russian, and Vietnamese**.
+* Built-in **GitHub release update checker**.
+* Redesigned about screen with **Ko-fi support card** to easily tip if you like the app.
+
+<p align="center">
+  <img src="docs/screenshots/amoled.png" width="250" alt="Pure Black AMOLED Theme">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/iconchanger.png" width="250" alt="App Icon Selector">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/settings.png" width="250" alt="App Settings">
+</p>
+</details>
+
+<details>
+<summary><b>$ deep dive: volume normalization</b></summary>
+
+I wanted to make sure you don't get your ears blasted when an aggressively mastered rap track plays right after a quiet acoustic one. So I fully implemented **EBU R128 loudness normalization** right into the audio pipeline.
+
+Instead of just checking the "peak" volume of a song (which honestly doesn't mean much for how loud a song *feels* to human ears), the EBU R128 standard measures the **perceived loudness** in LUFS (Loudness Units relative to Full Scale). KittyTune measures this and targets a standard loudness level, smoothly applying gain so every song feels consistently loud.
+
+**why c++?**
+
+Audio DSP (Digital Signal Processing) requires manipulating tens of thousands of audio samples per second in real-time. If we did this in Kotlin/Java, it would create way too much garbage collection (GC) overhead and CPU usage, which drains your battery faster and can cause audio stuttering. 
+
+By writing this core processor in C++ using the Android NDK, we get direct memory access and blazing fast performance. We grab the raw PCM audio buffers from ExoPlayer via JNI, normalize them instantly, and hand them back with virtually zero overhead.
+
+```mermaid
+flowchart TD
+    A[ExoPlayer Decoder] -->|16-bit PCM Audio| B(JNI Bridge)
+    
+    subgraph C++ Native Audio Processor
+    B -->|Convert to float| C[EBU R128 Analyzer]
+    C -->|Short-Term LUFS & True Peak| D{Calculate Gain}
+    D -->|Target: -14 LUFS<br/>Check Peak Headroom| E[Smooth Linear Gain]
+    E --> F(Apply Gain to Sample)
+    F --> G[Look-ahead Peak Limiter]
+    G -->|Clamp & Convert to short| H(JNI Return)
+    end
+    
+    H -->|Normalized 16-bit PCM| I[Android AudioTrack]
+    
+    style C++ Native Audio Processor fill:#2d2d2d,stroke:#f5a623,stroke-width:2px,color:#fff
+```
+</details>
+
+---
+
+### > install
+
+Download the latest APK from the [download page](https://alan7383.github.io/kittytune-website/download) or the [releases page](https://github.com/alan7383/kittytune/releases).
+
+KittyTune targets **Android 8.0+ (API 26+)**.
+
+---
+
+### + build
+
 ```bash
 git clone https://github.com/alan7383/kittytune.git
+cd kittytune
 ./gradlew assembleDebug
 ```
 
-### Huge thanks to
-- **NewPipe Team** for the extraction logic.
-- **InnerTune** for the research on YouTube Music search.
-- **LrcLib** for the synced lyrics API.
-- **mattdotcat** for the Hungarian translation.
+---
 
-*Made by [alananasss](https://github.com/alan7383). If you find this useful, drop a ★.*
+### * under the hood
+
+* **Kotlin** & **C++ (NDK)**
+* **Jetpack Compose**
+* **Media3 / ExoPlayer**
+* **Room**
+* **NewPipe Extractor**
+* **InnerTune / Innertube**
+* **LrcLib**
+* **Kizzy**
+* **ShazamKit**
+
+---
+
+### ☕ support
+
+If you enjoy using **KittyTune** and want to support its ongoing development, consider buying me a coffee!
+
+<p align="center">
+  <a href="https://ko-fi.com/alan7383" target="_blank"><img src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" height="42" alt="Buy Me a Coffee at ko-fi.com"></a>
+</p>
+
+---
+
+### ^ contributors
+
+thanks to everyone who helps make KittyTune better:
+
+<a href="https://github.com/alan7383/kittytune/graphs/contributors"><img src="https://contrib.rocks/image?repo=alan7383/kittytune" alt="Contributors" /></a>
+
+---
+
+### ~ credits & license
+
+Big thanks to the open-source projects that help power KittyTune:
+
+* **Streaming & Playback**:
+  * [NewPipe Extractor](https://github.com/TeamNewPipe/NewPipeExtractor) - YouTube stream extraction and audio fallback
+  * [InnerTune](https://github.com/z-huang/InnerTune) & [ViMusic](https://github.com/vfsfitvnm/ViMusic) - Innertube client architecture & player components
+  * [Metrolist](https://github.com/MetrolistGroup/Metrolist) & [OuterTune](https://github.com/DD3Boh/OuterTune) - Multi-source playback & UI inspirations
+
+* **Scrapers & Metadata**:
+  * [SpotifyScraper](https://github.com/AliAkhtari78/SpotifyScraper) - Spotify entity parsing, URL normalization & scraping
+  * [Spotify Canvas API](https://github.com/Paxsenix0/Spotify-Canvas-API) - Spotify Canvas & metadata
+
+* **Lyrics**:
+  * [LRCLIB](https://lrclib.net/) - Synced lyrics provider
+  * [Better Lyrics](https://better-lyrics.boidu.dev) - Synced & translated lyrics service
+  * [SimpMusic](https://github.com/maxrave-dev/SimpMusic) - Lyrics providers & integrations
+
+* **Audio Recognition & DSP**:
+  * [SongRec](https://github.com/marin-m/SongRec) / [MusicRecognizer](https://github.com/aleksey-saenko/MusicRecognizer) - Shazam audio fingerprinting & recognition
+  * [libebur128](https://github.com/jiixyj/libebur128) - EBU R128 loudness normalization
+
+* **Integrations & UI**:
+  * [Kizzy RPC](https://github.com/dead8309/Kizzy) - Discord Rich Presence on Android
+  * [smooth-corner-rect](https://github.com/racra/smooth-corner-rect-android-compose) - Continuous smooth rounded corners for Compose
+  * [AboutLibraries](https://github.com/mikepenz/AboutLibraries) - In-app open-source license management
+
+KittyTune is licensed under **GNU GPL v3.0**. See the [LICENSE](LICENSE) file for details.
+
+---
+
+### ★ star history
+
+<p align="center">
+  <a href="https://star-history.com/#alan7383/kittytune&Date">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=alan7383/kittytune&type=Date&theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=alan7383/kittytune&type=Date" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=alan7383/kittytune&type=Date" />
+    </picture>
+  </a>
+</p>
+
+---
+
+<p align="center">
+  made with (=｀ω´=) and too many ideas by <a href="https://github.com/alan7383">alan7383</a>
+</p>

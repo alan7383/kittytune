@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.widget
-    
+
     import android.app.Activity
     import android.appwidget.AppWidgetManager
     import android.content.Intent
@@ -18,6 +18,7 @@
     import androidx.compose.material.icons.rounded.Delete
     import androidx.compose.material.icons.rounded.Speed
     import androidx.compose.material3.*
+    import com.alananasss.kittytune.ui.common.Slider
     import androidx.compose.runtime.*
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
@@ -27,33 +28,36 @@
     import androidx.glance.appwidget.GlanceAppWidgetManager
     import androidx.glance.appwidget.state.updateAppWidgetState
     import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
     import com.alananasss.kittytune.ui.theme.SoundTuneTheme
     import kotlinx.coroutines.MainScope
     import kotlinx.coroutines.launch
     import java.util.Locale
     import kotlin.math.roundToInt
-    
+
     // Model for custom speed buttons
     data class CustomSpeedButton(val label: String, val value: Float)
-    
+
     class WidgetConfigActivity : ComponentActivity() {
-    
+
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
-    
+
             val appWidgetId = intent?.extras?.getInt(
                 AppWidgetManager.EXTRA_APPWIDGET_ID,
                 AppWidgetManager.INVALID_APPWIDGET_ID
             ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
-    
+
             if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
                 finish()
                 return
             }
-    
+
             val resultValue = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
             setResult(Activity.RESULT_CANCELED, resultValue)
-    
+
             setContent {
                 SoundTuneTheme {
                     WidgetConfigScreen(
@@ -64,7 +68,7 @@
                 }
             }
         }
-    
+
         private fun saveConfigAndFinish(
             appWidgetId: Int,
             enabledEffects: Set<String>,
@@ -73,7 +77,7 @@
             val context = this
             MainScope().launch {
                 val glanceId = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
-    
+
                 updateAppWidgetState(context, glanceId) { prefs ->
                     // Save boolean flags for effects
                     prefs[MusicWidget.KEY_SHOW_BASS] = enabledEffects.contains("BASS")
@@ -81,36 +85,36 @@
                     prefs[MusicWidget.KEY_SHOW_MUFFLED] = enabledEffects.contains("MUFFLED")
                     prefs[MusicWidget.KEY_SHOW_REVERB] = enabledEffects.contains("REVERB")
                     prefs[MusicWidget.KEY_SHOW_PITCH] = enabledEffects.contains("PITCH")
-    
+
                     // Serialize speeds to a string: "Label:Value|Label:Value"
                     val speedString = customSpeeds.joinToString("|") { "${it.label}:${it.value}" }
                     prefs[MusicWidget.KEY_CUSTOM_SPEEDS] = speedString
                 }
-    
+
                 // Force update THIS widget instance immediately
                 MusicWidget().update(context, glanceId)
                 // Trigger global update to fetch current track info
                 MusicWidget.update(context)
-    
+
                 val resultValue = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
                 setResult(Activity.RESULT_OK, resultValue)
                 finish()
             }
         }
     }
-    
+
     @Composable
     fun WidgetConfigScreen(onConfirm: (Set<String>, List<CustomSpeedButton>) -> Unit) {
         val enabledEffects = remember { mutableStateListOf<String>() }
         val customSpeeds = remember { mutableStateListOf<CustomSpeedButton>() }
         var showAddSpeedDialog by remember { mutableStateOf(false) }
-    
+
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = MaterialTheme.colorScheme.surface,
             floatingActionButton = {
                 ExtendedFloatingActionButton(
-                    onClick = { onConfirm(enabledEffects.toSet(), customSpeeds) },
+                    onClick = hapticAction(HapticKind.UI) { onConfirm(enabledEffects.toSet(), customSpeeds) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
@@ -141,8 +145,7 @@
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-    
-                // --- EFFECTS SECTION ---
+
                 item {
                     Text(stringResource(R.string.player_special_effects), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
@@ -160,8 +163,7 @@
                         }
                     }
                 }
-    
-                // --- SPEEDS SECTION ---
+
                 item {
                     Row(
                         Modifier.fillMaxWidth(),
@@ -170,7 +172,7 @@
                     ) {
                         Text(stringResource(R.string.player_speed), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Button(
-                            onClick = { showAddSpeedDialog = true },
+                            onClick = hapticAction(HapticKind.UI) { showAddSpeedDialog = true },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Icon(Icons.Rounded.Add, null, modifier = Modifier.size(18.dp))
@@ -178,7 +180,7 @@
                             Text(stringResource(R.string.btn_create))
                         }
                     }
-    
+
                     if (customSpeeds.isEmpty()) {
                         Box(
                             modifier = Modifier
@@ -193,7 +195,7 @@
                         }
                     }
                 }
-    
+
                 items(customSpeeds) { speedItem ->
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -220,7 +222,7 @@
                                     Text("${speedItem.value}x", style = MaterialTheme.typography.bodySmall)
                                 }
                             }
-                            IconButton(onClick = { customSpeeds.remove(speedItem) }) {
+                            IconButton(onClick = hapticAction(HapticKind.UI) { customSpeeds.remove(speedItem) }) {
                                 Icon(Icons.Rounded.Delete, stringResource(R.string.btn_delete), tint = MaterialTheme.colorScheme.error)
                             }
                         }
@@ -228,7 +230,7 @@
                 }
             }
         }
-    
+
         if (showAddSpeedDialog) {
             AddSpeedDialog(
                 onDismiss = { showAddSpeedDialog = false },
@@ -239,14 +241,14 @@
             )
         }
     }
-    
+
     @Composable
     fun ConfigCheckboxRow(label: String, key: String, selectedList: MutableList<String>) {
         val isSelected = selectedList.contains(key)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { if (isSelected) selectedList.remove(key) else selectedList.add(key) }
+                .hapticClickable { if (isSelected) selectedList.remove(key) else selectedList.add(key) }
                 .padding(vertical = 8.dp, horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -258,12 +260,12 @@
             Text(label, style = MaterialTheme.typography.bodyLarge)
         }
     }
-    
+
     @Composable
     fun AddSpeedDialog(onDismiss: () -> Unit, onAdd: (String, Float) -> Unit) {
         var label by remember { mutableStateOf("") }
         var speedValue by remember { mutableFloatStateOf(1.2f) }
-    
+
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.player_speed)) },
@@ -277,9 +279,9 @@
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     )
-    
+
                     Spacer(Modifier.height(24.dp))
-    
+
                     // HEADER VALUE
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -294,7 +296,7 @@
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-    
+
                     // SLIDER
                     Slider(
                         value = speedValue,
@@ -303,7 +305,7 @@
                         steps = 29, // Allows jumps of 0.05
                         modifier = Modifier.fillMaxWidth()
                     )
-    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -314,7 +316,7 @@
                 }
             },
             confirmButton = {
-                Button(onClick = {
+                Button(onClick = hapticAction(HapticKind.UI) {
                     if (label.isNotBlank()) {
                         // Round properly to 2 decimals
                         val roundedValue = (speedValue * 20).roundToInt() / 20f
@@ -327,5 +329,4 @@
             }
         )
     }
-
 

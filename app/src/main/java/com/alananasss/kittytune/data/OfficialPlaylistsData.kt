@@ -1,14 +1,14 @@
     package com.alananasss.kittytune.data
-    
+
     // this object holds the usernames for soundcloud's official regional playlist accounts.
     object OfficialPlaylistsData {
-    
+
         data class PlaylistSource(
             val countryName: String,
             val flagEmoji: String,
             val soundCloudUsername: String
         )
-    
+
         // a curated list of official soundcloud playlist accounts by region.
         val sources = listOf(
             PlaylistSource("Global", "🌍", "sc-playlists"),
@@ -27,5 +27,4 @@
             PlaylistSource("SoundCloud Stories", "📖", "soundcloud-stories") // special case
         ).sortedBy { it.countryName }
     }
-
 

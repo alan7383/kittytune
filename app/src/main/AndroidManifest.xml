@@ -2,20 +2,43 @@
     <manifest xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools">
     
+        <uses-sdk tools:overrideLibrary="com.mocharealm.accompanist.lyrics.ui" />
         <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Reading the pairing QR the desktop shows. Nothing else uses the camera. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Kitty pet: New Year countdown refreshed on the second (optional, falls back gracefully) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!--
+      Reaching the desktop over the local network. Android 16 introduced Local Network
+      Protection: without this, a connection to a 192.168.x.x address is dropped silently and
+      shows up only as a TCP timeout, which is indistinguishable from the desktop being off
+      (issue #33). Ignored by releases older than SDK 36, so no version gate is needed here —
+      only the runtime request is gated.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
         <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
         <uses-permission android:name="android.permission.WAKE_LOCK" />
         <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
         <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+        <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
         <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
         <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+        <!-- Upload feature: read audio files from device -->
+        <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+        <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     
         <!-- fix: explicitly declare automotive support is optional (hybrid app) -->
         <uses-feature android:name="android.hardware.type.automotive" android:required="false" />
     
         <application
             android:name=".KittyTuneApp"
+            android:appCategory="audio"
             android:usesCleartextTraffic="true"
+            android:largeHeap="true"
             android:allowBackup="true"
             android:dataExtractionRules="@xml/data_extraction_rules"
             android:fullBackupContent="@xml/backup_rules"
@@ -24,6 +47,7 @@
             android:roundIcon="@mipmap/ic_launcher_round"
             android:supportsRtl="true"
             android:theme="@style/Theme.SoundTune"
+            android:enableOnBackInvokedCallback="true"
             tools:targetApi="31">
     
             <!-- fix: android auto metadata must be here -->
@@ -41,15 +65,1191 @@
                 android:exported="true"
                 android:label="@string/app_name"
                 android:launchMode="singleTask"
-                android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|smallestScreenSize"
-                android:theme="@style/Theme.SoundTune">
+                android:resizeableActivity="true"
+                android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard|navigation|mnc|colorMode|density|smallestScreenSize"
+                android:theme="@style/Theme.SoundTune"
                 android:windowSoftInputMode="adjustResize">
+                <!-- SoundCloud OAuth Callbacks -->
+                <intent-filter android:autoVerify="false">
+                    <action android:name="android.intent.action.VIEW" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <category android:name="android.intent.category.BROWSABLE" />
+                    <data android:scheme="sc" android:host="auth" />
+                </intent-filter>
+                <!-- Music import (Transfer your gems) OAuth callback from app.musicapi.com -->
+                <intent-filter android:autoVerify="false">
+                    <action android:name="android.intent.action.VIEW" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <category android:name="android.intent.category.BROWSABLE" />
+                    <data android:scheme="soundcloud" android:host="musicapi" android:pathPrefix="/auth" />
+                </intent-filter>
+                <intent-filter android:autoVerify="false">
+                    <action android:name="android.intent.action.VIEW" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <category android:name="android.intent.category.BROWSABLE" />
+                    <data android:scheme="https" android:host="soundcloud.com" android:pathPrefix="/auth_mobile_callback" />
+                </intent-filter>
+                <!-- Music App Discovery & Launch (AOSP Default Music App & Category) -->
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <action android:name="android.intent.action.MUSIC_PLAYER" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                </intent-filter>
+
+                <!-- Voice Assistants (Google Assistant, Gemini), Search & Auto Playback -->
+                <intent-filter>
+                    <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+                    <action android:name="android.intent.action.MEDIA_SEARCH" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+
+                <!-- Audio File Associations (File Managers, Downloads, Browsers) -->
+                <intent-filter>
+                    <action android:name="android.intent.action.VIEW" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <category android:name="android.intent.category.BROWSABLE" />
+                    <data android:scheme="content" />
+                    <data android:scheme="file" />
+                    <data android:mimeType="audio/*" />
+                    <data android:mimeType="application/ogg" />
+                    <data android:mimeType="application/x-ogg" />
+                    <data android:mimeType="application/opus" />
+                    <data android:mimeType="application/x-flac" />
+                </intent-filter>
+                <intent-filter>
+                    <action android:name="android.intent.action.VIEW" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <data android:mimeType="audio/*" />
+                    <data android:mimeType="application/ogg" />
+                    <data android:mimeType="application/x-ogg" />
+                    <data android:mimeType="application/opus" />
+                    <data android:mimeType="application/x-flac" />
+                </intent-filter>
+            </activity>
+            <!-- App icon switcher: exactly one launcher alias is enabled at a time.
+            MainActivity stays enabled so SoundCloud OAuth callbacks always work. -->
+            <activity-alias
+                android:name=".LauncherIconDefaultAlias"
+                android:enabled="true"
+                android:exported="true"
+                android:icon="@mipmap/ic_launcher"
+                android:roundIcon="@mipmap/ic_launcher_round"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
-            </activity>
-    
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconBlackAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_black"
+                android:roundIcon="@mipmap/sc_ic_black"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconBlueAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_blue"
+                android:roundIcon="@mipmap/sc_ic_blue"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconChromeAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_chrome"
+                android:roundIcon="@mipmap/sc_ic_chrome"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconHotPinkAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_hot_pink"
+                android:roundIcon="@mipmap/sc_ic_hot_pink"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconLavenderAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_lavender"
+                android:roundIcon="@mipmap/sc_ic_lavender"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconLeopardAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_leopard"
+                android:roundIcon="@mipmap/sc_ic_leopard"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconLimeAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_lime"
+                android:roundIcon="@mipmap/sc_ic_lime"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconOgAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_og"
+                android:roundIcon="@mipmap/sc_ic_og"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconRoseGoldAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_rose_gold"
+                android:roundIcon="@mipmap/sc_ic_rose_gold"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconSilverAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_silver"
+                android:roundIcon="@mipmap/sc_ic_silver"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconSoftPurpleAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_soft_purple"
+                android:roundIcon="@mipmap/sc_ic_soft_purple"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconSunsetAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_sunset"
+                android:roundIcon="@mipmap/sc_ic_sunset"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconTieDyeAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_tie_dye"
+                android:roundIcon="@mipmap/sc_ic_tie_dye"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconAlgeriaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_algeria"
+                android:roundIcon="@mipmap/sc_ic_algeria"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconArgentinaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_argentina"
+                android:roundIcon="@mipmap/sc_ic_argentina"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconAustraliaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_australia"
+                android:roundIcon="@mipmap/sc_ic_australia"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconAustriaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_austria"
+                android:roundIcon="@mipmap/sc_ic_austria"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconBelgiumAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_belgium"
+                android:roundIcon="@mipmap/sc_ic_belgium"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconBosniaHerzegovinaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_bosnia_herzegovina"
+                android:roundIcon="@mipmap/sc_ic_bosnia_herzegovina"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconBrazilAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_brazil"
+                android:roundIcon="@mipmap/sc_ic_brazil"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconCanadaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_canada"
+                android:roundIcon="@mipmap/sc_ic_canada"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconCapeVerdeAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_cape_verde"
+                android:roundIcon="@mipmap/sc_ic_cape_verde"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconColombiaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_colombia"
+                android:roundIcon="@mipmap/sc_ic_colombia"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconCroatiaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_croatia"
+                android:roundIcon="@mipmap/sc_ic_croatia"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconCuracaoAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_curacao"
+                android:roundIcon="@mipmap/sc_ic_curacao"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconCzechiaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_czechia"
+                android:roundIcon="@mipmap/sc_ic_czechia"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconDrCongoAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_dr_congo"
+                android:roundIcon="@mipmap/sc_ic_dr_congo"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconEcuadorAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_ecuador"
+                android:roundIcon="@mipmap/sc_ic_ecuador"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconEgyptAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_egypt"
+                android:roundIcon="@mipmap/sc_ic_egypt"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconEnglandAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_england"
+                android:roundIcon="@mipmap/sc_ic_england"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconFranceAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_france"
+                android:roundIcon="@mipmap/sc_ic_france"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconGermanyAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_germany"
+                android:roundIcon="@mipmap/sc_ic_germany"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconGhanaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_ghana"
+                android:roundIcon="@mipmap/sc_ic_ghana"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconHaitiAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_haiti"
+                android:roundIcon="@mipmap/sc_ic_haiti"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconIranAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_iran"
+                android:roundIcon="@mipmap/sc_ic_iran"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconIraqAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_iraq"
+                android:roundIcon="@mipmap/sc_ic_iraq"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconIvoryCoastAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_ivory_coast"
+                android:roundIcon="@mipmap/sc_ic_ivory_coast"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconJapanAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_japan"
+                android:roundIcon="@mipmap/sc_ic_japan"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconJordanAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_jordan"
+                android:roundIcon="@mipmap/sc_ic_jordan"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconMexicoAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_mexico"
+                android:roundIcon="@mipmap/sc_ic_mexico"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconMoroccoAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_morocco"
+                android:roundIcon="@mipmap/sc_ic_morocco"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconNetherlandsAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_netherlands"
+                android:roundIcon="@mipmap/sc_ic_netherlands"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconNewZealandAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_new_zealand"
+                android:roundIcon="@mipmap/sc_ic_new_zealand"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconNorwayAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_norway"
+                android:roundIcon="@mipmap/sc_ic_norway"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconPanamaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_panama"
+                android:roundIcon="@mipmap/sc_ic_panama"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconParaguayAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_paraguay"
+                android:roundIcon="@mipmap/sc_ic_paraguay"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconPortugalAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_portugal"
+                android:roundIcon="@mipmap/sc_ic_portugal"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconQatarAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_qatar"
+                android:roundIcon="@mipmap/sc_ic_qatar"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconSaudiArabiaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_saudi_arabia"
+                android:roundIcon="@mipmap/sc_ic_saudi_arabia"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconScotlandAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_scotland"
+                android:roundIcon="@mipmap/sc_ic_scotland"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconSenegalAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_senegal"
+                android:roundIcon="@mipmap/sc_ic_senegal"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconSouthAfricaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_south_africa"
+                android:roundIcon="@mipmap/sc_ic_south_africa"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconSouthKoreaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_south_korea"
+                android:roundIcon="@mipmap/sc_ic_south_korea"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconSpainAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_spain"
+                android:roundIcon="@mipmap/sc_ic_spain"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconSwedenAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_sweden"
+                android:roundIcon="@mipmap/sc_ic_sweden"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconSwitzerlandAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_switzerland"
+                android:roundIcon="@mipmap/sc_ic_switzerland"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconTunisiaAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_tunisia"
+                android:roundIcon="@mipmap/sc_ic_tunisia"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconTurkeyAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_turkey"
+                android:roundIcon="@mipmap/sc_ic_turkey"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconUnitedStatesAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_united_states"
+                android:roundIcon="@mipmap/sc_ic_united_states"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconUruguayAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_uruguay"
+                android:roundIcon="@mipmap/sc_ic_uruguay"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconUzbekistanAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_uzbekistan"
+                android:roundIcon="@mipmap/sc_ic_uzbekistan"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <!-- Community icons by shiro -->
+            <activity-alias
+                android:name=".LauncherIconShiroHeadphonesAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_headphones"
+                android:roundIcon="@mipmap/sc_ic_shiro_headphones"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroMusicalDreamAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_musical_dream"
+                android:roundIcon="@mipmap/sc_ic_shiro_musical_dream"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroPastelCatAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_pastel_cat"
+                android:roundIcon="@mipmap/sc_ic_shiro_pastel_cat"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroCapRedAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_cap_red"
+                android:roundIcon="@mipmap/sc_ic_shiro_cap_red"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroCapPurpleAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_cap_purple"
+                android:roundIcon="@mipmap/sc_ic_shiro_cap_purple"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroKtLogoAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_kt_logo"
+                android:roundIcon="@mipmap/sc_ic_shiro_kt_logo"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroCozyNapAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_cozy_nap"
+                android:roundIcon="@mipmap/sc_ic_shiro_cozy_nap"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
+            <activity-alias
+                android:name=".LauncherIconShiroCoolCatAlias"
+                android:enabled="false"
+                android:exported="true"
+                android:icon="@mipmap/sc_ic_shiro_cool_cat"
+                android:roundIcon="@mipmap/sc_ic_shiro_cool_cat"
+                android:label="@string/app_name"
+                android:targetActivity=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+            </activity-alias>
+
             <service
                 android:name=".data.PlaybackService"
                 android:enabled="true"
@@ -57,12 +1257,36 @@
                 android:foregroundServiceType="mediaPlayback">
                 <intent-filter>
                     <action android:name="androidx.media3.session.MediaSessionService" />
+                    <action android:name="androidx.media3.session.MediaLibraryService" />
+                    <action android:name="android.media.browse.MediaBrowserService" />
+                    <action android:name="android.intent.action.MEDIA_BUTTON" />
                 </intent-filter>
     
                 <meta-data
                     android:name="androidx.media3.session.DefaultMediaNotificationProvider.SmallIcon"
                     android:resource="@drawable/ic_notification" />
             </service>
+
+            <!-- Wear OS companion playback control message listener -->
+            <service
+                android:name=".wear.WearableMessageReceiverService"
+                android:enabled="true"
+                android:exported="true">
+                <intent-filter>
+                    <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                    <action android:name="com.google.android.gms.wearable.REQUEST_RECEIVED" />
+                    <data
+                        android:scheme="wear"
+                        android:host="*"
+                        android:pathPrefix="/kittytune/" />
+                </intent-filter>
+            </service>
+
+            <service
+                android:name=".music.recognition.AudioCaptureService"
+                android:enabled="true"
+                android:exported="false"
+                android:foregroundServiceType="mediaProjection" />
     
             <receiver android:name="androidx.media.session.MediaButtonReceiver"
                 android:exported="true">
@@ -94,6 +1318,24 @@
                     android:name="android.appwidget.provider"
                     android:resource="@xml/mini_music_widget_info" />
             </receiver>
+
+            <!-- Pet Widget Receiver (KittyTune's home-screen kitty) -->
+            <receiver
+                android:name=".ui.widget.PetWidgetReceiver"
+                android:exported="true"
+                android:label="@string/widget_pet_label">
+                <intent-filter>
+                    <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                </intent-filter>
+                <meta-data
+                    android:name="android.appwidget.provider"
+                    android:resource="@xml/pet_widget_info" />
+            </receiver>
+
+            <!-- Kitty pet: refreshes the widget on time for the New Year countdown -->
+            <receiver
+                android:name=".ui.widget.pet.PetNewYearReceiver"
+                android:exported="false" />
     
             <!-- Search Widget Receiver -->
             <receiver
@@ -126,21 +1368,31 @@
                     android:resource="@xml/provider_paths" />
             </provider>
     
-            <service
-                android:name=".data.KittyTuneMediaLibraryService"
-                android:exported="true"
-                android:foregroundServiceType="mediaPlayback">
-                <intent-filter>
-                    <action android:name="androidx.media3.session.MediaLibraryService"/>
-                    <action android:name="android.media.browse.MediaBrowserService"/>
-                </intent-filter>
-            </service>
+
     
         </application>
     
         <queries>
             <intent>
+                <action android:name="android.view.InputMethod" />
+            </intent>
+            <intent>
                 <action android:name="android.media.browse.MediaBrowserService" />
+            </intent>
+            <package android:name="com.instagram.android" />
+            <package android:name="com.facebook.katana" />
+            <package android:name="com.facebook.lite" />
+            <package android:name="com.whatsapp" />
+            <package android:name="com.twitter.android" />
+            <package android:name="org.joinmastodon.android" />
+            <package android:name="xyz.blueskyweb.app" />
+            <package android:name="com.instagram.barcelona" />
+            <package android:name="org.telegram.messenger" />
+            <package android:name="com.snapchat.android" />
+            <package android:name="com.google.android.apps.messaging" />
+            <intent>
+                <action android:name="android.intent.action.SEND" />
+                <data android:mimeType="image/png" />
             </intent>
         </queries>
     

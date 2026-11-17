@@ -1,14 +1,17 @@
 package com.alananasss.kittytune
 
+import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.content.edit
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -17,15 +20,17 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.alananasss.kittytune.data.AchievementManager
 import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.data.HistoryRepository
 import com.alananasss.kittytune.data.LikeRepository
 import com.alananasss.kittytune.data.ListeningStatsRepository
+import com.alananasss.kittytune.data.MusicManager
 import com.alananasss.kittytune.data.RepostRepository
+import com.alananasss.kittytune.data.SessionManager
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.UpdateManager
-import com.alananasss.kittytune.data.UpdateStatus
 import com.alananasss.kittytune.data.local.AppThemeMode
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.MainScreen
@@ -37,17 +42,21 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.zionhuang.innertube.YouTube
 import com.zionhuang.innertube.models.YouTubeLocale
-import kotlinx.coroutines.GlobalScope
-    
+
     class MainActivity : ComponentActivity() {
-    
+
+        private var rawBaseContext: Context? = null
+
+        fun getPrintManager(): android.print.PrintManager? =
+            rawBaseContext?.getSystemService(android.print.PrintManager::class.java)
+
         override fun attachBaseContext(newBase: Context) {
+            rawBaseContext = newBase
             super.attachBaseContext(LocaleUtils.updateBaseContextLocale(newBase))
         }
-    
 
         private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == "dynamic_theme_enabled" || key == "app_theme_mode" || key == "pure_black_enabled" ||
+            if (key == "dynamic_theme_enabled" || key == "track_dynamic_theme_enabled" || key == "app_theme_mode" || key == "pure_black_enabled" ||
                 key == "custom_font_enabled" || key?.startsWith("font_") == true ||
                 key == "key_color" || key == "color_style" || key == "color_spec") {
                 refreshThemeState()
@@ -56,16 +65,19 @@ import kotlinx.coroutines.GlobalScope
 
         private lateinit var preferences: PlayerPreferences
         private lateinit var sharedPrefs: SharedPreferences
-    
+
         private var themeModeState by mutableStateOf(AppThemeMode.SYSTEM)
         private var dynamicColorState by mutableStateOf(true)
+        private var trackDynamicColorState by mutableStateOf(false)
         private var pureBlackState by mutableStateOf(false)
         private var keyColorState by mutableIntStateOf(0)
-        private var colorStyleState by mutableStateOf("TonalSpot")
-        private var colorSpecState by mutableStateOf("Default")
-    
+        private var colorStyleState by mutableStateOf("Expressive")
+        private var colorSpecState by mutableStateOf("SPEC_2025")
+
         private val _shouldOpenSearch = MutableStateFlow(false)
         private val shouldOpenSearch = _shouldOpenSearch.asStateFlow()
+        private val _initialSearchQuery = MutableStateFlow<String?>(null)
+        private val initialSearchQuery = _initialSearchQuery.asStateFlow()
         private var showPopups by mutableStateOf(false)
         private var customFontEnabledState by mutableStateOf(false)
         private var fontWghtState by mutableIntStateOf(400)
@@ -74,71 +86,85 @@ import kotlinx.coroutines.GlobalScope
         private var fontRondState by mutableFloatStateOf(0f)
         private var fontGradState by mutableFloatStateOf(0f)
         private var fontOpszState by mutableFloatStateOf(14f)
-    
+
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
-    
+
             enableEdgeToEdge(
                 statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
                 navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
             )
-    
+
             // Enforce edge-to-edge contrast policies for Q+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                @Suppress("DEPRECATION")
                 window.isStatusBarContrastEnforced = false
+                @Suppress("DEPRECATION")
                 window.isNavigationBarContrastEnforced = false
             }
-    
+
             // Initialize Data Layer Singletons
             Config.init(applicationContext)
+            com.alananasss.kittytune.audio.haptics.HapticUtil.initialize(applicationContext)
             LikeRepository.init(applicationContext)
+            com.alananasss.kittytune.data.SocialProofRepository.init(applicationContext)
+            com.alananasss.kittytune.data.VibesRepository.init(applicationContext)
             DownloadManager.init(applicationContext)
             HistoryRepository.init(applicationContext)
+            com.alananasss.kittytune.data.RecognitionHistoryRepository.init(applicationContext)
+            com.alananasss.kittytune.data.QueueHistoryRepository.init(applicationContext)
             ListeningStatsRepository.init(applicationContext)
             AchievementManager.init(applicationContext)
             RepostRepository.init(applicationContext)
             AchievementManager.resetSessionAchievements()
-    
+
             preferences = PlayerPreferences(applicationContext)
-            sharedPrefs = applicationContext.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+            sharedPrefs = applicationContext.getSharedPreferences("player_state", MODE_PRIVATE)
             sharedPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
-    
+
             val migrationKey = "lyrics_button_default_forced_v1"
             if (!sharedPrefs.getBoolean(migrationKey, false)) {
                 preferences.setShowLyricsButtonEnabled(true)
-                sharedPrefs.edit().putBoolean(migrationKey, true).apply()
+                sharedPrefs.edit { putBoolean(migrationKey, true) }
             }
-    
+
             refreshThemeState()
-    
-    
+
             handleIntent(intent)
-    
-            YouTube.locale = com.zionhuang.innertube.models.YouTubeLocale(
-                gl = "US",
-                hl = "en"
+
+            val activeLocale = LocaleUtils.getLocale(this)
+            YouTube.locale = YouTubeLocale(
+                gl = activeLocale.country.ifBlank { "US" },
+                hl = activeLocale.language.ifBlank { "en" }
             )
-            GlobalScope.launch {
+            lifecycleScope.launch {
                 YouTube.visitorData().onSuccess {
                     YouTube.visitorData = it
                 }
             }
-    
+
             setContent {
                 val openSearchState by shouldOpenSearch.collectAsState()
+                val initialQueryState by initialSearchQuery.collectAsState()
                 val scope = rememberCoroutineScope()
                 val lifecycleOwner = LocalLifecycleOwner.current
-    
+
                 // Global lifecycle observer to sync data when app comes to foreground
                 DisposableEffect(lifecycleOwner) {
                     val observer = LifecycleEventObserver { _, event ->
                         if (event == Lifecycle.Event.ON_RESUME) {
                             val tokenManager = TokenManager(applicationContext)
-                            if (!tokenManager.isGuestMode()) {
+                            val hasToken = !tokenManager.getAccessToken().isNullOrEmpty()
+                            if (hasToken && !tokenManager.isGuestMode()) {
                                 scope.launch {
+                                    SessionManager.requestSessionRefresh(
+                                        context = applicationContext,
+                                        force = tokenManager.shouldRefreshAccessToken()
+                                    )
                                     // Sync likes and reposts with server
                                     LikeRepository.setSyncing(true)
                                     RepostRepository.refreshReposts()
+                                    DownloadManager.refreshFollowings()
                                 }
                             }
                             // Refresh settings state in case changed outside compose
@@ -155,51 +181,135 @@ import kotlinx.coroutines.GlobalScope
                 val dynamicTypography = com.alananasss.kittytune.ui.theme.getDynamicTypography(
                     customFontEnabledState, fontWghtState, fontWdthState, fontSlntState, fontRondState, fontGradState, fontOpszState
                 )
-    
+
+                val activeKeyColor = com.alananasss.kittytune.ui.theme.ThemeState.previewKeyColor ?: keyColorState
+
                 SoundTuneTheme(
                     themeMode = themeModeState,
                     dynamicColor = dynamicColorState,
+                    trackDynamicColor = trackDynamicColorState,
                     pureBlack = pureBlackState,
-                    keyColor = keyColorState,
+                    keyColor = activeKeyColor,
                     colorStyle = colorStyleState,
                     colorSpec = colorSpecState,
                     typography = dynamicTypography
                 ) {
-                    LaunchedEffect(Unit) {
-                        if (preferences.getAutoUpdateEnabled()) {
-                            UpdateManager.checkForUpdate(applicationContext, isManual = false)
-                        }
-                    }
-
-    
-                    // Main App Content
-                    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                        MainScreen(
-                            shouldOpenSearch = openSearchState,
-                            onSearchHandled = { _shouldOpenSearch.value = false }
+                    val currentHaptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+                    val currentContext = androidx.compose.ui.platform.LocalContext.current
+                    val gatedHaptics = remember(currentHaptics, currentContext) {
+                        com.alananasss.kittytune.audio.haptics.HapticUtil.gate(
+                            currentContext,
+                            currentHaptics
                         )
+                    }
+                    CompositionLocalProvider(
+                        androidx.compose.ui.platform.LocalHapticFeedback provides gatedHaptics
+                    ) {
+                        LaunchedEffect(Unit) {
+                            if (preferences.getAutoUpdateEnabled()) {
+                                UpdateManager.checkForUpdate(applicationContext, isManual = false)
+                            }
+                        }
+
+                        // Main App Content
+                        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                            MainScreen(
+                                shouldOpenSearch = openSearchState,
+                                initialSearchQuery = initialQueryState,
+                                onSearchHandled = {
+                                    _shouldOpenSearch.value = false
+                                    _initialSearchQuery.value = null
+                                }
+                            )
+                            com.alananasss.kittytune.ui.common.CoverViewerOverlay()
+                        }
                     }
                 }
             }
         }
-    
+
         override fun onNewIntent(intent: Intent) {
             super.onNewIntent(intent)
             setIntent(intent)
             handleIntent(intent)
         }
-    
+
         private fun handleIntent(intent: Intent?) {
-            val openSearch = intent?.getBooleanExtra("open_search", false) ?: false
+            if (intent == null) return
+
+            val action = intent.action
+
+            // 1. Voice search / Media play from search (Google Assistant, Android Auto, Gemini)
+            val isMediaPlayFromSearch = action == MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH ||
+                    action == "android.media.action.MEDIA_PLAY_FROM_SEARCH" ||
+                    action == "android.intent.action.MEDIA_SEARCH"
+
+            val queryFromSearch = intent.getStringExtra(SearchManager.QUERY)
+                ?: intent.getStringExtra("query")
+                ?: intent.getStringExtra(MediaStore.EXTRA_MEDIA_TITLE)
+                ?: intent.getStringExtra(MediaStore.EXTRA_MEDIA_ARTIST)
+
+            val openSearch = intent.getBooleanExtra("open_search", false) || isMediaPlayFromSearch
             if (openSearch) {
+                if (!queryFromSearch.isNullOrBlank()) {
+                    _initialSearchQuery.value = queryFromSearch
+                }
                 _shouldOpenSearch.value = true
-                intent?.removeExtra("open_search")
+                intent.removeExtra("open_search")
+            }
+
+            // 2. Capture SoundCloud OAuth callback redirects & gem imports
+            val data = intent.data
+            if (data != null) {
+                val code = data.getQueryParameter("code")
+                if (code != null) {
+                    com.alananasss.kittytune.data.AuthFlowManager.setAuthCode(code)
+                }
+
+                // Music import (Transfer your gems) callback: soundcloud://musicapi/auth?data64=...
+                if (data.scheme == "soundcloud" && data.host == "musicapi" && data.path?.startsWith("/auth") == true) {
+                    data.getQueryParameter("data64")?.let { data64 ->
+                        com.alananasss.kittytune.data.musicimport.MusicApiAuth.fromData64(data64)?.let { auth ->
+                            com.alananasss.kittytune.data.musicimport.MusicImportCoordinator.deliverAuth(auth)
+                        }
+                    }
+                }
+
+                // 3. Audio file playback from file managers / external apps
+                if (action == Intent.ACTION_VIEW) {
+                    val mimeType = intent.type ?: contentResolver.getType(data)
+                    val isAudio = mimeType?.startsWith("audio/") == true ||
+                            mimeType == "application/ogg" ||
+                            mimeType == "application/x-ogg" ||
+                            mimeType == "application/opus" ||
+                            mimeType == "application/x-flac" ||
+                            data.scheme == "content" ||
+                            data.scheme == "file"
+                    if (isAudio && data.scheme != "sc" && data.scheme != "soundcloud" && data.scheme != "https") {
+                        try {
+                            val mediaItem = androidx.media3.common.MediaItem.Builder()
+                                .setUri(data)
+                                .setMediaMetadata(
+                                    androidx.media3.common.MediaMetadata.Builder()
+                                        .setTitle(data.lastPathSegment?.substringAfterLast('/') ?: "Audio")
+                                        .build()
+                                )
+                                .build()
+                            MusicManager.player.setMediaItem(mediaItem)
+                            MusicManager.player.prepare()
+                            MusicManager.player.play()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
             }
         }
-    
+
         private fun refreshThemeState() {
             themeModeState = preferences.getThemeMode()
             dynamicColorState = preferences.getDynamicTheme()
+            trackDynamicColorState = preferences.getTrackDynamicTheme()
             pureBlackState = preferences.getPureBlack()
             keyColorState = preferences.getKeyColor()
             colorStyleState = preferences.getColorStyle()
@@ -212,11 +322,10 @@ import kotlinx.coroutines.GlobalScope
             fontGradState = preferences.getFontGrad()
             fontOpszState = preferences.getFontOpsz()
         }
-    
+
         override fun onDestroy() {
             sharedPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
             super.onDestroy()
         }
     }
-
 

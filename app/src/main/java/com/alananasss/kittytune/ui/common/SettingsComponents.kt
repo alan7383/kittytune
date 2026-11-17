@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui.common
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -14,18 +15,36 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import kotlinx.coroutines.delay
+
+// Removed getSettingsShape
 
 fun getSettingsShape(groupSize: Int, index: Int): Shape {
     if (groupSize <= 1) return RoundedCornerShape(24.dp)
@@ -45,7 +64,7 @@ fun SettingsGroupTitle(title: String) {
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
         fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp, top = 24.dp)
+        modifier = Modifier.padding(start = 8.dp, bottom = 12.dp, top = 24.dp)
     )
 }
 
@@ -54,15 +73,21 @@ fun SettingsGroup(
     title: String? = null,
     items: List<@Composable (Shape) -> Unit>
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
         if (title != null) {
             SettingsGroupTitle(title)
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(
+            modifier = Modifier.clip(RoundedCornerShape(24.dp)),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
             items.forEachIndexed { index, itemContent ->
-                val shape = getSettingsShape(items.size, index)
-                itemContent(shape)
+                itemContent(getSettingsShape(items.size, index))
             }
         }
     }
@@ -75,16 +100,70 @@ fun SettingsItem(
     subtitle: String? = null,
     trailingText: String? = null,
     icon: ImageVector? = null,
+    iconRes: Int? = null,
+    iconTint: Color? = null,
+    iconContainerColor: Color? = null,
+    iconShape: Shape = CircleShape,
     onClick: (() -> Unit)? = null,
     hasSwitch: Boolean = false,
     switchState: Boolean = false,
     onSwitchChange: ((Boolean) -> Unit)? = null,
-    titleColor: Color = MaterialTheme.colorScheme.onSurface
+    hasSlider: Boolean = false,
+    sliderValue: Float = 0f,
+    sliderRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    onSliderChange: ((Float) -> Unit)? = null,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    modifier: Modifier = Modifier,
+    /** Sits after the switch, for anything a row needs on its right that is not a value. */
+    trailingContent: (@Composable () -> Unit)? = null,
+    highlightKey: String? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val haptics = rememberAppHaptics()
+
+    val isHighlighted = SettingsHighlightManager.isHighlighted(highlightKey)
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val highlightAlpha = remember { Animatable(0f) }
+    var itemCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val baseColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val highlightOverlay = remember(primaryColor) { primaryColor.copy(alpha = 0.26f) }
+    val highlightedBaseColor = remember(highlightOverlay, baseColor) { highlightOverlay.compositeOver(baseColor) }
+
+    val isScrolling = SettingsHighlightManager.isScrollingToTarget
+
+    LaunchedEffect(isHighlighted, isScrolling) {
+        if (isHighlighted) {
+            if (isScrolling) {
+                delay(900)
+                SettingsHighlightManager.isScrollingToTarget = false
+            }
+            delay(150)
+            try {
+                bringIntoViewRequester.bringIntoViewCentered(itemCoordinates)
+            } catch (_: Exception) {}
+
+            highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
+            delay(1200)
+            highlightAlpha.animateTo(0f, tween(500, easing = FastOutSlowInEasing))
+            SettingsHighlightManager.clearHighlight(highlightKey)
+        }
+    }
+
+    val animatedContainerColor = if (highlightAlpha.value > 0f) {
+        lerp(baseColor, highlightedBaseColor, highlightAlpha.value)
+    } else {
+        baseColor
+    }
 
     val onToggleOrClick = {
-        if (hasSwitch && onSwitchChange != null) {
+        haptics.perform(if (hasSwitch && onClick == null) HapticKind.UI else HapticKind.MEDIUM)
+        if (hasSwitch && onSwitchChange != null && onClick == null) {
             onSwitchChange(!switchState)
         } else {
             onClick?.invoke()
@@ -94,9 +173,12 @@ fun SettingsItem(
     Card(
         onClick = { onToggleOrClick() },
         enabled = onClick != null || hasSwitch,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)),
+        colors = CardDefaults.cardColors(containerColor = animatedContainerColor),
         shape = shape,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onGloballyPositioned { itemCoordinates = it },
         interactionSource = interactionSource
     ) {
         Row(
@@ -106,19 +188,28 @@ fun SettingsItem(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (icon != null) {
+            if (icon != null || iconRes != null) {
                 Surface(
                     modifier = Modifier.size(42.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer
+                    shape = iconShape,
+                    color = iconContainerColor ?: MaterialTheme.colorScheme.secondaryContainer
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
+                        if (iconRes != null) {
+                            Icon(
+                                painter = androidx.compose.ui.res.painterResource(iconRes),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = iconTint ?: MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        } else if (icon != null) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = iconTint ?: MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -141,6 +232,15 @@ fun SettingsItem(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+                if (hasSlider && onSliderChange != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Slider(
+                        value = sliderValue,
+                        onValueChange = onSliderChange,
+                        valueRange = sliderRange,
+                        modifier = Modifier.fillMaxWidth().padding(end = 16.dp)
+                    )
+                }
             }
 
             if (trailingText != null) {
@@ -148,39 +248,24 @@ fun SettingsItem(
                 Text(
                     text = trailingText,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(0.4f, fill = false)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
+            if (trailingContent != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                trailingContent()
+            }
+
             if (hasSwitch && onSwitchChange != null) {
-                Switch(
+                SettingsSwitch(
                     checked = switchState,
                     onCheckedChange = { onSwitchChange(it) },
-                    interactionSource = interactionSource,
-                    thumbContent = {
-                        if (switchState) {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(SwitchDefaults.IconSize),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Rounded.Close,
-                                contentDescription = null,
-                                modifier = Modifier.size(SwitchDefaults.IconSize),
-                                tint = MaterialTheme.colorScheme.surfaceContainerHighest
-                            )
-                        }
-                    },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                    )
+                    interactionSource = interactionSource
                 )
             } else if (onClick != null) {
                 Icon(
@@ -194,25 +279,88 @@ fun SettingsItem(
     }
 }
 
+/**
+ * The settings' switch: a check or a cross in the thumb, so its state reads without relying on colour.
+ *
+ * [enabled] is separate from [onCheckedChange] on purpose. A Material `Switch` derives its enabled
+ * state from whether it has a callback, so a switch that is *shown* but whose row owns the click
+ * would render greyed out. Passing `enabled = true` alongside a null callback is how a row keeps a
+ * live-looking switch while the row stays the single click target — which is the Material pattern
+ * for a list item that toggles, and the only arrangement in which a click cannot fire twice.
+ */
+@Composable
+fun SettingsSwitch(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    interactionSource: MutableInteractionSource? = null,
+) {
+    val haptics = rememberAppHaptics()
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange?.let { callback ->
+            { checkedNow ->
+                haptics.perform(HapticKind.UI)
+                callback(checkedNow)
+            }
+        },
+        enabled = enabled,
+        interactionSource = interactionSource,
+        modifier = modifier,
+        thumbContent = {
+            if (checked) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                    tint = MaterialTheme.colorScheme.surfaceContainerHighest
+                )
+            }
+        },
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+            checkedTrackColor = MaterialTheme.colorScheme.primary,
+            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant
+        )
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SettingsScaffold(
     title: String,
     onBackClick: () -> Unit,
+    subtitle: String? = null,
+    actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
+    val windowSizeInfo = rememberWindowSizeInfo()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val haptics = rememberAppHaptics()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeTopAppBar(
-                title = {
-                    Text(title, fontWeight = FontWeight.Bold, maxLines = 1)
-                },
+            SettingsTopAppBar(
+                title = title,
+                subtitle = subtitle,
+                scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     FilledTonalIconButton(
-                        onClick = onBackClick,
+                        onClick = {
+                            haptics.perform(HapticKind.LIGHT)
+                            onBackClick()
+                        },
                         shapes = IconButtonDefaults.shapes(),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -222,15 +370,171 @@ fun SettingsScaffold(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.btn_back))
                     }
                 },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
-                )
+                actions = actions,
             )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        content(padding)
+        if (windowSizeInfo.isTablet) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Box(
+                    modifier = Modifier
+                        .widthIn(max = 760.dp)
+                        .fillMaxWidth()
+                ) {
+                    content(padding)
+                }
+            }
+        } else {
+            content(padding)
+        }
+    }
+}
+
+@Composable
+fun SplitSettingsItem(
+    shape: Shape,
+    title: String,
+    subtitle: String? = null,
+    icon: ImageVector? = null,
+    onClick: () -> Unit,
+    switchState: Boolean,
+    onSwitchChange: (Boolean) -> Unit,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    highlightKey: String? = null
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val haptics = rememberAppHaptics()
+
+    val isHighlighted = SettingsHighlightManager.isHighlighted(highlightKey)
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val highlightAlpha = remember { Animatable(0f) }
+    var itemCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val baseColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val highlightOverlay = remember(primaryColor) { primaryColor.copy(alpha = 0.26f) }
+    val highlightedBaseColor = remember(highlightOverlay, baseColor) { highlightOverlay.compositeOver(baseColor) }
+
+    val isScrolling = SettingsHighlightManager.isScrollingToTarget
+
+    LaunchedEffect(isHighlighted, isScrolling) {
+        if (isHighlighted) {
+            if (isScrolling) {
+                delay(900)
+                SettingsHighlightManager.isScrollingToTarget = false
+            }
+            delay(150)
+            try {
+                bringIntoViewRequester.bringIntoViewCentered(itemCoordinates)
+            } catch (_: Exception) {}
+
+            highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
+            delay(1200)
+            highlightAlpha.animateTo(0f, tween(500, easing = FastOutSlowInEasing))
+            SettingsHighlightManager.clearHighlight(highlightKey)
+        }
+    }
+
+    val animatedContainerColor = if (highlightAlpha.value > 0f) {
+        lerp(baseColor, highlightedBaseColor, highlightAlpha.value)
+    } else {
+        baseColor
+    }
+
+    Card(
+        onClick = {
+            haptics.perform(HapticKind.MEDIUM)
+            onClick()
+        },
+        colors = CardDefaults.cardColors(containerColor = animatedContainerColor),
+        shape = shape,
+        modifier = Modifier
+            .fillMaxWidth()
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onGloballyPositioned { itemCoordinates = it }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 76.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (icon != null) {
+                    Surface(
+                        modifier = Modifier.size(42.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = titleColor
+                    )
+                    if (subtitle != null) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(32.dp)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+            )
+
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                SettingsSwitch(
+                    checked = switchState,
+                    onCheckedChange = onSwitchChange
+                )
+            }
+        }
     }
 }

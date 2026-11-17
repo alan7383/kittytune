@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.app.Application
     import androidx.compose.runtime.getValue
     import androidx.compose.runtime.mutableStateListOf
@@ -9,7 +9,8 @@
     import androidx.lifecycle.AndroidViewModel
     import androidx.lifecycle.viewModelScope
     import com.alananasss.kittytune.data.network.RetrofitClient
-    import com.alananasss.kittytune.domain.Message
+    import com.alananasss.kittytune.domain.InboxMessage
+    import com.alananasss.kittytune.domain.InboxSender
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.SendMessageRequest
     import com.alananasss.kittytune.domain.Track
@@ -19,40 +20,41 @@
     import kotlinx.coroutines.delay
     import kotlinx.coroutines.isActive
     import kotlinx.coroutines.launch
-    
+
     class ChatViewModel(application: Application) : AndroidViewModel(application) {
         private val api = RetrofitClient.create(application)
-        private val gson = Gson()
-    
-        val messages = mutableStateListOf<Message>()
+        private val gson = com.alananasss.kittytune.utils.AppUtils.gson
+
+        val messages = mutableStateListOf<InboxMessage>()
         var isLoading by mutableStateOf(true)
         var isSending by mutableStateOf(false)
-    
-        var myUser by mutableStateOf<User?>(null)
-        var currentOtherUserId: String? = null
-    
+
+        var myUserUrn by mutableStateOf("")
+        var currentConversationId: String? = null
+
         val linkMetadataCache = mutableStateMapOf<String, Any?>()
         private val processedLinks = mutableSetOf<String>()
-    
+
         private var pollingJob: Job? = null
-    
+
         private val pendingSentContents = mutableListOf<String>()
-    
-        fun loadMessages(otherUserId: String) {
-            currentOtherUserId = otherUserId
+
+        fun loadMessages(conversationId: String) {
+            currentConversationId = conversationId
             stopPolling()
-    
+
             viewModelScope.launch {
                 isLoading = true
                 try {
-                    val me = api.getMe()
-                    myUser = me
-    
-                    val response = api.getConversationMessages(me.id, otherUserId)
+                    val meResponse = api.getMeMobile()
+                    val me = meResponse.user
+                    myUserUrn = me.urn ?: "soundcloud:users:${me.id}"
+
+                    val response = api.getConversationMessages(conversationId)
                     messages.clear()
                     pendingSentContents.clear()
                     messages.addAll(response.collection)
-    
+
                     startPolling()
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -61,34 +63,34 @@
                 }
             }
         }
-    
+
         private fun startPolling() {
             if (pollingJob?.isActive == true) return
-    
+
             pollingJob = viewModelScope.launch {
-                val meId = myUser?.id ?: return@launch
-                val otherId = currentOtherUserId ?: return@launch
-    
+                val convId = currentConversationId ?: return@launch
+
                 while (isActive) {
                     delay(5000)
                     try {
-                        val response = api.getConversationMessages(meId, otherId, limit = 10)
-    
+                        val response = api.getConversationMessages(convId, limit = 10)
+
                         val newMessages = response.collection.filter { serverMsg ->
                             val isAlreadyDisplayed = messages.any { local ->
-                                local.content == serverMsg.content &&
-                                        local.sender?.id == serverMsg.sender?.id &&
+                                local.urn == serverMsg.urn ||
+                                    (local.content == serverMsg.content &&
+                                        local.sender?.urn == serverMsg.sender?.urn &&
                                         (local.sentAt == serverMsg.sentAt ||
-                                                (serverMsg.sender?.id == myUser?.id && serverMsg.content in pendingSentContents))
+                                            (serverMsg.sender?.urn == myUserUrn && serverMsg.content in pendingSentContents)))
                             }
                             !isAlreadyDisplayed
                         }
-    
+
                         if (newMessages.isNotEmpty()) {
                             newMessages.forEach { serverMsg ->
-                                if (serverMsg.sender?.id == myUser?.id && serverMsg.content in pendingSentContents) {
+                                if (serverMsg.sender?.urn == myUserUrn && serverMsg.content in pendingSentContents) {
                                     val localIndex = messages.indexOfFirst { local ->
-                                        local.sender?.id == myUser?.id && local.content == serverMsg.content
+                                        local.sender?.urn == myUserUrn && local.content == serverMsg.content
                                     }
                                     if (localIndex != -1) {
                                         messages[localIndex] = serverMsg
@@ -105,45 +107,45 @@
                 }
             }
         }
-    
+
         fun stopPolling() {
             pollingJob?.cancel()
             pollingJob = null
         }
-    
+
         override fun onCleared() {
             super.onCleared()
             stopPolling()
         }
-    
+
         fun sendMessage(text: String) {
-            val targetId = currentOtherUserId ?: return
-            val me = myUser ?: return
+            val convId = currentConversationId ?: return
             if (text.isBlank()) return
-    
+
             viewModelScope.launch {
                 isSending = true
                 stopPolling()
-    
+
                 try {
-                    val request = SendMessageRequest(contents = text)
-                    val newMessage = api.sendMessage(me.id, targetId, request)
-    
+                    val sentResponse = api.sendMessage(convId, SendMessageRequest(contents = text))
+
                     val currentTimestamp = java.text.SimpleDateFormat(
                         "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US
                     ).apply {
                         timeZone = java.util.TimeZone.getTimeZone("UTC")
                     }.format(java.util.Date())
-    
-                    val displayMessage = newMessage.copy(
-                        sender = me,
-                        sentAt = newMessage.sentAt ?: currentTimestamp,
-                        content = text
+
+                    val displayMessage = InboxMessage(
+                        urn = sentResponse.urn,
+                        content = text,
+                        conversationId = convId,
+                        sender = null,
+                        sentAt = currentTimestamp
                     )
-    
+
                     messages.add(0, displayMessage)
                     pendingSentContents.add(text)
-    
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                 } finally {
@@ -153,23 +155,23 @@
                 }
             }
         }
-    
+
         fun fetchLinkMetadata(url: String) {
             if (linkMetadataCache.containsKey(url) || processedLinks.contains(url)) return
-    
+
             processedLinks.add(url)
             viewModelScope.launch {
                 try {
                     val jsonObject = api.resolveUrl(url)
                     val kind = jsonObject.get("kind")?.asString
-    
+
                     val result: Any? = when (kind) {
                         "track" -> gson.fromJson(jsonObject, Track::class.java)
                         "playlist" -> gson.fromJson(jsonObject, Playlist::class.java)
                         "user" -> gson.fromJson(jsonObject, User::class.java)
                         else -> null
                     }
-    
+
                     if (result != null) {
                         linkMetadataCache[url] = result
                     }
@@ -180,5 +182,4 @@
             }
         }
     }
-
 

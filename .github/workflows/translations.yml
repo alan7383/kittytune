@@ -1,0 +1,33 @@
+name: Translations
+
+on:
+  pull_request:
+    paths:
+      - 'app/src/main/res/**/strings.xml'
+      - 'crowdin.yml'
+      - 'scripts/check_translations.py'
+      - '.github/workflows/translations.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check translation formats and regressions
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ -n "$BASE_SHA" ]; then
+            python scripts/check_translations.py --base "$BASE_SHA"
+          else
+            python scripts/check_translations.py
+          fi

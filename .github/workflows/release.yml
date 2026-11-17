@@ -1,9 +1,18 @@
 name: Release
 
+# Stable releases, Morphe-style: merging `dev` into `main` (or any direct
+# push to `main`) publishes the stable automatically. The version comes from
+# versionName in app/build.gradle.kts — bump it before merging. If the tag
+# already exists the job stops quietly, so re-pushes are harmless.
+#
+# Daily habit: work and push on `dev` (each push = beta via beta.yml), merge
+# dev into main when ready (= stable here), then merge main back into dev.
+
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,7 +20,7 @@ permissions:
 jobs:
   release:
     name: Build & Publish Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       # ── Checkout ────────────────────────────────────────────────────────────
@@ -20,16 +29,59 @@ jobs:
         with:
           fetch-depth: 0   # required by git-cliff to walk the full history
 
+      # ── Resolve version (fail-safe against re-pushes) ──────────────────────
+      - name: Compute release tag
+        id: version
+        run: |
+          BASE_NAME=$(grep -m1 'versionName = ' app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          TAG="v${BASE_NAME}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists — nothing new to release."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       # ── Java ────────────────────────────────────────────────────────────────
-      - name: Set up JDK 17
+      - name: Set up JDK 21
+        if: steps.version.outputs.skip != 'true'
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
-          cache: gradle
+
+      # ── Gradle cache (build outputs, not just dependencies) ─────────────────
+      - name: Cache Gradle
+        if: steps.version.outputs.skip != 'true'
+        uses: burrunan/gradle-cache-action@v3
+
+      # ── ccache (native CMake code) ──────────────────────────────────────────
+      - name: Install ccache
+        if: steps.version.outputs.skip != 'true'
+        run: sudo apt-get update && sudo apt-get install -y ccache
+
+      - name: Cache ccache
+        if: steps.version.outputs.skip != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}-ndk27.1.12297006-${{ hashFiles('app/src/main/cpp/**') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-ndk27.1.12297006-
+
+      # ── Android NDK ─────────────────────────────────────────────────────────
+      - name: Setup Android NDK
+        if: steps.version.outputs.skip != 'true'
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.1.12297006"
+
+      - name: Accept Android SDK Licenses
+        if: steps.version.outputs.skip != 'true'
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       # ── Signing keystore ────────────────────────────────────────────────────
       - name: Decode keystore
+        if: steps.version.outputs.skip != 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
@@ -37,12 +89,16 @@ jobs:
 
       # ── Build signed APK ────────────────────────────────────────────────────
       - name: Build release APK
+        if: steps.version.outputs.skip != 'true'
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS:         ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD:      ${{ secrets.KEY_PASSWORD }}
+          USE_CCACHE: '1'
+          CCACHE_DIR: ~/.ccache
+          CCACHE_MAXSIZE: 2G
         run: |
-          ./gradlew assembleRelease \
+          ./gradlew assembleRelease -x lintVitalRelease --stacktrace \
             -Pandroid.injected.signing.store.file=$PWD/app/keystore.jks \
             -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
             -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
@@ -51,31 +107,117 @@ jobs:
       # ── Changelog (git-cliff) ────────────────────────────────────────────────
       - name: Get previous tag
         id: prev_tag
+        if: steps.version.outputs.skip != 'true'
         run: |
-          PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -1)
+          # Closest stable tag in history (beta tags excluded)
+          PREV=$(git describe --tags --match 'v*.*.*' --exclude '*-beta*' --abbrev=0 HEAD 2>/dev/null || echo "")
           echo "Previous tag found: $PREV"
-          echo "tag=$PREV" >> $GITHUB_OUTPUT
+          if [ -z "$PREV" ]; then
+            echo "range=HEAD" >> $GITHUB_OUTPUT
+          else
+            echo "range=${PREV}..HEAD" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Tag now (prev already computed) so cliff attributes commits to it ───
+      - name: Create release tag
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag "${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
 
       - name: Generate changelog
+        if: steps.version.outputs.skip != 'true'
         uses: orhun/git-cliff-action@v4
         id: cliff
         with:
           config: cliff.toml
-          args: --strip header -- ${{ steps.prev_tag.outputs.tag }}..${{ github.ref_name }}
+          args: --strip header -- ${{ steps.prev_tag.outputs.range }}
 
       # ── GitHub Release ───────────────────────────────────────────────────────
       - name: Delete existing release if present
-        run: gh release delete ${{ github.ref_name }} --yes || true
+        if: steps.version.outputs.skip != 'true'
+        run: gh release delete ${{ steps.version.outputs.tag }} --yes || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Write changelog to file
+        if: steps.version.outputs.skip != 'true'
         run: echo "${{ steps.cliff.outputs.content }}" > CHANGELOG_RELEASE.md
 
       - name: Create GitHub Release
+        if: steps.version.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          name: "KittyTune ${{ github.ref_name }}"
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "KittyTune ${{ steps.version.outputs.tag }}"
           body_path: CHANGELOG_RELEASE.md
           files: app/build/outputs/apk/release/*.apk
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Discord Release Notification ────────────────────────────────────────
+      - name: Send Discord Release Notification
+        if: success() && steps.version.outputs.skip != 'true'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+          TAG_NAME: ${{ steps.version.outputs.tag }}
+        run: |
+          python3 - << 'EOF'
+          import os, json, urllib.request
+
+          webhook_url = os.environ.get("DISCORD_WEBHOOK")
+          if not webhook_url:
+              print("No DISCORD_RELEASE_WEBHOOK configured, skipping.")
+              exit(0)
+
+          tag = os.environ.get("TAG_NAME", "")
+          release_url = f"https://github.com/alan7383/kittytune/releases/tag/{tag}"
+
+          changelog = ""
+          if os.path.exists("CHANGELOG_RELEASE.md"):
+              with open("CHANGELOG_RELEASE.md", "r", encoding="utf-8") as f:
+                  changelog = f.read().strip()
+
+          if len(changelog) > 1500:
+              changelog = changelog[:1490] + "\n\n... *(full changelog on GitHub)*"
+
+          payload = {
+              "content": f"<@&1552727930801627166> **(=^･ω･^=) KittyTune {tag} is now available!**",
+              "allowed_mentions": {
+                  "roles": ["1552727930801627166"]
+              },
+              "embeds": [
+                  {
+                      "title": f"KittyTune {tag}",
+                      "url": release_url,
+                      "description": changelog if changelog else f"KittyTune {tag} has been released!",
+                      "color": 16742005,
+                      "fields": [
+                          {
+                              "name": "✦ Download APK",
+                              "value": f"[GitHub Releases & Assets]({release_url})",
+                              "inline": False
+                          }
+                      ],
+                      "footer": {
+                          "text": "KittyTune • Automated Release Pipeline"
+                      }
+                  }
+              ]
+          }
+
+          req = urllib.request.Request(
+              webhook_url,
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Content-Type": "application/json",
+                  "User-Agent": "GitHub-Actions-Release-Notifier"
+              }
+          )
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print("Discord notification sent! Status:", resp.status)
+          except Exception as e:
+              print("Failed to send Discord notification:", e)
+          EOF

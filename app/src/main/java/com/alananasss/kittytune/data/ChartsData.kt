@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.data
-    
+
     object ChartsData {
         data class ChartDefinition(
             val countryName: String,
@@ -7,7 +7,7 @@
             val flagEmoji: String,
             val playlistUrls: List<String>
         )
-    
+
         val charts = listOf(
             ChartDefinition(
                 countryName = "United States",
@@ -46,5 +46,4 @@
             )
         )
     }
-
 

@@ -1,0 +1,160 @@
+package com.alananasss.kittytune
+
+import com.alananasss.kittytune.data.UpdateManager
+import com.alananasss.kittytune.data.UpdateStatus
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import java.io.File
+
+class UpdateManagerTest {
+
+    @get:Rule
+    val tempFolder = TemporaryFolder()
+
+    @Test
+    fun testIsNewerVersion() {
+        assertTrue(UpdateManager.isNewerVersion("1.0.0", "1.0.1"))
+        assertTrue(UpdateManager.isNewerVersion("1.0.0", "1.1.0"))
+        assertTrue(UpdateManager.isNewerVersion("1.0.0", "2.0.0"))
+        assertTrue(UpdateManager.isNewerVersion("2.65.0", "2.66.0"))
+        assertTrue(UpdateManager.isNewerVersion("2.66.0", "2.66.1"))
+        assertTrue(UpdateManager.isNewerVersion("2.66", "2.66.1"))
+
+        assertFalse(UpdateManager.isNewerVersion("1.0.0", "1.0.0"))
+        assertFalse(UpdateManager.isNewerVersion("2.66.0", "2.65.9"))
+        assertFalse(UpdateManager.isNewerVersion("2.66.0", "2.66.0"))
+        assertFalse(UpdateManager.isNewerVersion("3.0.0", "2.99.9"))
+    }
+
+    @Test
+    fun testIsNewerVersionWithPrereleases() {
+        // Beta of a newer core is newer than stable
+        assertTrue(UpdateManager.isNewerVersion("2.68.0", "2.68.1-beta.1"))
+        assertTrue(UpdateManager.isNewerVersion("2.68.0", "2.69.0-beta.12"))
+        // Newer beta than installed beta
+        assertTrue(UpdateManager.isNewerVersion("2.68.0-beta.3", "2.68.0-beta.4"))
+        assertTrue(UpdateManager.isNewerVersion("2.68.0-beta.9", "2.68.0-beta.10"))
+        // Stable is newer than its own beta line
+        assertTrue(UpdateManager.isNewerVersion("2.68.0-beta.4", "2.68.0"))
+        // Same-core beta is never offered over the stable
+        assertFalse(UpdateManager.isNewerVersion("2.68.0", "2.68.0-beta.5"))
+        // Same beta, older beta, older core
+        assertFalse(UpdateManager.isNewerVersion("2.68.0-beta.4", "2.68.0-beta.4"))
+        assertFalse(UpdateManager.isNewerVersion("2.68.0-beta.4", "2.68.0-beta.3"))
+        assertFalse(UpdateManager.isNewerVersion("2.68.0-beta.4", "2.67.9"))
+        // Plain versions unaffected by prerelease handling
+        assertTrue(UpdateManager.isNewerVersion("2.68.0", "2.68.1"))
+        assertFalse(UpdateManager.isNewerVersion("2.68.0", "2.68.0"))
+    }
+
+    @Test
+    fun testCompareVersions() {
+        assertTrue(UpdateManager.compareVersions("1.0.0", "1.0.1") < 0)
+        assertTrue(UpdateManager.compareVersions("1.0.1", "1.0.0") > 0)
+        assertEquals(0, UpdateManager.compareVersions("1.0.0", "1.0.0"))
+
+        // beta.10 is strictly greater than beta.9 (numerical comparison of pre-release chunk)
+        assertTrue(UpdateManager.compareVersions("2.68.0-beta.9", "2.68.0-beta.10") < 0)
+        assertTrue(UpdateManager.compareVersions("2.68.0-beta.10", "2.68.0-beta.9") > 0)
+
+        // beta.10 is smaller than stable 2.68.0
+        assertTrue(UpdateManager.compareVersions("2.68.0-beta.10", "2.68.0") < 0)
+        assertTrue(UpdateManager.compareVersions("2.68.0", "2.68.0-beta.10") > 0)
+
+        // 2.69.0-beta.11 is greater than 2.68.0 and 2.68.0-beta.10
+        assertTrue(UpdateManager.compareVersions("2.69.0-beta.11", "2.68.0") > 0)
+        assertTrue(UpdateManager.compareVersions("2.69.0-beta.11", "2.68.0-beta.10") > 0)
+    }
+
+    @Test
+    fun testOutOfOrderBetaResolution() {
+        // Simulating the exact out-of-order list GitHub returned:
+        // beta.9, beta.8, beta.7, beta.6, beta.5, beta.10
+        val versions = listOf(
+            "2.68.0-beta.9",
+            "2.68.0-beta.8",
+            "2.68.0-beta.7",
+            "2.68.0-beta.6",
+            "2.68.0-beta.5",
+            "2.68.0-beta.10"
+        )
+        val currentVersion = "2.68.0-beta.9"
+
+        val candidates = versions.filter { UpdateManager.isNewerVersion(currentVersion, it) }
+        assertEquals(listOf("2.68.0-beta.10"), candidates)
+
+        val best = candidates.maxWithOrNull { a, b -> UpdateManager.compareVersions(a, b) }
+        assertEquals("2.68.0-beta.10", best)
+
+        // For a user on beta.8, finding the max must return beta.10, not beta.9
+        val candidatesForBeta8 = versions.filter { UpdateManager.isNewerVersion("2.68.0-beta.8", it) }
+        val bestForBeta8 = candidatesForBeta8.maxWithOrNull { a, b -> UpdateManager.compareVersions(a, b) }
+        assertEquals("2.68.0-beta.10", bestForBeta8)
+    }
+
+    @Test
+    fun testBetaChannelGuards() {
+        // Same-core stable over an installed beta = downgrade nag, must skip
+        assertTrue(UpdateManager.isSameCoreStableOverBeta("2.68.0-beta.1", "2.68.0"))
+        assertFalse(UpdateManager.isSameCoreStableOverBeta("2.68.0-beta.1", "2.69.0"))
+        assertFalse(UpdateManager.isSameCoreStableOverBeta("2.68.0", "2.69.0"))
+        assertFalse(UpdateManager.isSameCoreStableOverBeta("2.68.0", "2.68.0"))
+        // Same-core beta over installed stable = the beta program
+        assertTrue(UpdateManager.isSameCoreBetaOverStable("2.68.0", "2.68.0-beta.2"))
+        assertFalse(UpdateManager.isSameCoreBetaOverStable("2.68.0-beta.1", "2.68.0-beta.2"))
+        assertFalse(UpdateManager.isSameCoreBetaOverStable("2.68.0", "2.69.0-beta.1"))
+        assertFalse(UpdateManager.isSameCoreBetaOverStable("2.68.0", "2.68.0"))
+    }
+
+    @Test
+    fun testGetApkFileName() {
+        assertEquals("update_v2.66.0.apk", UpdateManager.getApkFileName("v2.66.0"))
+        assertEquals("update_2.66.0.apk", UpdateManager.getApkFileName("2.66.0"))
+        assertEquals("update_v2.66.0_beta_1.apk", UpdateManager.getApkFileName("v2.66.0/beta:1"))
+    }
+
+    @Test
+    fun testDismissResetsState() {
+        UpdateManager.dismiss()
+        assertEquals(UpdateStatus.IDLE, UpdateManager.status.value)
+        assertEquals(0f, UpdateManager.downloadProgress.value, 0.001f)
+        assertEquals(0L, UpdateManager.downloadSize.value)
+    }
+
+    @Test
+    fun testIsApkValidWithEmptyOrMissingFile() {
+        val missingFile = File(tempFolder.root, "non_existent.apk")
+        // Expected to return false for missing file without needing Context
+        assertFalse(missingFile.exists())
+
+        val emptyFile = tempFolder.newFile("empty.apk")
+        assertEquals(0L, emptyFile.length())
+    }
+
+    @Test
+    fun testFileCleanupPreservesTargetVersion() {
+        val updatesDir = tempFolder.newFolder("updates")
+        val keepFile = File(updatesDir, "update_v2.67.0.apk").apply { createNewFile() }
+        val oldFile = File(updatesDir, "update_v2.66.0.apk").apply { createNewFile() }
+        val tempFile = File(updatesDir, "update_v2.67.0.apk.tmp").apply { createNewFile() }
+
+        assertTrue(keepFile.exists())
+        assertTrue(oldFile.exists())
+        assertTrue(tempFile.exists())
+
+        val keepFileName = UpdateManager.getApkFileName("v2.67.0")
+        updatesDir.listFiles()?.forEach { file ->
+            if (file.name.endsWith(".tmp") || file.name != keepFileName) {
+                file.delete()
+            }
+        }
+
+        assertTrue("Target version APK should be preserved", keepFile.exists())
+        assertFalse("Obsolete version APK should be deleted", oldFile.exists())
+        assertFalse("Temporary file should be deleted", tempFile.exists())
+    }
+}

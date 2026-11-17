@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.layout.*
     import androidx.compose.foundation.lazy.LazyColumn
@@ -22,22 +22,26 @@
     import androidx.compose.ui.unit.dp
     import androidx.lifecycle.viewmodel.compose.viewModel
     import com.alananasss.kittytune.R
-    import com.alananasss.kittytune.domain.Conversation
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
+    import com.alananasss.kittytune.domain.InboxConversation
+import com.alananasss.kittytune.domain.parseUserIdFromUrn
     import com.alananasss.kittytune.ui.library.getRelativeTime
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun ConversationsScreen(
         onBackClick: () -> Unit,
-        onConversationClick: (String, String) -> Unit, // id, username
+        onConversationClick: (String, String, String) -> Unit, // conversationId, otherUserId, username
         viewModel: ConversationsViewModel = viewModel()
     ) {
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    
+
         LaunchedEffect(Unit) {
             viewModel.loadConversations()
         }
-    
+
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
@@ -95,41 +99,43 @@
                     modifier = Modifier
                         .padding(innerPadding)
                         .fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                    contentPadding = PaddingValues(bottom = 180.dp)
                 ) {
                     items(viewModel.conversations) { conversation ->
                         ConversationItemCard(
                             conversation = conversation,
-                            myId = viewModel.currentUserId,
-                            onClick = { otherId, username -> onConversationClick(otherId, username) }
+                            myUrn = viewModel.currentUserUrn,
+                            onClick = { conversationId, otherId, username -> onConversationClick(conversationId, parseUserIdFromUrn(otherId)?.toString() ?: otherId, username) }
                         )
                     }
                 }
             }
         }
     }
-    
+
     @Composable
     fun ConversationItemCard(
-        conversation: Conversation,
-        myId: Long,
-        onClick: (String, String) -> Unit
+        conversation: InboxConversation,
+        myUrn: String,
+        onClick: (String, String, String) -> Unit
     ) {
-        val otherUser = conversation.getOtherUser(myId)
+        val otherUser = conversation.getOtherUsername(myUrn)
+        val otherUrn = conversation.getOtherUserUrn(myUrn)
+        val otherAvatar = conversation.getOtherAvatar(myUrn)
         val lastMsg = conversation.lastMessage
         val context = androidx.compose.ui.platform.LocalContext.current
-    
-        if (otherUser != null) {
+
+        if (otherUser != null && otherUrn != null) {
             ListItem(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onClick(otherUser.id.toString(), otherUser.username ?: "User") },
+                    .hapticClickable { onClick(conversation.id, parseUserIdFromUrn(otherUrn)?.toString() ?: otherUrn, otherUser) },
                 colors = ListItemDefaults.colors(
                     containerColor = MaterialTheme.colorScheme.background
                 ),
                 headlineContent = {
                     Text(
-                        text = otherUser.username ?: stringResource(R.string.unknown_user),
+                        text = otherUser,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
@@ -137,7 +143,7 @@
                     )
                 },
                 supportingContent = {
-                    if (lastMsg?.content != null) {
+                    if (lastMsg.content.isNotEmpty()) {
                         Text(
                             text = lastMsg.content,
                             style = MaterialTheme.typography.bodyMedium,
@@ -149,14 +155,14 @@
                 },
                 leadingContent = {
                     ArtistAvatar(
-                        avatarUrl = otherUser.avatarUrl,
+                        avatarUrl = otherAvatar,
                         modifier = Modifier
                             .size(52.dp)
                             .clip(CircleShape)
                     )
                 },
                 trailingContent = {
-                    if (lastMsg?.sentAt != null) {
+                    if (lastMsg.sentAt != null) {
                         Text(
                             text = getRelativeTime(lastMsg.sentAt, context),
                             style = MaterialTheme.typography.labelSmall,
@@ -167,5 +173,4 @@
             )
         }
     }
-
 

@@ -1,127 +1,168 @@
 package com.alananasss.kittytune.ui.player
 
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import android.view.HapticFeedbackConstants
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForwardIos
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.rounded.ClearAll
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.local.TrackRemovalMethod
+import com.alananasss.kittytune.domain.Track
+import com.alananasss.kittytune.ui.common.PlayingBars
+import com.alananasss.kittytune.ui.common.SwipeToDeleteItem
+import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.utils.formatQueueDuration
+import com.alananasss.kittytune.utils.makeTimeString
 import kotlinx.coroutines.launch
+import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
+
+/**
+ * Full-screen queue view with top app bar, search or bulk-add actions, and queue list.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpandedQueueScreen(
     viewModel: PlayerViewModel,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    bottomContentPadding: androidx.compose.ui.unit.Dp = 96.dp
 ) {
-    val queueState = viewModel.queueState
-    val view = LocalView.current
     val listState = rememberLazyListState()
-
-    LaunchedEffect(viewModel.currentTrack) {
-        val track = viewModel.currentTrack
-        if (track != null && queueState.isNotEmpty()) {
-            val index = queueState.indexOfFirst { it.id == track.id }
-            if (index >= 0) {
-                listState.scrollToItem(kotlin.math.max(0, index - 2))
-            }
-        }
-    }
-
-    val reorderableState = rememberReorderableLazyListState(
-        lazyListState = listState,
-        onMove = { from, to ->
-            viewModel.moveQueueItem(from.index, to.index)
-            view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
-        }
-    )
+    val queueState = viewModel.uiQueueState
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text(
-                        stringResource(R.string.player_queue),
-                        fontWeight = FontWeight.Bold
-                    )
+                    val contextTitle = viewModel.currentContext?.displayText
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = if (!contextTitle.isNullOrBlank()) {
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .hapticClickable {
+                                    onClose()
+                                    viewModel.navigateToContext()
+                                }
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        } else Modifier
+                    ) {
+                        Text(
+                            text = stringResource(R.string.player_queue),
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        if (!contextTitle.isNullOrBlank()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = contextTitle,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(9.dp)
+                                )
+                            }
+                        }
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onClose, shapes = IconButtonDefaults.shapes()) {
                         Icon(
-                            Icons.Rounded.KeyboardArrowDown,
+                            imageVector = Icons.Rounded.Close,
                             contentDescription = stringResource(R.string.btn_close)
                         )
                     }
                 },
                 actions = {
-                    val shuffleColor = if (viewModel.shuffleEnabled)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.onSurface
-
-                    IconButton(onClick = { viewModel.toggleShuffle() }, shapes = IconButtonDefaults.shapes()) {
+                    IconButton(
+                        onClick = { viewModel.showQueueHistorySheet = true },
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
                         Icon(
-                            imageVector = Icons.Rounded.Shuffle,
-                            contentDescription = stringResource(R.string.queue_shuffle),
-                            tint = shuffleColor
+                            imageVector = Icons.Rounded.History,
+                            contentDescription = stringResource(R.string.queue_history)
                         )
                     }
-
-                    val repeatIcon = when (viewModel.repeatMode) {
-                        RepeatMode.ONE -> Icons.Rounded.RepeatOne
-                        else -> Icons.Rounded.Repeat
-                    }
-                    val repeatColor = if (viewModel.repeatMode == RepeatMode.NONE)
-                        MaterialTheme.colorScheme.onSurface
-                    else
-                        MaterialTheme.colorScheme.primary
-
-                    IconButton(onClick = { viewModel.toggleRepeatMode() }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(
-                            imageVector = repeatIcon,
-                            contentDescription = stringResource(R.string.queue_repeat),
-                            tint = repeatColor
-                        )
+                    if (queueState.isNotEmpty()) {
+                        IconButton(
+                            onClick = { viewModel.prepareBulkAdd(queueState) },
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = stringResource(R.string.menu_add_playlist)
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -131,108 +172,348 @@ fun ExpandedQueueScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
-        LazyColumn(
-            state = listState,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.surface),
-            contentPadding = PaddingValues(bottom = 80.dp)
         ) {
-            itemsIndexed(
-                items = queueState,
-                key = { _, track -> track.id }
-            ) { index, track ->
-                ReorderableItem(
-                    state = reorderableState,
-                    key = track.id
-                ) { isDragging ->
-                    val isCurrent = track.id == viewModel.currentTrack?.id
-                    val shouldDarken = viewModel.repeatMode == RepeatMode.ONE && !isCurrent
-                    val itemAlpha by animateFloatAsState(
-                        targetValue = if (shouldDarken) 0.3f else 1.0f,
-                        label = "dim_alpha"
-                    )
-                    val elevation by animateDpAsState(
-                        targetValue = if (isDragging) 8.dp else 0.dp,
-                        label = "elevation"
-                    )
-                    val baseColor = if (isDragging)
-                        MaterialTheme.colorScheme.surfaceContainerHigh
-                    else
-                        MaterialTheme.colorScheme.surface
+            val upNextCount = (queueState.size - viewModel.uiCurrentQueueIndex - 1).coerceAtLeast(0)
+            QueueToolbar(viewModel = viewModel, upNextCount = upNextCount)
+            QueueListView(
+                viewModel = viewModel,
+                listState = listState,
+                contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 4.dp, bottom = bottomContentPadding)
+            )
+        }
+    }
+}
 
-                    SwipeToDeleteItem(
-                        onDelete = { viewModel.removeTrackFromQueue(index) }
+/**
+ * Modal bottom sheet queue content, matching Desktop PR #77 design adapted for mobile.
+ */
+@Composable
+fun QueueContent(
+    viewModel: PlayerViewModel,
+    isQueueOpen: Boolean,
+    onCloseQueue: () -> Unit,
+    onOpenExpandedQueue: () -> Unit
+) {
+    val listState = rememberLazyListState()
+    val queue = viewModel.uiQueueState
+    val upNextCount = (queue.size - viewModel.uiCurrentQueueIndex - 1).coerceAtLeast(0)
+    val contextTitle = viewModel.currentContext?.displayText
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.75f)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+    ) {
+        // Top Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp, bottom = 6.dp, start = 20.dp, end = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .then(
+                        if (!contextTitle.isNullOrBlank()) {
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .hapticClickable {
+                                    onCloseQueue()
+                                    viewModel.navigateToContext()
+                                }
+                        } else Modifier
+                    )
+            ) {
+                Text(
+                    text = stringResource(R.string.player_queue),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (!contextTitle.isNullOrBlank()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(72.dp)
-                                .shadow(elevation)
-                                .background(
-                                    if (isCurrent)
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                    else
-                                        baseColor
-                                )
-                                .clickable { viewModel.skipToQueueItem(index) }
-                                .padding(horizontal = 24.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            AsyncImage(
-                                model = track.fullResArtwork,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .alpha(itemAlpha)
-                            ) {
-                                Text(
-                                    text = track.title
-                                        ?: stringResource(R.string.generic_title),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isCurrent)
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    text = track.user?.username
-                                        ?: stringResource(R.string.unknown_artist),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.Rounded.DragHandle,
-                                contentDescription = "Move",
-                                tint = if (isDragging)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .draggableHandle(
-                                        onDragStarted = {
-                                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                        },
-                                        onDragStopped = {
-                                            view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
-                                        }
-                                    )
-                            )
-                        }
+                        Text(
+                            text = contextTitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                            modifier = Modifier.size(10.dp)
+                        )
+                    }
+                }
+            }
+
+            IconButton(
+                onClick = {
+                    onCloseQueue()
+                    onOpenExpandedQueue()
+                },
+                shapes = IconButtonDefaults.shapes()
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.OpenInFull,
+                    contentDescription = "Expand Queue",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            IconButton(
+                onClick = onCloseQueue,
+                shapes = IconButtonDefaults.shapes()
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = stringResource(R.string.btn_close),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        // Queue Toolbar
+        QueueToolbar(
+            viewModel = viewModel,
+            upNextCount = upNextCount,
+            onOpenHistory = {
+                onCloseQueue()
+                viewModel.showQueueHistorySheet = true
+            }
+        )
+
+        // Queue List
+        QueueListView(
+            viewModel = viewModel,
+            listState = listState,
+            contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 32.dp),
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+/**
+ * Queue Toolbar displaying remaining time, history button, shuffle toggle, repeat toggle, and clear upcoming.
+ */
+@Composable
+private fun QueueToolbar(
+    viewModel: PlayerViewModel,
+    upNextCount: Int,
+    onOpenHistory: (() -> Unit)? = null
+) {
+    val context = LocalContext.current
+    val queue = viewModel.uiQueueState
+    val current = viewModel.uiCurrentQueueIndex
+    val clip = viewModel.uiClipWindow
+    val leftMs = remember(queue, current, viewModel.duration, viewModel.currentPosition / 10_000L, clip) {
+        val upcoming = queue.drop(current + 1).sumOf { viewModel.clipLengthOf(it) ?: it.actualDurationMs }
+        val songEnd = clip?.endMs ?: viewModel.duration
+        upcoming + (songEnd - viewModel.currentPosition).coerceAtLeast(0L)
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(R.string.queue_time_left, formatQueueDuration(context, leftMs)),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+
+        // Queue History Button
+        IconButton(
+            onClick = {
+                if (onOpenHistory != null) onOpenHistory() else viewModel.showQueueHistorySheet = true
+            },
+            shapes = IconButtonDefaults.shapes(),
+            modifier = Modifier.size(36.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.History,
+                contentDescription = stringResource(R.string.queue_history),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(Modifier.width(4.dp))
+
+        // Shuffle Toggle Button
+        IconButton(
+            onClick = { viewModel.toggleShuffle() },
+            shapes = IconButtonDefaults.shapes(),
+            modifier = Modifier.size(36.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Shuffle,
+                contentDescription = stringResource(R.string.queue_shuffle),
+                tint = if (viewModel.uiShuffleEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(Modifier.width(4.dp))
+
+        // Repeat Toggle Button
+        val isRepeatActive = viewModel.uiRepeatMode != RepeatMode.NONE
+        IconButton(
+            onClick = { viewModel.toggleRepeatMode() },
+            shapes = IconButtonDefaults.shapes(),
+            modifier = Modifier.size(36.dp)
+        ) {
+            Icon(
+                imageVector = if (viewModel.uiRepeatMode == RepeatMode.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
+                contentDescription = stringResource(R.string.queue_repeat),
+                tint = if (isRepeatActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        // Clear upcoming button
+        if (upNextCount > 0) {
+            Spacer(Modifier.width(4.dp))
+            IconButton(
+                onClick = { viewModel.clearUpcoming() },
+                shapes = IconButtonDefaults.shapes(),
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.ClearAll,
+                    contentDescription = stringResource(R.string.queue_clear_upcoming),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Reusable queue list with smooth anchoring, duplicate handling, collapsible past tracks,
+ * highlighted current track, and swipe-to-delete on upcoming tracks.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun QueueListView(
+    viewModel: PlayerViewModel,
+    listState: LazyListState,
+    contentPadding: PaddingValues,
+    modifier: Modifier = Modifier
+) {
+    val view = LocalView.current
+    val queue = viewModel.uiQueueState
+    val currentIndex = viewModel.uiCurrentQueueIndex
+    val keys = remember(queue) { queueItemKeys(queue) }
+
+    val pastCount = currentIndex.coerceIn(0, queue.size)
+    var pastExpandedByUser by remember { mutableStateOf(false) }
+    val isPastExpanded = pastExpandedByUser || pastCount <= RECENT_QUEUE_TRACKS
+
+    val listItems = remember(queue, currentIndex, isPastExpanded) {
+        queueListItems(queue, currentIndex, isPastExpanded)
+    }
+
+    val reorderableState = rememberReorderableLazyListState(
+        lazyListState = listState,
+        onMove = { from, to ->
+            val fromKey = from.key as? String ?: return@rememberReorderableLazyListState
+            val toKey = to.key as? String ?: return@rememberReorderableLazyListState
+            val fromIndex = keys.indexOf(fromKey)
+            val toIndex = keys.indexOf(toKey)
+            if (fromIndex >= 0 && toIndex >= 0) {
+                viewModel.moveQueueItem(fromIndex, toIndex)
+                view.performAppHaptic(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+            }
+        }
+    )
+
+    val currentKey = keys.getOrNull(currentIndex)
+    val targetTrackIndex = (currentIndex - 1).coerceAtLeast(0)
+    val targetListIndex = listItems.indexOfFirst {
+        it is QueueListItem.TrackItem && it.queueIndex == targetTrackIndex
+    }.coerceAtLeast(0)
+
+    AnchorCurrentQueueItem(
+        listState = listState,
+        currentIndex = currentIndex,
+        currentTrackId = viewModel.uiCurrentTrack?.id,
+        currentKey = currentKey,
+        targetIndex = targetListIndex,
+    )
+
+    LazyColumn(
+        state = listState,
+        modifier = modifier.fillMaxSize(),
+        contentPadding = contentPadding,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        items(
+            items = listItems,
+            key = { item ->
+                when (item) {
+                    is QueueListItem.PastHeader -> "queue_header_past"
+                    is QueueListItem.UpNextHeader -> "queue_header_up_next"
+                    is QueueListItem.TrackItem -> keys[item.queueIndex]
+                }
+            }
+        ) { item ->
+            when (item) {
+                is QueueListItem.PastHeader -> {
+                    QueueSectionRule(
+                        label = stringResource(R.string.queue_played),
+                        count = item.count,
+                        isCollapsible = pastCount > RECENT_QUEUE_TRACKS,
+                        isExpanded = item.isExpanded,
+                        onToggle = { pastExpandedByUser = !item.isExpanded }
+                    )
+                }
+                is QueueListItem.UpNextHeader -> {
+                    QueueSectionRule(
+                        label = stringResource(R.string.queue_up_next),
+                        count = item.count
+                    )
+                }
+                is QueueListItem.TrackItem -> {
+                    val index = item.queueIndex
+                    val isCurrent = index == currentIndex
+                    val isPast = index < currentIndex
+
+                    ReorderableItem(
+                        state = reorderableState,
+                        key = keys[index],
+                        animateItemModifier = Modifier,
+                    ) { isDragging ->
+                        QueueRow(
+                            viewModel = viewModel,
+                            track = item.track,
+                            index = index,
+                            itemKey = keys[index],
+                            isCurrent = isCurrent,
+                            isPast = isPast && index < currentIndex - RECENT_QUEUE_TRACKS,
+                            isDragging = isDragging,
+                            scope = this@ReorderableItem,
+                        )
                     }
                 }
             }
@@ -240,109 +521,250 @@ fun ExpandedQueueScreen(
     }
 }
 
+/**
+ * Heading separating queue sections (Played, Up next).
+ */
 @Composable
-private fun SwipeToDeleteItem(
-    onDelete: () -> Unit,
-    content: @Composable () -> Unit
+private fun QueueSectionRule(
+    label: String,
+    count: Int? = null,
+    isCollapsible: Boolean = false,
+    isExpanded: Boolean = true,
+    onToggle: (() -> Unit)? = null,
 ) {
-    val coroutineScope = rememberCoroutineScope()
-    val density = LocalDensity.current
-
-    val dismissThresholdPx = with(density) { 120.dp.toPx() }
-    val maxSwipePx = with(density) { 200.dp.toPx() }
-
-    val offsetX = remember { Animatable(0f) }
-
-    val progress = (-offsetX.value / dismissThresholdPx).coerceIn(0f, 1f)
-
-    val bgColor by animateColorAsState(
-        targetValue = if (progress > 0f)
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = progress.coerceIn(0.1f, 1f))
-        else
-            Color.Transparent,
-        label = "swipe_bg"
-    )
-    val iconAlpha by animateFloatAsState(
-        targetValue = progress.coerceIn(0f, 1f),
-        label = "icon_alpha"
-    )
-
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    val velocityTracker = VelocityTracker()
+            .clip(RoundedCornerShape(8.dp))
+            .then(
+                if (isCollapsible && onToggle != null) Modifier.clickable(onClick = onToggle) else Modifier
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        if (count != null && count > 0) {
+            Spacer(Modifier.width(8.dp))
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                modifier = Modifier.height(20.dp)
+            ) {
+                Box(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = count.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.weight(1f))
+        if (isCollapsible) {
+            val arrowRotation by animateFloatAsState(
+                targetValue = if (isExpanded) 180f else 0f,
+                label = "arrow_rot"
+            )
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(18.dp)
+                    .rotate(arrowRotation)
+            )
+        }
+    }
+}
 
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    velocityTracker.addPosition(down.uptimeMillis, down.position)
+/**
+ * A single row in the queue.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun QueueRow(
+    viewModel: PlayerViewModel,
+    track: Track,
+    index: Int,
+    itemKey: String = track.id.toString(),
+    isCurrent: Boolean,
+    isPast: Boolean,
+    isDragging: Boolean,
+    scope: ReorderableCollectionItemScope,
+) {
+    val view = LocalView.current
+    val scheme = MaterialTheme.colorScheme
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+    val trackRemovalMethod by prefs.getTrackRemovalMethodFlow().collectAsState(initial = prefs.getTrackRemovalMethod())
+    val isSwipeRemovalEnabled = trackRemovalMethod.isSwipeEnabled
 
-                    var isHorizontal: Boolean? = null
-                    var dragStarted = false
+    val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
+    val background by animateColorAsState(
+        targetValue = when {
+            isDragging -> scheme.surfaceContainerHighest
+            isCurrent -> scheme.secondaryContainer
+            else -> Color.Transparent
+        },
+        animationSpec = tween(150),
+        label = "queue_row_background"
+    )
+    val rowShape = RoundedCornerShape(12.dp)
 
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Main)
-                        val change = event.changes.firstOrNull() ?: break
-
-                        if (!change.pressed) break
-
-                        val deltaX = change.position.x - change.previousPosition.x
-                        val deltaY = change.position.y - change.previousPosition.y
-
-                        if (isHorizontal == null) {
-                            val absX = abs(deltaX)
-                            val absY = abs(deltaY)
-                            if (absX > 3f || absY > 3f) {
-                                isHorizontal = absX > absY
-                            }
+    val rowContent = @Composable {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {
+                        if (!isCurrent) {
+                            viewModel.skipToQueueItem(index)
                         }
-
-                        if (isHorizontal == true) {
-                            change.consume()
-                            dragStarted = true
-                            velocityTracker.addPosition(change.uptimeMillis, change.position)
-
-                            val newOffset = (offsetX.value + deltaX).coerceIn(-maxSwipePx, 0f)
-                            coroutineScope.launch {
-                                offsetX.snapTo(newOffset)
-                            }
-                        }
+                    },
+                    onLongClick = {
+                        view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
+                        viewModel.showTrackOptions(track, fromPlayer = true, queueIndex = index)
                     }
+                )
+                .padding(start = 10.dp, end = if (isPast) 10.dp else 4.dp, top = if (isPast) 4.dp else 6.dp, bottom = if (isPast) 4.dp else 6.dp)
+                .then(if (isPast) Modifier.alpha(0.55f) else Modifier),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(if (isPast) 32.dp else 44.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(scheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = track.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                if (isCurrent) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.45f))
+                    )
+                    PlayingBars(
+                        isPlaying = viewModel.uiIsPlaying,
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White
+                    )
+                }
+            }
 
-                    if (dragStarted) {
-                        val velocity = velocityTracker.calculateVelocity().x
-                        coroutineScope.launch {
-                            if (-offsetX.value >= dismissThresholdPx || velocity < -1000f) {
-                                offsetX.animateTo(-size.width.toFloat())
-                                onDelete()
-                                offsetX.snapTo(0f)
-                            } else {
-                                offsetX.animateTo(0f)
-                            }
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = track.title ?: stringResource(R.string.generic_title),
+                        style = if (isPast) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
+                        color = if (isCurrent) scheme.onSecondaryContainer else scheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (track.isGoPlus) {
+                        Spacer(Modifier.width(6.dp))
+                        com.alananasss.kittytune.ui.common.GoPlusBadge(compact = true)
+                    }
+                }
+                if (!isPast) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.generic_artist) },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isCurrent) scheme.onSecondaryContainer.copy(alpha = 0.8f) else scheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (track.user?.verified == true) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.Verified,
+                                contentDescription = null,
+                                tint = scheme.primary,
+                                modifier = Modifier.size(12.dp)
+                            )
                         }
                     }
                 }
             }
+
+            Spacer(Modifier.width(8.dp))
+
+            val duration = (viewModel.clipLengthOf(track) ?: track.actualDurationMs).takeIf { it > 0 }
+            if (duration != null && !isPast) {
+                Text(
+                    text = makeTimeString(duration),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isCurrent) scheme.onSecondaryContainer else scheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.width(4.dp))
+            }
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(elevation, rowShape)
+            .clip(rowShape)
+            .background(background),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(bgColor)
-                .padding(end = 24.dp),
-            contentAlignment = Alignment.CenterEnd
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Delete,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error.copy(alpha = iconAlpha),
-                modifier = Modifier.size(24.dp)
-            )
+        Box(modifier = Modifier.weight(1f)) {
+            SwipeToDeleteItem(
+                key = itemKey,
+                enabled = isSwipeRemovalEnabled && !isCurrent && !isDragging,
+                clipContent = !isDragging,
+                onDelete = { viewModel.removeTrackFromQueue(index) },
+                shape = rowShape,
+                horizontalPadding = 0.dp,
+                endZoneIgnoreWidth = 0.dp,
+                showDeleteIcon = false
+            ) {
+                rowContent()
+            }
         }
 
-        Box(
-            modifier = Modifier.offset { IntOffset(offsetX.value.roundToInt(), 0) }
-        ) {
-            content()
+        if (!isPast) {
+            with(scope) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .padding(end = 6.dp)
+                        .draggableHandle(
+                            onDragStarted = { view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS) },
+                            onDragStopped = { view.performAppHaptic(HapticFeedbackConstants.GESTURE_END) }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DragHandle,
+                        contentDescription = stringResource(R.string.desc_move),
+                        tint = if (isCurrent) scheme.onSecondaryContainer.copy(alpha = 0.6f)
+                               else if (isDragging) scheme.primary
+                               else scheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
         }
     }
 }

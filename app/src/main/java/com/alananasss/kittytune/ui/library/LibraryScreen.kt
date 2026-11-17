@@ -1,303 +1,2347 @@
-    package com.alananasss.kittytune.ui.library
-    
-    import android.content.Context
-    import android.net.ConnectivityManager
-    import android.net.Network
-    import android.net.NetworkCapabilities
-    import android.net.NetworkRequest
-    import androidx.compose.foundation.background
-    import androidx.compose.foundation.clickable
-    import androidx.compose.foundation.layout.*
-    import androidx.compose.foundation.lazy.grid.GridCells
-    import androidx.compose.foundation.lazy.grid.GridItemSpan
-    import androidx.compose.foundation.lazy.grid.LazyGridState
-    import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-    import androidx.compose.foundation.lazy.grid.items
-    import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-    import androidx.compose.foundation.shape.CircleShape
-    import androidx.compose.foundation.shape.RoundedCornerShape
-    import androidx.compose.material.icons.Icons
-    import androidx.compose.material.icons.filled.GridView
-    import androidx.compose.material.icons.filled.SdStorage
-    import androidx.compose.material.icons.filled.Search
-    import androidx.compose.material.icons.filled.ViewList
-    import androidx.compose.material.icons.outlined.ExitToApp
-    import androidx.compose.material.icons.rounded.*
-    import androidx.compose.material3.*
-    import androidx.compose.runtime.*
-    import androidx.compose.ui.Alignment
-    import androidx.compose.ui.Modifier
-    import androidx.compose.ui.draw.clip
-    import androidx.compose.ui.graphics.Color
-    import androidx.compose.ui.graphics.vector.ImageVector
-    import androidx.compose.ui.layout.ContentScale
-    import androidx.compose.ui.platform.LocalContext
-    import androidx.compose.ui.res.stringResource
-    import androidx.compose.ui.text.font.FontWeight
-    import androidx.compose.ui.text.style.TextOverflow
-    import androidx.compose.ui.unit.dp
-    import androidx.lifecycle.Lifecycle
-    import androidx.lifecycle.LifecycleEventObserver
-    import androidx.lifecycle.compose.LocalLifecycleOwner
-    import androidx.lifecycle.viewmodel.compose.viewModel
-    import coil.compose.AsyncImage
-    import com.alananasss.kittytune.R
-    import com.alananasss.kittytune.data.DownloadManager
-    import com.alananasss.kittytune.data.TokenManager
-    import com.alananasss.kittytune.data.local.LocalArtist
-    import com.alananasss.kittytune.domain.Playlist
-    import com.alananasss.kittytune.domain.User
-    import com.alananasss.kittytune.ui.common.SquareCardShimmer
-    import com.alananasss.kittytune.ui.player.PlayerViewModel
-    import com.alananasss.kittytune.ui.profile.ArtistAvatar
-    
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun LibraryScreen(
-        onLoginClick: () -> Unit,
-        onPlaylistClick: (String) -> Unit,
-        onLikedTracksClick: () -> Unit,
-        onProfileClick: () -> Unit,
-        playerViewModel: PlayerViewModel,
-        libraryViewModel: LibraryViewModel = viewModel()
-    ) {
-        val context = LocalContext.current
-        val lifecycleOwner = LocalLifecycleOwner.current
-    
-        val listState = rememberLazyGridState()
-        // collapse fab text when scrolling
-        val fabExpanded by remember {
-            derivedStateOf {
-                listState.firstVisibleItemIndex == 0
-            }
-        }
-    
-        // keep an eye on network status
-        DisposableEffect(context) {
-            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val networkCallback = object : ConnectivityManager.NetworkCallback() {
-                override fun onAvailable(network: Network) {
-                    if (libraryViewModel.isOfflineMode || libraryViewModel.userProfile?.id == 0L) {
-                        libraryViewModel.loadData(forceRefresh = true)
-                    }
-                }
-                override fun onLost(network: Network) {
-                    libraryViewModel.isOfflineMode = true
-                }
-            }
-            val request = NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build()
-            try { connectivityManager.registerNetworkCallback(request, networkCallback) } catch (e: Exception) { e.printStackTrace() }
-            onDispose { try { connectivityManager.unregisterNetworkCallback(networkCallback) } catch (e: Exception) {} }
-        }
-    
-        LaunchedEffect(Unit) {
-            libraryViewModel.loadData()
-        }
-    
-        // refresh when coming back to the screen
-        DisposableEffect(lifecycleOwner) {
-            val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) {
-                    libraryViewModel.loadData(forceRefresh = false)
-                }
-            }
-            lifecycleOwner.lifecycle.addObserver(observer)
-            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-        }
-    
-        var showCreateDialog by remember { mutableStateOf(false) }
-        var newPlaylistName by remember { mutableStateOf("") }
-    
-        if (showCreateDialog) {
-            AlertDialog(
-                onDismissRequest = { showCreateDialog = false },
-                title = { Text(stringResource(R.string.lib_create_playlist_title)) },
-                text = {
-                    OutlinedTextField(
-                        value = newPlaylistName,
-                        onValueChange = { newPlaylistName = it },
-                        label = { Text(stringResource(R.string.lib_create_playlist_hint)) },
-                        singleLine = true
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        if (newPlaylistName.isNotBlank()) {
-                            val id = DownloadManager.createUserPlaylist(newPlaylistName)
-                            showCreateDialog = false
-                            newPlaylistName = ""
-                            onPlaylistClick("local_playlist:$id")
-                        }
-                    }) { Text(stringResource(R.string.btn_create)) }
-                },
-                dismissButton = { TextButton(onClick = { showCreateDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
+package com.alananasss.kittytune.ui.library
+
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.ui.common.rememberAppHaptics
+import com.alananasss.kittytune.ui.common.rememberAdaptiveGridCells
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import android.content.Intent
+import android.view.HapticFeedbackConstants
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.SdStorage
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material.icons.outlined.ExitToApp
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.automirrored.rounded.DriveFileMove
+import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
+import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material3.*
+import com.alananasss.kittytune.ui.common.KittyOutlinedTextField
+import com.alananasss.kittytune.ui.common.RegisterLandscapeScrollable
+import com.alananasss.kittytune.ui.common.rememberWindowSizeInfo
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.DownloadManager
+import com.alananasss.kittytune.data.LikeRepository
+import com.alananasss.kittytune.data.TokenManager
+import com.alananasss.kittytune.data.local.AppDatabase
+import com.alananasss.kittytune.data.local.LibraryFolder
+import com.alananasss.kittytune.data.local.LibraryCategoryLayout
+import com.alananasss.kittytune.data.local.LocalArtist
+import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.network.RetrofitClient
+import com.alananasss.kittytune.domain.Playlist
+import com.alananasss.kittytune.domain.Track
+import com.alananasss.kittytune.domain.User
+import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
+import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
+import com.alananasss.kittytune.ui.common.ShimmerBox
+import com.alananasss.kittytune.ui.common.ShimmerLine
+import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.profile.ArtistAvatar
+import com.alananasss.kittytune.data.local.toTrack
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyGridState
+
+private data class PlaylistActionItem(
+    val icon: ImageVector,
+    val text: String,
+    val subtitle: String? = null,
+    val tint: Color? = null,
+    val onClick: () -> Unit
+)
+
+/**
+ * Lets the collapsing library header keep its original screen-edge insets even though
+ * it lives inside a LazyVerticalGrid whose contentPadding already insets items by 16dp:
+ * the content is measured wider and placed back so it spans the full window width.
+ */
+private fun Modifier.headerBleed(extra: Dp): Modifier = this.then(
+    Modifier.layout { measurable, constraints ->
+        val extraPx = extra.roundToPx()
+        val placeable = measurable.measure(
+            constraints.copy(
+                minWidth = (constraints.minWidth - extraPx).coerceAtLeast(0),
+                maxWidth = (constraints.maxWidth + extraPx).coerceAtLeast(constraints.minWidth)
             )
+        )
+        layout(constraints.maxWidth, placeable.height) {
+            placeable.placeRelative(-(extraPx / 2), 0)
         }
-        val showLogin = libraryViewModel.userProfile == null && !libraryViewModel.isLoading && !libraryViewModel.isOfflineMode
-        val isGuest = libraryViewModel.isGuestUser
-    
-        Scaffold(
-            topBar = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.background)
-                        .statusBarsPadding()
-                        .padding(top = 16.dp, bottom = 8.dp)
-                ) {
-                    // offline banner
-                    if (libraryViewModel.isOfflineMode) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.errorContainer)
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(Icons.Rounded.WifiOff, null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.lib_offline_mode), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onErrorContainer)
-                        }
-                    }
-    
-                    // guest banner
-                    if (isGuest && !libraryViewModel.isOfflineMode) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .clickable { onLoginClick() }
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(Icons.Rounded.Person, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.lib_guest_mode), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                        }
-                    }
-    
-                    SearchBarHeader(
-                        query = libraryViewModel.searchQuery,
-                        onQueryChange = { libraryViewModel.searchQuery = it },
-                        avatarUrl = libraryViewModel.userProfile?.avatarUrl,
-                        onProfileClick = onProfileClick,
-                        isGuest = isGuest
-                    )
-    
-                    FilterChipsRow(libraryViewModel)
-                }
-            },
-            floatingActionButton = {
-                if (!showLogin || isGuest) {
-                    // bump up fab so miniplayer doesn't cover it
-                    val miniPlayerHeight = if (playerViewModel.currentTrack != null) 64.dp else 0.dp
-    
-                    ExtendedFloatingActionButton(
-                        onClick = { showCreateDialog = true },
-                        icon = { Icon(Icons.Rounded.Add, stringResource(R.string.lib_create_playlist_title)) },
-                        text = { Text(stringResource(R.string.lib_create_playlist_title)) },
-                        expanded = fabExpanded,
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(bottom = miniPlayerHeight)
-                    )
+    }
+)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun LibraryScreen(
+    onLoginClick: () -> Unit,
+    onPlaylistClick: (String) -> Unit,
+    onLikedTracksClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    onHistoryClick: () -> Unit = {},
+    onImportClick: () -> Unit = {},
+    onUploadClick: () -> Unit = {},
+    playerViewModel: PlayerViewModel,
+    libraryViewModel: LibraryViewModel = viewModel()
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val isGuest = TokenManager(context).isGuestMode()
+    val prefs = remember { PlayerPreferences(context) }
+    val haptics = rememberAppHaptics()
+    val libraryCategoryLayout by prefs.libraryCategoryLayoutFlow().collectAsState(initial = prefs.getLibraryCategoryLayout())
+    val trackRemovalMethod by prefs.getTrackRemovalMethodFlow().collectAsState(initial = prefs.getTrackRemovalMethod())
+    var showTrackRemovalDialog by remember { mutableStateOf(false) }
+
+    val listState = rememberLazyGridState()
+    // Let vertical swipes on the landscape navigation rail scroll the library grid.
+    RegisterLandscapeScrollable(listState)
+
+    var isFabMenuExpanded by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = isFabMenuExpanded) { isFabMenuExpanded = false }
+    BackHandler(enabled = !isFabMenuExpanded && libraryViewModel.isReorderMode) {
+        libraryViewModel.isReorderMode = false
+    }
+    BackHandler(enabled = !isFabMenuExpanded && !libraryViewModel.isReorderMode && libraryViewModel.currentFolderId != null) {
+        libraryViewModel.navigateUp()
+    }
+
+    DisposableEffect(context) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                if (libraryViewModel.isOfflineMode || libraryViewModel.userProfile?.id == 0L) {
+                    libraryViewModel.loadData(forceRefresh = true)
                 }
             }
-        ) { innerPadding ->
-            if (showLogin && !isGuest) {
-                Box(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.titleLarge)
-                        Spacer(Modifier.height(16.dp))
-                        Button(onClick = onLoginClick) { Text(stringResource(R.string.login_soundcloud)) }
-                    }
-                }
-            } else {
-                Column(modifier = Modifier.padding(innerPadding)) {
-                    SortAndLayoutControls(libraryViewModel)
-    
-                    if (libraryViewModel.isLoading && libraryViewModel.displayedItems.isEmpty()) {
-                        LibraryShimmerGrid(isGridLayout = libraryViewModel.isGridLayout)
+
+            override fun onLost(network: Network) {
+                libraryViewModel.isOfflineMode = true
+            }
+        }
+        val request = NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build()
+        try {
+            connectivityManager.registerNetworkCallback(request, networkCallback)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        onDispose {
+            try {
+                connectivityManager.unregisterNetworkCallback(networkCallback)
+            } catch (e: Exception) {
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        libraryViewModel.loadData()
+    }
+
+    LaunchedEffect(
+        libraryViewModel.selectedFilter,
+        libraryViewModel.currentFolderId,
+        libraryViewModel.isSortDescending,
+        libraryViewModel.ownershipFilter,
+        libraryViewModel.stationFilter,
+        libraryViewModel.sortOption
+    ) {
+        listState.scrollToItem(0)
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                libraryViewModel.loadData(forceRefresh = false)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var newPlaylistName by remember { mutableStateOf("") }
+    var isCreatingPlaylist by remember { mutableStateOf(false) }
+
+    var showCreateFolderDialog by remember { mutableStateOf(false) }
+    var newFolderName by remember { mutableStateOf("") }
+
+    var folderToRename by remember { mutableStateOf<LibraryFolder?>(null) }
+    var renameFolderName by remember { mutableStateOf("") }
+
+    var folderToDelete by remember { mutableStateOf<LibraryFolder?>(null) }
+    var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
+
+    var selectedPlaylistForMenu by remember { mutableStateOf<Playlist?>(null) }
+    var selectedFolderForMenu by remember { mutableStateOf<LibraryFolder?>(null) }
+
+    var showMoveTargetSheet by remember { mutableStateOf(false) }
+    var movingItemKey by remember { mutableStateOf<String?>(null) }
+    var movingFolderId by remember { mutableStateOf<Long?>(null) }
+
+    var playlistForDetails by remember { mutableStateOf<Playlist?>(null) }
+    var showPlaylistDetailsSheet by remember { mutableStateOf(false) }
+    var isFolderPlayMenuExpanded by remember { mutableStateOf(false) }
+
+    var showLikedTracksMenu by remember { mutableStateOf(false) }
+    var showDownloadsMenu by remember { mutableStateOf(false) }
+    var showDeleteLikedTracksDialog by remember { mutableStateOf(false) }
+    var showUploadsFilterSheet by remember { mutableStateOf(false) }
+
+    val likedTracks by LikeRepository.likedTracks.collectAsState()
+    val downloadedIds by DownloadManager.downloadedIds.collectAsState()
+    val userDbPlaylists by DownloadManager.getUserPlaylistsFlow().collectAsState(initial = emptyList())
+
+    val isLikesDownloading = DownloadManager.isPlaylistDownloading(DownloadManager.LIKES_BATCH_ID)
+    val downloadedLikesCount = remember(likedTracks, downloadedIds) {
+        likedTracks.count { downloadedIds.contains(it.id) }
+    }
+    val isLikesFullyDownloaded = remember(likedTracks.size, downloadedLikesCount, isLikesDownloading) {
+        if (likedTracks.isEmpty()) false
+        else downloadedLikesCount == likedTracks.size && !isLikesDownloading
+    }
+    val itemMetas by libraryViewModel.allItemMetas.collectAsState()
+    val isLikedPinned = itemMetas["liked_tracks"]?.isPinned ?: (!isGuest)
+    val isDownloadsPinned = itemMetas["downloads"]?.isPinned ?: false
+
+    val scope = rememberCoroutineScope()
+
+    suspend fun resolvePlaylistTracks(playlist: Playlist): List<Track> {
+        if (!playlist.tracks.isNullOrEmpty()) {
+            return com.alananasss.kittytune.data.DownloadManager.hydrateTracksIfNeeded(playlist.tracks!!)
+        }
+        val local = AppDatabase.getDatabase(context).downloadDao().getTracksForPlaylistSync(playlist.id)
+        if (local.isNotEmpty()) {
+            return local.map { it.toTrack(artworkOverride = it.artworkUrl) }
+        }
+        val api = RetrofitClient.create(context)
+        val permalink = playlist.permalinkUrl ?: playlist.permalink
+        if (playlist.urn?.startsWith("soundcloud:system-playlists:") == true) {
+            return try {
+                val pl = api.getSystemPlaylist(playlist.urn!!)
+                val raw = pl.tracks ?: emptyList()
+                com.alananasss.kittytune.data.DownloadManager.hydrateTracksIfNeeded(raw)
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        if (permalink != null && (permalink.contains("discover/sets/") || permalink.contains("your-playback") || permalink.contains("system-playlists"))) {
+            return try {
+                val fullUrl = if (permalink.startsWith("http")) permalink else "https://soundcloud.com/${permalink.removePrefix("/")}"
+                val pl = api.resolvePlaylist(fullUrl)
+                val raw = pl.tracks ?: emptyList()
+                com.alananasss.kittytune.data.DownloadManager.hydrateTracksIfNeeded(raw)
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        if (playlist.id > 0) {
+            return try {
+                val raw = api.getPlaylist(playlist.id).tracks ?: emptyList()
+                com.alananasss.kittytune.data.DownloadManager.hydrateTracksIfNeeded(raw)
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        return emptyList()
+    }
+
+    fun playPlaylistHelper(
+        playlist: Playlist,
+        shuffle: Boolean = false,
+        insertNext: Boolean = false,
+        addToQueue: Boolean = false,
+        prepareBulkAdd: Boolean = false
+    ) {
+        scope.launch(Dispatchers.IO) {
+            val tracks = resolvePlaylistTracks(playlist)
+
+            if (tracks.isNotEmpty()) {
+                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                    if (shuffle) {
+                        playerViewModel.playPlaylistShuffled(tracks)
+                    } else if (insertNext) {
+                        playerViewModel.insertNext(tracks)
+                    } else if (addToQueue) {
+                        playerViewModel.addToQueue(tracks)
+                    } else if (prepareBulkAdd) {
+                        playerViewModel.prepareBulkAdd(tracks)
                     } else {
-                        LibraryContentGrid(
-                            listState = listState,
-                            viewModel = libraryViewModel,
-                            onLikedTracksClick = onLikedTracksClick,
-                            onPlaylistClick = onPlaylistClick,
-                            onArtistClick = { artistId -> onPlaylistClick("profile:$artistId") },
-                            isGuest = isGuest
-                        )
+                        playerViewModel.playPlaylist(tracks, 0)
                     }
                 }
             }
         }
     }
-    
-    @Composable
-    fun LibraryContentGrid(
-        listState: LazyGridState,
-        viewModel: LibraryViewModel,
-        onLikedTracksClick: () -> Unit,
-        onPlaylistClick: (String) -> Unit,
-        onArtistClick: (Long) -> Unit,
-        isGuest: Boolean
-    ) {
-        val columns = if (viewModel.isGridLayout) GridCells.Fixed(2) else GridCells.Fixed(1)
-        val isSyncing by viewModel.isSyncing.collectAsState()
-    
-        // grab strings here before using them in logic
-        val playlistsFilter = stringResource(R.string.lib_playlists)
-        val shouldShowPlaylists = viewModel.selectedFilter == null || viewModel.selectedFilter == playlistsFilter
-    
-        LazyVerticalGrid(
-            state = listState,
-            columns = columns,
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+
+    fun likeAllSongsHelper(playlist: Playlist) {
+        scope.launch(Dispatchers.IO) {
+            val tracks = resolvePlaylistTracks(playlist)
+            if (tracks.isEmpty()) {
+                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(
+                        context,
+                        context.getString(R.string.toast_like_all_nothing),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+                return@launch
+            }
+            // Asks first on the main thread: the shared prompt lets the reader skip the odd ones
+            // (a silence, a voice note, a drone) before everything goes in (desktop PR #77).
+            kotlinx.coroutines.withContext(Dispatchers.Main) {
+                com.alananasss.kittytune.ui.library.LikeAllPrompt.ask(tracks)
+            }
+        }
+    }
+
+    if (showCreateDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!isCreatingPlaylist) showCreateDialog = false },
+            title = { Text(stringResource(R.string.lib_create_playlist_title)) },
+            text = {
+                KittyOutlinedTextField(
+                    value = newPlaylistName,
+                    onValueChange = { newPlaylistName = it },
+                    label = { Text(stringResource(R.string.lib_create_playlist_hint)) },
+                    singleLine = true,
+                    enabled = !isCreatingPlaylist
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        haptics.perform(HapticKind.CONFIRM)
+                        if (newPlaylistName.isNotBlank() && !isCreatingPlaylist) {
+                            val playlistName = newPlaylistName
+                            isCreatingPlaylist = true
+                            val targetFolderId = libraryViewModel.currentFolderId
+                            scope.launch {
+                                val id = DownloadManager.createUserPlaylist(playlistName)
+                                if (id > 0) {
+                                    val api = com.alananasss.kittytune.data.network.RetrofitClient.create(context)
+                                    for (i in 0..15) {
+                                        try {
+                                            api.getPlaylist(id)
+                                            break
+                                        } catch (e: Exception) {
+                                            kotlinx.coroutines.delay(1000)
+                                        }
+                                    }
+                                }
+                                val navId = if (id < 0) "local_playlist:$id" else id.toString()
+                                if (targetFolderId != null) {
+                                    val key = if (id < 0) "local_playlist:$id" else "playlist_$id"
+                                    libraryViewModel.moveItemToFolder(key, targetFolderId)
+                                }
+                                libraryViewModel.loadData(forceRefresh = true)
+                                isCreatingPlaylist = false
+                                showCreateDialog = false
+                                newPlaylistName = ""
+                                onPlaylistClick(navId)
+                            }
+                        }
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                    enabled = !isCreatingPlaylist
+                ) {
+                    if (isCreatingPlaylist) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text(stringResource(R.string.btn_create))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        haptics.perform(HapticKind.LIGHT)
+                        showCreateDialog = false
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                    enabled = !isCreatingPlaylist
+                ) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (showCreateFolderDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showCreateFolderDialog = false
+                newFolderName = ""
+            },
+            title = { Text(stringResource(R.string.lib_create_folder_title)) },
+            text = {
+                KittyOutlinedTextField(
+                    value = newFolderName,
+                    onValueChange = { newFolderName = it },
+                    label = { Text(stringResource(R.string.lib_create_folder_hint)) },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        haptics.perform(HapticKind.CONFIRM)
+                        if (newFolderName.isNotBlank()) {
+                            libraryViewModel.createFolder(
+                                name = newFolderName,
+                                parentFolderId = libraryViewModel.currentFolderId,
+                                itemToMoveKey = movingItemKey,
+                                folderToMoveId = movingFolderId
+                            )
+                            newFolderName = ""
+                            movingItemKey = null
+                            movingFolderId = null
+                            showCreateFolderDialog = false
+                            showMoveTargetSheet = false
+                        }
+                    },
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Text(stringResource(R.string.btn_create))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        haptics.perform(HapticKind.LIGHT)
+                        showCreateFolderDialog = false
+                        newFolderName = ""
+                    },
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (folderToRename != null) {
+        val folder = folderToRename!!
+        LaunchedEffect(folder) {
+            renameFolderName = folder.name
+        }
+        AlertDialog(
+            onDismissRequest = { folderToRename = null },
+            title = { Text(stringResource(R.string.dialog_rename_folder_title)) },
+            text = {
+                KittyOutlinedTextField(
+                    value = renameFolderName,
+                    onValueChange = { renameFolderName = it },
+                    label = { Text(stringResource(R.string.dialog_rename_folder_hint)) },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        haptics.perform(HapticKind.CONFIRM)
+                        if (renameFolderName.isNotBlank()) {
+                            libraryViewModel.renameFolder(folder.id, renameFolderName)
+                            folderToRename = null
+                        }
+                    },
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Text(stringResource(R.string.btn_save))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        haptics.perform(HapticKind.LIGHT)
+                        folderToRename = null
+                    },
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (folderToDelete != null) {
+        val folder = folderToDelete!!
+        AlertDialog(
+            onDismissRequest = { folderToDelete = null },
+            title = { Text(stringResource(R.string.dialog_delete_folder_title)) },
+            text = { Text(stringResource(R.string.dialog_delete_folder_msg)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        haptics.perform(HapticKind.REJECT)
+                        libraryViewModel.deleteFolder(folder)
+                        folderToDelete = null
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(R.string.btn_delete), color = MaterialTheme.colorScheme.onError)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        haptics.perform(HapticKind.LIGHT)
+                        folderToDelete = null
+                    },
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (playlistToDelete != null) {
+        val targetPlaylist = playlistToDelete!!
+        AlertDialog(
+            onDismissRequest = { playlistToDelete = null },
+            title = { Text(stringResource(R.string.dialog_delete_playlist_title)) },
+            text = { Text(stringResource(R.string.dialog_delete_playlist_msg)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        haptics.perform(HapticKind.REJECT)
+                        val pl = targetPlaylist
+                        playlistToDelete = null
+                        if (pl.id != 0L) {
+                            DownloadManager.deletePlaylist(
+                                playlistId = pl.id,
+                                forceUserCreated = true,
+                                forcePermalink = pl.permalinkUrl
+                            )
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.btn_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        haptics.perform(HapticKind.LIGHT)
+                        playlistToDelete = null
+                    }
+                ) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (selectedPlaylistForMenu != null) {
+        val playlist = selectedPlaylistForMenu!!
+        val canonicalKey = LibraryItem.getPlaylistCanonicalKey(playlist)
+        val isItemPinned = libraryViewModel.displayedItems.find { it.key == canonicalKey }?.isPinned ?: false
+        val isInsideFolder = libraryViewModel.currentFolderId != null
+        val permalink =
+            playlist.permalinkUrl ?: if (playlist.id > 0) "https://soundcloud.com/playlists/${playlist.id}" else ""
+        val likedPlaylistsRepo by com.alananasss.kittytune.data.LikeRepository.likedPlaylists.collectAsState()
+        val isPlaylistLiked = remember(playlist.id, likedPlaylistsRepo) {
+            com.alananasss.kittytune.data.LikeRepository.isPlaylistLiked(playlist.id)
+        }
+
+        val primaryColor = MaterialTheme.colorScheme.primary
+        val errorColor = MaterialTheme.colorScheme.error
+
+        val currentUserId = libraryViewModel.userProfile?.id ?: 0L
+        val currentUsername = libraryViewModel.userProfile?.username
+        val isSoundCloudUserCreated = (currentUserId != 0L && playlist.user?.id == currentUserId) ||
+                (!currentUsername.isNullOrEmpty() && playlist.user?.username == currentUsername)
+        val isLocalMe = playlist.user?.username == stringResource(R.string.me_artist)
+        val isDbUserCreated = userDbPlaylists.any { it.id == playlist.id && (it.isUserCreated || it.id < 0) }
+        val isUserOwned = playlist.id < 0 || isSoundCloudUserCreated || isLocalMe || isDbUserCreated
+
+        val actionItems = remember(playlist, isItemPinned, isInsideFolder, primaryColor, errorColor, isPlaylistLiked, isUserOwned, trackRemovalMethod) {
+            mutableListOf<PlaylistActionItem>().apply {
+                add(PlaylistActionItem(Icons.Rounded.PlayArrow, context.getString(R.string.btn_play)) {
+                    playPlaylistHelper(playlist, shuffle = false)
+                    selectedPlaylistForMenu = null
+                })
+                add(PlaylistActionItem(Icons.Default.Shuffle, context.getString(R.string.btn_shuffle)) {
+                    playPlaylistHelper(playlist, shuffle = true)
+                    selectedPlaylistForMenu = null
+                })
+                add(
+                    PlaylistActionItem(
+                        Icons.AutoMirrored.Rounded.PlaylistPlay,
+                        context.getString(R.string.menu_play_next)
+                    ) {
+                        playPlaylistHelper(playlist, insertNext = true)
+                        selectedPlaylistForMenu = null
+                    })
+                add(
+                    PlaylistActionItem(
+                        Icons.AutoMirrored.Rounded.QueueMusic,
+                        context.getString(R.string.menu_add_queue)
+                    ) {
+                        playPlaylistHelper(playlist, addToQueue = true)
+                        selectedPlaylistForMenu = null
+                    })
+                add(PlaylistActionItem(Icons.Default.Add, context.getString(R.string.menu_add_playlist)) {
+                    playPlaylistHelper(playlist, prepareBulkAdd = true)
+                    selectedPlaylistForMenu = null
+                })
+                if (playlist.id > 0 || playlist.urn?.startsWith("soundcloud:system-playlists:") == true) {
+                    add(
+                        PlaylistActionItem(
+                            icon = if (isPlaylistLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
+                            text = if (isPlaylistLiked) context.getString(R.string.action_unlike) else context.getString(
+                                R.string.player_like_action
+                            ),
+                            tint = if (isPlaylistLiked) primaryColor else null
+                        ) {
+                            if (!isPlaylistLiked) {
+                                val isExternal = com.alananasss.kittytune.data.local.ExternalPlaylists.isExternalProvider(
+                                    playlist.permalinkUrl, playlist.urn
+                                )
+                                com.alananasss.kittytune.data.DownloadManager.importPlaylistToLibrary(
+                                    playlist = playlist,
+                                    tracks = playlist.tracks ?: emptyList(),
+                                    syncToCloud = !isExternal,
+                                    likePlaylist = true
+                                )
+                            } else {
+                                com.alananasss.kittytune.data.LikeRepository.togglePlaylistLike(
+                                    playlist.id,
+                                    false,
+                                    playlist.permalinkUrl ?: "",
+                                    playlist.urn ?: ""
+                                )
+                            }
+                        }
+                    )
+                    add(PlaylistActionItem(Icons.Rounded.Info, context.getString(R.string.menu_playlist_details)) {
+                        val targetPlaylist = playlist
+                        selectedPlaylistForMenu = null
+                        playlistForDetails = targetPlaylist
+                        showPlaylistDetailsSheet = true
+                    })
+                }
+                if (playlist.isRealAlbum) {
+                    add(
+                        PlaylistActionItem(
+                            icon = Icons.Rounded.Favorite,
+                            text = context.getString(R.string.menu_like_all_songs),
+                            tint = primaryColor
+                        ) {
+                            selectedPlaylistForMenu = null
+                            likeAllSongsHelper(playlist)
+                        }
+                    )
+                }
+                if (!isInsideFolder) {
+                    add(
+                        PlaylistActionItem(
+                            icon = Icons.Rounded.PushPin,
+                            text = if (isItemPinned) context.getString(R.string.menu_unpin_playlist) else context.getString(
+                                R.string.menu_pin_playlist
+                            ),
+                            tint = primaryColor
+                        ) {
+                            libraryViewModel.togglePinItem(canonicalKey)
+                            selectedPlaylistForMenu = null
+                        })
+                }
+                add(PlaylistActionItem(Icons.Rounded.Folder, context.getString(R.string.menu_move_to_folder)) {
+                    movingItemKey = canonicalKey
+                    movingFolderId = null
+                    selectedPlaylistForMenu = null
+                    showMoveTargetSheet = true
+                })
+                if (isInsideFolder) {
+                    add(
+                        PlaylistActionItem(
+                            Icons.AutoMirrored.Rounded.DriveFileMove,
+                            context.getString(R.string.menu_move_to_library)
+                        ) {
+                            libraryViewModel.moveItemToFolder(canonicalKey, null)
+                            selectedPlaylistForMenu = null
+                        })
+                }
+                if (permalink.isNotEmpty()) {
+                    add(PlaylistActionItem(Icons.Outlined.Share, context.getString(R.string.btn_share)) {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, permalink)
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.btn_share)))
+                        selectedPlaylistForMenu = null
+                    })
+                }
+                if (isUserOwned) {
+                    add(
+                        PlaylistActionItem(
+                            icon = com.alananasss.kittytune.ui.common.trackRemovalMethodIcon(trackRemovalMethod),
+                            text = context.getString(R.string.menu_track_removal),
+                            subtitle = context.getString(trackRemovalMethod.titleRes),
+                            tint = if (trackRemovalMethod != com.alananasss.kittytune.data.local.TrackRemovalMethod.SWIPE_AND_MENU) primaryColor else null
+                        ) {
+                            selectedPlaylistForMenu = null
+                            showTrackRemovalDialog = true
+                        }
+                    )
+                    add(
+                        PlaylistActionItem(
+                            icon = Icons.Rounded.Delete,
+                            text = context.getString(R.string.menu_delete_playlist),
+                            tint = errorColor
+                        ) {
+                            val target = playlist
+                            selectedPlaylistForMenu = null
+                            playlistToDelete = target
+                        }
+                    )
+                }
+            }
+        }
+
+        KittyModalBottomSheet(
+            onDismissRequest = { selectedPlaylistForMenu = null },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         ) {
-            if (shouldShowPlaylists) {
-                item(span = { GridItemSpan(1) }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp)
+                        .padding(horizontal = 8.dp)
+                ) {
+                    AsyncImage(
+                        model = playlist.fullResArtwork,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = playlist.title ?: stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${stringResource(R.string.lib_playlists)} • ${
+                                playlist.user?.username ?: stringResource(
+                                    R.string.me_artist
+                                )
+                            }",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                LazyVerticalGrid(
+                    columns = rememberAdaptiveGridCells(compactCount = 3, tabletTileSize = 170.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(actionItems) { item ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .hapticClickable { item.onClick() }
+                                .padding(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.text,
+                                modifier = Modifier.size(32.dp),
+                                tint = item.tint ?: MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = item.text,
+                                style = MaterialTheme.typography.labelMedium,
+                                textAlign = TextAlign.Center,
+                                color = item.tint ?: MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (!item.subtitle.isNullOrBlank()) {
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = item.subtitle,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    textAlign = TextAlign.Center,
+                                    color = item.tint?.copy(alpha = 0.85f) ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showPlaylistDetailsSheet && playlistForDetails != null) {
+        val p = playlistForDetails!!
+        val rawId = if (p.urn?.startsWith("soundcloud:system-playlists:") == true) {
+            p.urn!!
+        } else if (p.id < 0) {
+            "local_playlist:${p.id}"
+        } else {
+            p.id.toString()
+        }
+        KittyModalBottomSheet(
+            onDismissRequest = {
+                showPlaylistDetailsSheet = false
+                playlistForDetails = null
+            },
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            PlaylistDetailsSheet(
+                playlistId = rawId,
+                onDismiss = {
+                    showPlaylistDetailsSheet = false
+                    playlistForDetails = null
+                },
+                onViewAll = { tabIndex ->
+                    showPlaylistDetailsSheet = false
+                    playlistForDetails = null
+                    onPlaylistClick("playlist_fans/${p.id}?tab=$tabIndex")
+                },
+                onNavigate = { id ->
+                    showPlaylistDetailsSheet = false
+                    playlistForDetails = null
+                    onPlaylistClick(id)
+                },
+                onMentionClick = { username ->
+                    showPlaylistDetailsSheet = false
+                    playlistForDetails = null
+                    playerViewModel.resolveAndNavigateToArtist(username)
+                },
+                initialDurationMs = p.durationMs
+            )
+        }
+    }
+
+    if (showDeleteLikedTracksDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteLikedTracksDialog = false },
+            title = { Text(stringResource(R.string.dialog_remove_download_title)) },
+            text = { Text(stringResource(R.string.dialog_remove_download_msg)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        DownloadManager.removeDownloads(likedTracks)
+                        showDeleteLikedTracksDialog = false
+                    },
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Text(stringResource(R.string.btn_delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteLikedTracksDialog = false },
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (showLikedTracksMenu) {
+        val primaryColor = MaterialTheme.colorScheme.primary
+        val likedActionItems =
+            remember(isLikedPinned, isLikesFullyDownloaded, isLikesDownloading, likedTracks, primaryColor, trackRemovalMethod) {
+                mutableListOf<PlaylistActionItem>().apply {
+                    add(
+                        PlaylistActionItem(
+                            icon = Icons.Rounded.PushPin,
+                            text = if (isLikedPinned) context.getString(R.string.menu_unpin_playlist) else context.getString(
+                                R.string.menu_pin_playlist
+                            ),
+                            tint = primaryColor
+                        ) {
+                            libraryViewModel.togglePinItem("liked_tracks", defaultPinned = !isGuest)
+                            showLikedTracksMenu = false
+                        })
+
+                    add(
+                        PlaylistActionItem(
+                            icon = com.alananasss.kittytune.ui.common.trackRemovalMethodIcon(trackRemovalMethod),
+                            text = context.getString(R.string.menu_track_removal),
+                            subtitle = context.getString(trackRemovalMethod.titleRes),
+                            tint = if (trackRemovalMethod != com.alananasss.kittytune.data.local.TrackRemovalMethod.SWIPE_AND_MENU) primaryColor else null
+                        ) {
+                            showLikedTracksMenu = false
+                            showTrackRemovalDialog = true
+                        })
+
+                    val dlIcon =
+                        if (isLikesFullyDownloaded) Icons.Rounded.Delete else if (isLikesDownloading) Icons.Rounded.Downloading else Icons.Rounded.Download
+                    val dlText =
+                        if (isLikesFullyDownloaded) context.getString(R.string.btn_delete) else context.getString(R.string.btn_download)
+                    val dlTint = if (isLikesFullyDownloaded) Color(0xFFE53935) else null
+
+                    add(
+                        PlaylistActionItem(
+                            icon = dlIcon,
+                            text = dlText,
+                            tint = dlTint
+                        ) {
+                            showLikedTracksMenu = false
+                            if (isLikesFullyDownloaded) {
+                                showDeleteLikedTracksDialog = true
+                            } else if (isLikesDownloading) {
+                                DownloadManager.cancelBatch(DownloadManager.LIKES_BATCH_ID)
+                            } else {
+                                DownloadManager.downloadBatch(likedTracks, DownloadManager.LIKES_BATCH_ID)
+                            }
+                        })
+                }
+            }
+
+        KittyModalBottomSheet(
+            onDismissRequest = { showLikedTracksMenu = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp)
+                        .padding(horizontal = 8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Favorite,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.lib_liked_tracks),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        val likedUser = libraryViewModel.userProfile?.username
+                            ?: if (isGuest) stringResource(R.string.lib_guest_mode) else "User"
+                        Text(
+                            text = "${stringResource(R.string.lib_playlists)} • $likedUser",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                LazyVerticalGrid(
+                    columns = rememberAdaptiveGridCells(compactCount = 3, tabletTileSize = 170.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(likedActionItems) { item ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .hapticClickable { item.onClick() }
+                                .padding(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.text,
+                                modifier = Modifier.size(32.dp),
+                                tint = item.tint ?: MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = item.text,
+                                style = MaterialTheme.typography.labelMedium,
+                                textAlign = TextAlign.Center,
+                                color = item.tint ?: MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (!item.subtitle.isNullOrBlank()) {
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = item.subtitle,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    textAlign = TextAlign.Center,
+                                    color = item.tint?.copy(alpha = 0.85f) ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDownloadsMenu) {
+        val primaryColor = MaterialTheme.colorScheme.primary
+        val downloadsActionItems = remember(isDownloadsPinned, primaryColor, trackRemovalMethod) {
+            listOf(
+                PlaylistActionItem(
+                    icon = Icons.Rounded.PushPin,
+                    text = if (isDownloadsPinned) context.getString(R.string.menu_unpin_playlist) else context.getString(
+                        R.string.menu_pin_playlist
+                    ),
+                    tint = primaryColor
+                ) {
+                    libraryViewModel.togglePinItem("downloads", defaultPinned = false)
+                    showDownloadsMenu = false
+                },
+                PlaylistActionItem(
+                    icon = com.alananasss.kittytune.ui.common.trackRemovalMethodIcon(trackRemovalMethod),
+                    text = context.getString(R.string.menu_track_removal),
+                    subtitle = context.getString(trackRemovalMethod.titleRes),
+                    tint = if (trackRemovalMethod != com.alananasss.kittytune.data.local.TrackRemovalMethod.SWIPE_AND_MENU) primaryColor else null
+                ) {
+                    showDownloadsMenu = false
+                    showTrackRemovalDialog = true
+                }
+            )
+        }
+
+        KittyModalBottomSheet(
+            onDismissRequest = { showDownloadsMenu = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp)
+                        .padding(horizontal = 8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Folder,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.lib_downloads),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${stringResource(R.string.lib_playlists)} • ${stringResource(R.string.lib_downloads_subtitle)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                LazyVerticalGrid(
+                    columns = rememberAdaptiveGridCells(compactCount = 3, tabletTileSize = 170.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(downloadsActionItems) { item ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .hapticClickable { item.onClick() }
+                                .padding(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.text,
+                                modifier = Modifier.size(32.dp),
+                                tint = item.tint ?: MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = item.text,
+                                style = MaterialTheme.typography.labelMedium,
+                                textAlign = TextAlign.Center,
+                                color = item.tint ?: MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (!item.subtitle.isNullOrBlank()) {
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = item.subtitle,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    textAlign = TextAlign.Center,
+                                    color = item.tint?.copy(alpha = 0.85f) ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showTrackRemovalDialog) {
+        com.alananasss.kittytune.ui.common.TrackRemovalMethodDialog(
+            selectedMethod = trackRemovalMethod,
+            onMethodSelected = { method ->
+                prefs.setTrackRemovalMethod(method)
+                showTrackRemovalDialog = false
+            },
+            onDismissRequest = { showTrackRemovalDialog = false }
+        )
+    }
+
+    if (showUploadsFilterSheet) {
+        UploadsFilterBottomSheet(
+            currentSort = libraryViewModel.uploadsSortOption,
+            currentPrivacy = libraryViewModel.uploadsPrivacyFilter,
+            onApply = { newSort, newPrivacy ->
+                libraryViewModel.uploadsSortOption = newSort
+                libraryViewModel.uploadsPrivacyFilter = newPrivacy
+            },
+            onDismiss = { showUploadsFilterSheet = false }
+        )
+    }
+
+    if (selectedFolderForMenu != null) {
+        val folder = selectedFolderForMenu!!
+        val isFolderPinned = folder.isPinned
+        val isInsideFolder = libraryViewModel.currentFolderId != null
+        val matchingFolderItem = libraryViewModel.displayedItems.filterIsInstance<LibraryItem.FolderItem>()
+            .find { it.folder.id == folder.id }
+        val plCount = matchingFolderItem?.playlistCount ?: 0
+        val fCount = matchingFolderItem?.folderCount ?: 0
+        val plText =
+            if (plCount <= 1) stringResource(R.string.lib_folder_counts_playlist_singular, plCount) else stringResource(
+                R.string.lib_folder_counts_playlist_plural,
+                plCount
+            )
+        val fText = if (fCount <= 1) stringResource(
+            R.string.lib_folder_counts_folder_singular,
+            fCount
+        ) else stringResource(R.string.lib_folder_counts_folder_plural, fCount)
+        val subtitle =
+            if (plCount == 0 && fCount == 0) stringResource(R.string.lib_folder_empty) else if (fCount > 0) "$plText, $fText" else plText
+
+        ModalBottomSheet(
+            onDismissRequest = { selectedFolderForMenu = null }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Folder,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = folder.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                if (!isInsideFolder) {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(if (isFolderPinned) R.string.menu_unpin_folder else R.string.menu_pin_folder))
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Rounded.PushPin,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier.hapticClickable {
+                            libraryViewModel.togglePinFolder(folder.id)
+                            selectedFolderForMenu = null
+                        }
+                    )
+                }
+
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.menu_move_to_folder)) },
+                    leadingContent = { Icon(Icons.Rounded.Folder, contentDescription = null) },
+                    modifier = Modifier.hapticClickable {
+                        selectedFolderForMenu = null
+                        movingFolderId = folder.id
+                        movingItemKey = null
+                        showMoveTargetSheet = true
+                    }
+                )
+
+                if (isInsideFolder) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.menu_move_to_library)) },
+                        leadingContent = { Icon(Icons.AutoMirrored.Rounded.DriveFileMove, contentDescription = null) },
+                        modifier = Modifier.hapticClickable {
+                            libraryViewModel.moveFolderToFolder(folder.id, null)
+                            selectedFolderForMenu = null
+                        }
+                    )
+                }
+
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.menu_rename_folder)) },
+                    leadingContent = { Icon(Icons.Rounded.Edit, contentDescription = null) },
+                    modifier = Modifier.hapticClickable {
+                        selectedFolderForMenu = null
+                        folderToRename = folder
+                    }
+                )
+
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            text = stringResource(R.string.menu_delete_folder),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Rounded.DeleteOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    modifier = Modifier.hapticClickable {
+                        selectedFolderForMenu = null
+                        folderToDelete = folder
+                    }
+                )
+            }
+        }
+    }
+
+    if (showMoveTargetSheet) {
+        val availableFolders = libraryViewModel.getAvailableTargetFolders(movingFolderId)
+        val isInsideFolder = libraryViewModel.currentFolderId != null
+
+        ModalBottomSheet(
+            onDismissRequest = {
+                showMoveTargetSheet = false
+                movingItemKey = null
+                movingFolderId = null
+            }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.select_folder_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            stringResource(R.string.lib_create_folder_title),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    },
+                    leadingContent = {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CreateNewFolder,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    },
+                    modifier = Modifier.hapticClickable {
+                        showMoveTargetSheet = false
+                        showCreateFolderDialog = true
+                    }
+                )
+
+                if (isInsideFolder) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.menu_move_to_library)) },
+                        leadingContent = {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.AutoMirrored.Rounded.DriveFileMove, contentDescription = null)
+                            }
+                        },
+                        modifier = Modifier.hapticClickable {
+                            if (movingItemKey != null) {
+                                libraryViewModel.moveItemToFolder(movingItemKey!!, null)
+                            } else if (movingFolderId != null) {
+                                libraryViewModel.moveFolderToFolder(movingFolderId!!, null)
+                            }
+                            showMoveTargetSheet = false
+                            movingItemKey = null
+                            movingFolderId = null
+                        }
+                    )
+                }
+
+                availableFolders.forEach { targetFolder ->
+                    ListItem(
+                        headlineContent = { Text(targetFolder.name) },
+                        leadingContent = {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Folder,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        },
+                        modifier = Modifier.hapticClickable {
+                            if (movingItemKey != null) {
+                                libraryViewModel.moveItemToFolder(movingItemKey!!, targetFolder.id)
+                            } else if (movingFolderId != null) {
+                                libraryViewModel.moveFolderToFolder(movingFolderId!!, targetFolder.id)
+                            }
+                            showMoveTargetSheet = false
+                            movingItemKey = null
+                            movingFolderId = null
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    val showLogin =
+        libraryViewModel.userProfile == null && !libraryViewModel.isLoading && !libraryViewModel.isOfflineMode && !isGuest
+    val isInsideFolder = libraryViewModel.currentFolder != null
+
+    // ── Collapsing header pieces ──────────────────────────────────────────────────
+    // The whole root-library header (banners + "Filter library" search + category
+    // chips + sort row) lives INSIDE the scrolling grid, so it scrolls away upward
+    // when the user reaches the playlists and slides back once the list is at the
+    // top. Folder mode keeps the previous static top bar with its own header.
+    val offlineBannerBlock: @Composable () -> Unit = {
+        if (libraryViewModel.isOfflineMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .hapticClickable { onPlaylistClick("downloads") }
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        Icons.Rounded.WifiOff,
+                        null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = stringResource(R.string.lib_offline_mode),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = stringResource(R.string.offline_banner_action_downloads),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+    val guestBannerBlock: @Composable () -> Unit = {
+        if (isGuest && !libraryViewModel.isOfflineMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .hapticClickable { onLoginClick() }
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    Icons.Rounded.Person,
+                    null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.lib_guest_mode),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+    }
+    val libraryHeaderBlock: @Composable () -> Unit = {
+        Column(
+            modifier = Modifier
+                .statusBarsPadding()
+                .padding(top = 8.dp)
+        ) {
+            offlineBannerBlock()
+            guestBannerBlock()
+            SearchBarHeader(
+                query = libraryViewModel.searchQuery,
+                onQueryChange = { libraryViewModel.searchQuery = it },
+                avatarUrl = if (libraryViewModel.activeLibrarySource == LibrarySource.VK) libraryViewModel.vkTokenManager.getUser()?.photoMax else libraryViewModel.userProfile?.avatarUrl,
+                onProfileClick = onProfileClick,
+                isGuest = isGuest,
+                activeSource = libraryViewModel.activeLibrarySource,
+                onSourceSelect = { libraryViewModel.onLibrarySourceChanged(it) },
+                isUploads = libraryViewModel.selectedFilter == LibraryFilter.UPLOADS,
+                onUploadsFilterClick = { showUploadsFilterSheet = true }
+            )
+
+            if (libraryViewModel.activeLibrarySource == LibrarySource.SOUNDCLOUD) {
+                FilterChipsRow(libraryViewModel, libraryCategoryLayout)
+            }
+
+            SortAndLayoutControls(
+                viewModel = libraryViewModel,
+                onHistoryClick = onHistoryClick,
+                onUploadsFilterClick = { showUploadsFilterSheet = true }
+            )
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                    .then(
+                        if (isInsideFolder) {
+                            Modifier.statusBarsPadding().padding(top = 8.dp, bottom = 4.dp)
+                        } else {
+                            Modifier
+                        }
+                    )
+            ) {
+                if (isInsideFolder) {
+                    offlineBannerBlock()
+                    guestBannerBlock()
+                }
+
+                AnimatedContent(
+                    targetState = libraryViewModel.currentFolder,
+                    transitionSpec = {
+                        if (targetState != null) {
+                            (slideInHorizontally(
+                                animationSpec = tween(
+                                    280,
+                                    easing = FastOutSlowInEasing
+                                )
+                            ) { width -> (width * 0.15f).toInt() } + fadeIn(animationSpec = tween(280)))
+                                .togetherWith(
+                                    slideOutHorizontally(
+                                        animationSpec = tween(
+                                            220,
+                                            easing = FastOutSlowInEasing
+                                        )
+                                    ) { width -> (-width * 0.15f).toInt() } + fadeOut(animationSpec = tween(180)))
+                        } else {
+                            (slideInHorizontally(
+                                animationSpec = tween(
+                                    280,
+                                    easing = FastOutSlowInEasing
+                                )
+                            ) { width -> (-width * 0.15f).toInt() } + fadeIn(animationSpec = tween(280)))
+                                .togetherWith(
+                                    slideOutHorizontally(
+                                        animationSpec = tween(
+                                            220,
+                                            easing = FastOutSlowInEasing
+                                        )
+                                    ) { width -> (width * 0.15f).toInt() } + fadeOut(animationSpec = tween(180)))
+                        }
+                    },
+                    label = "FolderTopBarTransition"
+                ) { currentFolder ->
+                    if (currentFolder != null) {
+                        val username = libraryViewModel.userProfile?.username ?: stringResource(R.string.app_name)
+
+                        Column {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        haptics.perform(HapticKind.LIGHT)
+                                        libraryViewModel.navigateUp()
+                                    },
+                                    shapes = IconButtonDefaults.shapes()
+                                ) {
+                                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                                }
+                                Text(
+                                    text = currentFolder.name,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(horizontal = 4.dp)
+                                )
+                                IconButton(
+                                    onClick = {
+                                        haptics.perform(HapticKind.LIGHT)
+                                        selectedFolderForMenu = currentFolder
+                                    },
+                                    shapes = IconButtonDefaults.shapes()
+                                ) {
+                                    Icon(Icons.Rounded.MoreVert, contentDescription = "Options")
+                                }
+                                IconButton(
+                                    onClick = {
+                                        haptics.perform(HapticKind.MEDIUM)
+                                        isFabMenuExpanded = true
+                                    },
+                                    shapes = IconButtonDefaults.shapes()
+                                ) {
+                                    Icon(Icons.Rounded.Add, contentDescription = "Add")
+                                }
+                                Box {
+                                    val splitColors = ButtonDefaults.filledTonalButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    SplitButtonLayout(
+                                        leadingButton = {
+                                            SplitButtonDefaults.LeadingButton(
+                                                onClick = {
+                                                    haptics.perform(HapticKind.HEAVY)
+                                                    libraryViewModel.playFolder(
+                                                        currentFolder.id,
+                                                        playerViewModel,
+                                                        shuffle = false,
+                                                        recursive = false
+                                                    )
+                                                },
+                                                colors = splitColors
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.PlayArrow,
+                                                    contentDescription = stringResource(R.string.lib_folder_play_ordered),
+                                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                        },
+                                        trailingButton = {
+                                            SplitButtonDefaults.TrailingButton(
+                                                checked = isFolderPlayMenuExpanded,
+                                                onCheckedChange = {
+                                                    haptics.perform(HapticKind.LIGHT)
+                                                    isFolderPlayMenuExpanded = it
+                                                },
+                                                colors = splitColors
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.ArrowDropDown,
+                                                    contentDescription = "Options",
+                                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                        }
+                                    )
+
+                                    DropdownMenu(
+                                        expanded = isFolderPlayMenuExpanded,
+                                        onDismissRequest = { isFolderPlayMenuExpanded = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.lib_folder_play_ordered)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.PlayArrow,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            },
+                                            onClick = {
+                                                haptics.perform(HapticKind.HEAVY)
+                                                isFolderPlayMenuExpanded = false
+                                                libraryViewModel.playFolder(
+                                                    currentFolder.id,
+                                                    playerViewModel,
+                                                    shuffle = false,
+                                                    recursive = false
+                                                )
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.lib_folder_play_shuffle)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Shuffle,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                            onClick = {
+                                                haptics.perform(HapticKind.HEAVY)
+                                                isFolderPlayMenuExpanded = false
+                                                libraryViewModel.playFolder(
+                                                    currentFolder.id,
+                                                    playerViewModel,
+                                                    shuffle = true,
+                                                    recursive = false
+                                                )
+                                            }
+                                        )
+                                        HorizontalDivider()
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.lib_folder_play_recursive_ordered)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Folder,
+                                                    contentDescription = null
+                                                )
+                                            },
+                                            onClick = {
+                                                haptics.perform(HapticKind.HEAVY)
+                                                isFolderPlayMenuExpanded = false
+                                                libraryViewModel.playFolder(
+                                                    currentFolder.id,
+                                                    playerViewModel,
+                                                    shuffle = false,
+                                                    recursive = true
+                                                )
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.lib_folder_play_recursive_shuffle)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Shuffle,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            },
+                                            onClick = {
+                                                haptics.perform(HapticKind.HEAVY)
+                                                isFolderPlayMenuExpanded = false
+                                                libraryViewModel.playFolder(
+                                                    currentFolder.id,
+                                                    playerViewModel,
+                                                    shuffle = true,
+                                                    recursive = true
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                modifier = Modifier.padding(start = 16.dp, top = 2.dp, bottom = 6.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.playlist_by_user, username),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        // Root library header (search + chips + sort row) now lives inside
+                        // the scrolling grid below, so it collapses upward while scrolling.
+                        Box(modifier = Modifier)
+                    }
+                }
+            }
+        },
+        floatingActionButton = {
+            if (!showLogin || isGuest) {
+                // In phone landscape the bottom bar is replaced by the side navigation rail,
+                // so the old 90dp + mini-player lift pushed the create FAB to the middle of
+                // the screen (right next to the search bar). Pin it to the bottom there.
+                val windowSizeInfo = rememberWindowSizeInfo()
+                val railMode = windowSizeInfo.showNavRail
+                val bottomNavHeight = if (railMode) 0.dp else 90.dp
+                val miniPlayerHeight = if (!railMode && playerViewModel.uiCurrentTrack != null) 72.dp else 0.dp
+                val totalBottomPadding = bottomNavHeight + miniPlayerHeight
+
+                FloatingActionButtonMenu(
+                    expanded = isFabMenuExpanded,
+                    button = {
+                        val initialFabColor = MaterialTheme.colorScheme.primaryContainer
+                        val finalFabColor = MaterialTheme.colorScheme.secondaryContainer
+                        val initialFabContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        val finalFabContentColor = MaterialTheme.colorScheme.onSecondaryContainer
+
+                        ToggleFloatingActionButton(
+                            checked = isFabMenuExpanded,
+                            onCheckedChange = {
+                                haptics.perform(if (it) HapticKind.MEDIUM else HapticKind.LIGHT)
+                                isFabMenuExpanded = it
+                            },
+                            containerColor = ToggleFloatingActionButtonDefaults.containerColor(
+                                initialColor = initialFabColor,
+                                finalColor = finalFabColor
+                            )
+                        ) {
+                            val iconColor = androidx.compose.ui.graphics.lerp(
+                                initialFabContentColor,
+                                finalFabContentColor,
+                                checkedProgress
+                            )
+                            val imageVector by remember {
+                                derivedStateOf {
+                                    if (checkedProgress > 0.5f) Icons.Rounded.Close else Icons.Rounded.Add
+                                }
+                            }
+                            Icon(
+                                imageVector = imageVector,
+                                contentDescription = if (isFabMenuExpanded) stringResource(R.string.btn_cancel) else stringResource(
+                                    R.string.lib_create_playlist_title
+                                ),
+                                tint = iconColor,
+                                modifier = Modifier.rotate(checkedProgress * 135f)
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .then(
+                            if (railMode) {
+                                Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                            } else {
+                                Modifier
+                            }
+                        )
+                        .padding(bottom = totalBottomPadding)
+                ) {
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                            haptics.perform(HapticKind.MEDIUM)
+                            isFabMenuExpanded = false
+                            onUploadClick()
+                        },
+                        text = { Text(stringResource(R.string.nav_upload)) },
+                        icon = { Icon(Icons.Rounded.CloudUpload, contentDescription = null) }
+                    )
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                            haptics.perform(HapticKind.MEDIUM)
+                            isFabMenuExpanded = false
+                            onImportClick()
+                        },
+                        text = { Text(stringResource(R.string.music_import_title)) },
+                        icon = { Icon(Icons.Rounded.SwapHoriz, contentDescription = null) }
+                    )
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                            haptics.perform(HapticKind.MEDIUM)
+                            isFabMenuExpanded = false
+                            showCreateFolderDialog = true
+                        },
+                        text = { Text(stringResource(R.string.lib_create_folder_title)) },
+                        icon = { Icon(Icons.Rounded.CreateNewFolder, contentDescription = null) }
+                    )
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                            haptics.perform(HapticKind.MEDIUM)
+                            isFabMenuExpanded = false
+                            showCreateDialog = true
+                        },
+                        text = { Text(stringResource(R.string.lib_create_playlist_title)) },
+                        icon = { Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, contentDescription = null) }
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            if (showLogin && !isGuest && !libraryViewModel.isOfflineMode) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = onLoginClick,
+                            shapes = ButtonDefaults.shapes()
+                        ) { Text(stringResource(R.string.login_soundcloud)) }
+                    }
+                }
+            } else {
+                AnimatedContent(
+                    targetState = libraryViewModel.currentFolderId,
+                    transitionSpec = {
+                        if (targetState != null) {
+                            (slideInHorizontally(
+                                animationSpec = tween(
+                                    300,
+                                    easing = FastOutSlowInEasing
+                                )
+                            ) { width -> (width * 0.25f).toInt() } + fadeIn(animationSpec = tween(300)))
+                                .togetherWith(
+                                    slideOutHorizontally(
+                                        animationSpec = tween(
+                                            240,
+                                            easing = FastOutSlowInEasing
+                                        )
+                                    ) { width -> (-width * 0.25f).toInt() } + fadeOut(animationSpec = tween(200)))
+                        } else {
+                            (slideInHorizontally(
+                                animationSpec = tween(
+                                    300,
+                                    easing = FastOutSlowInEasing
+                                )
+                            ) { width -> (-width * 0.25f).toInt() } + fadeIn(animationSpec = tween(300)))
+                                .togetherWith(
+                                    slideOutHorizontally(
+                                        animationSpec = tween(
+                                            240,
+                                            easing = FastOutSlowInEasing
+                                        )
+                                    ) { width -> (width * 0.25f).toInt() } + fadeOut(animationSpec = tween(200)))
+                        }
+                    },
+                    label = "FolderContentTransition",
+                    modifier = Modifier.fillMaxSize()
+                ) { folderId ->
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // In folder mode the sort row stays pinned above the grid; in the root
+                        // library it is part of the collapsing header inside the grid itself.
+                        if (isInsideFolder) {
+                            SortAndLayoutControls(
+                                viewModel = libraryViewModel,
+                                onHistoryClick = onHistoryClick,
+                                onUploadsFilterClick = { showUploadsFilterSheet = true }
+                            )
+                        }
+
+                        if (libraryViewModel.activeLibrarySource == LibrarySource.VK && !libraryViewModel.vkTokenManager.isLoggedIn()) {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                if (!isInsideFolder) {
+                                    libraryHeaderBlock()
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                        .padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(28.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(24.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                            modifier = Modifier.size(64.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    painter = androidx.compose.ui.res.painterResource(R.drawable.ic_vk),
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(32.dp)
+                                                )
+                                            }
+                                        }
+                                        Spacer(Modifier.height(16.dp))
+                                        Text(
+                                            text = stringResource(R.string.lib_vk_not_connected),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(Modifier.height(8.dp))
+                                        Text(
+                                            text = stringResource(R.string.lib_vk_connect_desc),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(Modifier.height(20.dp))
+                                        Button(
+                                            onClick = { onProfileClick() },
+                                            shapes = ButtonDefaults.shapes()
+                                        ) {
+                                            Text(stringResource(R.string.lib_vk_connect_action))
+                                        }
+                                    }
+                                }
+                            }
+                            }
+                        } else if (((libraryViewModel.isLoading && libraryViewModel.activeLibrarySource == LibrarySource.SOUNDCLOUD) || (libraryViewModel.isVkLoading && libraryViewModel.activeLibrarySource == LibrarySource.VK)) && libraryViewModel.displayedItems.isEmpty() && folderId == null) {
+                            // Shimmer keeps the header above it so the loading state looks
+                            // identical to the loaded grid (the header then scrolls with it).
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                if (!isInsideFolder) {
+                                    libraryHeaderBlock()
+                                }
+                                LibraryShimmerGrid(isGridLayout = libraryViewModel.isGridLayout)
+                            }
+                        } else if (folderId != null && libraryViewModel.displayedItems.isEmpty()) {
+                            EmptyFolderView()
+                        } else {
+                            LibraryContentGrid(
+                                listState = listState,
+                                viewModel = libraryViewModel,
+                                playerViewModel = playerViewModel,
+                                isLikedPinned = isLikedPinned,
+                                isDownloadsPinned = isDownloadsPinned,
+                                onLikedTracksClick = onLikedTracksClick,
+                                onLikedTracksLongClick = { showLikedTracksMenu = true },
+                                onDownloadsClick = { onPlaylistClick("downloads") },
+                                onDownloadsLongClick = { showDownloadsMenu = true },
+                                onPlaylistClick = onPlaylistClick,
+                                onArtistClick = { artistId ->
+                                    val spotifyId = com.alananasss.kittytune.data.local.PlayerPreferences(context).getSpotifyArtistIdForStableId(artistId)
+                                    if (!spotifyId.isNullOrBlank()) {
+                                        val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(spotifyId)
+                                        onPlaylistClick("spotify_artist:$clean")
+                                    } else {
+                                        onPlaylistClick("profile:$artistId")
+                                    }
+                                },
+                                onPlaylistLongClick = { playlist -> selectedPlaylistForMenu = playlist },
+                                onFolderLongClick = { folder -> selectedFolderForMenu = folder },
+                                onUploadClick = onUploadClick,
+                                isGuest = isGuest,
+                                header = if (!isInsideFolder) {
+                                    { libraryHeaderBlock() }
+                                } else {
+                                    null
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = isFabMenuExpanded,
+                enter = fadeIn(animationSpec = tween(200)),
+                exit = fadeOut(animationSpec = tween(200))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        // Theme-aware scrim: a heavy black veil looks broken on the light
+                        // theme (the whole library seemed to "change"), so light mode gets
+                        // a barely-there dim while dark mode keeps the original strength.
+                        .background(
+                            Color.Black.copy(
+                                alpha = if (androidx.compose.foundation.isSystemInDarkTheme()) 0.45f else 0.14f
+                            )
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            isFabMenuExpanded = false
+                        }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LibraryContentGrid(
+    listState: LazyGridState,
+    viewModel: LibraryViewModel,
+    playerViewModel: PlayerViewModel,
+    isLikedPinned: Boolean,
+    isDownloadsPinned: Boolean,
+    onLikedTracksClick: () -> Unit,
+    onLikedTracksLongClick: () -> Unit,
+    onDownloadsClick: () -> Unit,
+    onDownloadsLongClick: () -> Unit,
+    onPlaylistClick: (String) -> Unit,
+    onArtistClick: (Long) -> Unit,
+    onPlaylistLongClick: (Playlist) -> Unit,
+    onFolderLongClick: (LibraryFolder) -> Unit,
+    onUploadClick: () -> Unit = {},
+    isGuest: Boolean,
+    header: (@Composable () -> Unit)? = null
+) {
+    val columns = if (viewModel.isGridLayout) rememberAdaptiveGridCells(compactCount = 3, tabletTileSize = 170.dp) else GridCells.Fixed(1)
+    val isSyncing by viewModel.isSyncing.collectAsState()
+    val downloadedIds by DownloadManager.downloadedIds.collectAsState()
+    val downloadProgress by DownloadManager.downloadProgress.collectAsState()
+
+    val shouldShowPlaylists =
+        (viewModel.selectedFilter == null || viewModel.selectedFilter == LibraryFilter.PLAYLISTS) && viewModel.currentFolderId == null
+
+    val view = LocalView.current
+    val reorderState = rememberReorderableLazyGridState(
+        lazyGridState = listState,
+        onMove = { from, to ->
+            val fromKey = from.key as? String
+            val toKey = to.key as? String
+            if (fromKey != null && toKey != null) {
+                viewModel.moveLibraryItem(fromKey, toKey)
+                view.performAppHaptic(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+            }
+        }
+    )
+
+    LazyVerticalGrid(
+        state = listState,
+        columns = columns,
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 180.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(if (viewModel.isGridLayout) 16.dp else 8.dp)
+    ) {
+        // Collapsing header: the banners + "Filter library" search + category chips +
+        // sort row scroll together with the content, so reaching the playlists gives
+        // them the whole screen height. Scrolling back to the top brings it back.
+        if (header != null) {
+            item(span = { GridItemSpan(maxLineSpan) }, key = "library_collapsing_header") {
+                Column(modifier = Modifier.headerBleed(32.dp)) {
+                    header()
+                }
+            }
+        }
+
+        if (viewModel.selectedFilter == LibraryFilter.UPLOADS) {
+            val searched = if (viewModel.searchQuery.isBlank()) {
+                viewModel.uploadedTracks
+            } else {
+                viewModel.uploadedTracks.filter {
+                    it.title?.contains(viewModel.searchQuery, ignoreCase = true) == true ||
+                    it.user?.username?.contains(viewModel.searchQuery, ignoreCase = true) == true
+                }
+            }
+
+            val privacyFiltered = when (viewModel.uploadsPrivacyFilter) {
+                UploadsPrivacyFilter.ALL -> searched
+                UploadsPrivacyFilter.PUBLIC -> searched.filter {
+                    it.sharing?.equals("private", ignoreCase = true) != true
+                }
+                UploadsPrivacyFilter.PRIVATE -> searched.filter {
+                    it.sharing?.equals("private", ignoreCase = true) == true
+                }
+            }
+
+            val sortedTracks = when (viewModel.uploadsSortOption) {
+                UploadsSortOption.RECENTLY_ADDED -> privacyFiltered
+                UploadsSortOption.FIRST_ADDED -> privacyFiltered.reversed()
+                UploadsSortOption.TITLE -> privacyFiltered.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title.orEmpty() })
+                UploadsSortOption.ARTIST -> privacyFiltered.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.user?.username.orEmpty() })
+            }
+
+            if (sortedTracks.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }, key = "empty_uploads") {
+                    EmptyUploadsView(onUploadClick = onUploadClick)
+                }
+            } else {
+                if (viewModel.isGridLayout) {
+                    items(
+                        items = sortedTracks,
+                        key = { track -> "upload_track_${track.id}" }
+                    ) { track ->
+                        val index = sortedTracks.indexOf(track)
+                        Box(modifier = Modifier.animateItem()) {
+                            UploadTrackGridCard(
+                                track = track,
+                                onClick = {
+                                    playerViewModel.playPlaylist(sortedTracks, if (index >= 0) index else 0)
+                                },
+                                onLongClick = {
+                                    playerViewModel.showTrackOptions(track)
+                                }
+                            )
+                        }
+                    }
+                } else {
+                    items(
+                        items = sortedTracks,
+                        key = { track -> "upload_track_${track.id}" }
+                    ) { track ->
+                        val index = sortedTracks.indexOf(track)
+                        val trackIndex = if (index >= 0) index else 0
+                        val trackProgress = downloadProgress[track.id]
+                        Box(modifier = Modifier.animateItem()) {
+                            TrackListItem(
+                                track = track,
+                                currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
+                                index = trackIndex,
+                                isDownloading = trackProgress != null,
+                                isDownloaded = downloadedIds.contains(track.id),
+                                downloadProgress = trackProgress ?: 0,
+                                onClick = {
+                                    playerViewModel.playPlaylist(sortedTracks, trackIndex)
+                                },
+                                onOptionClick = {
+                                    playerViewModel.showTrackOptions(track)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            return@LazyVerticalGrid
+        }
+
+        if (shouldShowPlaylists) {
+            item(span = { GridItemSpan(1) }, key = "liked_tracks") {
+                Box(modifier = Modifier.animateItem()) {
+                    val likedUser = viewModel.userProfile?.username
+                        ?: if (isGuest) stringResource(R.string.lib_guest_mode) else "User"
                     val subtitle = if (isGuest) stringResource(R.string.lib_liked_subtitle_local)
-                    else if(isSyncing) stringResource(R.string.lib_liked_subtitle_syncing)
-                    else stringResource(R.string.lib_liked_subtitle)
+                    else if (isSyncing) stringResource(R.string.lib_liked_subtitle_syncing)
+                    else "${stringResource(R.string.lib_playlists)} • $likedUser"
+
                     StaticLibraryCard(
                         title = stringResource(R.string.lib_liked_tracks),
                         subtitle = subtitle,
                         icon = Icons.Rounded.Favorite,
                         isGrid = viewModel.isGridLayout,
                         onClick = onLikedTracksClick,
-                        isLoading = isSyncing
+                        onLongClick = onLikedTracksLongClick,
+                        isLoading = isSyncing,
+                        isPinned = isLikedPinned
                     )
                 }
-    
-                item(span = { GridItemSpan(1) }) {
+            }
+
+            item(span = { GridItemSpan(1) }, key = "downloads") {
+                Box(modifier = Modifier.animateItem()) {
                     StaticLibraryCard(
                         title = stringResource(R.string.lib_downloads),
-                        subtitle = stringResource(R.string.lib_downloads_subtitle),
+                        subtitle = "${stringResource(R.string.lib_playlists)} • ${stringResource(R.string.lib_downloads_subtitle)}",
                         icon = Icons.Rounded.Folder,
                         isGrid = viewModel.isGridLayout,
-                        onClick = { onPlaylistClick("downloads") },
-                        isLoading = false
+                        onClick = onDownloadsClick,
+                        onLongClick = onDownloadsLongClick,
+                        isLoading = false,
+                        isPinned = isDownloadsPinned
                     )
                 }
-    
-                if (viewModel.showLocalMedia) {
-                    item(span = { GridItemSpan(1) }) {
+            }
+
+            if (viewModel.showLocalMedia) {
+                item(span = { GridItemSpan(1) }, key = "local_media") {
+                    Box(modifier = Modifier.animateItem()) {
                         StaticLibraryCard(
                             title = stringResource(R.string.lib_local_media),
-                            subtitle = stringResource(R.string.lib_local_media_subtitle),
+                            subtitle = "${stringResource(R.string.lib_playlists)} • ${stringResource(R.string.lib_local_media_subtitle)}",
                             icon = Icons.Default.SdStorage,
                             isGrid = viewModel.isGridLayout,
                             onClick = { onPlaylistClick("local_files") },
@@ -306,25 +2350,103 @@
                     }
                 }
             }
-    
-            items(viewModel.displayedItems) { item ->
-                when (item) {
+
+            item(span = { GridItemSpan(1) }, key = "together") {
+                Box(modifier = Modifier.animateItem()) {
+                    StaticLibraryCard(
+                        title = stringResource(R.string.together_title),
+                        subtitle = "${stringResource(R.string.lib_playlists)} • ${stringResource(R.string.together_hint)}",
+                        icon = Icons.Rounded.Groups,
+                        isGrid = viewModel.isGridLayout,
+                        onClick = { onPlaylistClick("together") },
+                        isLoading = false
+                    )
+                }
+            }
+        }
+
+        items(
+            items = viewModel.displayedItems,
+            key = { item -> item.key }
+        ) { item ->
+            ReorderableItem(state = reorderState, key = item.key) { isDragging ->
+                Box(
+                    modifier = Modifier
+                        .animateItem()
+                        .zIndex(if (isDragging) 1f else 0f)
+                ) {
+                    when (item) {
+                    is LibraryItem.FolderItem -> {
+                        FolderLibraryCard(
+                            folderItem = item,
+                            isGrid = viewModel.isGridLayout,
+                            isInsideFolder = viewModel.currentFolderId != null,
+                            onClick = { viewModel.navigateToFolder(item.folder) },
+                            onLongClick = { onFolderLongClick(item.folder) }
+                        )
+                    }
+
                     is LibraryItem.PlaylistItem -> {
-                        val permalink = item.playlist.permalinkUrl
+                        val permalink = item.playlist.permalinkUrl ?: item.playlist.permalink
                         val isYoutubeShortcut = permalink != null && permalink.startsWith("yt_radio:")
-    
-                        val navId = if (isYoutubeShortcut) {
-                            android.net.Uri.encode(permalink!!)
-                        } else {
-                            if (item.playlist.id < 0) "local_playlist:${item.playlist.id}" else item.playlist.id.toString()
+                        val isSpotifyRadioShortcut = permalink != null && permalink.startsWith("spotify_radio:")
+                        // Older builds saved a Spotify radio with the remote playlist URL
+                        // but hashed the seed track for the row id. Navigating by that URL
+                        // resolves to the transient playlist, not to the saved snapshot;
+                        // the row id is the only key that still reaches it.
+                        val isLegacySpotifyRadio = permalink != null &&
+                            item.playlist.title?.contains("radio", ignoreCase = true) == true &&
+                            permalink.contains("spotify", ignoreCase = true) &&
+                            com.alananasss.kittytune.data.local.ExternalPlaylists.spotifyStableId(
+                                com.alananasss.kittytune.data.spotify.SpotifyIds.stripPrefixes(permalink)
+                            ) != item.playlist.id
+
+                        val navId = when {
+                            // A saved radio keeps its seed route; its remote playlist id alone
+                            // does not resolve to the same tracks (or to anything at all).
+                            isYoutubeShortcut -> {
+                                val rawUrl = permalink!!.removePrefix("yt_radio:")
+                                "yt_radio:" + android.net.Uri.encode(android.net.Uri.decode(rawUrl))
+                            }
+                            isSpotifyRadioShortcut -> permalink!!
+                            isLegacySpotifyRadio -> item.playlist.id.toString()
+                            item.playlist.urn?.startsWith("spotify:") == true -> item.playlist.urn!!
+                            permalink?.contains("spotify.com/playlist/") == true -> {
+                                val spotifyId = permalink.substringAfter("playlist/").substringBefore("?").substringBefore("/")
+                                "spotify:playlist:$spotifyId"
+                            }
+                            permalink?.contains("spotify.com/album/") == true -> {
+                                val spotifyId = permalink.substringAfter("album/").substringBefore("?").substringBefore("/")
+                                "spotify:album:$spotifyId"
+                            }
+                            permalink?.startsWith("spotify:playlist:") == true -> permalink
+                            permalink?.startsWith("spotify:album:") == true -> permalink
+                            item.playlist.urn?.startsWith("soundcloud:system-playlists:") == true -> "system_playlist:${item.playlist.urn}"
+                            permalink?.contains("artist-stations:") == true -> {
+                                val stationId = permalink.substringAfter("artist-stations:").substringBefore("?").substringBefore("/").substringBefore("&")
+                                "station_artist:$stationId"
+                            }
+                            permalink?.contains("track-stations:") == true -> {
+                                val stationId = permalink.substringAfter("track-stations:").substringBefore("?").substringBefore("/").substringBefore("&")
+                                "station:$stationId"
+                            }
+                            permalink != null && (permalink.contains("discover/sets/") || permalink.contains("system-playlists") || permalink.contains("your-playback")) -> {
+                                "system_playlist:${android.net.Uri.encode(permalink)}"
+                            }
+                            item.playlist.id < 0 -> "local_playlist:${item.playlist.id}"
+                            else -> item.playlist.id.toString()
                         }
-    
+
                         DynamicPlaylistCard(
                             playlist = item.playlist,
                             isGrid = viewModel.isGridLayout,
-                            onClick = { onPlaylistClick(navId) }
+                            isPinned = item.isPinned,
+                            isInsideFolder = viewModel.currentFolderId != null,
+                            onClick = { onPlaylistClick(navId) },
+                            onLongClick = { onPlaylistLongClick(item.playlist) }
                         )
                     }
+
                     is LibraryItem.ArtistItem -> {
                         ArtistLibraryCard(
                             artist = item.artist,
@@ -333,155 +2455,829 @@
                         )
                     }
                 }
+                if (viewModel.isReorderMode) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        shadowElevation = if (isDragging) 4.dp else 1.dp,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(6.dp)
+                            .size(30.dp)
+                            .draggableHandle(
+                                onDragStarted = {
+                                    view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
+                                },
+                                onDragStopped = {
+                                    view.performAppHaptic(HapticFeedbackConstants.GESTURE_END)
+                                }
+                            )
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.DragHandle,
+                                contentDescription = stringResource(R.string.reorder_handle),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
             }
         }
     }
-    
-    @Composable
-    fun LibraryShimmerGrid(isGridLayout: Boolean) {
-        val columns = if (isGridLayout) GridCells.Fixed(2) else GridCells.Fixed(1)
-        LazyVerticalGrid(
-            columns = columns,
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            userScrollEnabled = false
-        ) {
-            items(10) {
-                SquareCardShimmer()
-            }
-        }
-    }
-    
-    @Composable
-    fun SearchBarHeader(
-        query: String,
-        onQueryChange: (String) -> Unit,
-        avatarUrl: String?,
-        onProfileClick: () -> Unit,
-        isGuest: Boolean
+}
+
+@Composable
+fun LibraryShimmerGrid(isGridLayout: Boolean) {
+    val columns = if (isGridLayout) rememberAdaptiveGridCells(compactCount = 3, tabletTileSize = 170.dp) else GridCells.Fixed(1)
+    LazyVerticalGrid(
+        columns = columns,
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 180.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(if (isGridLayout) 16.dp else 8.dp),
+        userScrollEnabled = false
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .height(56.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Default.Search, stringResource(R.string.search_library_hint), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.width(12.dp))
-            Box(modifier = Modifier.weight(1f)) {
-                if (query.isEmpty()) { Text(stringResource(R.string.search_library_hint), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                androidx.compose.foundation.text.BasicTextField(
-                    value = query, onValueChange = onQueryChange,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                    singleLine = true, modifier = Modifier.fillMaxWidth()
-                )
-            }
-    
-            Box(modifier = Modifier.clickable { onProfileClick() }) {
-                if (isGuest) {
-                    ArtistAvatar(avatarUrl = null, modifier = Modifier.size(32.dp).clip(CircleShape))
-                } else if (avatarUrl != null) {
-                    ArtistAvatar(avatarUrl = avatarUrl, modifier = Modifier.size(32.dp).clip(CircleShape))
-                } else {
-                    ArtistAvatar(avatarUrl = null, modifier = Modifier.size(32.dp).clip(CircleShape))
+        items(12) {
+            if (isGridLayout) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    ShimmerBox(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    ShimmerLine(modifier = Modifier.fillMaxWidth(0.85f).height(13.dp))
+                    Spacer(Modifier.height(4.dp))
+                    ShimmerLine(modifier = Modifier.fillMaxWidth(0.6f).height(11.dp))
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ShimmerBox(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                    )
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        ShimmerLine(modifier = Modifier.fillMaxWidth(0.65f).height(15.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
+                        ShimmerLine(modifier = Modifier.fillMaxWidth(0.45f).height(12.dp))
+                    }
                 }
             }
         }
     }
-    
-    @Composable
-    fun FilterChipsRow(viewModel: LibraryViewModel) {
-        val playlistsLabel = stringResource(R.string.lib_playlists)
-        val artistsLabel = stringResource(R.string.lib_artists)
-    
-        // moved after stringResource calls
-        val filters = remember(playlistsLabel, artistsLabel) {
-            listOf(playlistsLabel, artistsLabel)
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun LibrarySourceSelector(
+    selectedSource: LibrarySource,
+    onSelect: (LibrarySource) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isSourceMenuExpanded by remember { mutableStateOf(false) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
+    Box(modifier = modifier) {
+        IconButton(
+            onClick = {
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                isSourceMenuExpanded = true
+            },
+            shapes = IconButtonDefaults.shapes(),
+            modifier = Modifier.size(36.dp)
+        ) {
+            val iconRes = when (selectedSource) {
+                LibrarySource.SOUNDCLOUD -> R.drawable.ic_soundcloud
+                LibrarySource.VK -> R.drawable.ic_vk
+            }
+            Icon(
+                painter = androidx.compose.ui.res.painterResource(iconRes),
+                contentDescription = "Change Library Source",
+                modifier = Modifier.size(20.dp)
+            )
         }
-    
-        Row(
+
+        DropdownMenu(
+            expanded = isSourceMenuExpanded,
+            onDismissRequest = { isSourceMenuExpanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.lib_source_soundcloud)) },
+                leadingIcon = {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_soundcloud),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                onClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    onSelect(LibrarySource.SOUNDCLOUD)
+                    isSourceMenuExpanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.lib_source_vk)) },
+                leadingIcon = {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_vk),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                onClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    onSelect(LibrarySource.VK)
+                    isSourceMenuExpanded = false
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun SearchBarHeader(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    avatarUrl: String?,
+    onProfileClick: () -> Unit,
+    isGuest: Boolean,
+    activeSource: LibrarySource = LibrarySource.SOUNDCLOUD,
+    onSourceSelect: (LibrarySource) -> Unit = {},
+    isUploads: Boolean = false,
+    onUploadsFilterClick: () -> Unit = {}
+) {
+    TextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        placeholder = {
+            Text(stringResource(if (isUploads) R.string.search_uploads_hint else R.string.search_library_hint))
+        },
+        leadingIcon = {
+            Icon(Icons.Default.Search, contentDescription = stringResource(if (isUploads) R.string.search_uploads_hint else R.string.search_library_hint))
+        },
+        trailingIcon = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(end = 6.dp)
+            ) {
+                LibrarySourceSelector(
+                    selectedSource = activeSource,
+                    onSelect = onSourceSelect
+                )
+                Spacer(Modifier.width(2.dp))
+                if (isUploads) {
+                    IconButton(
+                        onClick = onUploadsFilterClick,
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Tune,
+                            contentDescription = stringResource(R.string.uploads_filter_dialog_title),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (query.isNotEmpty()) {
+                    IconButton(
+                        onClick = { onQueryChange("") },
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
+                        Icon(Icons.Rounded.Close, contentDescription = "Clear search")
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .hapticClickable { onProfileClick() }
+                ) {
+                    ArtistAvatar(
+                        avatarUrl = if (isGuest && activeSource == LibrarySource.SOUNDCLOUD) null else avatarUrl,
+                        modifier = Modifier.size(32.dp).clip(CircleShape),
+                        enableViewer = false
+                    )
+                }
+            }
+        },
+        shape = CircleShape,
+        colors = TextFieldDefaults.colors(
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+        singleLine = true
+    )
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun FilterChipsRow(
+    viewModel: LibraryViewModel,
+    layout: LibraryCategoryLayout = LibraryCategoryLayout.CONNECTED
+) {
+    val filters = remember(viewModel.uploadedTracks.size) {
+        if (viewModel.uploadedTracks.isNotEmpty()) {
+            listOf(
+                LibraryFilter.PLAYLISTS,
+                LibraryFilter.ALBUMS,
+                LibraryFilter.ARTISTS,
+                LibraryFilter.STATIONS,
+                LibraryFilter.UPLOADS
+            )
+        } else {
+            listOf(
+                LibraryFilter.PLAYLISTS,
+                LibraryFilter.ALBUMS,
+                LibraryFilter.ARTISTS,
+                LibraryFilter.STATIONS
+            )
+        }
+    }
+
+    if (layout == LibraryCategoryLayout.CONNECTED) {
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp, start = 16.dp, end = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
         ) {
-            filters.forEach { label ->
-                FilterChip(
-                    selected = viewModel.selectedFilter == label,
-                    onClick = { viewModel.selectedFilter = if (viewModel.selectedFilter == label) null else label },
-                    label = { Text(label) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
+            ExpressiveConnectedButtonGroup(
+                options = filters,
+                selectedOption = viewModel.selectedFilter,
+                onOptionSelected = { filter ->
+                    viewModel.selectedFilter = if (viewModel.selectedFilter == filter) null else filter
+                },
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                labelProvider = { filter ->
+                    Text(
+                        text = stringResource(filter.stringRes),
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            )
+        }
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)
+        ) {
+            var isMenuExpanded by remember { mutableStateOf(false) }
+            val arrowRotation by animateFloatAsState(
+                targetValue = if (isMenuExpanded) 180f else 0f,
+                animationSpec = tween(durationMillis = 200),
+                label = "FilterDropdownArrow"
+            )
+            val isFiltered = viewModel.selectedFilter != null
+
+            Box {
+                FilledTonalButton(
+                    onClick = { isMenuExpanded = true },
+                    shapes = ButtonDefaults.shapes(),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = if (isFiltered) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = if (isFiltered) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
                     ),
-                    border = null,
-                    shape = RoundedCornerShape(12.dp)
-                )
+                    contentPadding = PaddingValues(start = 14.dp, end = 10.dp, top = 6.dp, bottom = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = when (viewModel.selectedFilter) {
+                            LibraryFilter.PLAYLISTS -> Icons.AutoMirrored.Rounded.PlaylistPlay
+                            LibraryFilter.ALBUMS -> Icons.Rounded.Album
+                            LibraryFilter.ARTISTS -> Icons.Rounded.Person
+                            LibraryFilter.STATIONS -> Icons.Rounded.Radio
+                            LibraryFilter.UPLOADS -> Icons.Rounded.CloudUpload
+                            null -> Icons.Rounded.FilterList
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = viewModel.selectedFilter?.let { stringResource(it.stringRes) }
+                            ?: stringResource(R.string.filter_all),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    if (isFiltered) {
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .hapticClickable { viewModel.selectedFilter = null },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = stringResource(R.string.btn_clear),
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    Icon(
+                        imageVector = Icons.Rounded.ArrowDropDown,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .rotate(arrowRotation)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = isMenuExpanded,
+                    onDismissRequest = { isMenuExpanded = false },
+                    shape = RoundedCornerShape(16.dp),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(R.string.filter_all),
+                                fontWeight = if (viewModel.selectedFilter == null) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.AllInclusive,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = if (viewModel.selectedFilter == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingIcon = if (viewModel.selectedFilter == null) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else null,
+                        onClick = {
+                            viewModel.selectedFilter = null
+                            isMenuExpanded = false
+                        }
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
+                    filters.forEach { filter ->
+                        val isSelected = viewModel.selectedFilter == filter
+                        val icon = when (filter) {
+                            LibraryFilter.PLAYLISTS -> Icons.AutoMirrored.Rounded.PlaylistPlay
+                            LibraryFilter.ALBUMS -> Icons.Rounded.Album
+                            LibraryFilter.ARTISTS -> Icons.Rounded.Person
+                            LibraryFilter.STATIONS -> Icons.Rounded.Radio
+                            LibraryFilter.UPLOADS -> Icons.Rounded.CloudUpload
+                        }
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = stringResource(filter.stringRes),
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            trailingIcon = if (isSelected) {
+                                {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            } else null,
+                            onClick = {
+                                viewModel.selectedFilter = if (isSelected) null else filter
+                                isMenuExpanded = false
+                            }
+                        )
+                    }
+                }
             }
         }
     }
-    
-    @Composable
-    fun SortAndLayoutControls(viewModel: LibraryViewModel) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+}
+
+@Composable
+fun SortAndLayoutControls(
+    viewModel: LibraryViewModel,
+    onHistoryClick: () -> Unit = {},
+    onUploadsFilterClick: () -> Unit = {}
+) {
+    val isRoot = viewModel.currentFolderId == null
+    val view = androidx.compose.ui.platform.LocalView.current
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (isRoot && viewModel.selectedFilter == LibraryFilter.UPLOADS) {
+            val sortText = stringResource(viewModel.uploadsSortOption.stringRes)
+            val filterText = if (viewModel.uploadsPrivacyFilter != UploadsPrivacyFilter.ALL) {
+                " • ${stringResource(viewModel.uploadsPrivacyFilter.stringRes)}"
+            } else ""
             Row(
-                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { viewModel.isSortDescending = !viewModel.isSortDescending }.padding(4.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        onUploadsFilterClick()
+                    }
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = stringResource(R.string.sort_date_added), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = "$sortText$filterText",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
-                    imageVector = if (viewModel.isSortDescending) Icons.Rounded.ArrowDownward else Icons.Rounded.ArrowUpward,
-                    contentDescription = stringResource(R.string.sort_date_added), modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary
+                    imageVector = Icons.Rounded.Tune,
+                    contentDescription = stringResource(R.string.uploads_filter_dialog_title),
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
-            IconButton(onClick = { viewModel.isGridLayout = !viewModel.isGridLayout }) {
+        } else if (isRoot && viewModel.selectedFilter == LibraryFilter.STATIONS) {
+            val filterText = when (viewModel.stationFilter) {
+                StationFilter.ALL -> stringResource(R.string.filter_all)
+                StationFilter.TRACKS -> stringResource(R.string.profile_tab_tracks)
+                StationFilter.ARTISTS -> stringResource(R.string.lib_artists)
+            }
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        viewModel.stationFilter = when (viewModel.stationFilter) {
+                            StationFilter.ALL -> StationFilter.TRACKS
+                            StationFilter.TRACKS -> StationFilter.ARTISTS
+                            StationFilter.ARTISTS -> StationFilter.ALL
+                        }
+                    }
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = filterText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Rounded.FilterList,
+                    contentDescription = filterText,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else if (isRoot && (viewModel.selectedFilter == null || viewModel.selectedFilter == LibraryFilter.PLAYLISTS || viewModel.selectedFilter == LibraryFilter.ALBUMS)) {
+            val filterText = when (viewModel.ownershipFilter) {
+                OwnershipFilter.ALL -> stringResource(R.string.filter_all)
+                OwnershipFilter.CREATED -> stringResource(R.string.filter_created)
+                OwnershipFilter.LIKED -> stringResource(R.string.filter_liked)
+            }
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        viewModel.ownershipFilter = when (viewModel.ownershipFilter) {
+                            OwnershipFilter.ALL -> OwnershipFilter.CREATED
+                            OwnershipFilter.CREATED -> OwnershipFilter.LIKED
+                            OwnershipFilter.LIKED -> OwnershipFilter.ALL
+                        }
+                    }
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = filterText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Rounded.FilterList,
+                    contentDescription = filterText,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else {
+            val isManualOrder = viewModel.sortOption == LibrarySortOption.MANUAL
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (!isManualOrder) {
+                            viewModel.isSortDescending = !viewModel.isSortDescending
+                        }
+                    }
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(
+                        if (isManualOrder) R.string.lib_sort_manual else R.string.lib_sort_recently_added
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = if (isManualOrder) {
+                        Icons.Rounded.SwapVert
+                    } else if (viewModel.isSortDescending) {
+                        Icons.Rounded.ArrowDownward
+                    } else {
+                        Icons.Rounded.ArrowUpward
+                    },
+                    contentDescription = stringResource(
+                        if (isManualOrder) R.string.lib_sort_manual else R.string.lib_sort_recently_added
+                    ),
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (viewModel.currentFolderId == null) {
+                IconButton(
+                    onClick = {
+                        view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        onHistoryClick()
+                    },
+                    shapes = IconButtonDefaults.shapes()
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.History,
+                        contentDescription = stringResource(R.string.history_title),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (viewModel.selectedFilter == null ||
+                viewModel.selectedFilter == LibraryFilter.PLAYLISTS ||
+                viewModel.selectedFilter == LibraryFilter.ALBUMS
+            ) {
+                val isReorderActive = viewModel.isReorderMode
+                IconButton(
+                    onClick = {
+                        view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (viewModel.isReorderMode) {
+                            viewModel.isReorderMode = false
+                        } else {
+                            viewModel.enableManualOrder()
+                            viewModel.isReorderMode = true
+                        }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
+                    colors = if (isReorderActive) {
+                        IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        IconButtonDefaults.iconButtonColors()
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.SwapVert,
+                        contentDescription = stringResource(R.string.lib_reorder_mode),
+                        tint = if (isReorderActive) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+            }
+            IconButton(
+                onClick = {
+                    view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                    viewModel.isGridLayout = !viewModel.isGridLayout
+                },
+                shapes = IconButtonDefaults.shapes()
+            ) {
                 Icon(
                     imageVector = if (viewModel.isGridLayout) Icons.Default.ViewList else Icons.Default.GridView,
-                    contentDescription = stringResource(R.string.btn_options), tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    contentDescription = stringResource(R.string.btn_options),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     }
-    
-    @Composable
-    fun StaticLibraryCard(title: String, subtitle: String, icon: ImageVector, isGrid: Boolean, isLoading: Boolean, onClick: () -> Unit) {
-        val height = if (isGrid) 160.dp else 80.dp
-        Card(
-            onClick = onClick, shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-            modifier = Modifier.height(height).fillMaxWidth()
+}
+
+@Composable
+fun EmptyFolderView() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 64.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = stringResource(R.string.empty_folder_kaomoji),
+            style = MaterialTheme.typography.displayMedium,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        Text(
+            text = stringResource(R.string.empty_folder_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(R.string.empty_folder_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun EmptyUploadsView(onUploadClick: () -> Unit = {}) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 64.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = stringResource(R.string.empty_uploads_kaomoji),
+            style = MaterialTheme.typography.displayMedium,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        Text(
+            text = stringResource(R.string.empty_uploads_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(R.string.empty_uploads_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        Button(
+            onClick = onUploadClick,
+            shapes = ButtonDefaults.shapes()
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                if (isGrid) {
-                    Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                } else {
-                    Row(modifier = Modifier.fillMaxSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
-                            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-                // fix applied here
+            Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.nav_upload), fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun UploadTrackGridCard(
+    track: Track,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .combinedClickable(
+                onClick = hapticAction(HapticKind.UI, onClick),
+                onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
+            )
+            .fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(6.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = track.thumbnailUrl,
+                contentDescription = track.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Text(
+            text = track.title ?: stringResource(R.string.untitled_track),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        Text(
+            text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)
+@Composable
+fun StaticLibraryCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    isGrid: Boolean,
+    isLoading: Boolean,
+    isPinned: Boolean = false,
+    onLongClick: () -> Unit = {},
+    onClick: () -> Unit
+) {
+    if (isGrid) {
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .combinedClickable(
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
+                )
+                .fillMaxWidth()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
                 if (isLoading) {
                     Box(modifier = Modifier.align(Alignment.BottomCenter)) {
                         LinearWavyProgressIndicator(
@@ -492,39 +3288,178 @@
                     }
                 }
             }
-        }
-    }
-    
-    @Composable
-    fun DynamicPlaylistCard(playlist: Playlist, isGrid: Boolean, onClick: () -> Unit) {
-        val art = playlist.fullResArtwork
-        val isRadioShortcut = playlist.permalinkUrl?.startsWith("yt_radio:") == true
-        val subtitleText = if (isRadioShortcut) {
-            stringResource(R.string.radio)
-        } else {
-            stringResource(R.string.playlist_num_tracks, playlist.trackCount ?: 0)
-        }
-    
-        val authorText = playlist.user?.username ?: stringResource(R.string.me_artist)
-        val finalSubtitle = if (isRadioShortcut) "$subtitleText • YouTube" else "$subtitleText • $authorText"
-    
-        if (isGrid) {
-            Column(modifier = Modifier.clickable(onClick = onClick).fillMaxWidth()) {
-                AsyncImage(
-                    model = art,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-    
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (isPinned) {
+                    Icon(
+                        imageVector = Icons.Rounded.PushPin,
+                        contentDescription = "Pinned",
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                }
                 Text(
-                    text = playlist.title ?: stringResource(R.string.app_name),
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .combinedClickable(
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
+                )
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                if (isLoading) {
+                    Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+                        LinearWavyProgressIndicator(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = Color.Transparent
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isPinned) {
+                        Icon(
+                            imageVector = Icons.Rounded.PushPin,
+                            contentDescription = "Pinned",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun FolderLibraryCard(
+    folderItem: LibraryItem.FolderItem,
+    isGrid: Boolean,
+    isInsideFolder: Boolean,
+    onLongClick: () -> Unit = {},
+    onClick: () -> Unit
+) {
+    val plCount = folderItem.playlistCount
+    val fCount = folderItem.folderCount
+    val plText = if (plCount <= 1) stringResource(
+        R.string.lib_folder_counts_playlist_singular,
+        plCount
+    ) else stringResource(R.string.lib_folder_counts_playlist_plural, plCount)
+    val fText = if (fCount <= 1) stringResource(
+        R.string.lib_folder_counts_folder_singular,
+        fCount
+    ) else stringResource(R.string.lib_folder_counts_folder_plural, fCount)
+    val finalSubtitle =
+        if (plCount == 0 && fCount == 0) stringResource(R.string.lib_folder_empty) else if (fCount > 0) "$plText, $fText" else plText
+    val showPin = folderItem.isPinned && !isInsideFolder
+
+    if (isGrid) {
+        Column(
+            modifier = Modifier
+                .combinedClickable(
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
+                )
+                .fillMaxWidth()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Folder,
+                    contentDescription = null,
+                    modifier = Modifier.size(36.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = folderItem.folder.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (showPin) {
+                    Icon(
+                        imageVector = Icons.Rounded.PushPin,
+                        contentDescription = "Pinned",
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                }
                 Text(
                     text = finalSubtitle,
                     style = MaterialTheme.typography.bodySmall,
@@ -533,52 +3468,475 @@
                     overflow = TextOverflow.Ellipsis
                 )
             }
-        } else {
-            Row(modifier = Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                AsyncImage(model = art, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant))
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(text = playlist.title ?: stringResource(R.string.app_name), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .combinedClickable(
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
+                )
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Folder,
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = folderItem.folder.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (showPin) {
+                        Icon(
+                            imageVector = Icons.Rounded.PushPin,
+                            contentDescription = "Pinned",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
                     Text(
                         text = finalSubtitle,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
         }
     }
-    
-    @Composable
-    fun ArtistLibraryCard(artist: LocalArtist, isGrid: Boolean, onClick: () -> Unit) {
-        if (isGrid) {
-            Column(modifier = Modifier.clickable(onClick = onClick).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                ArtistAvatar(
-                    avatarUrl = artist.avatarUrl,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .clip(CircleShape)
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun DynamicPlaylistCard(
+    playlist: Playlist,
+    isGrid: Boolean,
+    isPinned: Boolean = false,
+    isInsideFolder: Boolean = false,
+    modifier: Modifier = Modifier,
+    onLongClick: () -> Unit = {},
+    onOptionClick: (() -> Unit)? = null,
+    onClick: () -> Unit
+) {
+    val art = playlist.fullResArtwork
+    val isYoutubeRadioShortcut = playlist.permalinkUrl?.startsWith("yt_radio:") == true
+    val isSpotifyRadioShortcut = playlist.permalinkUrl?.startsWith("spotify_radio:") == true
+    val isRadioShortcut = isYoutubeRadioShortcut || isSpotifyRadioShortcut
+    val typePrefix = if (isRadioShortcut) stringResource(R.string.radio) else stringResource(R.string.lib_playlists)
+    val authorText = playlist.user?.username ?: stringResource(R.string.me_artist)
+    val radioPlatform = if (isSpotifyRadioShortcut) "Spotify" else "YouTube"
+    val finalSubtitle = if (isRadioShortcut) "$typePrefix • $radioPlatform" else "$typePrefix • $authorText"
+    val showPin = isPinned && !isInsideFolder
+
+    // Album release date: real albums carry their date under the author, in the
+    // short or full form the appearance setting asks for.
+    val releaseDateText = if (playlist.isRealAlbum && !isRadioShortcut) {
+        val raw = playlist.releaseDate ?: playlist.createdAt
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val display = remember {
+            com.alananasss.kittytune.data.local.PlayerPreferences(context).getAlbumReleaseDateDisplay()
+        }
+        when (display) {
+            com.alananasss.kittytune.data.local.ReleaseDateDisplay.OFF -> null
+            com.alananasss.kittytune.data.local.ReleaseDateDisplay.FULL ->
+                com.alananasss.kittytune.ui.profile.ReleaseDate.text(raw)
+            com.alananasss.kittytune.data.local.ReleaseDateDisplay.SHORT ->
+                com.alananasss.kittytune.ui.profile.ReleaseDate.shortText(raw)
+        }
+    } else null
+
+    if (isGrid) {
+        Column(
+            modifier = modifier
+                .combinedClickable(
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = artist.username, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(text = stringResource(R.string.menu_go_artist), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                .fillMaxWidth()
+        ) {
+            AsyncImage(
+                model = art,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = playlist.title ?: stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (playlist.sharing == "private" || playlist.sharing == "secret") {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Rounded.Lock,
+                        contentDescription = "Private",
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-        } else {
-            Row(modifier = Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                ArtistAvatar(
-                    avatarUrl = artist.avatarUrl,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
+            Spacer(modifier = Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (showPin) {
+                    Icon(
+                        imageVector = Icons.Rounded.PushPin,
+                        contentDescription = "Pinned",
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                }
+                Text(
+                    text = finalSubtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(text = artist.username, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                    Text(text = stringResource(R.string.menu_go_artist) + " • " + stringResource(R.string.playlist_num_tracks, artist.trackCount), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (!releaseDateText.isNullOrBlank()) {
+                Text(
+                    text = releaseDateText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    } else {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .combinedClickable(
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
+                )
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = art,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = playlist.title ?: stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (playlist.sharing == "private" || playlist.sharing == "secret") {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Rounded.Lock,
+                            contentDescription = "Private",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (showPin) {
+                        Icon(
+                            imageVector = Icons.Rounded.PushPin,
+                            contentDescription = "Pinned",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    Text(
+                        text = if (releaseDateText.isNullOrBlank()) finalSubtitle else "$finalSubtitle • $releaseDateText",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            if (onOptionClick != null) {
+                IconButton(
+                    onClick = onOptionClick,
+                    shapes = IconButtonDefaults.shapes()
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.MoreVert,
+                        contentDescription = "Options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
     }
+}
 
+@Composable
+fun ArtistLibraryCard(artist: LocalArtist, isGrid: Boolean, onClick: () -> Unit) {
+    if (isGrid) {
+        Column(
+            modifier = Modifier
+                .hapticClickable(onClick = onClick)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.Start
+        ) {
+            ArtistAvatar(
+                avatarUrl = artist.avatarUrl,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(CircleShape)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = artist.username,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = stringResource(R.string.menu_go_artist),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .hapticClickable(onClick = onClick)
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ArtistAvatar(
+                avatarUrl = artist.avatarUrl,
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+            )
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = artist.username,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.menu_go_artist),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
 
+@Composable
+fun UploadsFilterBottomSheet(
+    currentSort: UploadsSortOption,
+    currentPrivacy: UploadsPrivacyFilter,
+    onApply: (UploadsSortOption, UploadsPrivacyFilter) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedSort by remember { mutableStateOf(currentSort) }
+    var selectedPrivacy by remember { mutableStateOf(currentPrivacy) }
+
+    KittyModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp)
+                .navigationBarsPadding()
+        ) {
+            // Header Row: Title & Close Button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.uploads_filter_dialog_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                IconButton(
+                    onClick = onDismiss,
+                    shapes = IconButtonDefaults.shapes()
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = stringResource(R.string.btn_close),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Section 1: Trier par
+            Text(
+                text = stringResource(R.string.uploads_sort_section_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp, bottom = 6.dp)
+            )
+
+            UploadsSortOption.entries.forEach { option ->
+                val isSelected = selectedSort == option
+                Surface(
+                    onClick = { selectedSort = option },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(option.stringRes),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                        )
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = null,
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Section 2: Filtrer par
+            Text(
+                text = stringResource(R.string.uploads_filter_section_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp, bottom = 6.dp)
+            )
+
+            UploadsPrivacyFilter.entries.forEach { filter ->
+                val isSelected = selectedPrivacy == filter
+                Surface(
+                    onClick = { selectedPrivacy = filter },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(filter.stringRes),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                        )
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = null,
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // Save Button
+            Button(
+                onClick = {
+                    onApply(selectedSort, selectedPrivacy)
+                    onDismiss()
+                },
+                shapes = ButtonDefaults.shapes(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.uploads_filter_save_btn),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}

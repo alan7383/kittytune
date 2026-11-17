@@ -4,7 +4,7 @@
 [changelog]
 header = ""
 body = """
-## {{ version }} ({{ timestamp | date(format="%Y-%m-%d") }})
+## {% if version %}{{ version }}{% else %}Unreleased{% endif %} {% if timestamp %}({{ timestamp | date(format="%Y-%m-%d") }}){% endif %}
 {% for group, commits in commits | group_by(attribute="group") %}\
 ### {{ group }}
 {% for commit in commits %}\
@@ -19,15 +19,21 @@ trim = true
 conventional_commits = true
 filter_unconventional = true
 split_commits = false
+include_path = ["app/**"]
+commit_preprocessors = [
+  # Strip leading zero-width byte-order mark (BOM) if present in commit messages
+  { pattern = '^\uFEFF', replace = "" },
+]
 
 commit_parsers = [
+  { message = "^.*\\(site\\)",     skip = true },
   { message = "^feat(\\(.+\\))?!:", group = "Breaking Changes" },
   { message = "^fix(\\(.+\\))?!:",  group = "Breaking Changes" },
   { message = "^feat",              group = "Features" },
   { message = "^fix",               group = "Bug Fixes" },
   { message = "^perf",              group = "Performance" },
   { message = "^refactor",          group = "Refactoring" },
-  { message = "^docs",              group = "Documentation" },
+  { message = "^docs|^assets",      group = "Documentation" },
   { message = "^chore|^ci|^build",  skip = true },
   { message = "^test",              skip = true },
   { message = "^style",             skip = true },
