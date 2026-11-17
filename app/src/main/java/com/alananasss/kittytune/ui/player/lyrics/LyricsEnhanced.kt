@@ -572,14 +572,11 @@ private fun buildWrappingKaraokeSyllables(
         }
     }
 
-    val duration = (end - start).coerceAtLeast(contentUnits.size)
     return contentUnits.mapIndexed { index, unit ->
-        val unitStart = start + (duration.toLong() * index / contentUnits.size).toInt()
-        val unitEnd = start + (duration.toLong() * (index + 1) / contentUnits.size).toInt()
         KaraokeSyllable(
             content = unit,
-            start = unitStart,
-            end = unitEnd.coerceAtLeast(unitStart + MIN_KARAOKE_SYLLABLE_DURATION_MS),
+            start = start,
+            end = (start + 1).coerceAtMost(end),
             phonetic = phoneticsByUnit[index],
         )
     }
