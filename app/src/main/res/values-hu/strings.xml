@@ -3348,7 +3348,7 @@
     <string name="equalizer_auto_apply">Alkalmaz</string>
     <string name="equalizer_auto_applied">Profil alkalmazva</string>
     <string name="equalizer_auto_restore">Automatikus alkalmazás az eszköz újracsatlakozásakor</string>
-    <string name="equalizer_auto_restored">Auto EQ visszaállítva: %1</string>
+    <string name="equalizer_auto_restored">Auto EQ visszaállítva: %1$s</string>
     <string name="equalizer_auto_remove">Profil eltávolítása</string>
     <string name="equalizer_auto_credit">Profilok az AutoEq-ból, oratory1990, crinacle, Rtings és Squiglink mérések alapján.</string>
     <string name="equalizer_auto_import">EQ importálása</string>

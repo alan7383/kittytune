@@ -3344,7 +3344,7 @@
     <string name="equalizer_auto_apply">Áp dụng</string>
     <string name="equalizer_auto_applied">Đã áp dụng cấu hình</string>
     <string name="equalizer_auto_restore">Tự động áp dụng khi thiết bị này kết nối lại</string>
-    <string name="equalizer_auto_restored">Đã khôi phục Auto EQ: %1</string>
+    <string name="equalizer_auto_restored">Đã khôi phục Auto EQ: %1$s</string>
     <string name="equalizer_auto_remove">Xóa cấu hình</string>
     <string name="equalizer_auto_credit">Cấu hình từ AutoEq, dựa trên đo kiểm của oratory1990, crinacle, Rtings và Squiglink.</string>
     <string name="equalizer_auto_import">Nhập EQ</string>

@@ -3362,7 +3362,7 @@
     <string name="equalizer_auto_apply">Применить</string>
     <string name="equalizer_auto_applied">Профиль применен</string>
     <string name="equalizer_auto_restore">Применять автоматически при повторном подключении</string>
-    <string name="equalizer_auto_restored">Auto EQ восстановлен: %1</string>
+    <string name="equalizer_auto_restored">Auto EQ восстановлен: %1$s</string>
     <string name="equalizer_auto_remove">Удалить профиль</string>
     <string name="equalizer_auto_credit">Профили из AutoEq, на основе измерений oratory1990, crinacle, Rtings и Squiglink.</string>
     <string name="equalizer_auto_import">Импорт EQ</string>
