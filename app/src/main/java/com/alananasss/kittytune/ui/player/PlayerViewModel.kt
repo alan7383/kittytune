@@ -7379,6 +7379,10 @@ query CommentsWithReactions(
     }
 
     fun removeFromContextPlaylist(playlistId: Long, track: Track) {
+        if (!PlayerPreferences(context).getTrackRemovalMethod().isRemovalAllowed) {
+            showMenuSheet = false
+            return
+        }
         if (playlistId == -2L) {
             DownloadManager.deleteTrack(track.id)
         } else if (playlistId == -1L) {

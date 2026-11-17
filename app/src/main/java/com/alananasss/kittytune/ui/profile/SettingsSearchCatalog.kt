@@ -73,6 +73,7 @@ internal fun rememberSettingsSearchCatalog(
         var rememberSearchFilter = prefs.getRememberSearchFilter()
         var verifiedFilterEnabled = prefs.getVerifiedFilterEnabled()
         var showPlaylistTotalDuration = prefs.getShowPlaylistTotalDuration()
+        var trackRemovalMethod = prefs.getTrackRemovalMethod()
         var customFontEnabled = prefs.getCustomFontEnabled()
         var showHomeListeningStats = prefs.getShowHomeListeningStats()
         var showHomeYourMix = prefs.getShowHomeYourMix()
@@ -532,7 +533,14 @@ internal fun rememberSettingsSearchCatalog(
                 icon = Icons.Rounded.DeleteSweep,
                 route = "appearance_settings",
                 highlightKey = "pref_track_removal",
-                keywords = listOf("remove", "delete", "supprimer", "retirer", "swipe", "glisser", "playlist", "track", "titre", "menu")
+                keywords = listOf("remove", "delete", "supprimer", "retirer", "swipe", "glisser", "playlist", "track", "titre", "menu", "toggle", "disable", "off", "lock", "désactiver", "verrouiller"),
+                hasSwitch = true,
+                switchState = trackRemovalMethod.isRemovalAllowed,
+                onSwitchChange = {
+                    prefs.setTrackRemovalEnabled(it)
+                    trackRemovalMethod = prefs.getTrackRemovalMethod()
+                    onPreferenceChange()
+                }
             ),
             createSearchEntry(
                 context = context,

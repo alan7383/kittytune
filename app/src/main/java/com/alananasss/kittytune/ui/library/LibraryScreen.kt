@@ -111,6 +111,7 @@ import sh.calvin.reorderable.rememberReorderableLazyGridState
 private data class PlaylistActionItem(
     val icon: ImageVector,
     val text: String,
+    val subtitle: String? = null,
     val tint: Color? = null,
     val onClick: () -> Unit
 )
@@ -154,6 +155,8 @@ fun LibraryScreen(
     val prefs = remember { PlayerPreferences(context) }
     val haptics = rememberAppHaptics()
     val libraryCategoryLayout by prefs.libraryCategoryLayoutFlow().collectAsState(initial = prefs.getLibraryCategoryLayout())
+    val trackRemovalMethod by prefs.getTrackRemovalMethodFlow().collectAsState(initial = prefs.getTrackRemovalMethod())
+    var showTrackRemovalDialog by remember { mutableStateOf(false) }
 
     val listState = rememberLazyGridState()
     // Let vertical swipes on the landscape navigation rail scroll the library grid.
@@ -623,7 +626,7 @@ fun LibraryScreen(
         val isDbUserCreated = userDbPlaylists.any { it.id == playlist.id && (it.isUserCreated || it.id < 0) }
         val isUserOwned = playlist.id < 0 || isSoundCloudUserCreated || isLocalMe || isDbUserCreated
 
-        val actionItems = remember(playlist, isItemPinned, isInsideFolder, primaryColor, errorColor, isPlaylistLiked, isUserOwned) {
+        val actionItems = remember(playlist, isItemPinned, isInsideFolder, primaryColor, errorColor, isPlaylistLiked, isUserOwned, trackRemovalMethod) {
             mutableListOf<PlaylistActionItem>().apply {
                 add(PlaylistActionItem(Icons.Rounded.PlayArrow, context.getString(R.string.btn_play)) {
                     playPlaylistHelper(playlist, shuffle = false)
@@ -743,6 +746,17 @@ fun LibraryScreen(
                 if (isUserOwned) {
                     add(
                         PlaylistActionItem(
+                            icon = com.alananasss.kittytune.ui.common.trackRemovalMethodIcon(trackRemovalMethod),
+                            text = context.getString(R.string.menu_track_removal),
+                            subtitle = context.getString(trackRemovalMethod.titleRes),
+                            tint = if (trackRemovalMethod != com.alananasss.kittytune.data.local.TrackRemovalMethod.SWIPE_AND_MENU) primaryColor else null
+                        ) {
+                            selectedPlaylistForMenu = null
+                            showTrackRemovalDialog = true
+                        }
+                    )
+                    add(
+                        PlaylistActionItem(
                             icon = Icons.Rounded.Delete,
                             text = context.getString(R.string.menu_delete_playlist),
                             tint = errorColor
@@ -834,6 +848,17 @@ fun LibraryScreen(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
+                            if (!item.subtitle.isNullOrBlank()) {
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = item.subtitle,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    textAlign = TextAlign.Center,
+                                    color = item.tint?.copy(alpha = 0.85f) ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
@@ -913,7 +938,7 @@ fun LibraryScreen(
     if (showLikedTracksMenu) {
         val primaryColor = MaterialTheme.colorScheme.primary
         val likedActionItems =
-            remember(isLikedPinned, isLikesFullyDownloaded, isLikesDownloading, likedTracks, primaryColor) {
+            remember(isLikedPinned, isLikesFullyDownloaded, isLikesDownloading, likedTracks, primaryColor, trackRemovalMethod) {
                 mutableListOf<PlaylistActionItem>().apply {
                     add(
                         PlaylistActionItem(
@@ -925,6 +950,17 @@ fun LibraryScreen(
                         ) {
                             libraryViewModel.togglePinItem("liked_tracks", defaultPinned = !isGuest)
                             showLikedTracksMenu = false
+                        })
+
+                    add(
+                        PlaylistActionItem(
+                            icon = com.alananasss.kittytune.ui.common.trackRemovalMethodIcon(trackRemovalMethod),
+                            text = context.getString(R.string.menu_track_removal),
+                            subtitle = context.getString(trackRemovalMethod.titleRes),
+                            tint = if (trackRemovalMethod != com.alananasss.kittytune.data.local.TrackRemovalMethod.SWIPE_AND_MENU) primaryColor else null
+                        ) {
+                            showLikedTracksMenu = false
+                            showTrackRemovalDialog = true
                         })
 
                     val dlIcon =
@@ -1032,6 +1068,17 @@ fun LibraryScreen(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
+                            if (!item.subtitle.isNullOrBlank()) {
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = item.subtitle,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    textAlign = TextAlign.Center,
+                                    color = item.tint?.copy(alpha = 0.85f) ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
@@ -1041,7 +1088,7 @@ fun LibraryScreen(
 
     if (showDownloadsMenu) {
         val primaryColor = MaterialTheme.colorScheme.primary
-        val downloadsActionItems = remember(isDownloadsPinned, primaryColor) {
+        val downloadsActionItems = remember(isDownloadsPinned, primaryColor, trackRemovalMethod) {
             listOf(
                 PlaylistActionItem(
                     icon = Icons.Rounded.PushPin,
@@ -1052,6 +1099,15 @@ fun LibraryScreen(
                 ) {
                     libraryViewModel.togglePinItem("downloads", defaultPinned = false)
                     showDownloadsMenu = false
+                },
+                PlaylistActionItem(
+                    icon = com.alananasss.kittytune.ui.common.trackRemovalMethodIcon(trackRemovalMethod),
+                    text = context.getString(R.string.menu_track_removal),
+                    subtitle = context.getString(trackRemovalMethod.titleRes),
+                    tint = if (trackRemovalMethod != com.alananasss.kittytune.data.local.TrackRemovalMethod.SWIPE_AND_MENU) primaryColor else null
+                ) {
+                    showDownloadsMenu = false
+                    showTrackRemovalDialog = true
                 }
             )
         }
@@ -1135,11 +1191,33 @@ fun LibraryScreen(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
+                            if (!item.subtitle.isNullOrBlank()) {
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = item.subtitle,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    textAlign = TextAlign.Center,
+                                    color = item.tint?.copy(alpha = 0.85f) ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    if (showTrackRemovalDialog) {
+        com.alananasss.kittytune.ui.common.TrackRemovalMethodDialog(
+            selectedMethod = trackRemovalMethod,
+            onMethodSelected = { method ->
+                prefs.setTrackRemovalMethod(method)
+                showTrackRemovalDialog = false
+            },
+            onDismissRequest = { showTrackRemovalDialog = false }
+        )
     }
 
     if (showUploadsFilterSheet) {

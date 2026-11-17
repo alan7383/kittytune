@@ -57,7 +57,10 @@ import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.ui.common.Slider
+import com.alananasss.kittytune.ui.common.SplitSettingsItem
+import com.alananasss.kittytune.ui.common.TrackRemovalMethodDialog
 import com.alananasss.kittytune.ui.common.getSettingsShape
+import com.alananasss.kittytune.ui.common.trackRemovalMethodIcon
 import com.alananasss.kittytune.ui.theme.KittyTuneDefaultSeedColor
 import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicColorScheme
@@ -331,54 +334,14 @@ fun AppearanceSettingsScreen(
     }
 
     if (showTrackRemovalDialog) {
-        AlertDialog(
-            onDismissRequest = { showTrackRemovalDialog = false },
-            title = {
-                Text(
-                    text = stringResource(R.string.pref_track_removal_title),
-                    fontWeight = FontWeight.Bold
-                )
+        TrackRemovalMethodDialog(
+            selectedMethod = trackRemovalMethod,
+            onMethodSelected = { method ->
+                trackRemovalMethod = method
+                prefs.setTrackRemovalMethod(method)
+                showTrackRemovalDialog = false
             },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TrackRemovalMethod.entries.forEach { method ->
-                        val isSelected = trackRemovalMethod == method
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .hapticClickable {
-                                    trackRemovalMethod = method
-                                    prefs.setTrackRemovalMethod(method)
-                                    showTrackRemovalDialog = false
-                                }
-                                .padding(vertical = 10.dp, horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = isSelected,
-                                onClick = null
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                text = stringResource(
-                                    when (method) {
-                                        TrackRemovalMethod.SWIPE_AND_MENU -> R.string.track_removal_swipe_and_menu
-                                        TrackRemovalMethod.MENU_ONLY -> R.string.track_removal_menu_only
-                                    }
-                                ),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = hapticAction(HapticKind.UI) { showTrackRemovalDialog = false }) {
-                    Text(stringResource(R.string.btn_close))
-                }
-            }
+            onDismissRequest = { showTrackRemovalDialog = false }
         )
     }
 
@@ -690,17 +653,17 @@ fun AppearanceSettingsScreen(
                         },
 
                         { shape ->
-                            SettingsItem(
+                            SplitSettingsItem(
                                 shape = shape,
                                 title = stringResource(R.string.pref_track_removal_title),
-                                subtitle = stringResource(
-                                    when (trackRemovalMethod) {
-                                        TrackRemovalMethod.SWIPE_AND_MENU -> R.string.track_removal_swipe_and_menu
-                                        TrackRemovalMethod.MENU_ONLY -> R.string.track_removal_menu_only
-                                    }
-                                ),
-                                icon = Icons.Rounded.DeleteSweep,
+                                subtitle = stringResource(trackRemovalMethod.titleRes),
+                                icon = trackRemovalMethodIcon(trackRemovalMethod),
                                 onClick = hapticAction(HapticKind.UI) { showTrackRemovalDialog = true },
+                                switchState = trackRemovalMethod.isRemovalAllowed,
+                                onSwitchChange = { enabled ->
+                                    prefs.setTrackRemovalEnabled(enabled)
+                                    trackRemovalMethod = prefs.getTrackRemovalMethod()
+                                },
                                 highlightKey = "pref_track_removal"
                             )
                         },

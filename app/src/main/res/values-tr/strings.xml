@@ -222,8 +222,13 @@
     <string name="tracks_added_to_playlist_success">%1$d parça %2$s listesine eklendi</string>
     <string name="pref_track_removal_title">Parça kaldırma yöntemi</string>
     <string name="pref_track_removal_subtitle">Parçaların çalma listelerinden nasıl kaldırılacağını seçin</string>
+    <string name="menu_track_removal">Parça kaldırma</string>
     <string name="track_removal_swipe_and_menu">Kaydırma ve menü</string>
+    <string name="track_removal_swipe_and_menu_desc">Parçayı sola veya sağa kaydırın ya da üç nokta menüsünü kullanın</string>
     <string name="track_removal_menu_only">Yalnızca üç nokta menüsü</string>
+    <string name="track_removal_menu_only_desc">Kaydırırken yanlışlıkla silmeyi önlemek için kaydırarak silmeyi kapatın</string>
+    <string name="track_removal_disabled">Devre dışı</string>
+    <string name="track_removal_disabled_desc">Parçaların çalma listelerinden kaldırılmasını tamamen engelle</string>
     <string name="dialog_delete_playlist_title">Çalma listesi silinsin mi?</string>
     <string name="dialog_delete_playlist_msg">Bu işlem geri alınamaz</string>
     <string name="dialog_delete_playlist_from_lib_title">Kitaplıktan kaldırılsın mı?</string>

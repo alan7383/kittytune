@@ -217,8 +217,13 @@
     <string name="tracks_added_to_playlist_success">%1$d titres ajoutés à %2$s</string>
     <string name="pref_track_removal_title">Méthode de suppression des titres</string>
     <string name="pref_track_removal_subtitle">Choisir comment supprimer des titres des playlists</string>
+    <string name="menu_track_removal">Suppression de titres</string>
     <string name="track_removal_swipe_and_menu">Glisser et menu</string>
+    <string name="track_removal_swipe_and_menu_desc">Glisser un titre à gauche ou à droite, ou passer par son menu à trois points</string>
     <string name="track_removal_menu_only">Menu à trois points uniquement</string>
+    <string name="track_removal_menu_only_desc">Désactiver le glissement pour éviter les suppressions accidentelles en défilant</string>
+    <string name="track_removal_disabled">Désactivée</string>
+    <string name="track_removal_disabled_desc">Empêcher toute suppression de titres dans les playlists</string>
     <string name="dialog_delete_playlist_title">Supprimer la playlist ?</string>
     <string name="dialog_delete_playlist_msg">Cette action est irréversible</string>
     <string name="dialog_delete_playlist_from_lib_title">Retirer de la bibliothèque ?</string>

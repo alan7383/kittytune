@@ -60,6 +60,8 @@ fun SwipeToDeleteItem(
     val haptics = rememberAppHaptics()
 
     val dismissThresholdPx = with(density) { 96.dp.toPx() }
+    val flingVelocityPx = with(density) { 650.dp.toPx() }
+    val minFlingDistancePx = dismissThresholdPx * 0.45f
 
     val offsetX = remember(key) { Animatable(0f) }
     LaunchedEffect(enabled) {
@@ -124,7 +126,7 @@ fun SwipeToDeleteItem(
                     val absTotalX = abs(totalDeltaX)
                     val absTotalY = abs(totalDeltaY)
                     if (absTotalX > touchSlop || absTotalY > touchSlop) {
-                        if (absTotalX > absTotalY) {
+                        if (absTotalX > absTotalY * 1.5f) {
                             isHorizontal = true
                             dragStarted = true
                             change.consume()
@@ -156,8 +158,8 @@ fun SwipeToDeleteItem(
             if (dragStarted) {
                 val velocity = velocityTracker.calculateVelocity().x
                 val currentOffset = offsetX.value
-                val dismissRight = currentOffset >= dismissThresholdPx || (velocity > 1000f && currentOffset > 0f)
-                val dismissLeft = currentOffset <= -dismissThresholdPx || (velocity < -1000f && currentOffset < 0f)
+                val dismissRight = currentOffset >= dismissThresholdPx || (velocity > flingVelocityPx && currentOffset >= minFlingDistancePx)
+                val dismissLeft = currentOffset <= -dismissThresholdPx || (velocity < -flingVelocityPx && currentOffset <= -minFlingDistancePx)
 
                 coroutineScope.launch {
                     if (dismissRight) {

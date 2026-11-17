@@ -2379,6 +2379,8 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
 
     val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)
     val isOfflineMode = isLocalFile || isDownloadedContext || isOffline
+    val menuPrefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
+    val trackRemovalMethod by menuPrefs.getTrackRemovalMethodFlow().collectAsState(initial = menuPrefs.getTrackRemovalMethod())
 
     val gridItems = mutableListOf<DockOptionItem>().apply {
         if (!isLocalFile && !viewModel.isMenuContextFromPlayer) {
@@ -2534,7 +2536,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     id = "share_card"
                 ) { viewModel.openShareCard(track) })
         }
-        if (viewModel.menuContextPlaylistId != null) {
+        if (viewModel.menuContextPlaylistId != null && trackRemovalMethod.isRemovalAllowed) {
             add(
                 DockOptionItem(
                     Icons.Outlined.Delete,
@@ -2677,7 +2679,6 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         )
     }
 
-    val menuPrefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
     val hiddenMenuTiles = remember(viewModel.showMenuSheet) { menuPrefs.getHiddenMenuTiles(com.alananasss.kittytune.data.local.PlayerPreferences.MENU_TRACK) }
     val menuOrder = remember(viewModel.showMenuSheet) { menuPrefs.getMenuTileOrder(com.alananasss.kittytune.data.local.PlayerPreferences.MENU_TRACK) }
     val arrangedGridItems = remember(gridItems, hiddenMenuTiles, menuOrder) {
