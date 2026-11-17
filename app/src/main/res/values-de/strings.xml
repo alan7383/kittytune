@@ -3359,7 +3359,7 @@
     <string name="equalizer_auto_apply">Anwenden</string>
     <string name="equalizer_auto_applied">Profil angewendet</string>
     <string name="equalizer_auto_restore">Automatisch anwenden, wenn dieses Gerät wieder verbunden wird</string>
-    <string name="equalizer_auto_restored">Auto EQ wiederhergestellt: %1</string>
+    <string name="equalizer_auto_restored">Auto EQ wiederhergestellt: %1$s</string>
     <string name="equalizer_auto_remove">Profil entfernen</string>
     <string name="equalizer_auto_credit">Profile von AutoEq, basierend auf oratory1990, crinacle, Rtings und Squiglink.</string>
     <string name="equalizer_auto_import">EQ importieren</string>
