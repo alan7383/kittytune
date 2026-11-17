@@ -222,8 +222,13 @@
     <string name="tracks_added_to_playlist_success">%1$d Titel zu %2$s hinzugefügt</string>
     <string name="pref_track_removal_title">Titellöschmethode</string>
     <string name="pref_track_removal_subtitle">Wähle, wie Titel von Wiedergabelisten entfernt werden</string>
+    <string name="menu_track_removal">Track removal</string>
     <string name="track_removal_swipe_and_menu">Wischen und Menü</string>
+    <string name="track_removal_swipe_and_menu_desc">Swipe left or right on a track, or use its three-dot menu</string>
     <string name="track_removal_menu_only">Nur Drei-Punkte-Menü</string>
+    <string name="track_removal_menu_only_desc">Turn off swipe-to-delete to avoid accidental removals while scrolling</string>
+    <string name="track_removal_disabled">Disabled</string>
+    <string name="track_removal_disabled_desc">Prevent tracks from being removed from playlists</string>
     <string name="dialog_delete_playlist_title">Wiedergabeliste löschen?</string>
     <string name="dialog_delete_playlist_msg">Diese Aktion kann nicht rückgängig gemacht werden.</string>
     <string name="dialog_delete_playlist_from_lib_title">Aus der Bibliothek entfernen?</string>
