@@ -1498,10 +1498,11 @@ private fun RoomExpressiveHeroCard(
             }
 
             // Connected Members Row (Horizontal Scroll, High-Contrast Tonal Pills)
-            val allMembers = remember(room.listeners, isHost, isListening, room.hostId) {
+            val selfAvatarUrl by Together.myAvatarUrlFlow.collectAsState()
+            val allMembers = remember(room.listeners, isHost, isListening, room.hostId, selfAvatarUrl) {
                 buildList {
                     if (isHost || isListening) {
-                        add(Together.Member(Together.memberId, Together.myName, true, System.currentTimeMillis()))
+                        add(Together.Member(Together.memberId, Together.myName, true, System.currentTimeMillis(), selfAvatarUrl))
                     }
                     room.listeners.filterNot { it.id == Together.memberId }.forEach { add(it) }
                 }
@@ -1515,10 +1516,12 @@ private fun RoomExpressiveHeroCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     allMembers.forEach { member ->
+                        val isSelf = member.id == Together.memberId
                         TogetherMemberPill(
                             name = member.name,
-                            isHost = member.id == room.hostId || (isHost && member.id == Together.memberId),
-                            isMe = member.id == Together.memberId,
+                            isHost = member.id == room.hostId || (isHost && isSelf),
+                            isMe = isSelf,
+                            avatarUrl = if (isSelf) (selfAvatarUrl ?: Together.myAvatarUrl) else member.avatarUrl,
                         )
                     }
                 }

@@ -40,7 +40,11 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
  */
 internal class TogetherRelay(private val clientId: String) {
 
-    data class Incoming(val code: String, val message: TogetherMessage)
+    data class Incoming(
+        val code: String,
+        val message: TogetherMessage,
+        val isSnapshot: Boolean = false,
+    )
 
     private val _incoming = MutableSharedFlow<Incoming>(extraBufferCapacity = 64, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val incoming: SharedFlow<Incoming> = _incoming
@@ -48,7 +52,11 @@ internal class TogetherRelay(private val clientId: String) {
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected
 
+    private val followedCodes = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private val subscribedOnCurrentSession = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
     private val codesByTopic = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val codesBySnapPrefix = java.util.concurrent.ConcurrentHashMap<String, String>()
+    @Volatile
     private var client: MqttAsyncClient? = null
 
     /** One worker for connect/subscribe/publish, so messages leave in the order they were asked for. */
@@ -61,20 +69,68 @@ internal class TogetherRelay(private val clientId: String) {
 
     private sealed interface Pending {
         data class Publish(val code: String, val message: TogetherMessage) : Pending
-        data class Subscribe(val topic: String) : Pending
-        data class Unsubscribe(val topic: String) : Pending
+        data class PublishSnapshot(val topic: String, val code: String, val message: TogetherMessage) : Pending
+        data class ClearSnapshots(val code: String) : Pending
+        data class Subscribe(val code: String, val topics: Array<String>) : Pending
+        data class Unsubscribe(val code: String, val topics: Array<String>) : Pending
     }
 
     private var lastConnectAttemptAt = 0L
     private val worker: Job = scope.launch(workerDispatcher) {
         for (work in outbox) {
             if (!ensureConnected()) continue
+            val missingCodes = followedCodes.filter {
+                it !in subscribedOnCurrentSession && (work as? Pending.Subscribe)?.code != it
+            }
+            if (missingCodes.isNotEmpty()) {
+                val missingTopics = missingCodes.flatMap {
+                    listOf(TogetherWire.topicFor(it), TogetherWire.snapshotWildcardTopicFor(it))
+                }.toTypedArray()
+                val missingQos = IntArray(missingTopics.size) { 0 }
+                runCatching {
+                    client?.subscribe(missingTopics, missingQos)?.waitForCompletion(SUBSCRIBE_TIMEOUT_MS)
+                    subscribedOnCurrentSession.addAll(missingCodes)
+                }.onFailure { logWarn("Restore subscribe failed: ${it.message}") }
+            }
             when (work) {
                 is Pending.Publish -> runCatching {
-                    client?.publish(TogetherWire.topicFor(work.code), MqttMessage(TogetherWire.seal(work.code, work.message)).apply { qos = 0 })
-                }.onFailure { Log.w("TogetherRelay", "Send failed: ${it.message}") }
-                is Pending.Subscribe -> runCatching { client?.subscribe(work.topic, 0) }
-                is Pending.Unsubscribe -> runCatching { client?.unsubscribe(work.topic) }
+                    client?.publish(
+                        TogetherWire.topicFor(work.code),
+                        MqttMessage(TogetherWire.seal(work.code, work.message)).apply { qos = 0 }
+                    )
+                }.onFailure { logWarn("Send failed: ${it.message}") }
+                is Pending.PublishSnapshot -> runCatching {
+                    client?.publish(
+                        work.topic,
+                        MqttMessage(TogetherWire.seal(work.code, work.message)).apply {
+                            qos = 0
+                            isRetained = true
+                        }
+                    )
+                }.onFailure { logWarn("Snapshot send failed: ${it.message}") }
+                is Pending.ClearSnapshots -> {
+                    runCatching {
+                        client?.publish(
+                            TogetherWire.stateSnapshotTopicFor(work.code),
+                            MqttMessage(ByteArray(0)).apply { qos = 0; isRetained = true }
+                        )
+                    }.onFailure { logWarn("Clear state snapshot failed: ${it.message}") }
+                    runCatching {
+                        client?.publish(
+                            TogetherWire.queueSnapshotTopicFor(work.code),
+                            MqttMessage(ByteArray(0)).apply { qos = 0; isRetained = true }
+                        )
+                    }.onFailure { logWarn("Clear queue snapshot failed: ${it.message}") }
+                }
+                is Pending.Subscribe -> runCatching {
+                    val qos = IntArray(work.topics.size) { 0 }
+                    client?.subscribe(work.topics, qos)?.waitForCompletion(SUBSCRIBE_TIMEOUT_MS)
+                    subscribedOnCurrentSession.add(work.code)
+                }.onFailure { logWarn("Subscribe failed: ${it.message}") }
+                is Pending.Unsubscribe -> {
+                    subscribedOnCurrentSession.remove(work.code)
+                    runCatching { client?.unsubscribe(work.topics) }
+                }
             }
         }
     }
@@ -102,7 +158,7 @@ internal class TogetherRelay(private val clientId: String) {
         for (broker in BROKERS) {
             val attempt = runCatching { connect(broker) }
             if (attempt.isSuccess && client?.isConnected == true) return true
-            Log.w("TogetherRelay", "Could not reach $broker: ${attempt.exceptionOrNull()?.message}")
+            logWarn("Could not reach $broker: ${attempt.exceptionOrNull()?.message}")
         }
         return false
     }
@@ -112,18 +168,30 @@ internal class TogetherRelay(private val clientId: String) {
         mqtt.setCallback(object : MqttCallbackExtended {
             override fun connectComplete(reconnect: Boolean, serverURI: String?) {
                 _isConnected.value = true
-                // A reconnect starts with no subscriptions: take them all again.
-                codesByTopic.keys.forEach { topic -> runCatching { mqtt.subscribe(topic, 0) } }
+                if (reconnect) {
+                    // A reconnect starts with no subscriptions: take both live and snapshot topics again.
+                    subscribedOnCurrentSession.clear()
+                    followedCodes.forEach { code ->
+                        val topics = arrayOf(TogetherWire.topicFor(code), TogetherWire.snapshotWildcardTopicFor(code))
+                        runCatching {
+                            mqtt.subscribe(topics, intArrayOf(0, 0))
+                            subscribedOnCurrentSession.add(code)
+                        }
+                    }
+                }
             }
 
             override fun connectionLost(cause: Throwable?) {
+                subscribedOnCurrentSession.clear()
                 _isConnected.value = false
             }
 
             override fun messageArrived(topic: String, message: MqttMessage) {
-                val code = codesByTopic[topic] ?: return
+                if (message.payload.isEmpty()) return
+                val code = resolveCodeForTopic(topic) ?: return
                 val opened = TogetherWire.open(code, message.payload) ?: return
-                _incoming.tryEmit(Incoming(code, opened))
+                val isSnapshot = message.isRetained || topic.contains("/snap/")
+                _incoming.tryEmit(Incoming(code, opened, isSnapshot))
             }
 
             override fun deliveryComplete(token: IMqttDeliveryToken?) = Unit
@@ -131,7 +199,7 @@ internal class TogetherRelay(private val clientId: String) {
         val options = MqttConnectOptions().apply {
             isAutomaticReconnect = true
             isCleanSession = true
-            connectionTimeout = 10
+            connectionTimeout = 5
             keepAliveInterval = 30
         }
         mqtt.connect(options).waitForCompletion(CONNECT_TIMEOUT_MS)
@@ -139,20 +207,55 @@ internal class TogetherRelay(private val clientId: String) {
         _isConnected.value = true
     }
 
+    internal fun resolveCodeForTopic(topic: String): String? {
+        codesByTopic[topic]?.let { return it }
+        if (topic.startsWith(SNAP_TOPIC_ROOT)) {
+            val rest = topic.substring(SNAP_TOPIC_ROOT.length)
+            val slash = rest.indexOf('/')
+            if (slash > 0) {
+                val snapPrefix = SNAP_TOPIC_ROOT + rest.substring(0, slash + 1)
+                return codesBySnapPrefix[snapPrefix]
+            }
+        }
+        return null
+    }
+
     fun follow(code: String) {
-        val topic = TogetherWire.topicFor(code)
-        codesByTopic[topic] = TogetherWire.normalizeCode(code)
-        outbox.trySend(Pending.Subscribe(topic))
+        val normalized = TogetherWire.normalizeCode(code)
+        if (normalized.isEmpty()) return
+        val mainTopic = TogetherWire.topicFor(normalized)
+        val snapWildcard = TogetherWire.snapshotWildcardTopicFor(normalized)
+        val snapPrefix = snapWildcard.removeSuffix("#")
+        followedCodes.add(normalized)
+        codesByTopic[mainTopic] = normalized
+        codesBySnapPrefix[snapPrefix] = normalized
+        outbox.trySend(Pending.Subscribe(normalized, arrayOf(mainTopic, snapWildcard)))
     }
 
     fun unfollow(code: String) {
-        val topic = TogetherWire.topicFor(code)
-        codesByTopic.remove(topic)
-        outbox.trySend(Pending.Unsubscribe(topic))
+        val normalized = TogetherWire.normalizeCode(code)
+        if (normalized.isEmpty()) return
+        val mainTopic = TogetherWire.topicFor(normalized)
+        val snapWildcard = TogetherWire.snapshotWildcardTopicFor(normalized)
+        val snapPrefix = snapWildcard.removeSuffix("#")
+        followedCodes.remove(normalized)
+        codesByTopic.remove(mainTopic)
+        codesBySnapPrefix.remove(snapPrefix)
+        outbox.trySend(Pending.Unsubscribe(normalized, arrayOf(mainTopic, snapWildcard)))
     }
 
+    fun isFollowing(code: String): Boolean = followedCodes.contains(TogetherWire.normalizeCode(code))
+
     fun send(code: String, message: TogetherMessage) {
-        outbox.trySend(Pending.Publish(code, message))
+        outbox.trySend(Pending.Publish(TogetherWire.normalizeCode(code), message))
+    }
+
+    fun sendSnapshot(topic: String, code: String, message: TogetherMessage) {
+        outbox.trySend(Pending.PublishSnapshot(topic, TogetherWire.normalizeCode(code), message))
+    }
+
+    fun clearSnapshots(code: String) {
+        outbox.trySend(Pending.ClearSnapshots(TogetherWire.normalizeCode(code)))
     }
 
     fun close() {
@@ -162,12 +265,19 @@ internal class TogetherRelay(private val clientId: String) {
         runCatching { client?.disconnect()?.waitForCompletion(2_000) }
         runCatching { client?.close() }
         client = null
+        subscribedOnCurrentSession.clear()
         _isConnected.value = false
     }
 
+    private fun logWarn(message: String) {
+        runCatching { Log.w("TogetherRelay", message) }
+    }
+
     private companion object {
+        const val SNAP_TOPIC_ROOT = "kittytune/together/snap/"
         val BROKERS = listOf("ssl://broker.emqx.io:8883", "ssl://broker.hivemq.com:8883")
-        const val CONNECT_TIMEOUT_MS = 12_000L
+        const val CONNECT_TIMEOUT_MS = 5_000L
+        const val SUBSCRIBE_TIMEOUT_MS = 1_500L
 
         /** Long enough that a full failed round of brokers is not retried on every queued presence message. */
         const val RETRY_COOLDOWN_MS = 30_000L
@@ -177,6 +287,6 @@ internal class TogetherRelay(private val clientId: String) {
         const val RECONNECT_POLL_MS = 250L
 
         /** A few minutes of state and presence; the newest is what matters, the oldest is dropped. */
-        const val OUTBOX_CAPACITY = 128
+        const val OUTBOX_CAPACITY = 256
     }
 }

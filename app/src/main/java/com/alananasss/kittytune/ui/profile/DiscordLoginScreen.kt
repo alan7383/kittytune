@@ -298,6 +298,8 @@ fun DiscordLoginScreen(
             val success = authState as RemoteAuthState.Success
             prefs.setDiscordToken(success.token)
             success.username?.let { prefs.setDiscordUsername(it) }
+            prefs.setDiscordAvatarUrl(success.avatarUrl)
+            com.alananasss.kittytune.data.together.Together.discordAvatarUrl = success.avatarUrl
             prefs.setDiscordRpcEnabled(true)
             context.startService(Intent(context, PlaybackService::class.java).apply {
                 action = PlaybackService.ACTION_FORCE_UPDATE
@@ -350,15 +352,20 @@ fun DiscordLoginScreen(
                         }
                         manualTokenLoading = true
                         scope.launch {
-                            val userInfoResult = withContext(Dispatchers.IO) {
-                                KizzyRPC.getUserInfo(clean)
-                            }
+                            val me = DiscordRemoteAuthManager.fetchDiscordMe(clean)
+                            val userInfoResult = if (me == null) {
+                                withContext(Dispatchers.IO) {
+                                    KizzyRPC.getUserInfo(clean)
+                                }
+                            } else null
                             manualTokenLoading = false
-                            if (userInfoResult.isSuccess) {
-                                val info = userInfoResult.getOrNull()
-                                val uname = info?.name?.ifBlank { null } ?: info?.username
+                            if (me != null || userInfoResult?.isSuccess == true) {
+                                val info = userInfoResult?.getOrNull()
+                                val uname = me?.username ?: info?.name?.ifBlank { null } ?: info?.username
                                 prefs.setDiscordToken(clean)
                                 uname?.let { prefs.setDiscordUsername(it) }
+                                prefs.setDiscordAvatarUrl(me?.avatarUrl)
+                                com.alananasss.kittytune.data.together.Together.discordAvatarUrl = me?.avatarUrl
                                 prefs.setDiscordRpcEnabled(true)
                                 context.startService(Intent(context, PlaybackService::class.java).apply {
                                     action = PlaybackService.ACTION_FORCE_UPDATE
@@ -507,9 +514,16 @@ fun DiscordLoginScreen(
                                                 prefs.setDiscordToken(cleanToken)
                                                 prefs.setDiscordRpcEnabled(true)
                                                 try {
-                                                    val info = KizzyRPC.getUserInfo(cleanToken).getOrNull()
-                                                    val uname = info?.name?.ifBlank { null } ?: info?.username
-                                                    uname?.let { prefs.setDiscordUsername(it) }
+                                                    val me = DiscordRemoteAuthManager.fetchDiscordMe(cleanToken)
+                                                    if (me != null) {
+                                                        me.username?.let { prefs.setDiscordUsername(it) }
+                                                        prefs.setDiscordAvatarUrl(me.avatarUrl)
+                                                        com.alananasss.kittytune.data.together.Together.discordAvatarUrl = me.avatarUrl
+                                                    } else {
+                                                        val info = KizzyRPC.getUserInfo(cleanToken).getOrNull()
+                                                        val uname = info?.name?.ifBlank { null } ?: info?.username
+                                                        uname?.let { prefs.setDiscordUsername(it) }
+                                                    }
                                                 } catch (_: Exception) {}
                                                 context.startService(Intent(context, PlaybackService::class.java).apply {
                                                     action = PlaybackService.ACTION_FORCE_UPDATE

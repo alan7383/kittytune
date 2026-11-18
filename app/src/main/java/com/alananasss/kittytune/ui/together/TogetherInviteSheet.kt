@@ -65,6 +65,7 @@ fun TogetherInviteSheet(
 ) {
     val normalized = TogetherWire.normalizeCode(code)
     val rooms by Together.rooms.collectAsState()
+    val selfAvatarUrl by Together.myAvatarUrlFlow.collectAsState()
     val room = rooms[normalized] ?: Together.Room(normalized, "")
     val cs = MaterialTheme.colorScheme
 
@@ -231,10 +232,12 @@ fun TogetherInviteSheet(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         room.listeners.forEach { member ->
+                            val isSelf = member.id == Together.memberId
                             TogetherMemberPill(
                                 name = member.name,
                                 isHost = member.id == room.hostId,
-                                isMe = member.id == Together.memberId,
+                                isMe = isSelf,
+                                avatarUrl = if (isSelf) (selfAvatarUrl ?: Together.myAvatarUrl) else member.avatarUrl,
                             )
                         }
                     }

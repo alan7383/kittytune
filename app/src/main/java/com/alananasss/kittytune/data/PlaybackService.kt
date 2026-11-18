@@ -248,6 +248,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private fun initDiscordRpc() {
+        com.alananasss.kittytune.data.together.Together.syncDiscordAvatarIfNeeded(this)
         val token = prefs.getDiscordToken()
         val enabled = prefs.getDiscordRpcEnabled()
         if (enabled && !token.isNullOrEmpty()) {

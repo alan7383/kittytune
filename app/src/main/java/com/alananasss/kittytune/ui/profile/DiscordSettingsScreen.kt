@@ -23,6 +23,7 @@ import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.PlaybackService
+import com.alananasss.kittytune.data.discord.DiscordRemoteAuthManager
 import com.alananasss.kittytune.data.local.DiscordStatusDisplay
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.common.SettingsGroup
@@ -58,16 +59,28 @@ fun DiscordSettingsScreen(
     var tokenLoading by remember { mutableStateOf(false) }
     var tokenError by remember { mutableStateOf<String?>(null) }
 
-    // Try to resolve username in background if token exists but username is missing
+    // Try to resolve username / avatar in background if token exists but username or avatar is missing
     LaunchedEffect(token) {
-        if (!token.isNullOrEmpty() && username.isNullOrEmpty()) {
-            val res = withContext(Dispatchers.IO) { KizzyRPC.getUserInfo(token!!) }
-            if (res.isSuccess) {
-                val info = res.getOrNull()
-                val uname = info?.name?.ifBlank { null } ?: info?.username
-                if (!uname.isNullOrEmpty()) {
-                    prefs.setDiscordUsername(uname)
-                    username = uname
+        if (!token.isNullOrEmpty() && (username.isNullOrEmpty() || prefs.getDiscordAvatarUrl() == null)) {
+            val me = DiscordRemoteAuthManager.fetchDiscordMe(token!!)
+            if (me != null) {
+                if (!me.username.isNullOrEmpty()) {
+                    prefs.setDiscordUsername(me.username)
+                    username = me.username
+                }
+                if (!me.avatarUrl.isNullOrBlank()) {
+                    prefs.setDiscordAvatarUrl(me.avatarUrl)
+                    com.alananasss.kittytune.data.together.Together.discordAvatarUrl = me.avatarUrl
+                }
+            } else if (username.isNullOrEmpty()) {
+                val res = withContext(Dispatchers.IO) { KizzyRPC.getUserInfo(token!!) }
+                if (res.isSuccess) {
+                    val info = res.getOrNull()
+                    val uname = info?.name?.ifBlank { null } ?: info?.username
+                    if (!uname.isNullOrEmpty()) {
+                        prefs.setDiscordUsername(uname)
+                        username = uname
+                    }
                 }
             }
         }
@@ -116,15 +129,20 @@ fun DiscordSettingsScreen(
                         }
                         tokenLoading = true
                         scope.launch {
-                            val userInfoResult = withContext(Dispatchers.IO) {
-                                KizzyRPC.getUserInfo(clean)
-                            }
+                            val me = DiscordRemoteAuthManager.fetchDiscordMe(clean)
+                            val userInfoResult = if (me == null) {
+                                withContext(Dispatchers.IO) {
+                                    KizzyRPC.getUserInfo(clean)
+                                }
+                            } else null
                             tokenLoading = false
-                            if (userInfoResult.isSuccess) {
-                                val info = userInfoResult.getOrNull()
-                                val uname = info?.name?.ifBlank { null } ?: info?.username
+                            if (me != null || userInfoResult?.isSuccess == true) {
+                                val info = userInfoResult?.getOrNull()
+                                val uname = me?.username ?: info?.name?.ifBlank { null } ?: info?.username
                                 prefs.setDiscordToken(clean)
                                 uname?.let { prefs.setDiscordUsername(it) }
+                                prefs.setDiscordAvatarUrl(me?.avatarUrl)
+                                com.alananasss.kittytune.data.together.Together.discordAvatarUrl = me?.avatarUrl
                                 prefs.setDiscordRpcEnabled(true)
                                 token = clean
                                 username = uname
@@ -240,6 +258,8 @@ fun DiscordSettingsScreen(
                                     onClick = hapticAction(HapticKind.UI) {
                                         prefs.setDiscordToken(null)
                                         prefs.setDiscordUsername(null)
+                                        prefs.setDiscordAvatarUrl(null)
+                                        com.alananasss.kittytune.data.together.Together.discordAvatarUrl = null
                                         prefs.setDiscordRpcEnabled(false)
                                         token = null
                                         username = null

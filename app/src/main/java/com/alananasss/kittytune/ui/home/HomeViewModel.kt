@@ -2092,6 +2092,7 @@
         private suspend fun loadGuestData() {
             try {
                 userProfile = null
+                com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = null
                 val localLikes = LikeRepository.likedTracks.value
                 val historyItems = try { HistoryRepository.getHistory().first() } catch (e: Exception) { emptyList() }
                 val statsEvents = try { ListeningStatsRepository.getRecentEvents(0L, limit = 30) } catch (e: Exception) { emptyList() }
@@ -2269,8 +2270,10 @@
             try {
                 val me = api.getMe()
                 userProfile = me
-                com.alananasss.kittytune.data.local.PlayerPreferences(getApplication())
-                    .rememberSoundCloudTier(me)
+                val pPrefs = com.alananasss.kittytune.data.local.PlayerPreferences(getApplication())
+                pPrefs.rememberSoundCloudTier(me)
+                pPrefs.setCachedAvatarUrl(me.avatarUrl)
+                com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = me.avatarUrl
                 val allSections = mutableListOf<HomeSection>()
 
                 coroutineScope {
