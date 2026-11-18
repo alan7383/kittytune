@@ -75,6 +75,9 @@ class TokenManager(private val context: Context) {
         prefs.edit()
             .putBoolean(KEY_IS_GUEST_MODE, isGuest)
             .apply()
+        if (isGuest) {
+            com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = null
+        }
     }
 
     fun isGuestMode(): Boolean = prefs.getBoolean(KEY_IS_GUEST_MODE, false)
@@ -121,6 +124,7 @@ class TokenManager(private val context: Context) {
             .remove(KEY_TOKEN_SCOPE)
             .remove(KEY_LAST_VALIDATED_AT)
             .apply()
+        com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = null
     }
 
     fun logout() {
@@ -136,6 +140,9 @@ class TokenManager(private val context: Context) {
             .remove(KEY_LAST_VALIDATED_AT)
             .putBoolean(KEY_IS_GUEST_MODE, false)
             .apply()
+
+        com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = null
+        runCatching { com.alananasss.kittytune.data.local.PlayerPreferences(context).setCachedAvatarUrl(null) }
 
         LikeRepository.clear()
         RepostRepository.clear()

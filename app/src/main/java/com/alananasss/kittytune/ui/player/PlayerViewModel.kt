@@ -1728,6 +1728,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         }
         com.alananasss.kittytune.data.together.Together.init(context)
         com.alananasss.kittytune.data.together.Together.start(this)
+        if (tokenManager.isGuestMode() || tokenManager.getAccessToken().isNullOrEmpty()) {
+            com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = null
+        }
 
         // Auto-skip when the current track is blocked
         BlockManager.onCurrentTrackBlocked = {
@@ -4672,7 +4675,10 @@ query CommentsWithReactions(
     }
 
     fun fetchUserProfile() {
-        if (tokenManager.isGuestMode() || tokenManager.getAccessToken().isNullOrEmpty()) return
+        if (tokenManager.isGuestMode() || tokenManager.getAccessToken().isNullOrEmpty()) {
+            com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = null
+            return
+        }
 
         viewModelScope.launch {
             try {
@@ -4681,7 +4687,9 @@ query CommentsWithReactions(
                 currentUser = me
                 playerPrefs.setCachedUserId(me.id)
                 playerPrefs.setCachedUsername(me.username)
+                playerPrefs.setCachedAvatarUrl(me.avatarUrl)
                 com.alananasss.kittytune.data.together.Together.defaultName = me.username ?: "Listener"
+                com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = me.avatarUrl
                 SoundCloudTelemetryTracker.updateCurrentUserId(me.id)
             } catch (_: Exception) {
             }
