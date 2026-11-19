@@ -287,16 +287,22 @@ object MusicManager {
 
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequest? = null
+    private var audioFocusPreferences: PlayerPreferences? = null
+    private var audioFocusPreferenceJob: Job? = null
     private var hasAudioFocus = false
     private var androidAutoProjected = false
     private var playersPausedForFocus = emptyList<ExoPlayer>()
 
+    private fun shouldManageAudioFocus(): Boolean =
+        androidAutoProjected || audioFocusPreferences?.getPauseOnAudioFocusLoss() == true
+
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        if (!hasAudioFocus || !shouldManageAudioFocus()) return@OnAudioFocusChangeListener
         when (focusChange) {
             AudioManager.AUDIOFOCUS_LOSS -> {
                 playersPausedForFocus = emptyList()
                 abandonAudioFocus()
-                listOfNotNull(_player1, _player2).forEach { it.pause() }
+                playWhenReadyRequested = false
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 val playing = listOfNotNull(_player1, _player2).filter { it.playWhenReady }
@@ -315,15 +321,20 @@ object MusicManager {
     }
 
     private fun updateAudioFocus() {
+        if (!shouldManageAudioFocus()) {
+            playersPausedForFocus = emptyList()
+            abandonAudioFocus()
+            return
+        }
         if (playersPausedForFocus.isNotEmpty()) return
         // The two decks overlap during a crossfade and share one Android media focus request.
         val wantsFocus = listOfNotNull(_player1, _player2).any {
             it.playWhenReady && (it.playbackState == Player.STATE_BUFFERING || it.playbackState == Player.STATE_READY)
         }
-        if (!wantsFocus) {
-            abandonAudioFocus()
-        } else if (androidAutoProjected) {
+        if (wantsFocus) {
             requestAudioFocus()
+        } else {
+            abandonAudioFocus()
         }
     }
 
@@ -337,8 +348,8 @@ object MusicManager {
     fun setAndroidAutoProjected(projected: Boolean) {
         if (androidAutoProjected == projected) return
         androidAutoProjected = projected
-        // Android Auto takes focus during setup. Request it once the projection can consume media.
-        if (projected) updateAudioFocus() else if (!isCrossfadingOut && playersPausedForFocus.isEmpty()) abandonAudioFocus()
+        // Projected playback needs media focus even when phone playback can mix with other apps.
+        updateAudioFocus()
     }
 
     private fun abandonAudioFocus() {
@@ -999,6 +1010,10 @@ object MusicManager {
         UsbAudioManager.findUsbDac()?.let { _player1?.setPreferredAudioDevice(it) }
         // init() applies the saved skip-silence preference before the deck exists; apply it now.
         applySkipSilenceSettings()
+        audioFocusPreferences = playerPrefs
+        audioFocusPreferenceJob = scope.launch {
+            playerPrefs.pauseOnAudioFocusLossFlow().collect { updateAudioFocus() }
+        }
     }
 
     private fun createAudioTrackAnalytics(playerIndex: Int) =
@@ -1340,7 +1355,6 @@ object MusicManager {
         }
 
         val shouldPlayInitial = playWhenReadyRequested
-        if (shouldPlayInitial) requestAudioFocus()
         newPlayer.playWhenReady = shouldPlayInitial
         if (shouldPlayInitial) {
             newPlayer.play()
@@ -2122,6 +2136,9 @@ object MusicManager {
     }
 
     fun releasePlayer() {
+        audioFocusPreferenceJob?.cancel()
+        audioFocusPreferenceJob = null
+        audioFocusPreferences = null
         playersPausedForFocus = emptyList()
         abandonAudioFocus()
         _player1?.release(); _player1 = null

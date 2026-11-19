@@ -1086,6 +1086,23 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
+                titleRes = R.string.pref_pause_on_audio_focus_loss,
+                subtitleRes = R.string.pref_pause_on_audio_focus_loss_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.PauseCircle,
+                route = "audio_playback_settings",
+                highlightKey = "pref_pause_on_audio_focus_loss",
+                keywords = listOf("audio focus", "audio mixing", "tiktok"),
+                hasSwitch = true,
+                switchState = prefs.getPauseOnAudioFocusLoss(),
+                onSwitchChange = {
+                    prefs.setPauseOnAudioFocusLoss(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
                 titleRes = R.string.pref_pause_listen_history,
                 subtitleRes = R.string.pref_pause_listen_history_sub,
                 categoryName = catAudio,

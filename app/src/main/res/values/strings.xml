@@ -3802,6 +3802,8 @@
 <string name="pref_instant_skip_silence_sub">Jump straight over long silences instead of fast-forwarding</string>
 <string name="pref_resume_on_bluetooth">Resume on Bluetooth connect</string>
 <string name="pref_resume_on_bluetooth_sub">Continue playback when a Bluetooth device reconnects</string>
+<string name="pref_pause_on_audio_focus_loss">Pause when another app plays audio</string>
+<string name="pref_pause_on_audio_focus_loss_sub">Turn off to keep listening alongside other apps</string>
 <string name="pref_pause_on_mute">Pause when volume is muted</string>
 <string name="pref_pause_on_mute_sub">Pause playback when the media volume reaches zero, resume when it returns</string>
 <string name="pref_keep_screen_on">Keep screen on in player</string>

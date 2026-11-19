@@ -85,6 +85,8 @@ fun AudioPlaybackSettingsScreen(
     var skipSilenceEnabled by remember { mutableStateOf(prefs.getSkipSilence()) }
     var instantSkipSilenceEnabled by remember { mutableStateOf(prefs.getInstantSkipSilence()) }
     var resumeOnBluetooth by remember { mutableStateOf(prefs.getResumeOnBluetoothConnect()) }
+    val pauseOnAudioFocusLoss by remember(prefs) { prefs.pauseOnAudioFocusLossFlow() }
+        .collectAsState(initial = prefs.getPauseOnAudioFocusLoss())
     var pauseOnMute by remember { mutableStateOf(prefs.getPauseOnMute()) }
     var keepScreenOn by remember { mutableStateOf(prefs.getKeepScreenOn()) }
     var pauseListenHistory by remember { mutableStateOf(prefs.getPauseListenHistory()) }
@@ -111,6 +113,7 @@ fun AudioPlaybackSettingsScreen(
             "pref_hide_youtube_videos" to 0,
             "pref_precise_speed" to 0,
             "pref_resume_on_bluetooth" to 0,
+            "pref_pause_on_audio_focus_loss" to 0,
             "pref_pause_on_mute" to 0,
             "pref_keep_screen_on" to 0,
             "pref_sc_sync" to 0
@@ -133,7 +136,7 @@ fun AudioPlaybackSettingsScreen(
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = if (!isGuest) 13 else 12
+                        val totalVisibleItems = if (isGuest) 13 else 14
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
@@ -245,6 +248,16 @@ fun AudioPlaybackSettingsScreen(
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 10),
+                            title = stringResource(R.string.pref_pause_on_audio_focus_loss),
+                            subtitle = stringResource(R.string.pref_pause_on_audio_focus_loss_sub),
+                            hasSwitch = true,
+                            switchState = pauseOnAudioFocusLoss,
+                            onSwitchChange = prefs::setPauseOnAudioFocusLoss,
+                            highlightKey = "pref_pause_on_audio_focus_loss"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 11),
                             title = stringResource(R.string.pref_pause_on_mute),
                             subtitle = stringResource(R.string.pref_pause_on_mute_sub),
                             hasSwitch = true,
@@ -254,7 +267,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 11),
+                            shape = getSettingsShape(totalVisibleItems, 12),
                             title = stringResource(R.string.pref_keep_screen_on),
                             subtitle = stringResource(R.string.pref_keep_screen_on_sub),
                             hasSwitch = true,
@@ -266,7 +279,7 @@ fun AudioPlaybackSettingsScreen(
 
                         if (!isGuest) {
                             SettingsItem(
-                                shape = getSettingsShape(totalVisibleItems, 12),
+                                shape = getSettingsShape(totalVisibleItems, 13),
                                 title = stringResource(R.string.pref_sc_sync_title),
                                 subtitle = stringResource(R.string.pref_sc_sync_sub),
                                 hasSwitch = true,

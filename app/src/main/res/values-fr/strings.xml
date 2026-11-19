@@ -3739,6 +3739,8 @@
     <string name="pref_instant_skip_silence_sub">Sauter directement les longs silences au lieu d’avancer rapidement</string>
     <string name="pref_resume_on_bluetooth">Reprendre à la connexion Bluetooth</string>
     <string name="pref_resume_on_bluetooth_sub">Reprendre la lecture lorsqu’un appareil Bluetooth se reconnecte</string>
+    <string name="pref_pause_on_audio_focus_loss">Pause quand une autre appli joue du son</string>
+    <string name="pref_pause_on_audio_focus_loss_sub">Désactivez cette option pour écouter KittyTune en même temps que les autres applis</string>
     <string name="pref_pause_on_mute">Mettre en pause quand le volume est coupé</string>
     <string name="pref_pause_on_mute_sub">Met la lecture en pause quand le volume média atteint zéro et la reprend quand il remonte</string>
     <string name="pref_keep_screen_on">Garder l’écran allumé dans le lecteur</string>
