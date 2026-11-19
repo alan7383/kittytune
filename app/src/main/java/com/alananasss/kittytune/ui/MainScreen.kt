@@ -464,28 +464,16 @@ fun MainScreen(
             }
     ) {
         val windowSizeInfo = rememberWindowSizeInfo(maxWidth, maxHeight)
-        val isTablet by rememberUpdatedState(windowSizeInfo.isTablet)
+        // Blur is a signature of the MODERN floating dock; the classic bar is an opaque surface.
+        val actualBottomMenuBlurEnabled = bottomMenuStyle == "modern" && rawBottomMenuBlurEnabled
         val showBottomUi = !playerViewModel.isPlayerExpanded && !playerViewModel.isTransitionEditorActive
 
+        // Tablet navigation placement: the bottom dock (default) or a left rail,
+        // for both the classic and the modern styles. Works in BOTH orientations —
+        // the rail is a first-class tablet layout, not a landscape-only trick.
         val tabletNavPlacement by prefs.tabletNavPlacementFlow().collectAsState(initial = prefs.getTabletNavPlacement())
         val showTabletLeftRail = windowSizeInfo.isTablet &&
                 tabletNavPlacement == com.alananasss.kittytune.data.local.TabletNavPlacement.LEFT
-        val showClassicTabletDock = windowSizeInfo.isTablet &&
-                tabletNavPlacement == com.alananasss.kittytune.data.local.TabletNavPlacement.CLASSIC_DOCK
-        val actualBottomMenuBlurEnabled = (bottomMenuStyle == "modern" || showClassicTabletDock) && rawBottomMenuBlurEnabled
-        val tabletSidePlayerEnabled by remember(prefs) { prefs.tabletSidePlayerFlow() }
-            .collectAsState(initial = prefs.getTabletSidePlayerEnabled())
-        val useTabletSidePlayer = windowSizeInfo.isTablet && tabletSidePlayerEnabled
-        val openMiniPlayer: () -> Unit = {
-            if (useTabletSidePlayer) {
-                playerViewModel.isSidePlayerOpen = true
-            } else {
-                playerViewModel.isPlayerExpanded = true
-            }
-        }
-        LaunchedEffect(useTabletSidePlayer) {
-            if (!useTabletSidePlayer) playerViewModel.isSidePlayerOpen = false
-        }
         // One switch for both styles: ON = icons only (no text under the classic icons and
         // no expanding label next to the selected modern pill / rail item).
         val hideNavLabels by prefs.navHideLabelsFlow().collectAsState(initial = prefs.getNavHideLabels())
@@ -521,16 +509,6 @@ fun MainScreen(
 
 
         val isMiniPlayerVisible = playerViewModel.uiCurrentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute && !playerViewModel.isTransitionEditorActive
-        val showTabletSidePlayer = useTabletSidePlayer && playerViewModel.isSidePlayerOpen && isMiniPlayerVisible
-        val sidePanelWidth = minOf(420.dp, maxWidth * 0.45f)
-        val animatedSidePanelWidth by animateDpAsState(
-            targetValue = if (showTabletSidePlayer) sidePanelWidth else 0.dp,
-            animationSpec = spring(dampingRatio = 0.85f, stiffness = 380f),
-            label = "tabletSidePlayerWidth",
-        )
-        BackHandler(enabled = showTabletSidePlayer && !isFullscreenOverlayVisible) {
-            playerViewModel.isSidePlayerOpen = false
-        }
 
         val snackbarPadding by animateDpAsState(
             targetValue = if (isMiniPlayerVisible) 90.dp else 16.dp,
@@ -562,7 +540,7 @@ fun MainScreen(
             },
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { _ ->
-            val allTabKeys = listOf("home", "search", "genres", "library", "queue")
+            val allTabKeys = listOf("home", "feed", "search", "genres", "library", "queue")
             val bottomNavItemsKeys by prefs.bottomMenuItemsFlow().collectAsState(initial = prefs.getBottomMenuItems())
             val bottomNavOrder by prefs.bottomMenuOrderFlow().collectAsState(initial = prefs.getBottomMenuOrder())
 
@@ -574,6 +552,7 @@ fun MainScreen(
             val tabs = orderedTabKeys.mapNotNull { key ->
                 val screen = when (key) {
                     "home" -> Screen.Home
+                    "feed" -> Screen.Feed
                     "search" -> Screen.Search
                     "genres" -> Screen.Explore
                     "library" -> Screen.Library
@@ -593,6 +572,7 @@ fun MainScreen(
                 orderedTabKeys.mapNotNull { key ->
                     when (key) {
                         "home" -> Screen.Home.route
+                        "feed" -> Screen.Feed.route
                         "genres" -> Screen.Explore.route
                         "library" -> Screen.Library.route
                         "queue" -> Screen.Queue.route
@@ -1027,6 +1007,11 @@ fun MainScreen(
                                 },
                                 bottomContentPadding = 220.dp
                             )
+                        }
+
+                        // The feed as a first-class tab: SoundCloud-style vertical previews.
+                        clippedComposable(Screen.Feed.route) {
+                            com.alananasss.kittytune.ui.feed.FeedScreen(playerViewModel = playerViewModel)
                         }
 
                         clippedComposable("genres") {
@@ -1631,7 +1616,6 @@ fun MainScreen(
                             SettingsSearchScreen(
                                 navController = navController,
                                 onBackClick = { navController.popBackStack() },
-                                isTablet = isTablet,
                                 playerViewModel = playerViewModel
                             )
                         }
@@ -1791,16 +1775,7 @@ fun MainScreen(
                             BottomBarSettingsScreen(
                                 onBackClick = { navController.popBackStack() },
                                 onNavigateToFabSettings = { navController.navigate("fab_settings") },
-                                onNavigateToTabletSettings = { navController.navigate("tablet_interface_settings") },
-                                isTablet = isTablet,
                                 playerViewModel = playerViewModel
-                            )
-                        }
-
-                        clippedComposable("tablet_interface_settings") {
-                            TabletInterfaceSettingsScreen(
-                                isTablet = isTablet,
-                                onBackClick = { navController.popBackStack() },
                             )
                         }
 
@@ -2085,26 +2060,14 @@ fun MainScreen(
                         enter = slideInVertically(initialOffsetY = { it }),
                         exit = slideOutVertically(targetOffsetY = { it }),
                     ) {
-                        if (showClassicTabletDock) {
-                            com.alananasss.kittytune.ui.navigation.TabletBottomDock(
-                                tabs = tabs,
-                                selectedRoute = selectedRoute,
-                                onTabSelected = onTabSelected,
-                                onFabClick = onFabClick,
-                                fabIcon = fabIcon,
-                                fabLabel = fabLabel,
-                                playerViewModel = playerViewModel,
-                                onPlayerClick = openMiniPlayer,
-                                showLabels = showNavLabels,
-                            )
-                        } else KittyUnifiedBottomBar(
+                        KittyUnifiedBottomBar(
                             tabs = tabs,
                             selectedRoute = selectedRoute,
                             onTabSelected = onTabSelected,
                             onFabClick = onFabClick,
                             fabIcon = fabIcon,
                             playerViewModel = playerViewModel,
-                            onPlayerClick = openMiniPlayer,
+                            onPlayerClick = { playerViewModel.isPlayerExpanded = true },
                             style = bottomMenuStyle,
                             blurEnabled = actualBottomMenuBlurEnabled,
                             showSkipInMiniPlayer = true,
@@ -2116,12 +2079,17 @@ fun MainScreen(
                     // The classic mini player is now the full width of the content area, with the same
                     // gestures as on the phone: a horizontal swipe dismisses it (with an "Undo"
                     // button) or switches the track — per the "Mini player swipe" setting.
+                    // The mini player is always hidden on the feed tab.
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = showTabletLeftRail && isMiniPlayerVisible && !showTabletSidePlayer && showBottomUi,
+                        visible = showTabletLeftRail && isMiniPlayerVisible && showBottomUi && !isFullScreenRoute &&
+                                selectedRoute != Screen.Feed.route,
                         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
                     ) {
                         val miniPlayerStyle by prefs.miniPlayerStyleFlow().collectAsState(initial = prefs.getMiniPlayerStyle())
+                        val miniPlayerShowCover by prefs.miniPlayerClassicShowCoverFlow().collectAsState(initial = prefs.getMiniPlayerClassicShowCover())
+                        val miniPlayerCoverAsBackground by prefs.miniPlayerClassicCoverAsBackgroundFlow().collectAsState(initial = prefs.getMiniPlayerClassicCoverAsBackground())
+                        val miniPlayerProgressFill by prefs.miniPlayerClassicProgressFillFlow().collectAsState(initial = prefs.getMiniPlayerClassicProgressFill())
                         val miniSwipeAction by prefs.miniPlayerSwipeActionFlow().collectAsState(initial = prefs.getMiniPlayerSwipeAction())
                         val miniConfiguration = LocalConfiguration.current
                         val miniHaptics = LocalHapticFeedback.current
@@ -2150,17 +2118,15 @@ fun MainScreen(
                             if (miniPlayerStyle == com.alananasss.kittytune.data.local.MiniPlayerStyle.MODERN) {
                                 com.alananasss.kittytune.ui.player.KittyModernMiniPlayer(
                                     viewModel = playerViewModel,
-                                    onPlayerClick = openMiniPlayer,
+                                    onPlayerClick = { playerViewModel.isPlayerExpanded = true },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             } else {
-                                Surface(
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    tonalElevation = 4.dp,
-                                    shadowElevation = 6.dp,
+                                val miniProgress = com.alananasss.kittytune.ui.navigation.rememberDockProgress(playerViewModel)
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .shadow(6.dp, RoundedCornerShape(16.dp))
                                         .graphicsLayer {
                                             translationX = miniOffset.value
                                             alpha = if (miniSwipeAction == MiniPlayerSwipeAction.DISMISS) {
@@ -2173,85 +2139,25 @@ fun MainScreen(
                                             enabled = true,
                                             handler = miniDismissGestureHandler
                                         )
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .clickable(onClick = openMiniPlayer)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        AsyncImage(
-                                            model = playerViewModel.uiCurrentTrack?.thumbnailUrl,
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier
-                                                .size(44.dp)
-                                                .clip(RoundedCornerShape(10.dp))
-                                        )
-                                        Spacer(Modifier.width(12.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = playerViewModel.uiCurrentTrack?.title ?: "",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                text = playerViewModel.uiCurrentTrack?.displayArtist ?: "",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                        IconButton(onClick = { playerViewModel.togglePlayPause() }) {
-                                            Icon(
-                                                imageVector = if (playerViewModel.uiIsPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                                contentDescription = "Play/Pause",
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(28.dp)
-                                            )
-                                        }
-                                        IconButton(onClick = { playerViewModel.requestSkipNext() }) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.SkipNext,
-                                                contentDescription = "Next",
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
-                                    }
+                                    com.alananasss.kittytune.ui.player.ClassicMiniPlayerContent(
+                                        viewModel = playerViewModel,
+                                        showCover = miniPlayerShowCover,
+                                        coverAsBackground = miniPlayerCoverAsBackground,
+                                        progressFill = miniPlayerProgressFill,
+                                        onClick = { playerViewModel.isPlayerExpanded = true },
+                                        progress = miniProgress,
+                                        showSkip = true,
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
                                 }
                             }
                         }
                     }
                 }
-                }
-
-                if (animatedSidePanelWidth > 0.dp) {
-                    Box(
-                        modifier = Modifier
-                            .width(animatedSidePanelWidth)
-                            .fillMaxHeight()
-                            .clipToBounds()
-                            .alpha((animatedSidePanelWidth / sidePanelWidth).coerceIn(0f, 1f))
-                            .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
-                    ) {
-                        com.alananasss.kittytune.ui.player.TabletSidePlayerPanel(
-                            viewModel = playerViewModel,
-                            onExpandFullScreen = {
-                                playerViewModel.isSidePlayerOpen = false
-                                playerViewModel.isPlayerExpanded = true
-                            },
-                            onClose = { playerViewModel.isSidePlayerOpen = false },
-                            onNavigateToArtist = { artistId -> navController.navigate("profile/$artistId") },
-                            modifier = Modifier.wrapContentWidth(Alignment.Start, unbounded = true).width(sidePanelWidth),
-                        )
-                    }
-                }
             }
         }
+    }
 
         val navStackIds = navController.currentBackStack.collectAsState().value.map { it.id }
         BackHandler(enabled = ayuBackState.shouldVetoBack(navStackIds)) {
