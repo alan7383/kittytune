@@ -388,6 +388,7 @@ class PlayerPreferences(context: Context) {
             "edit_track",
             "track_radio",
             "share",
+            "listen_together",
             "remove_from_playlist",
             "sleep_timer",
             "download"
@@ -494,6 +495,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_LYRICS_UNDER_COVER_ALWAYS_VISIBLE = "lyrics_under_cover_always_visible"
         private const val KEY_DISCORD_TOKEN = "discord_token"
         private const val KEY_DISCORD_USERNAME = "discord_username"
+        const val KEY_DISCORD_AVATAR_URL = "discord_avatar_url"
         private const val KEY_DISCORD_ENABLED = "discord_rpc_enabled"
         private const val KEY_PRECISE_LYRICS_SEARCH = "precise_lyrics_search_enabled"
         private const val KEY_EARRAPE_WARNING = "has_seen_earrape_warning"
@@ -547,6 +549,8 @@ class PlayerPreferences(context: Context) {
 
         private const val KEY_DISCORD_ASSET_LOGO = "discord_asset_logo"
         private const val KEY_DISCORD_STATUS_DISPLAY = "discord_status_display"
+        private const val KEY_DISCORD_LISTEN_ALONG = "discord_listen_along_enabled"
+        private const val KEY_DISCORD_AUTO_LIVE = "discord_auto_live_enabled"
         private const val KEY_CUSTOM_FONT_ENABLED = "custom_font_enabled"
         private const val KEY_FONT_WGHT = "font_wght"
         private const val KEY_FONT_WDTH = "font_wdth"
@@ -598,6 +602,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_AUTOMIX_START_OFFSET_CUSTOM_SEC = "automix_start_offset_custom_sec"
         private const val KEY_CACHED_USER_ID = "cached_user_id"
         private const val KEY_CACHED_USERNAME = "cached_username"
+        private const val KEY_CACHED_AVATAR_URL = "cached_avatar_url"
         const val KEY_KEY_COLOR = "key_color"
         const val KEY_COLOR_STYLE = "color_style"
         const val KEY_COLOR_SPEC = "color_spec"
@@ -972,8 +977,22 @@ class PlayerPreferences(context: Context) {
         prefs.edit { putString(KEY_DISCORD_USERNAME, username) }
     }
 
+    fun getDiscordAvatarUrl(): String? = prefs.getString(KEY_DISCORD_AVATAR_URL, null)
+    fun setDiscordAvatarUrl(avatarUrl: String?) {
+        prefs.edit {
+            if (!avatarUrl.isNullOrBlank()) putString(KEY_DISCORD_AVATAR_URL, avatarUrl)
+            else remove(KEY_DISCORD_AVATAR_URL)
+        }
+    }
+
     fun getDiscordRpcEnabled(): Boolean = prefs.getBoolean(KEY_DISCORD_ENABLED, false)
     fun setDiscordRpcEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_DISCORD_ENABLED, enabled) }
+
+    fun getDiscordListenAlongEnabled(): Boolean = prefs.getBoolean(KEY_DISCORD_LISTEN_ALONG, true)
+    fun setDiscordListenAlongEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_DISCORD_LISTEN_ALONG, enabled) }
+
+    fun getDiscordAutoLiveEnabled(): Boolean = prefs.getBoolean(KEY_DISCORD_AUTO_LIVE, false)
+    fun setDiscordAutoLiveEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_DISCORD_AUTO_LIVE, enabled) }
 
     fun getDiscordAssetLogo(): String? = prefs.getString(KEY_DISCORD_ASSET_LOGO, null)
     fun setDiscordAssetLogo(assetId: String?) {
@@ -2827,6 +2846,15 @@ class PlayerPreferences(context: Context) {
     fun getCachedUsername(): String? {
         return prefs.getString(KEY_CACHED_USERNAME, null)
     }
+
+    fun setCachedAvatarUrl(avatarUrl: String?) {
+        prefs.edit {
+            if (!avatarUrl.isNullOrBlank()) putString(KEY_CACHED_AVATAR_URL, avatarUrl)
+            else remove(KEY_CACHED_AVATAR_URL)
+        }
+    }
+
+    fun getCachedAvatarUrl(): String? = prefs.getString(KEY_CACHED_AVATAR_URL, null)
 
     // Audio Provider Order
     fun getAudioProviderOrder(): List<com.alananasss.kittytune.audio.providers.AudioProviderOrderItem> {

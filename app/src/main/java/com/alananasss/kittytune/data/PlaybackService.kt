@@ -96,6 +96,7 @@ class PlaybackService : MediaLibraryService() {
         RepostRepository.init(this)
         DownloadManager.init(this)
         BlockManager.init(this)
+        com.alananasss.kittytune.data.together.Together.init(this)
 
         // Use DefaultMediaNotificationProvider — pure Media3, no compat hacks
         val defaultNotificationProvider = DefaultMediaNotificationProvider(
@@ -238,9 +239,16 @@ class PlaybackService : MediaLibraryService() {
         }
 
         initDiscordRpc()
+
+        serviceScope.launch {
+            com.alananasss.kittytune.data.together.Together.active.collect {
+                requestUpdate(delayed = false)
+            }
+        }
     }
 
     private fun initDiscordRpc() {
+        com.alananasss.kittytune.data.together.Together.syncDiscordAvatarIfNeeded(this)
         val token = prefs.getDiscordToken()
         val enabled = prefs.getDiscordRpcEnabled()
         if (enabled && !token.isNullOrEmpty()) {
@@ -286,6 +294,20 @@ class PlaybackService : MediaLibraryService() {
         // Discord RPC
         if (currentTrack != null) {
             initDiscordRpc()
+            if (prefs.getDiscordRpcEnabled() && !prefs.getDiscordToken().isNullOrEmpty() &&
+                prefs.getDiscordAutoLiveEnabled() &&
+                com.alananasss.kittytune.data.together.Together.active.value == null
+            ) {
+                val sessionName = getString(
+                    R.string.together_live_session_name,
+                    com.alananasss.kittytune.data.together.Together.myName
+                )
+                com.alananasss.kittytune.data.together.Together.startLiveBroadcast(
+                    sessionName = sessionName,
+                    seedTracks = listOf(com.alananasss.kittytune.data.together.SharedTrack.of(currentTrack)),
+                    lockControls = true
+                )
+            }
             val currentContextText = MusicManager.contextFlow.value?.displayText
             val isPlaying = MusicManager.player.isPlaying
             val position = MusicManager.player.currentPosition

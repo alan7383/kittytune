@@ -55,7 +55,13 @@ object Together {
     /** A shared playlist this listener has, with its tracks as last seen, so it survives nobody being online. */
     data class Saved(val code: String, val name: String, val createdAt: Long, val tracks: List<SharedTrack> = emptyList())
 
-    data class Member(val id: String, val name: String, val isListening: Boolean, val lastSeen: Long)
+    data class Member(
+        val id: String,
+        val name: String,
+        val isListening: Boolean,
+        val lastSeen: Long,
+        val avatarUrl: String? = null,
+    )
 
     data class Suggestion(val track: SharedTrack, val byName: String, val from: String)
 
@@ -75,20 +81,42 @@ object Together {
         val automix: Boolean = false,
         val suggestions: List<Suggestion> = emptyList(),
         val queueVersion: Int = 0,
+        val hostLocked: Boolean = false,
+        val positionMs: Long = 0L,
+        val stateReceivedAt: Long = 0L,
+        val lastStateSentAt: Long = 0L,
     ) {
         val listeners: List<Member> get() = members.values.filter { it.isListening && System.currentTimeMillis() - it.lastSeen < PRESENCE_TIMEOUT_MS }
         val hasLiveHost: Boolean get() = hostId != null && System.currentTimeMillis() - hostSeenAt < HOST_TIMEOUT_MS
+        val hostDisplayName: String?
+            get() = hostId?.let { id ->
+                if (id == memberId) myName else members[id]?.name
+            }?.takeIf { it.isNotBlank() }
+
+        fun currentPositionMs(now: Long = System.currentTimeMillis()): Long {
+            val dur = nowPlaying?.durationMs?.takeIf { it > 0L }
+            val raw = if (isPlaying && stateReceivedAt > 0L) {
+                positionMs + (now - stateReceivedAt).coerceAtLeast(0L)
+            } else {
+                positionMs
+            }
+            return if (dur != null) raw.coerceIn(0L, dur) else raw.coerceAtLeast(0L)
+        }
     }
 
     private const val PREFS = "together_prefs"
     private const val KEY_SAVED = "together_saved"
     private const val KEY_MEMBER_ID = "together_member_id"
     private const val KEY_NAME = "together_name"
+    private const val KEY_LIVE_CODE = "together_live_code"
+    private const val KEY_HOST_LOCKED = "together_host_locked"
     private const val PRESENCE_TIMEOUT_MS = 25_000L
     private const val HOST_TIMEOUT_MS = 20_000L
     private const val HELLO_EVERY_MS = 8_000L
     private const val STATE_EVERY_MS = 4_000L
     private const val SETTLE_BEFORE_STATE_MS = 150L
+    private const val STALE_SNAPSHOT_MS = 60_000L
+    private const val FAST_SYNC_RETRY_MS = 400L
 
     /** What the quickest trip is taken to cost, as the floor itself holds only the clocks' difference. */
     private const val TYPICAL_TRIP_MS = 120L
@@ -123,6 +151,48 @@ object Together {
     @Volatile
     var defaultName: String = "Listener"
 
+    private val _myAvatarUrlFlow = MutableStateFlow<String?>(null)
+    val myAvatarUrlFlow: StateFlow<String?> = _myAvatarUrlFlow.asStateFlow()
+
+    @Volatile
+    private var _soundCloudAvatarUrl: String? = null
+    var soundCloudAvatarUrl: String?
+        get() = _soundCloudAvatarUrl
+        set(value) {
+            _soundCloudAvatarUrl = value
+            _myAvatarUrlFlow.value = computeMyAvatarUrl()
+        }
+
+    @Volatile
+    private var _discordAvatarUrl: String? = null
+    var discordAvatarUrl: String?
+        get() = _discordAvatarUrl
+        set(value) {
+            _discordAvatarUrl = value
+            _myAvatarUrlFlow.value = computeMyAvatarUrl()
+        }
+
+    val myAvatarUrl: String?
+        get() = computeMyAvatarUrl()
+
+    private fun computeMyAvatarUrl(): String? {
+        val sc = _soundCloudAvatarUrl?.trim()
+        if (!sc.isNullOrBlank() && sc.startsWith("https://") && !sc.contains("default_avatar", ignoreCase = true)) {
+            return sc.replace("-large", "-t200x200")
+        }
+        val dc = _discordAvatarUrl?.trim()
+        if (!dc.isNullOrBlank() && dc.startsWith("https://") && !dc.contains("default_avatar", ignoreCase = true)) {
+            return dc
+        }
+        return null
+    }
+
+    private fun sanitizeAvatarUrl(url: String?): String? =
+        url?.trim()?.takeIf { it.isNotBlank() && it.startsWith("https://") && !it.contains("default_avatar", ignoreCase = true) }
+
+    @Volatile
+    private var lastDiscordTokenFetchedForAvatar: String? = null
+
     private val relay by lazy { TogetherRelay("kt-" + memberId.take(12) + "-" + System.nanoTime().toString(36).takeLast(4)) }
 
     // Loaded on the IO scope in start(): the saved playlists are prefs + Gson, and this object is
@@ -136,6 +206,23 @@ object Together {
     /** The playlist this listener is listening along in, if any. */
     private val _active = MutableStateFlow<String?>(null)
     val active: StateFlow<String?> = _active.asStateFlow()
+
+    /** When true, remote listeners can listen along and suggest tracks, but cannot pause, skip, or take over host. */
+    private val _isHostLocked = MutableStateFlow(false)
+    val isHostLocked: StateFlow<Boolean> = _isHostLocked.asStateFlow()
+
+    @Volatile
+    private var fallbackLiveCode: String? = null
+
+    val personalLiveCode: String
+        get() = synchronized(this) {
+            prefs()?.getString(KEY_LIVE_CODE, null)?.takeIf { it.length == TogetherWire.CODE_LENGTH }
+                ?: fallbackLiveCode
+                ?: TogetherWire.newCode().also { minted ->
+                    fallbackLiveCode = minted
+                    prefs()?.edit()?.putString(KEY_LIVE_CODE, minted)?.apply()
+                }
+        }
 
     val isConnected: StateFlow<Boolean> get() = relay.isConnected
 
@@ -159,7 +246,84 @@ object Together {
 
     /** Stash the context; must be called once from the Application before anything else. */
     fun init(context: Context) {
-        if (appContext == null) appContext = context.applicationContext
+        val app = context.applicationContext
+        if (appContext == null) {
+            appContext = app
+            _isHostLocked.value = prefs()?.getBoolean(KEY_HOST_LOCKED, false) ?: false
+            runCatching {
+                val playerPrefs = com.alananasss.kittytune.data.local.PlayerPreferences(app)
+                discordAvatarUrl = playerPrefs.getDiscordAvatarUrl()
+                val tm = com.alananasss.kittytune.data.TokenManager(app)
+                soundCloudAvatarUrl = if (!tm.isGuestMode() && tm.hasAccessToken()) {
+                    playerPrefs.getCachedAvatarUrl()
+                } else {
+                    null
+                }
+            }
+        }
+        syncDiscordAvatarIfNeeded(app)
+    }
+
+    fun syncDiscordAvatarIfNeeded(context: Context) {
+        val app = context.applicationContext
+        runCatching {
+            val playerPrefs = com.alananasss.kittytune.data.local.PlayerPreferences(app)
+            val token = playerPrefs.getDiscordToken()?.trim()
+            if (token.isNullOrEmpty()) {
+                discordAvatarUrl = null
+                lastDiscordTokenFetchedForAvatar = null
+                return
+            }
+            val persisted = playerPrefs.getDiscordAvatarUrl()
+            if (!persisted.isNullOrBlank()) {
+                discordAvatarUrl = persisted
+                return
+            }
+            if (lastDiscordTokenFetchedForAvatar == token) return
+            lastDiscordTokenFetchedForAvatar = token
+            scope.launch {
+                val me = com.alananasss.kittytune.data.discord.DiscordRemoteAuthManager.fetchDiscordMe(token)
+                if (me != null) {
+                    if (!me.username.isNullOrBlank() && playerPrefs.getDiscordUsername().isNullOrBlank()) {
+                        playerPrefs.setDiscordUsername(me.username)
+                    }
+                    if (!me.avatarUrl.isNullOrBlank()) {
+                        playerPrefs.setDiscordAvatarUrl(me.avatarUrl)
+                        discordAvatarUrl = me.avatarUrl
+                    }
+                }
+            }
+        }
+    }
+
+    fun setHostLocked(locked: Boolean) {
+        _isHostLocked.value = locked
+        prefs()?.edit()?.putBoolean(KEY_HOST_LOCKED, locked)?.apply()
+        val code = _active.value
+        if (code != null && isHostOf(code)) {
+            scope.launch { publishState(code) }
+        }
+    }
+
+    fun regeneratePersonalLiveCode(): String {
+        val oldCode = personalLiveCode
+        val wasHostingPersonal = _active.value == oldCode && isHostOf(oldCode)
+        val oldName = _rooms.value[oldCode]?.name.orEmpty()
+        val oldTracks = _rooms.value[oldCode]?.playlist.orEmpty()
+        if (_saved.value.any { it.code == oldCode }) {
+            forget(oldCode)
+        } else if (_active.value == oldCode) {
+            stopListening()
+        }
+        val fresh = TogetherWire.newCode()
+        synchronized(this) {
+            fallbackLiveCode = fresh
+            prefs()?.edit()?.putString(KEY_LIVE_CODE, fresh)?.apply()
+        }
+        if (wasHostingPersonal) {
+            startLiveBroadcast(sessionName = oldName, seedTracks = oldTracks)
+        }
+        return fresh
     }
 
     /** Connects and follows every saved playlist. Called once the player exists. */
@@ -170,7 +334,7 @@ object Together {
         scope.launch {
             _saved.value = _saved.value.ifEmpty { loadSaved() }
             _saved.value.forEach { follow(it) }
-            relay.incoming.collect { handle(it.code, it.message) }
+            relay.incoming.collect { handle(it.code, it.message, it.isSnapshot) }
         }
         tickJob = scope.launch {
             var lastHello = 0L
@@ -178,7 +342,7 @@ object Together {
                 val now = System.currentTimeMillis()
                 if (now - lastHello >= HELLO_EVERY_MS) {
                     lastHello = now
-                    _active.value?.let { send(it, TogetherMessage.Hello(memberId, now, myName, isListening = true)) }
+                    _active.value?.let { send(it, TogetherMessage.Hello(memberId, now, myName, isListening = true, avatarUrl = myAvatarUrl)) }
                 }
                 _active.value?.let { code -> if (isHostOf(code)) publishState(code) }
                 delay(STATE_EVERY_MS)
@@ -198,19 +362,30 @@ object Together {
     fun join(code: String): Saved? {
         val normalized = TogetherWire.normalizeCode(code)
         if (normalized.length != TogetherWire.CODE_LENGTH) return null
-        _saved.value.firstOrNull { it.code == normalized }?.let { return it }
+        _saved.value.firstOrNull { it.code == normalized }?.let { existing ->
+            scope.launch {
+                relay.follow(normalized)
+                send(normalized, TogetherMessage.SyncRequest(memberId, System.currentTimeMillis()))
+            }
+            return existing
+        }
         val saved = Saved(normalized, "", System.currentTimeMillis())
         addSaved(saved)
-        scope.launch { send(normalized, TogetherMessage.SyncRequest(memberId, System.currentTimeMillis())) }
         return saved
     }
 
     fun forget(code: String) {
-        if (_active.value == code) stopListening()
-        _saved.value = _saved.value.filterNot { it.code == code }
+        val normalized = TogetherWire.normalizeCode(code)
+        val wasHost = isHostOf(normalized)
+        if (_active.value == normalized) {
+            stopListening()
+        } else if (wasHost) {
+            relay.clearSnapshots(normalized)
+        }
+        _saved.value = _saved.value.filterNot { it.code == normalized }
         persistSaved()
-        scope.launch { relay.unfollow(code) }
-        _rooms.value = _rooms.value - code
+        scope.launch { relay.unfollow(normalized) }
+        _rooms.value = _rooms.value - normalized
     }
 
     private fun addSaved(saved: Saved) {
@@ -236,7 +411,7 @@ object Together {
         val room = _rooms.value[code]
         val now = System.currentTimeMillis()
         scope.launch {
-            send(code, TogetherMessage.Hello(memberId, now, myName, isListening = true))
+            send(code, TogetherMessage.Hello(memberId, now, myName, isListening = true, avatarUrl = myAvatarUrl))
             if (room?.hasLiveHost == true && room.hostId != memberId) {
                 send(code, TogetherMessage.SyncRequest(memberId, now))
             } else {
@@ -247,10 +422,103 @@ object Together {
         }
     }
 
+    /**
+     * Broadcasts whatever is currently playing live without restarting or interrupting playback.
+     * Reuses the active hosted room if one is already running, otherwise uses [personalLiveCode].
+     */
+    fun startLiveBroadcast(
+        sessionName: String = "",
+        seedTracks: List<SharedTrack> = emptyList(),
+        lockControls: Boolean? = null,
+    ): String {
+        if (lockControls != null) {
+            _isHostLocked.value = lockControls
+            prefs()?.edit()?.putBoolean(KEY_HOST_LOCKED, lockControls)?.apply()
+        }
+        val currentActive = _active.value
+        val code = if (currentActive != null && isHostOf(currentActive)) currentActive else personalLiveCode
+        val resolvedName = sessionName.trim().ifBlank { "$myName · Live" }
+        val cappedSeeds = seedTracks.take(MAX_SHARED_UPCOMING)
+        val existingSaved = _saved.value.firstOrNull { it.code == code }
+        if (existingSaved == null) {
+            addSaved(Saved(code, resolvedName, System.currentTimeMillis(), cappedSeeds))
+        } else {
+            relay.follow(code)
+        }
+        val now = System.currentTimeMillis()
+        updateRoom(code) { room ->
+            room.copy(
+                name = room.name.ifBlank { resolvedName },
+                playlist = if (room.playlist.isEmpty() && cappedSeeds.isNotEmpty()) cappedSeeds else room.playlist.take(MAX_SHARED_UPCOMING),
+                hostId = memberId,
+                hostSeenAt = now,
+                hostClaimedAt = now,
+                hostLocked = _isHostLocked.value,
+            )
+        }
+        _active.value = code
+        scope.launch {
+            send(code, TogetherMessage.Hello(memberId, now, myName, isListening = true, avatarUrl = myAvatarUrl))
+            claimHost(code)
+        }
+        return code
+    }
+
+    /**
+     * Joins an invite link or code and immediately begins listening along to the live host
+     * without prematurely claiming host before the host's [TogetherMessage.State] arrives.
+     */
+    fun joinAndListen(codeOrLink: String): Saved? {
+        val extracted = TogetherLinks.extractCode(codeOrLink, allowRawCode = true) ?: return null
+        val saved = join(extracted) ?: return null
+        val code = saved.code
+        _active.value = code
+        val now = System.currentTimeMillis()
+        scope.launch {
+            relay.follow(code)
+            send(code, TogetherMessage.Hello(memberId, now, myName, isListening = true, avatarUrl = myAvatarUrl))
+            send(code, TogetherMessage.SyncRequest(memberId, now))
+            delay(FAST_SYNC_RETRY_MS)
+            if (_active.value == code && _rooms.value[code]?.hasLiveHost != true) {
+                send(code, TogetherMessage.SyncRequest(memberId, System.currentTimeMillis()))
+            }
+        }
+        return saved
+    }
+
+    /** Subscribes temporarily to preview who is hosting & what is playing before deciding to join. */
+    fun previewRoom(codeOrLink: String): String? {
+        val code = TogetherLinks.extractCode(codeOrLink, allowRawCode = true) ?: return null
+        updateRoom(code) { it }
+        scope.launch {
+            relay.follow(code)
+            send(code, TogetherMessage.SyncRequest(memberId, System.currentTimeMillis()))
+            delay(FAST_SYNC_RETRY_MS)
+            if (relay.isFollowing(code) && _rooms.value[code]?.hasLiveHost != true) {
+                send(code, TogetherMessage.SyncRequest(memberId, System.currentTimeMillis()))
+            }
+        }
+        return code
+    }
+
+    fun closePreview(code: String) {
+        val normalized = TogetherWire.normalizeCode(code)
+        if (_active.value != normalized && _saved.value.none { it.code == normalized }) {
+            scope.launch { relay.unfollow(normalized) }
+        }
+    }
+
     fun stopListening() {
         val code = _active.value ?: return
+        val wasHost = isHostOf(code)
         _active.value = null
-        scope.launch { send(code, TogetherMessage.Bye(memberId, System.currentTimeMillis())) }
+        if (wasHost) {
+            updateRoom(code) { if (it.hostId == memberId) it.copy(hostId = null) else it }
+        }
+        scope.launch {
+            if (wasHost) relay.clearSnapshots(code)
+            send(code, TogetherMessage.Bye(memberId, System.currentTimeMillis()))
+        }
     }
 
     fun claimHost(code: String) {
@@ -308,10 +576,20 @@ object Together {
         _active.value = code
     }
 
+    @Volatile
+    private var lastSnapshotState: Pair<String, TogetherMessage.State>? = null
+
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun resetForTesting() {
         _rooms.value = emptyMap()
         _active.value = null
+        _isHostLocked.value = false
+        player = null
+        soundCloudAvatarUrl = null
+        discordAvatarUrl = null
+        lastDiscordTokenFetchedForAvatar = null
+        lastSnapshotState = null
+        synchronized(quickestTrip) { quickestTrip.clear() }
         testControlDispatcher = null
     }
 
@@ -358,9 +636,45 @@ object Together {
         val p = player ?: return
         val now = System.currentTimeMillis()
         val current = p.sharedCurrent()
+        val pos = p.sharedPositionMs()
+        val playing = p.sharedIsPlaying()
+        val am = p.sharedAutomix()
         val version = synchronized(queueStateLock) { queueVersion }
-        updateRoom(code) { it.copy(hostId = memberId, hostSeenAt = now, nowPlaying = current, isPlaying = p.sharedIsPlaying(), automix = p.sharedAutomix()) }
-        send(code, TogetherMessage.State(memberId, now, current, p.sharedPositionMs(), p.sharedIsPlaying(), p.sharedAutomix(), version))
+        val locked = _isHostLocked.value
+        val name = myName
+        val avatar = myAvatarUrl
+        val activeListeners = listOf(SharedListener(memberId, name, avatar)) +
+            _rooms.value[code]?.listeners.orEmpty()
+                .filterNot { it.id == memberId }
+                .map { SharedListener(it.id, it.name, it.avatarUrl) }
+        updateRoom(code) {
+            it.copy(
+                hostId = memberId,
+                hostSeenAt = now,
+                nowPlaying = current,
+                isPlaying = playing,
+                automix = am,
+                hostLocked = locked,
+                positionMs = pos,
+                stateReceivedAt = now,
+                lastStateSentAt = now,
+            )
+        }
+        val stateMessage = TogetherMessage.State(
+            from = memberId,
+            sentAt = now,
+            track = current,
+            positionMs = pos,
+            isPlaying = playing,
+            automix = am,
+            queueVersion = version,
+            hostLocked = locked,
+            hostName = name,
+            hostAvatarUrl = avatar,
+            listeners = activeListeners,
+        )
+        send(code, stateMessage)
+        relay.sendSnapshot(TogetherWire.stateSnapshotTopicFor(code), code, stateMessage)
     }
 
     private fun publishQueue(code: String, force: Boolean) {
@@ -376,17 +690,20 @@ object Together {
         }
         val room = _rooms.value[code] ?: Room(code, "")
         updateRoom(code) { it.copy(upcoming = upcoming, queueVersion = version) }
-        send(code, TogetherMessage.Queue(memberId, System.currentTimeMillis(), version, upcoming, room.playlist, room.name))
+        val queueMessage = TogetherMessage.Queue(memberId, System.currentTimeMillis(), version, upcoming, room.playlist, room.name)
+        send(code, queueMessage)
+        relay.sendSnapshot(TogetherWire.queueSnapshotTopicFor(code), code, queueMessage)
     }
 
     // ─── Incoming ─────────────────────────────────────────────────────────────────────────────
 
-    internal suspend fun handle(code: String, message: TogetherMessage) {
+    internal suspend fun handle(code: String, message: TogetherMessage, isSnapshot: Boolean = false) {
         if (message.from == memberId) return
         val now = System.currentTimeMillis()
         when (message) {
             is TogetherMessage.Hello -> updateRoom(code) { r ->
-                r.copy(members = r.members + (message.from to Member(message.from, message.name, message.isListening, now)))
+                val avatar = sanitizeAvatarUrl(message.avatarUrl)
+                r.copy(members = r.members + (message.from to Member(message.from, message.name, message.isListening, now, avatar)))
             }
             is TogetherMessage.Bye -> updateRoom(code) { r ->
                 val leaving = r.members[message.from]
@@ -395,15 +712,78 @@ object Together {
                     hostId = if (r.hostId == message.from) null else r.hostId,
                 )
             }
-            is TogetherMessage.ClaimHost -> updateRoom(code) { r ->
-                // The latest claim wins; two at the same millisecond go to the larger id. Everyone applies the same
-                // rule to the same claims, so everyone agrees on the host.
-                val newer = message.sentAt > r.hostClaimedAt ||
-                    (message.sentAt == r.hostClaimedAt && message.from > (r.hostId ?: ""))
-                if (newer) r.copy(hostId = message.from, hostSeenAt = now, hostClaimedAt = message.sentAt) else r
+            is TogetherMessage.ClaimHost -> {
+                if (_active.value == code && isHostOf(code) && _isHostLocked.value) {
+                    // Reject takeover attempts while hosting in listen-only mode and re-assert host authority.
+                    claimHost(code)
+                } else {
+                    updateRoom(code) { r ->
+                        // The latest claim wins; two at the same millisecond go to the larger id. Everyone applies the same
+                        // rule to the same claims, so everyone agrees on the host.
+                        val newer = message.sentAt > r.hostClaimedAt ||
+                            (message.sentAt == r.hostClaimedAt && message.from > (r.hostId ?: ""))
+                        if (newer) r.copy(hostId = message.from, hostSeenAt = now, hostClaimedAt = message.sentAt) else r
+                    }
+                }
             }
             is TogetherMessage.State -> {
-                updateRoom(code) { it.copy(hostId = message.from, hostSeenAt = now, nowPlaying = message.track, isPlaying = message.isPlaying, automix = message.automix) }
+                if (isSnapshot && kotlin.math.abs(now - message.sentAt) > STALE_SNAPSHOT_MS) return
+                val existingRoom = _rooms.value[code]
+                if (isSnapshot &&
+                    existingRoom != null &&
+                    existingRoom.hostId == message.from &&
+                    existingRoom.lastStateSentAt > 0L &&
+                    existingRoom.lastStateSentAt >= message.sentAt
+                ) {
+                    return
+                }
+                if (!isSnapshot && lastSnapshotState == (code to message)) {
+                    lastSnapshotState = null
+                    return
+                }
+                if (isSnapshot) {
+                    lastSnapshotState = code to message
+                }
+                updateRoom(code) { r ->
+                    val mergedMembers = r.members.toMutableMap()
+                    val existingHost = mergedMembers[message.from]
+                    val incomingHostAvatar = sanitizeAvatarUrl(message.hostAvatarUrl)
+                    if (!message.hostName.isNullOrBlank() || incomingHostAvatar != null) {
+                        mergedMembers[message.from] = Member(
+                            id = message.from,
+                            name = message.hostName?.takeIf { it.isNotBlank() } ?: existingHost?.name.orEmpty(),
+                            isListening = existingHost?.isListening ?: true,
+                            lastSeen = now,
+                            avatarUrl = incomingHostAvatar ?: existingHost?.avatarUrl,
+                        )
+                    }
+                    message.listeners?.forEach { listener ->
+                        val id = listener.id.trim()
+                        if (id.isNotEmpty() && id != memberId) {
+                            val existing = mergedMembers[id]
+                            val sanitizedAvatar = sanitizeAvatarUrl(listener.avatarUrl)
+                            mergedMembers[id] = Member(
+                                id = id,
+                                name = listener.name.takeIf { it.isNotBlank() } ?: existing?.name.orEmpty(),
+                                isListening = true,
+                                lastSeen = now,
+                                avatarUrl = sanitizedAvatar ?: existing?.avatarUrl,
+                            )
+                        }
+                    }
+                    r.copy(
+                        members = mergedMembers,
+                        hostId = message.from,
+                        hostSeenAt = now,
+                        nowPlaying = message.track,
+                        isPlaying = message.isPlaying,
+                        automix = message.automix,
+                        hostLocked = message.hostLocked,
+                        positionMs = message.positionMs,
+                        stateReceivedAt = now,
+                        lastStateSentAt = message.sentAt,
+                    )
+                }
                 if (_active.value == code && !isHostOf(code)) {
                     val room = _rooms.value[code]
                     if (room != null && room.queueVersion != message.queueVersion) send(code, TogetherMessage.SyncRequest(memberId, now))
@@ -411,8 +791,11 @@ object Together {
                     val drift = if (message.isPlaying) flightTime(message.from, now - message.sentAt) else 0L
                     // Never past the end of the song, whatever the host's report says.
                     val target = (message.positionMs + drift).coerceAtLeast(0L).let { p -> track.durationMs?.takeIf { it > 0 }?.let { p.coerceAtMost(it) } ?: p }
-                    withContext(Dispatchers.Main) {
-                        player?.followHost(track, target, message.isPlaying, room?.upcoming, message.automix)
+                    val p = player
+                    if (p != null) {
+                        withContext(Dispatchers.Main) {
+                            p.followHost(track, target, message.isPlaying, room?.upcoming, message.automix)
+                        }
                     }
                 }
             }
@@ -434,13 +817,22 @@ object Together {
                     send(code, TogetherMessage.Queue(memberId, now, room.queueVersion, emptyList(), room.playlist, room.name))
                 }
             }
-            is TogetherMessage.PlayNext -> if (isHostOf(code)) withContext(Dispatchers.Main) { player?.hostPlayNext(message.track) }
+            is TogetherMessage.PlayNext -> if (isHostOf(code)) {
+                if (_isHostLocked.value) {
+                    updateRoom(code) { r ->
+                        if (r.suggestions.any { it.track.id == message.track.id }) r
+                        else r.copy(suggestions = r.suggestions + Suggestion(message.track, message.byName, message.from))
+                    }
+                } else {
+                    withContext(Dispatchers.Main) { player?.hostPlayNext(message.track) }
+                }
+            }
             is TogetherMessage.Suggest -> updateRoom(code) { r ->
                 if (r.suggestions.any { it.track.id == message.track.id }) r
                 else r.copy(suggestions = r.suggestions + Suggestion(message.track, message.byName, message.from))
             }
             is TogetherMessage.SuggestionDone -> updateRoom(code) { r -> r.copy(suggestions = r.suggestions.filterNot { it.track.id == message.trackId }) }
-            is TogetherMessage.Control -> if (isHostOf(code)) withContext(Dispatchers.Main) {
+            is TogetherMessage.Control -> if (isHostOf(code) && !_isHostLocked.value) withContext(Dispatchers.Main) {
                 player?.hostControl(message.action, message.positionMs)
             }
         }

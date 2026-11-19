@@ -23,6 +23,7 @@ import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.PlaybackService
+import com.alananasss.kittytune.data.discord.DiscordRemoteAuthManager
 import com.alananasss.kittytune.data.local.DiscordStatusDisplay
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.common.SettingsGroup
@@ -48,6 +49,8 @@ fun DiscordSettingsScreen(
     var username by remember { mutableStateOf(prefs.getDiscordUsername()) }
     var isEnabled by remember { mutableStateOf(prefs.getDiscordRpcEnabled()) }
     var statusDisplay by remember { mutableStateOf(prefs.getDiscordStatusDisplay()) }
+    var listenAlongEnabled by remember { mutableStateOf(prefs.getDiscordListenAlongEnabled()) }
+    var autoLiveEnabled by remember { mutableStateOf(prefs.getDiscordAutoLiveEnabled()) }
     val isLoggedIn = !token.isNullOrEmpty()
 
     var showStatusDialog by remember { mutableStateOf(false) }
@@ -56,16 +59,28 @@ fun DiscordSettingsScreen(
     var tokenLoading by remember { mutableStateOf(false) }
     var tokenError by remember { mutableStateOf<String?>(null) }
 
-    // Try to resolve username in background if token exists but username is missing
+    // Try to resolve username / avatar in background if token exists but username or avatar is missing
     LaunchedEffect(token) {
-        if (!token.isNullOrEmpty() && username.isNullOrEmpty()) {
-            val res = withContext(Dispatchers.IO) { KizzyRPC.getUserInfo(token!!) }
-            if (res.isSuccess) {
-                val info = res.getOrNull()
-                val uname = info?.name?.ifBlank { null } ?: info?.username
-                if (!uname.isNullOrEmpty()) {
-                    prefs.setDiscordUsername(uname)
-                    username = uname
+        if (!token.isNullOrEmpty() && (username.isNullOrEmpty() || prefs.getDiscordAvatarUrl() == null)) {
+            val me = DiscordRemoteAuthManager.fetchDiscordMe(token!!)
+            if (me != null) {
+                if (!me.username.isNullOrEmpty()) {
+                    prefs.setDiscordUsername(me.username)
+                    username = me.username
+                }
+                if (!me.avatarUrl.isNullOrBlank()) {
+                    prefs.setDiscordAvatarUrl(me.avatarUrl)
+                    com.alananasss.kittytune.data.together.Together.discordAvatarUrl = me.avatarUrl
+                }
+            } else if (username.isNullOrEmpty()) {
+                val res = withContext(Dispatchers.IO) { KizzyRPC.getUserInfo(token!!) }
+                if (res.isSuccess) {
+                    val info = res.getOrNull()
+                    val uname = info?.name?.ifBlank { null } ?: info?.username
+                    if (!uname.isNullOrEmpty()) {
+                        prefs.setDiscordUsername(uname)
+                        username = uname
+                    }
                 }
             }
         }
@@ -114,15 +129,20 @@ fun DiscordSettingsScreen(
                         }
                         tokenLoading = true
                         scope.launch {
-                            val userInfoResult = withContext(Dispatchers.IO) {
-                                KizzyRPC.getUserInfo(clean)
-                            }
+                            val me = DiscordRemoteAuthManager.fetchDiscordMe(clean)
+                            val userInfoResult = if (me == null) {
+                                withContext(Dispatchers.IO) {
+                                    KizzyRPC.getUserInfo(clean)
+                                }
+                            } else null
                             tokenLoading = false
-                            if (userInfoResult.isSuccess) {
-                                val info = userInfoResult.getOrNull()
-                                val uname = info?.name?.ifBlank { null } ?: info?.username
+                            if (me != null || userInfoResult?.isSuccess == true) {
+                                val info = userInfoResult?.getOrNull()
+                                val uname = me?.username ?: info?.name?.ifBlank { null } ?: info?.username
                                 prefs.setDiscordToken(clean)
                                 uname?.let { prefs.setDiscordUsername(it) }
+                                prefs.setDiscordAvatarUrl(me?.avatarUrl)
+                                com.alananasss.kittytune.data.together.Together.discordAvatarUrl = me?.avatarUrl
                                 prefs.setDiscordRpcEnabled(true)
                                 token = clean
                                 username = uname
@@ -238,6 +258,8 @@ fun DiscordSettingsScreen(
                                     onClick = hapticAction(HapticKind.UI) {
                                         prefs.setDiscordToken(null)
                                         prefs.setDiscordUsername(null)
+                                        prefs.setDiscordAvatarUrl(null)
+                                        com.alananasss.kittytune.data.together.Together.discordAvatarUrl = null
                                         prefs.setDiscordRpcEnabled(false)
                                         token = null
                                         username = null
@@ -288,17 +310,83 @@ fun DiscordSettingsScreen(
                                 enter = expandVertically() + fadeIn(),
                                 exit = shrinkVertically() + fadeOut()
                             ) {
-                                SettingsItem(
-                                    shape = getSettingsShape(2, 1),
-                                    title = stringResource(R.string.pref_discord_status_display),
-                                    subtitle = when (statusDisplay) {
-                                        DiscordStatusDisplay.ACTIVITY -> stringResource(R.string.discord_status_activity)
-                                        DiscordStatusDisplay.SOUNDCLOUD -> stringResource(R.string.discord_status_soundcloud)
-                                        DiscordStatusDisplay.ARTIST -> stringResource(R.string.discord_status_artist)
-                                        DiscordStatusDisplay.SONG -> stringResource(R.string.discord_status_song)
-                                    },
-                                    onClick = hapticAction(HapticKind.UI) { showStatusDialog = true }
-                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    val subGroupSize = if (listenAlongEnabled) 5 else 3
+                                    SettingsItem(
+                                        shape = getSettingsShape(subGroupSize + 1, 1),
+                                        title = stringResource(R.string.pref_discord_status_display),
+                                        subtitle = when (statusDisplay) {
+                                            DiscordStatusDisplay.ACTIVITY -> stringResource(R.string.discord_status_activity)
+                                            DiscordStatusDisplay.SOUNDCLOUD -> stringResource(R.string.discord_status_soundcloud)
+                                            DiscordStatusDisplay.ARTIST -> stringResource(R.string.discord_status_artist)
+                                            DiscordStatusDisplay.SONG -> stringResource(R.string.discord_status_song)
+                                        },
+                                        onClick = hapticAction(HapticKind.UI) { showStatusDialog = true }
+                                    )
+                                    SettingsItem(
+                                        shape = getSettingsShape(subGroupSize + 1, 2),
+                                        title = stringResource(R.string.discord_listen_along_title),
+                                        subtitle = stringResource(R.string.discord_listen_along_desc),
+                                        icon = Icons.Rounded.Headphones,
+                                        hasSwitch = true,
+                                        switchState = listenAlongEnabled,
+                                        onSwitchChange = {
+                                            listenAlongEnabled = it
+                                            prefs.setDiscordListenAlongEnabled(it)
+                                            context.startService(Intent(context, PlaybackService::class.java).apply {
+                                                action = PlaybackService.ACTION_FORCE_UPDATE
+                                            })
+                                        }
+                                    )
+                                    SettingsItem(
+                                        shape = getSettingsShape(subGroupSize + 1, 3),
+                                        title = stringResource(R.string.discord_auto_live_title),
+                                        subtitle = stringResource(R.string.discord_auto_live_desc),
+                                        icon = Icons.Rounded.Podcasts,
+                                        hasSwitch = true,
+                                        switchState = autoLiveEnabled,
+                                        onSwitchChange = {
+                                            autoLiveEnabled = it
+                                            prefs.setDiscordAutoLiveEnabled(it)
+                                            if (it) {
+                                                listenAlongEnabled = true
+                                                prefs.setDiscordListenAlongEnabled(true)
+                                            }
+                                            context.startService(Intent(context, PlaybackService::class.java).apply {
+                                                action = PlaybackService.ACTION_FORCE_UPDATE
+                                            })
+                                        }
+                                    )
+                                    if (listenAlongEnabled) {
+                                        val liveCode = com.alananasss.kittytune.data.together.Together.active.collectAsState().value
+                                            ?: com.alananasss.kittytune.data.together.Together.personalLiveCode
+                                        SettingsItem(
+                                            shape = getSettingsShape(subGroupSize + 1, 4),
+                                            title = stringResource(R.string.together_share_link),
+                                            subtitle = com.alananasss.kittytune.data.together.TogetherLinks.inviteUrl(liveCode),
+                                            icon = Icons.Rounded.Share,
+                                            onClick = hapticAction(HapticKind.UI) {
+                                                com.alananasss.kittytune.data.together.TogetherLinks.shareInviteLink(context, liveCode)
+                                            }
+                                        )
+                                        SettingsItem(
+                                            shape = getSettingsShape(subGroupSize + 1, 5),
+                                            title = stringResource(R.string.together_reset_link),
+                                            subtitle = stringResource(
+                                                R.string.together_code,
+                                                com.alananasss.kittytune.data.together.TogetherWire.displayCode(liveCode)
+                                            ),
+                                            icon = Icons.Rounded.Refresh,
+                                            onClick = hapticAction(HapticKind.UI) {
+                                                val fresh = com.alananasss.kittytune.data.together.Together.regeneratePersonalLiveCode()
+                                                com.alananasss.kittytune.data.together.TogetherLinks.copyInviteLink(context, fresh)
+                                                context.startService(Intent(context, PlaybackService::class.java).apply {
+                                                    action = PlaybackService.ACTION_FORCE_UPDATE
+                                                })
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

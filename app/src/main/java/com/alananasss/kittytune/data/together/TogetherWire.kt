@@ -28,11 +28,22 @@ internal object TogetherWire {
     // Topic and key derivations are pure functions of the code, and a message is sent every few
     // seconds per playlist: both are cached per code, bounded by how many playlists are followed.
     private val topicCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val snapPrefixCache = java.util.concurrent.ConcurrentHashMap<String, String>()
     private val keyCache = java.util.concurrent.ConcurrentHashMap<String, SecretKeySpec>()
 
     fun topicFor(code: String): String = topicCache.computeIfAbsent(normalizeCode(code)) {
         "kittytune/together/" + sha256Hex("topic:" + it).take(32)
     }
+
+    private fun snapshotPrefixFor(code: String): String = snapPrefixCache.computeIfAbsent(normalizeCode(code)) {
+        "kittytune/together/snap/" + sha256Hex("snap:" + it).take(32)
+    }
+
+    fun stateSnapshotTopicFor(code: String): String = snapshotPrefixFor(code) + "/state"
+
+    fun queueSnapshotTopicFor(code: String): String = snapshotPrefixFor(code) + "/queue"
+
+    fun snapshotWildcardTopicFor(code: String): String = snapshotPrefixFor(code) + "/#"
 
     fun seal(code: String, message: TogetherMessage): ByteArray {
         val json = gson.toJson(message.toJson()).toByteArray(Charsets.UTF_8)
@@ -113,13 +124,26 @@ data class SharedTrack(
     }
 }
 
+/** Active listener metadata embedded in [TogetherMessage.State] so newcomers see everyone on the first packet. */
+data class SharedListener(
+    val id: String,
+    val name: String,
+    val avatarUrl: String? = null,
+)
+
 /** One message between the members of a shared playlist. Every one says who sent it and when. */
 sealed interface TogetherMessage {
     val from: String
     val sentAt: Long
 
     /** "I am here", every few seconds, with whether this member is listening along. */
-    data class Hello(override val from: String, override val sentAt: Long, val name: String, val isListening: Boolean) : TogetherMessage
+    data class Hello(
+        override val from: String,
+        override val sentAt: Long,
+        val name: String,
+        val isListening: Boolean,
+        val avatarUrl: String? = null,
+    ) : TogetherMessage
 
     /** Leaving, so the others need not wait for the presence to time out. */
     data class Bye(override val from: String, override val sentAt: Long) : TogetherMessage
@@ -133,6 +157,10 @@ sealed interface TogetherMessage {
         val isPlaying: Boolean,
         val automix: Boolean,
         val queueVersion: Int,
+        val hostLocked: Boolean = false,
+        val hostName: String? = null,
+        val hostAvatarUrl: String? = null,
+        val listeners: List<SharedListener>? = null,
     ) : TogetherMessage
 
     /** The host's queue from the song playing on, and the playlist's own tracks. */

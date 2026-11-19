@@ -64,11 +64,18 @@ sealed interface RemoteAuthState {
     ) : RemoteAuthState
     data class Success(
         val token: String,
-        val username: String?
+        val username: String?,
+        val avatarUrl: String? = null
     ) : RemoteAuthState
     data class Error(val message: String) : RemoteAuthState
     object Canceled : RemoteAuthState
 }
+
+data class DiscordUserMe(
+    val id: String,
+    val username: String?,
+    val avatarUrl: String?
+)
 
 class DiscordRemoteAuthManager {
 
@@ -76,28 +83,70 @@ class DiscordRemoteAuthManager {
         private const val TAG = "DiscordRemoteAuth"
         private const val GATEWAY_URL = "wss://remote-auth-gateway.discord.gg/?v=2"
         private const val LOGIN_ENDPOINT = "https://discord.com/api/v9/users/@me/remote-auth/login"
+        private const val USERS_ME_ENDPOINT = "https://discord.com/api/v9/users/@me"
         private const val ORIGIN_HEADER = "https://discord.com"
         private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+
+        private val sharedHttpClient: OkHttpClient by lazy {
+            ZapretManager.newBuilder()
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(15, TimeUnit.SECONDS)
+                .build()
+        }
+
+        fun buildAvatarUrl(userId: String?, avatarHash: String?): String? {
+            val cleanId = userId?.trim()?.takeIf { it.isNotBlank() && it != "null" } ?: return null
+            val cleanHash = avatarHash?.trim()?.takeIf { it.isNotBlank() && it != "null" } ?: return null
+            return "https://cdn.discordapp.com/avatars/$cleanId/$cleanHash.png?size=128"
+        }
+
+        suspend fun fetchDiscordMe(token: String): DiscordUserMe? = kotlinx.coroutines.withContext(Dispatchers.IO) {
+            val cleanToken = token.trim().replace("\"", "")
+            if (cleanToken.isBlank()) return@withContext null
+            runCatching {
+                val req = Request.Builder()
+                    .url(USERS_ME_ENDPOINT)
+                    .header("Authorization", cleanToken)
+                    .header("User-Agent", USER_AGENT)
+                    .get()
+                    .build()
+                sharedHttpClient.newCall(req).execute().use { resp ->
+                    if (!resp.isSuccessful) return@use null
+                    val bodyStr = resp.body.string()
+                    val json = JSONObject(bodyStr)
+                    val id = if (!json.isNull("id")) json.optString("id").trim() else ""
+                    if (id.isBlank() || id == "null") return@use null
+                    val globalName = if (!json.isNull("global_name")) json.optString("global_name").trim() else ""
+                    val rawUsername = if (!json.isNull("username")) json.optString("username").trim() else ""
+                    val resolvedUsername = globalName.takeIf { it.isNotBlank() && it != "null" }
+                        ?: rawUsername.takeIf { it.isNotBlank() && it != "null" }
+                    val avatarHash = if (!json.isNull("avatar")) json.optString("avatar").trim() else null
+                    DiscordUserMe(
+                        id = id,
+                        username = resolvedUsername,
+                        avatarUrl = buildAvatarUrl(id, avatarHash)
+                    )
+                }
+            }.getOrNull()
+        }
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var heartbeatJob: Job? = null
     private var currentWebSocket: WebSocket? = null
     private var rsaKeyPair: KeyPair? = null
+    @Volatile
+    private var scannedAvatarUrl: String? = null
 
-    private val httpClient: OkHttpClient by lazy {
-        ZapretManager.newBuilder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
-            .build()
-    }
+    private val httpClient: OkHttpClient get() = sharedHttpClient
 
     private val _state = MutableStateFlow<RemoteAuthState>(RemoteAuthState.Idle)
     val state: StateFlow<RemoteAuthState> = _state.asStateFlow()
 
     fun start() {
         cancel()
+        scannedAvatarUrl = null
         _state.value = RemoteAuthState.Connecting
 
         scope.launch {
@@ -218,9 +267,8 @@ class DiscordRemoteAuthManager {
                                 discriminator = parts[1]
                                 val avatarHash = parts[2]
                                 username = parts[3]
-                                if (avatarHash.isNotBlank()) {
-                                    avatarUrl = "https://cdn.discordapp.com/avatars/$userId/$avatarHash.png"
-                                }
+                                avatarUrl = buildAvatarUrl(userId, avatarHash)
+                                scannedAvatarUrl = avatarUrl
                             }
                         } catch (e: Exception) {
                             Log.w(TAG, "Failed to decrypt user payload in pending_ticket", e)
@@ -332,19 +380,28 @@ class DiscordRemoteAuthManager {
             val decryptedTokenBytes = decryptRsaOaep(keyPair, encryptedTokenBytes)
             val token = String(decryptedTokenBytes, Charsets.UTF_8).trim()
 
-            // Fetch user info for confirmation
+            // Fetch user info (username + avatar) for confirmation
             var username: String? = null
+            var resolvedAvatarUrl: String? = scannedAvatarUrl
             try {
-                val userInfoResult = KizzyRPC.getUserInfo(token)
-                if (userInfoResult.isSuccess) {
-                    val info = userInfoResult.getOrNull()
-                    username = info?.name?.ifBlank { null } ?: info?.username
+                val me = fetchDiscordMe(token)
+                if (me != null) {
+                    username = me.username
+                    if (me.avatarUrl != null) {
+                        resolvedAvatarUrl = me.avatarUrl
+                    }
+                } else {
+                    val userInfoResult = KizzyRPC.getUserInfo(token)
+                    if (userInfoResult.isSuccess) {
+                        val info = userInfoResult.getOrNull()
+                        username = info?.name?.ifBlank { null } ?: info?.username
+                    }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Could not fetch user profile after token exchange", e)
             }
 
-            _state.value = RemoteAuthState.Success(token, username)
+            _state.value = RemoteAuthState.Success(token, username, resolvedAvatarUrl)
             try {
                 webSocket.close(1000, "Login completed")
             } catch (_: Exception) {}

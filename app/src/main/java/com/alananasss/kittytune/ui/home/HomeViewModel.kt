@@ -434,6 +434,13 @@
 
             val trimmed = query.trim()
 
+            val togetherCode = com.alananasss.kittytune.data.together.TogetherLinks.extractCode(trimmed, allowRawCode = false)
+            if (togetherCode != null) {
+                com.alananasss.kittytune.data.together.Together.joinAndListen(togetherCode)
+                viewModelScope.launch { _navigateTo.emit("together_room/$togetherCode") }
+                return
+            }
+
             val isSoundCloudUrl = trimmed.contains("soundcloud.com") || trimmed.startsWith("soundcloud:")
             val isSpotifyUrl = trimmed.contains("open.spotify.com") || trimmed.contains("spotify.link") ||
                     trimmed.startsWith("spotify:") || trimmed.startsWith("spotify_") || trimmed.startsWith("station_spotify:")
@@ -2085,6 +2092,7 @@
         private suspend fun loadGuestData() {
             try {
                 userProfile = null
+                com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = null
                 val localLikes = LikeRepository.likedTracks.value
                 val historyItems = try { HistoryRepository.getHistory().first() } catch (e: Exception) { emptyList() }
                 val statsEvents = try { ListeningStatsRepository.getRecentEvents(0L, limit = 30) } catch (e: Exception) { emptyList() }
@@ -2262,8 +2270,10 @@
             try {
                 val me = api.getMe()
                 userProfile = me
-                com.alananasss.kittytune.data.local.PlayerPreferences(getApplication())
-                    .rememberSoundCloudTier(me)
+                val pPrefs = com.alananasss.kittytune.data.local.PlayerPreferences(getApplication())
+                pPrefs.rememberSoundCloudTier(me)
+                pPrefs.setCachedAvatarUrl(me.avatarUrl)
+                com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = me.avatarUrl
                 val allSections = mutableListOf<HomeSection>()
 
                 coroutineScope {

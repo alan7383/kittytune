@@ -89,6 +89,15 @@
                     <category android:name="android.intent.category.BROWSABLE" />
                     <data android:scheme="https" android:host="soundcloud.com" android:pathPrefix="/auth_mobile_callback" />
                 </intent-filter>
+                <!-- Listen Together / Live Listen Along Deep Links -->
+                <intent-filter android:autoVerify="false">
+                    <action android:name="android.intent.action.VIEW" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <category android:name="android.intent.category.BROWSABLE" />
+                    <data android:scheme="kittytune" android:host="together" />
+                    <data android:scheme="kittytune" android:host="listen" />
+                    <data android:scheme="sc" android:host="together" />
+                </intent-filter>
                 <!-- Music App Discovery & Launch (AOSP Default Music App & Category) -->
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />

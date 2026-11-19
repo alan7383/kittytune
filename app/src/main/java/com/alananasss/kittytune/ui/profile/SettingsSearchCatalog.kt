@@ -65,6 +65,8 @@ internal fun rememberSettingsSearchCatalog(
         var scHistorySync = prefs.getSoundCloudHistorySyncEnabled()
         var downloadDrm = prefs.getDownloadDrmStreamsEnabled()
         var discordRpc = prefs.getDiscordRpcEnabled()
+        var discordListenAlong = prefs.getDiscordListenAlongEnabled()
+        var discordAutoLive = prefs.getDiscordAutoLiveEnabled()
         var dataSaver = prefs.getDataSaverEnabled()
         var dataSaverLyricsRestrict = prefs.getDataSaverLyricsRestrictEnabled()
         var achievementPopups = prefs.getAchievementPopupsEnabled()
@@ -1137,6 +1139,40 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     discordRpc = it
                     prefs.setDiscordRpcEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.discord_listen_along_title,
+                subtitleRes = R.string.discord_listen_along_desc,
+                categoryName = catSources,
+                icon = Icons.Rounded.Headphones,
+                route = "discord_settings",
+                keywords = listOf("discord", "rpc", "presence", "listen along", "together", "live", "écouter ensemble", "lien", "link"),
+                hasSwitch = true,
+                switchState = discordListenAlong,
+                onSwitchChange = {
+                    discordListenAlong = it
+                    prefs.setDiscordListenAlongEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.discord_auto_live_title,
+                subtitleRes = R.string.discord_auto_live_desc,
+                categoryName = catSources,
+                icon = Icons.Rounded.Podcasts,
+                route = "discord_settings",
+                keywords = listOf("discord", "rpc", "presence", "listen along", "together", "live", "broadcast", "strangers", "direct"),
+                hasSwitch = true,
+                switchState = discordAutoLive,
+                onSwitchChange = {
+                    discordAutoLive = it
+                    prefs.setDiscordAutoLiveEnabled(it)
                     onPreferenceChange()
                 }
             ),

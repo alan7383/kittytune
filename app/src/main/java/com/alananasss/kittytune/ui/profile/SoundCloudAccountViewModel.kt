@@ -51,6 +51,7 @@ class SoundCloudAccountViewModel(application: Application) : AndroidViewModel(ap
             configuration = null
             emails = emptyList()
             isLoading = false
+            com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = null
             return
         }
 
@@ -69,7 +70,10 @@ class SoundCloudAccountViewModel(application: Application) : AndroidViewModel(ap
                 withContext(Dispatchers.IO) {
                     val me = api.getMe()
                     user = me
-                    com.alananasss.kittytune.data.local.PlayerPreferences(app).rememberSoundCloudTier(me)
+                    val pPrefs = com.alananasss.kittytune.data.local.PlayerPreferences(app)
+                    pPrefs.rememberSoundCloudTier(me)
+                    pPrefs.setCachedAvatarUrl(me.avatarUrl)
+                    com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = me.avatarUrl
                     try {
                         val config = api.getAndroidConfiguration()
                         configuration = config
