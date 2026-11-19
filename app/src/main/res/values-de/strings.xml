@@ -97,7 +97,7 @@
     <string name="home_offline_btn_downloads">Zu den Downloads</string>
     <string name="home_offline_banner">Offline-Modus aktiv</string>
     <string name="offline_banner_action_downloads">Möchtest du zu deinen Downloads gehen? Tippe hier</string>
-    <string name="explorer_title">Explorer</string>
+    <string name="explorer_title">Entdecken</string>
     <string name="explorer_new_releases">Neu</string>
     <string name="explorer_charts">Charts</string>
     <string name="explorer_moods_genres">Stimmungen\n&amp; Genres</string>
@@ -193,7 +193,7 @@
     <string name="lib_sort_recently_added">Zuletzt hinzugefügt</string>
     <string name="lib_sort_manual">Eigene Reihenfolge</string>
     <string name="lib_reorder_mode">Neu anordnen</string>
-    <string name="lib_playlists">Playlists</string>
+    <string name="lib_playlists">Wiedergabelisten</string>
     <string name="lib_artists">Künstler</string>
     <string name="lib_albums">Alben</string>
     <string name="lib_stations">Sender</string>
@@ -306,7 +306,7 @@
     <string name="preset_pnd_bathroom">Badezimmer</string>
     <string name="preset_pnd_hallway">Flur</string>
     <string name="preset_pnd_next_door">Nebenan</string>
-    <string name="effect_super_wide">Super Wide</string>
+    <string name="effect_super_wide">Extrem breit</string>
     <string name="fx_super_wide_desc">Erweitert die Stereobühne weit über deine Kopfhörer hinaus mit psychoakustischem Haas-Crossfeed</string>
     <string name="label_sw_width">Stereobreite: %1$d%%</string>
     <string name="label_sw_depth">Raumtiefe: %1$d %%</string>
@@ -1825,7 +1825,7 @@
     <string name="history_empty_contexts">Keine zuletzt gespielten Playlists oder Sender</string>
     <string name="history_search_hint">Im Verlauf suchen…</string>
     <string name="history_guest_desc">Melde dich bei SoundCloud an, um deinen Hörverlauf auf all deinen Geräten zu synchronisieren und zu verwalten.</string>
-    <string name="history_type_playlist">Playlist</string>
+    <string name="history_type_playlist">Wiedergabeliste</string>
     <string name="history_type_likes">Gelikte Titel</string>
     <string name="upload_screen_title">Titel hochladen</string>
     <string name="upload_login_required_title">Zum Hochladen anmelden</string>
@@ -1835,7 +1835,7 @@
     <string name="upload_picker_hero_subtitle">Unterstützte Formate: MP3, WAV, FLAC, AAC, OGG, M4A, AIFF</string>
     <string name="upload_picker_btn">Audiodatei auswählen</string>
     <string name="upload_picker_max_size">Maximale Dateigröße: 5 GB</string>
-    <string name="upload_artwork_label">Cover</string>
+    <string name="upload_artwork_label">Titelbild</string>
     <string name="upload_artwork_change">Cover ändern</string>
     <string name="upload_field_title">Titel *</string>
     <string name="upload_field_title_required">Ein Titel ist erforderlich</string>
