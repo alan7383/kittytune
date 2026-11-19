@@ -23,6 +23,13 @@ object SyncLog {
 
     private val file: File by lazy { File(KittyTuneApp.instance.filesDir, "sync_log.jsonl") }
 
+    /**
+     * The log is append-only by design, but leaving it unbounded made long listening sessions
+     * eat storage with no way back. Past this size the oldest whole events are dropped: a
+     * multi-year tail of play events nobody scrolls that far back is worth less than the space.
+     */
+    private const val MAX_LOG_BYTES = 16L * 1024 * 1024
+
     /** In memory as well as on disk: the whole log is read for every merge, and it is small. */
     private val events = mutableListOf<SyncEvent>()
     private var loaded = false
@@ -140,6 +147,38 @@ object SyncLog {
             file.parentFile?.mkdirs()
             // One open, one append, one line each: a crash mid-batch leaves whole lines behind it.
             file.appendText(batch.joinToString("") { gson.toJson(it) + "\n" })
+        }
+        compactIfNeeded()
+    }
+
+    /** Past [MAX_LOG_BYTES], rewrites the file without its oldest lines and keeps memory in step. */
+    private fun compactIfNeeded() {
+        runCatching {
+            if (!file.isFile || file.length() <= MAX_LOG_BYTES) return
+            val lines = file.readLines().filter { it.isNotBlank() }
+            var total = lines.sumOf { it.length + 1 }
+            var start = 0
+            while (start < lines.size && total > MAX_LOG_BYTES / 2) {
+                total -= lines[start].length + 1
+                start++
+            }
+            if (start <= 0) return
+            val kept = lines.subList(start, lines.size)
+            val tmp = File(file.parentFile, file.name + ".tmp")
+            tmp.writeText(kept.joinToString("") { it + "\n" })
+            val moved = runCatching {
+                java.nio.file.Files.move(tmp.toPath(), file.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                true
+            }.getOrDefault(false) || tmp.renameTo(file)
+            if (moved) {
+                events.clear()
+                events.addAll(kept.mapNotNull { line ->
+                    runCatching { gson.fromJson(line, SyncEvent::class.java) }.getOrNull()
+                        ?.takeIf { it.isWellFormed }
+                })
+            } else {
+                runCatching { tmp.delete() }
+            }
         }
     }
 
