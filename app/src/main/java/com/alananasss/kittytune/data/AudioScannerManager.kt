@@ -7,12 +7,11 @@ import android.media.MediaFormat
 import android.util.Log
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.LocalTrack
+import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.io.File
-import java.nio.ByteBuffer
-import java.util.concurrent.atomic.AtomicBoolean
 
 object AudioScannerManager {
     private const val TAG = "AudioScannerManager"
@@ -207,16 +206,12 @@ object AudioScannerManager {
             } else {
                 Log.w(TAG, "Track ${track.id} returned invalid LUFS ($lufs), will retry later")
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "Error scanning track ${track.id}: ${e.message}", e)
         } finally {
             try {
                 if (nativeHandle != 0L) nativeDestroyAnalyzer(nativeHandle)
             } catch (_: Exception) {}
-            // Split, like the two blocks above: sharing one try meant a throwing stop() - routine
-            // for a codec that was configured but never started - skipped the release and leaked
-            // the native MediaCodec instance.
             try {
                 decoder?.stop()
             } catch (_: Exception) {}
