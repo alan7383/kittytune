@@ -1,13 +1,21 @@
 package com.alananasss.kittytune.data
 
+import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.os.ParcelFileDescriptor
+import androidx.core.content.edit
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.alananasss.kittytune.MainActivity
+import com.alananasss.kittytune.data.local.PlayerPreferences
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -15,6 +23,7 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -65,6 +74,91 @@ class PlaybackAudioFocusDeviceTest {
             }
             tone.delete()
         }
+    }
+
+    @Test fun audioFocusPausesPlaybackByDefaultAndCanBeDisabledDuringPlayback() {
+        val context = instrumentation.targetContext
+        val prefs = PlayerPreferences(context)
+        val stored = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+        val key = PlayerPreferences.KEY_PAUSE_ON_AUDIO_FOCUS_LOSS
+        val originalSetting = prefs.getPauseOnAudioFocusLoss().takeIf { stored.contains(key) }
+        val audio = context.getSystemService(AudioManager::class.java)
+        val competitorLostFocus = AtomicBoolean(false)
+        val competitor = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+            .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).build())
+            .setOnAudioFocusChangeListener { if (it == AudioManager.AUDIOFOCUS_LOSS) competitorLostFocus.set(true) }
+            .build()
+        val tone = File(context.cacheDir, "audio-focus-preference-test.wav")
+        writeTone(tone)
+        val mediaItem = MediaItem.fromUri(tone.toURI().toString())
+
+        try {
+            stored.edit { remove(key) }
+            assertTrue(prefs.getPauseOnAudioFocusLoss())
+            instrumentation.runOnMainSync {
+                MusicManager.init(context)
+                context.startService(Intent(context, PlaybackService::class.java))
+                MusicManager.player.apply {
+                    setMediaItem(mediaItem)
+                    prepare()
+                    play()
+                }
+            }
+            await("KittyTune owns media focus by default on the phone") {
+                isPlaying() && hasAudioFocus(context.packageName)
+            }
+            assertEquals(AudioManager.AUDIOFOCUS_REQUEST_GRANTED, audio.requestAudioFocus(competitor))
+            await("KittyTune pauses when another media client takes focus") { !isPlaying() }
+            audio.abandonAudioFocusRequest(competitor)
+
+            instrumentation.runOnMainSync { MusicManager.player.play() }
+            await("KittyTune owns media focus again when playback starts") {
+                isPlaying() && hasAudioFocus(context.packageName)
+            }
+            prefs.setPauseOnAudioFocusLoss(false)
+            await("Disabling the setting releases focus during playback") { !hasAudioFocus(context.packageName) }
+            assertTrue(isPlaying())
+
+            assertEquals(AudioManager.AUDIOFOCUS_REQUEST_GRANTED, audio.requestAudioFocus(competitor))
+            val nextItem = mediaItem.buildUpon().setMediaId("focus-test-next-track").build()
+            instrumentation.runOnMainSync { MusicManager.crossfadeToMediaItem(nextItem, 0L, 500L) }
+            await("Playback advances through the crossfade with another media client holding focus") {
+                var advanced = false
+                instrumentation.runOnMainSync {
+                    val current = MusicManager.player
+                    advanced = current.currentMediaItem?.mediaId == nextItem.mediaId &&
+                        current.isPlaying && current.currentPosition > 1_000 && !MusicManager.isCrossfadingOut
+                }
+                advanced
+            }
+            assertFalse("The crossfade must leave the other media client's focus alone", competitorLostFocus.get())
+            audio.abandonAudioFocusRequest(competitor)
+
+            instrumentation.runOnMainSync { MusicManager.setAndroidAutoProjected(true) }
+            await("Android Auto still gets media focus when projected") { hasAudioFocus(context.packageName) }
+            instrumentation.runOnMainSync { MusicManager.setAndroidAutoProjected(false) }
+            await("Disconnecting Android Auto returns to mixing") { !hasAudioFocus(context.packageName) }
+
+            prefs.setPauseOnAudioFocusLoss(true)
+            await("Re-enabling the setting takes focus during playback") {
+                isPlaying() && hasAudioFocus(context.packageName)
+            }
+        } finally {
+            audio.abandonAudioFocusRequest(competitor)
+            instrumentation.runOnMainSync {
+                MusicManager.setAndroidAutoProjected(false)
+                MusicManager.player.stop()
+                MusicManager.player.clearMediaItems()
+            }
+            if (originalSetting == null) stored.edit { remove(key) } else prefs.setPauseOnAudioFocusLoss(originalSetting)
+            tone.delete()
+        }
+    }
+
+    private fun isPlaying(): Boolean {
+        var playing = false
+        instrumentation.runOnMainSync { playing = MusicManager.player.isPlaying }
+        return playing
     }
 
     private fun hasAudioFocus(packageName: String): Boolean {

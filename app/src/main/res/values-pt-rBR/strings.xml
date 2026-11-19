@@ -3790,6 +3790,8 @@
     <string name="pref_instant_skip_silence_sub">Salte trechos silenciosos longos em vez de avançar rapidamente por eles</string>
     <string name="pref_resume_on_bluetooth">Retomar ao conectar por Bluetooth</string>
     <string name="pref_resume_on_bluetooth_sub">Continue a reprodução ao reconectar um dispositivo Bluetooth</string>
+    <string name="pref_pause_on_audio_focus_loss">Pausar quando outro app reproduzir áudio</string>
+    <string name="pref_pause_on_audio_focus_loss_sub">Desative esta opção para ouvir o KittyTune junto com outros apps</string>
     <string name="pref_pause_on_mute">Pausar quando o volume chegar a zero</string>
     <string name="pref_pause_on_mute_sub">Pause a reprodução quando o volume de mídia chegar a zero e retome quando ele aumentar</string>
     <string name="pref_keep_screen_on">Manter a tela ligada no player</string>

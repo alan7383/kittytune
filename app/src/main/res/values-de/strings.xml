@@ -3737,6 +3737,8 @@
     <string name="pref_instant_skip_silence_sub">Lange Stille direkt überspringen, statt vorzuspulen</string>
     <string name="pref_resume_on_bluetooth">Bei Bluetooth-Verbindung fortsetzen</string>
     <string name="pref_resume_on_bluetooth_sub">Wiedergabe fortsetzen, wenn sich ein Bluetooth-Gerät wieder verbindet</string>
+    <string name="pref_pause_on_audio_focus_loss">Pausieren, wenn eine andere App Ton abspielt</string>
+    <string name="pref_pause_on_audio_focus_loss_sub">Deaktiviere diese Option, um KittyTune gleichzeitig mit anderen Apps zu hören</string>
     <string name="pref_pause_on_mute">Bei Stummschaltung pausieren</string>
     <string name="pref_pause_on_mute_sub">Wiedergabe pausieren, wenn die Medienlautstärke null erreicht, und fortsetzen, wenn sie zurückkehrt</string>
     <string name="pref_keep_screen_on">Bildschirm im Player anlassen</string>

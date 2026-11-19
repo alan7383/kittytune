@@ -3741,6 +3741,8 @@
     <string name="pref_instant_skip_silence_sub">A hosszú csendeken közvetlenül átugrik a gyors előretekerés helyett</string>
     <string name="pref_resume_on_bluetooth">Folytatás Bluetooth-csatlakozáskor</string>
     <string name="pref_resume_on_bluetooth_sub">A lejátszás folytatása, amikor egy Bluetooth-eszköz újra csatlakozik</string>
+    <string name="pref_pause_on_audio_focus_loss">Szüneteltetés, ha egy másik alkalmazás hangot játszik le</string>
+    <string name="pref_pause_on_audio_focus_loss_sub">Kapcsold ki, hogy a KittyTune más alkalmazások hangja mellett is szóljon</string>
     <string name="pref_pause_on_mute">Szünet elnémításkor</string>
     <string name="pref_pause_on_mute_sub">A lejátszás szünetel, amikor a médiahangerő nullára csökken, és folytatódik, ha visszatér</string>
     <string name="pref_keep_screen_on">Képernyő bekapcsolva tartása a lejátszóban</string>

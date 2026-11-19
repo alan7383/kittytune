@@ -3800,6 +3800,8 @@
     <string name="pref_pause_search_history_sub">Пауза сохранения поисковых запросов</string>
     <string name="pref_resume_on_bluetooth">Возобновлять при подключении Bluetooth</string>
     <string name="pref_resume_on_bluetooth_sub">Продолжать воспроизведение при переподключении наушников</string>
+    <string name="pref_pause_on_audio_focus_loss">Пауза при воспроизведении звука в другом приложении</string>
+    <string name="pref_pause_on_audio_focus_loss_sub">Отключите эту настройку, чтобы слушать KittyTune одновременно с другими приложениями</string>
     <string name="pref_pause_on_mute">Пауза при выключении звука</string>
     <string name="pref_pause_on_mute_sub">Останавливать трек при беззвучном режиме</string>
     <string name="pref_share_lyrics_as_text">Поделиться текстом</string>
