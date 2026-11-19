@@ -4,15 +4,15 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.audio.haptics.HapticUtil
@@ -43,7 +42,6 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 //
 // Tapping the badge opens the live audio path diagnostics ([AudioPathDiagnosticSheet]);
 // pass [onClick] to override that behaviour.
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CodecBadge(
     viewModel: PlayerViewModel,
@@ -65,9 +63,8 @@ fun CodecBadge(
     }
 
     val prefs = remember { PlayerPreferences(context) }
-    val showCodec by remember(prefs) { prefs.showCodecOnPlayerFlow() }
-        .collectAsState(initial = prefs.getShowCodecOnPlayer())
-    if (!showCodec || viewModel.playbackDeviceLabel != null) return
+    val showCodec = remember { prefs.getShowCodecOnPlayer() }
+    if (!showCodec) return
 
     val format by MusicManager.currentAudioFormatFlow.collectAsState()
     val usbStatus by UsbAudioManager.status.collectAsState()
@@ -89,18 +86,18 @@ fun CodecBadge(
     val badgeText = usbBadge ?: formatText
     if (badgeText.isBlank() && !isBuffering) return
 
-    FilledTonalButton(
-        onClick = {
-            HapticUtil.performUIHaptic(context)
-            if (onClick != null) onClick() else showDiagnostics = true
-        },
-        modifier = modifier.height(22.dp),
-        shapes = ButtonDefaults.shapes(shape = CircleShape),
-        colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = textColor.copy(alpha = 0.08f),
-            contentColor = textColor.copy(alpha = 0.8f),
-        ),
-        contentPadding = PaddingValues(horizontal = 8.dp),
+    Box(
+        modifier = modifier
+            .clickable {
+                HapticUtil.performUIHaptic(context)
+                if (onClick != null) onClick() else showDiagnostics = true
+            }
+            .background(
+                textColor.copy(alpha = 0.08f),
+                RoundedCornerShape(6.dp)
+            )
+            .border(0.5.dp, textColor.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
         AnimatedContent(
             targetState = isBuffering,
@@ -123,8 +120,8 @@ fun CodecBadge(
                         letterSpacing = 0.8.sp,
                         fontSize = 10.sp
                     ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    color = textColor.copy(alpha = 0.8f),
+                    maxLines = 1
                 )
             }
         }

@@ -242,7 +242,7 @@ fun KittyModernMiniPlayer(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ProgressRingThumbnail(
@@ -286,16 +286,10 @@ fun KittyModernMiniPlayer(
                         }
                         Text(
                             text = track.displayArtist.ifBlank { "" },
-                            modifier = Modifier.weight(1f, fill = false),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
-                        )
-                        CodecBadge(
-                            viewModel = viewModel,
-                            textColor = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(start = 6.dp).widthIn(max = 132.dp),
                         )
                     }
                 }
