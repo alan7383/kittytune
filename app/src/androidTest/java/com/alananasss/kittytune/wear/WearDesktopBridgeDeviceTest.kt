@@ -9,12 +9,15 @@ import com.alananasss.kittytune.data.sync.SyncPeers
 import com.alananasss.kittytune.data.sync.SyncPlayback
 import com.alananasss.kittytune.wear.common.WearConstants
 import org.junit.Assert.*
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
 
 /** Real Desktop fixture uses an isolated profile, local WAV files and an adb reverse TCP route. */
 class WearDesktopBridgeDeviceTest {
     @Test fun backgroundPhoneRelaysWatchCommandsToTheRealDesktop() {
+        assumeTrue("Run with -e wearDesktopBridge true after pairing the watch and starting the Desktop fixture",
+            InstrumentationRegistry.getArguments().getString("wearDesktopBridge") == "true")
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         val desktopId = "wear-live-desktop"

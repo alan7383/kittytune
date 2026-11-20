@@ -4,6 +4,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -91,21 +92,19 @@ class TrackDeletingToggleEmulatorTest {
             assertEquals("Fast diagonal scrolling must not delete any tracks", tracks.map { it.id }, persistedIds())
 
             // 2. Open playlist '...' menu -> tap 'Track removal' -> switch to 'Three-dot menu only'
-            val optionsLabel = context.getString(R.string.btn_options)
             val trackRemovalMenuLabel = context.getString(R.string.menu_track_removal)
             val menuOnlyLabel = context.getString(R.string.track_removal_menu_only)
             val disabledLabel = context.getString(R.string.track_removal_disabled)
             val swipeAndMenuLabel = context.getString(R.string.track_removal_swipe_and_menu)
 
-            fun clickTopBarOverflow() {
-                val nodes = compose.onAllNodesWithContentDescription(optionsLabel, useUnmergedTree = true)
-                val topIdx = nodes.fetchSemanticsNodes().withIndex().minByOrNull { it.value.boundsInRoot.top }!!.index
-                nodes[topIdx].performTouchInput { click() }
+            fun openPlaylistOptions() {
+                compose.onNodeWithTag("playlist-options-button").assertIsDisplayed()
+                    .performSemanticsAction(SemanticsActions.OnClick)
+                compose.onNodeWithTag("playlist-options-grid").performScrollToNode(hasText(trackRemovalMenuLabel))
             }
 
-            clickTopBarOverflow()
-            compose.waitUntil(5_000) { compose.onAllNodesWithText(trackRemovalMenuLabel).fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithText(trackRemovalMenuLabel).performClick()
+            openPlaylistOptions()
+            compose.onNodeWithText(trackRemovalMenuLabel).performSemanticsAction(SemanticsActions.OnClick)
             compose.waitUntil(5_000) { compose.onAllNodesWithText(menuOnlyLabel).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText(menuOnlyLabel).performClick()
             compose.waitForIdle()
@@ -121,11 +120,10 @@ class TrackDeletingToggleEmulatorTest {
             assertEquals(tracks.size, persistedIds().size)
 
             // 3. Open playlist '...' menu -> switch to 'Disabled'
-            clickTopBarOverflow()
-            compose.waitUntil(5_000) { compose.onAllNodesWithText(trackRemovalMenuLabel).fetchSemanticsNodes().isNotEmpty() }
+            openPlaylistOptions()
             // Verify live subtitle in playlist '...' menu reflects MENU_ONLY
             assertTrue(compose.onAllNodesWithText(menuOnlyLabel, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
-            compose.onNodeWithText(trackRemovalMenuLabel).performClick()
+            compose.onNodeWithText(trackRemovalMenuLabel).performSemanticsAction(SemanticsActions.OnClick)
             compose.waitUntil(5_000) { compose.onAllNodesWithText(disabledLabel).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText(disabledLabel).performClick()
             compose.waitForIdle()
