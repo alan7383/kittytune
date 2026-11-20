@@ -117,6 +117,12 @@ extensions.configure<ApplicationExtension> {
     }
 }
 
+tasks.withType<Test>().configureEach {
+    val liveServices = providers.environmentVariable("KITTYTUNE_TEST_LIVE_SERVICES").orElse("")
+    inputs.property("liveServiceTests", liveServices)
+    environment("KITTYTUNE_TEST_LIVE_SERVICES", liveServices.get())
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
