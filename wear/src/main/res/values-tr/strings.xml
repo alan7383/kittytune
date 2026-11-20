@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wear_companion_title">KittyTune yardımcı uygulaması</string>
+    <string name="action_play">Oynat</string>
+    <string name="action_pause">Duraklat</string>
+    <string name="action_previous">Önceki parça</string>
+    <string name="action_next">Sonraki parça</string>
+    <string name="action_volume_up">Sesi artır</string>
+    <string name="action_volume_down">Sesi azalt</string>
+    <string name="target_phone">Telefon</string>
+    <string name="target_desktop">Bilgisayar</string>
+    <string name="target_selector_description">%1$s cihazında oynatılıyor, %2$s</string>
+    <string name="target_status_connected">bağlı</string>
+    <string name="target_status_connecting">bağlanıyor</string>
+    <string name="target_status_disconnected">bağlantı kesildi</string>
+    <string name="target_status_error">erişilemiyor</string>
+    <string name="target_picker_title">Cihaz seç</string>
+    <string name="target_picker_connected">Bağlı</string>
+    <string name="target_picker_offline">Çevrimdışı</string>
+    <string name="track_unknown_title">Bilinmeyen başlık</string>
+    <string name="track_unknown_artist">Bilinmeyen sanatçı</string>
+    <string name="volume_decrease">Sesi yüzde %1$d azalt</string>
+    <string name="volume_increase">Sesi yüzde %1$d artır</string>
+    <string name="volume_current">Geçerli ses seviyesi: yüzde %1$d</string>
+    <string name="status_connecting">Bağlanıyor…</string>
+    <string name="status_disconnected">Bağlantı kesildi</string>
+    <string name="status_no_playback">Oynatılan bir şey yok</string>
+    <string name="status_position">%1$s / %2$s</string>
+</resources>

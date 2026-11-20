@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wear_companion_title">KittyTune társalkalmazás</string>
+    <string name="action_play">Lejátszás</string>
+    <string name="action_pause">Szünet</string>
+    <string name="action_previous">Előző szám</string>
+    <string name="action_next">Következő szám</string>
+    <string name="action_volume_up">Hangerő növelése</string>
+    <string name="action_volume_down">Hangerő csökkentése</string>
+    <string name="target_phone">Telefon</string>
+    <string name="target_desktop">Számítógép</string>
+    <string name="target_selector_description">Lejátszás ezen az eszközön: %1$s, %2$s</string>
+    <string name="target_status_connected">csatlakozva</string>
+    <string name="target_status_connecting">csatlakozás folyamatban</string>
+    <string name="target_status_disconnected">nincs csatlakoztatva</string>
+    <string name="target_status_error">nem érhető el</string>
+    <string name="target_picker_title">Eszköz kiválasztása</string>
+    <string name="target_picker_connected">Csatlakozva</string>
+    <string name="target_picker_offline">Kapcsolat nélkül</string>
+    <string name="track_unknown_title">Ismeretlen cím</string>
+    <string name="track_unknown_artist">Ismeretlen előadó</string>
+    <string name="volume_decrease">Hangerő csökkentése %1$d százalékkal</string>
+    <string name="volume_increase">Hangerő növelése %1$d százalékkal</string>
+    <string name="volume_current">Aktuális hangerő: %1$d százalék</string>
+    <string name="status_connecting">Csatlakozás…</string>
+    <string name="status_disconnected">Nincs csatlakoztatva</string>
+    <string name="status_no_playback">Nincs lejátszás</string>
+    <string name="status_position">%1$s / %2$s</string>
+</resources>
