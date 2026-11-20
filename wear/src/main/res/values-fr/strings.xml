@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wear_companion_title">Compagnon KittyTune</string>
+    <string name="action_play">Lire</string>
+    <string name="action_pause">Mettre en pause</string>
+    <string name="action_previous">Titre précédent</string>
+    <string name="action_next">Titre suivant</string>
+    <string name="action_volume_up">Monter le volume</string>
+    <string name="action_volume_down">Baisser le volume</string>
+    <string name="target_phone">Téléphone</string>
+    <string name="target_desktop">Ordinateur</string>
+    <string name="target_selector_description">Lecture sur %1$s, %2$s</string>
+    <string name="target_status_connected">connecté</string>
+    <string name="target_status_connecting">connexion en cours</string>
+    <string name="target_status_disconnected">déconnecté</string>
+    <string name="target_status_error">injoignable</string>
+    <string name="target_picker_title">Choisir un appareil</string>
+    <string name="target_picker_connected">Connecté</string>
+    <string name="target_picker_offline">Hors ligne</string>
+    <string name="track_unknown_title">Titre inconnu</string>
+    <string name="track_unknown_artist">Artiste inconnu</string>
+    <string name="volume_decrease">Baisser le volume de %1$d pour cent</string>
+    <string name="volume_increase">Monter le volume de %1$d pour cent</string>
+    <string name="volume_current">Volume actuel : %1$d pour cent</string>
+    <string name="status_connecting">Connexion en cours…</string>
+    <string name="status_disconnected">Déconnecté</string>
+    <string name="status_no_playback">Aucune lecture en cours</string>
+    <string name="status_position">%1$s sur %2$s</string>
+</resources>

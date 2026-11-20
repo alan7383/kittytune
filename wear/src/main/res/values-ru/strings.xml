@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wear_companion_title">Компаньон KittyTune</string>
+    <string name="action_play">Воспроизвести</string>
+    <string name="action_pause">Пауза</string>
+    <string name="action_previous">Предыдущий трек</string>
+    <string name="action_next">Следующий трек</string>
+    <string name="action_volume_up">Громче</string>
+    <string name="action_volume_down">Тише</string>
+    <string name="target_phone">Телефон</string>
+    <string name="target_desktop">Компьютер</string>
+    <string name="target_selector_description">Воспроизведение на устройстве %1$s, %2$s</string>
+    <string name="target_status_connected">подключено</string>
+    <string name="target_status_connecting">подключение</string>
+    <string name="target_status_disconnected">отключено</string>
+    <string name="target_status_error">недоступно</string>
+    <string name="target_picker_title">Выбрать устройство</string>
+    <string name="target_picker_connected">Подключено</string>
+    <string name="target_picker_offline">Не в сети</string>
+    <string name="track_unknown_title">Неизвестное название</string>
+    <string name="track_unknown_artist">Неизвестный исполнитель</string>
+    <string name="volume_decrease">Уменьшить громкость на %1$d %%</string>
+    <string name="volume_increase">Увеличить громкость на %1$d %%</string>
+    <string name="volume_current">Текущая громкость: %1$d %%</string>
+    <string name="status_connecting">Подключение…</string>
+    <string name="status_disconnected">Отключено</string>
+    <string name="status_no_playback">Ничего не воспроизводится</string>
+    <string name="status_position">%1$s из %2$s</string>
+</resources>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wear_companion_title">KittyTune-Begleiter</string>
+    <string name="action_play">Wiedergabe</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_previous">Vorheriger Titel</string>
+    <string name="action_next">Nächster Titel</string>
+    <string name="action_volume_up">Lauter</string>
+    <string name="action_volume_down">Leiser</string>
+    <string name="target_phone">Telefon</string>
+    <string name="target_desktop">Computer</string>
+    <string name="target_selector_description">Wiedergabe auf %1$s, %2$s</string>
+    <string name="target_status_connected">verbunden</string>
+    <string name="target_status_connecting">Verbindung wird hergestellt</string>
+    <string name="target_status_disconnected">getrennt</string>
+    <string name="target_status_error">nicht erreichbar</string>
+    <string name="target_picker_title">Gerät auswählen</string>
+    <string name="target_picker_connected">Verbunden</string>
+    <string name="target_picker_offline">Offline</string>
+    <string name="track_unknown_title">Unbekannter Titel</string>
+    <string name="track_unknown_artist">Unbekannter Interpret</string>
+    <string name="volume_decrease">Lautstärke um %1$d Prozent senken</string>
+    <string name="volume_increase">Lautstärke um %1$d Prozent erhöhen</string>
+    <string name="volume_current">Aktuelle Lautstärke: %1$d Prozent</string>
+    <string name="status_connecting">Verbindung wird hergestellt…</string>
+    <string name="status_disconnected">Getrennt</string>
+    <string name="status_no_playback">Keine Wiedergabe</string>
+    <string name="status_position">%1$s von %2$s</string>
+</resources>
