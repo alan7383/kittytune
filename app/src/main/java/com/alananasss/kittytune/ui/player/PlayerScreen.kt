@@ -1329,7 +1329,8 @@ fun NewPlayerScreen(
                     val progressHeight = if (isWaveform) 176.dp else 44.dp
                     val controlsHeight = 126.dp
                     val fixedSpacersHeight = 8.dp + 14.dp
-                    val minFlexibleSpacers = 4.dp + 8.dp + 16.dp // top + middle + bottom = 28.dp
+                    val minDetailsToProgressGap = 8.dp
+                    val minFlexibleSpacers = 4.dp + minDetailsToProgressGap + 16.dp
 
                     val totalRequiredExceptCover = headerHeight + lyricsAboveTitleHeight +
                         titleArtistHeight + progressHeight + controlsHeight +
@@ -1338,6 +1339,8 @@ fun NewPlayerScreen(
                     val maxArtworkWidth = (totalWidth - 48.dp).coerceAtLeast(0.dp)
                     val maxArtworkHeight = (totalHeight - totalRequiredExceptCover).coerceAtLeast(160.dp)
                     val artworkSize = minOf(maxArtworkWidth, maxArtworkHeight)
+                    val spareHeight = (totalHeight - totalRequiredExceptCover - artworkSize).coerceAtLeast(0.dp)
+                    val detailsToProgressGap = minDetailsToProgressGap + (spareHeight / 4).coerceAtMost(16.dp)
                     val horizontalCoverPadding = ((totalWidth - artworkSize) / 2).coerceAtLeast(24.dp)
 
                     Column(
@@ -1720,7 +1723,7 @@ fun NewPlayerScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.height(detailsToProgressGap))
 
                     // Memoised + observed: a synchronous SharedPreferences read on every
                     // recomposition of this scope is pure overhead for a debug toggle.
