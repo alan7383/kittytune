@@ -3864,6 +3864,8 @@
     <string name="diag_routing_isolated">Saída exclusiva do DAC, com o DSP totalmente isolado</string>
     <string name="pref_queue_preserve_upcoming">Preservar próximas faixas ao saltar</string>
     <string name="pref_queue_preserve_upcoming_sub">Coloque a faixa escolhida logo a seguir e mantenha as faixas intermediárias na fila</string>
+    <string name="pref_keep_played_tracks_visible">Manter faixas já tocadas visíveis</string>
+    <string name="pref_keep_played_tracks_visible_sub">Mostra todas as faixas já tocadas em linhas compactas quando a seção está recolhida.</string>
     <string name="together_copy_code">Copiar código da sessão</string>
     <string name="together_invite_qr">Código QR do convite para o Together</string>
     <string name="together_invite_qr_instructions">Escaneie o código com a câmera e toque em Entrar no KittyTune.</string>

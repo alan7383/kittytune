@@ -3840,6 +3840,8 @@
     <!-- kept from upstream 3.0.0 -->
     <string name="pref_queue_preserve_upcoming">Következő számok megtartása ugráskor</string>
     <string name="pref_queue_preserve_upcoming_sub">A kiválasztott számot következőként játssza le a köztes számok kihagyása nélkül</string>
+    <string name="pref_keep_played_tracks_visible">Lejátszott számok láthatóan tartása</string>
+    <string name="pref_keep_played_tracks_visible_sub">Összecsukott állapotban minden lejátszott szám tömör sorban jelenik meg.</string>
 
     <!-- added translations -->
     <string name="customize_coming_soon">A testreszabás hamarosan érkezik</string>

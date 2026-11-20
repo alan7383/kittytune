@@ -3838,6 +3838,8 @@
     <!-- kept from upstream 3.0.0 -->
     <string name="pref_queue_preserve_upcoming">Préserver la file à venir lors d\'un saut</string>
     <string name="pref_queue_preserve_upcoming_sub">Place le morceau sélectionné à la suite sans perdre les pistes intermédiaires</string>
+    <string name="pref_keep_played_tracks_visible">Garder les titres déjà joués visibles</string>
+    <string name="pref_keep_played_tracks_visible_sub">Affiche tous les titres déjà joués en format compact quand la section est repliée.</string>
 
     <!-- added translations -->
     <string name="customize_coming_soon">La personnalisation arrive bientôt</string>

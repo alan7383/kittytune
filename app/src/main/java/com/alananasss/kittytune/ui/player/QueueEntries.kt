@@ -5,21 +5,27 @@ import com.alananasss.kittytune.domain.Track
 internal sealed interface QueueListItem {
     data class PastHeader(val count: Int, val isExpanded: Boolean) : QueueListItem
     data class UpNextHeader(val count: Int) : QueueListItem
-    data class TrackItem(val queueIndex: Int, val track: Track) : QueueListItem
+    data class TrackItem(val queueIndex: Int, val track: Track, val isCompact: Boolean = false) : QueueListItem
 }
 
 internal const val RECENT_QUEUE_TRACKS = 3
 
 /** The queue prefix is one section, including skipped and restored entries. */
-internal fun queueListItems(queue: List<Track>, currentIndex: Int, pastExpanded: Boolean): List<QueueListItem> = buildList {
+internal fun queueListItems(
+    queue: List<Track>,
+    currentIndex: Int,
+    pastExpanded: Boolean,
+    keepPlayedTracksVisible: Boolean = false,
+): List<QueueListItem> = buildList {
     val pastCount = currentIndex.coerceIn(0, queue.size)
     if (pastCount > 0) add(QueueListItem.PastHeader(pastCount, pastExpanded))
-    val firstVisible = if (pastExpanded) 0 else (pastCount - RECENT_QUEUE_TRACKS).coerceAtLeast(0)
+    val firstVisible = if (pastExpanded || keepPlayedTracksVisible) 0 else (pastCount - RECENT_QUEUE_TRACKS).coerceAtLeast(0)
     for (index in firstVisible until queue.size) {
         if (index == currentIndex + 1 && index > 0) {
             add(QueueListItem.UpNextHeader(queue.size - index))
         }
-        add(QueueListItem.TrackItem(index, queue[index]))
+        val isCompact = keepPlayedTracksVisible && !pastExpanded && index < pastCount
+        add(QueueListItem.TrackItem(index, queue[index], isCompact))
     }
 }
 

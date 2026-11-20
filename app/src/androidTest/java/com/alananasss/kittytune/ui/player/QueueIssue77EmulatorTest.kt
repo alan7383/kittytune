@@ -3,6 +3,8 @@ package com.alananasss.kittytune.ui.player
 import android.graphics.Bitmap
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.lifecycle.ViewModelProvider
@@ -17,6 +19,7 @@ import com.alananasss.kittytune.data.local.LocalTrack
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
+import com.alananasss.kittytune.ui.profile.AudioPlaybackSettingsScreen
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Rule
@@ -63,7 +66,7 @@ class QueueIssue77EmulatorTest {
         bitmap.recycle()
     }
 
-    @Test fun collapsedHistoryAndPlayNextDuplicatesKeepTheCorrectPlayingOccurrence() {
+    private fun withLocalQueue(size: Int, test: (List<Track>) -> Unit) {
         val wav = File(context.cacheDir, "issue77-fixture.wav")
         val dataSize = 8_000 * 2 * 60
         val header = ByteBuffer.allocate(44).order(ByteOrder.LITTLE_ENDIAN)
@@ -71,7 +74,7 @@ class QueueIssue77EmulatorTest {
             .putInt(16).putShort(1).putShort(1).putInt(8_000).putInt(16_000)
             .putShort(2).putShort(16).put("data".toByteArray()).putInt(dataSize).array()
         wav.outputStream().use { it.write(header); it.write(ByteArray(dataSize)) }
-        val tracks = List(10) { index ->
+        val tracks = List(size) { index ->
             Track(-770_000L - index, "Issue77 track $index", null, 60_000,
                 User(-77, "Emulator regression", null), source = "local")
         }
@@ -82,7 +85,10 @@ class QueueIssue77EmulatorTest {
                     wav.absolutePath, "", source = "local"))
             }
         }
+        val prefs = PlayerPreferences(context)
+        val previousKeepPlayedTracksVisible = prefs.getKeepPlayedTracksVisible()
         try {
+            prefs.setKeepPlayedTracksVisible(false)
             main {
                 compose.activity.setContent { MaterialTheme { } }
                 vm = ViewModelProvider(compose.activity)[PlayerViewModel::class.java]
@@ -93,64 +99,127 @@ class QueueIssue77EmulatorTest {
                 if (vm.shuffleEnabled) vm.toggleShuffle()
                 while (vm.repeatMode != RepeatMode.NONE) vm.toggleRepeatMode()
                 vm.isQueuePreserveUpcomingEnabled = false
-                vm.playPlaylist(tracks, 0, autoPlay = true, respectShuffle = false)
             }
-            awaitPlaying(0, tracks[0].id)
-            // Exercise a real automatic ExoPlayer transition, not just a UI index assignment.
-            main { MusicManager.player.seekTo(MusicManager.player.duration) }
-            awaitPlaying(1, tracks[1].id)
-
-            main { vm.playPlaylist(tracks, 7, autoPlay = true, respectShuffle = false) }
-            awaitPlaying(7, tracks[7].id)
-            main { compose.activity.setContent { MaterialTheme { ExpandedQueueScreen(vm, onClose = {}) } } }
-            val playedLabel = context.getString(R.string.queue_played)
-            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(0)
-            compose.onNodeWithText(playedLabel).assertIsDisplayed()
-            for (index in 4..6) compose.onNodeWithText(tracks[index].title!!).assertIsDisplayed()
-            compose.onNodeWithText(tracks[0].title!!).assertDoesNotExist()
-            screenshot("collapsed")
-
-            compose.onNodeWithText(playedLabel).performClick()
-            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(0)
-            compose.onNodeWithText(tracks[0].title!!).assertIsDisplayed()
-            compose.onAllNodesWithText(playedLabel).assertCountEquals(1)
-            screenshot("expanded")
-            compose.onNodeWithText(playedLabel).performClick()
-            compose.onNodeWithText(tracks[0].title!!).assertDoesNotExist()
-
-            // Requeue a recent visible past track and play the NEW occurrence.
-            main { vm.insertNext(listOf(tracks[4])); vm.playNext(manual = true) }
-            awaitPlaying(8, tracks[4].id)
-            main {
-                assertEquals(tracks[4].id, vm.queue[4].id)
-                assertEquals(tracks[4].id, vm.queue[8].id)
-                assertEquals(11, vm.queue.size)
-                vm.syncWithCurrentPlayback()
-            }
-            Thread.sleep(800)
-            awaitPlaying(8, tracks[4].id)
-            assertEquals(8, PlayerPreferences(context).getLastQueueIndex())
-            main { vm.removeTrackFromQueue(4) }
-            awaitPlaying(7, tracks[4].id)
-            main { assertEquals(1, vm.queue.count { it.id == tracks[4].id }) }
-            screenshot("duplicate-removed")
-            main { vm.playNext(manual = true) }
-            awaitPlaying(8, tracks[8].id)
-
-            // Repeat with an entry hidden inside the collapsed part of history.
-            main { vm.insertNext(listOf(tracks[0])); vm.playNext(manual = true) }
-            awaitPlaying(9, tracks[0].id)
-            main { vm.toggleShuffle(); vm.toggleShuffle() }
-            awaitPlaying(9, tracks[0].id)
-            main { vm.removeTrackFromQueue(0) }
-            awaitPlaying(8, tracks[0].id)
-            main { vm.playNext(manual = true) }
-            awaitPlaying(9, tracks[9].id)
-            screenshot("final")
+            test(tracks)
         } finally {
+            prefs.setKeepPlayedTracksVisible(previousKeepPlayedTracksVisible)
             if (::vm.isInitialized) main { vm.resetPlaybackState(); compose.activity.viewModelStore.clear() }
             runBlocking { tracks.forEach { dao.deleteTrack(it.id) } }
             wav.delete()
+        }
+    }
+
+    @Test fun collapsedHistoryAndPlayNextDuplicatesKeepTheCorrectPlayingOccurrence() = withLocalQueue(10) { tracks ->
+        main { vm.playPlaylist(tracks, 0, autoPlay = true, respectShuffle = false) }
+        awaitPlaying(0, tracks[0].id)
+        // Exercise a real automatic ExoPlayer transition, not just a UI index assignment.
+        main { MusicManager.player.seekTo(MusicManager.player.duration) }
+        awaitPlaying(1, tracks[1].id)
+
+        main { vm.playPlaylist(tracks, 7, autoPlay = true, respectShuffle = false) }
+        awaitPlaying(7, tracks[7].id)
+        main { compose.activity.setContent { MaterialTheme { ExpandedQueueScreen(vm, onClose = {}) } } }
+        val playedLabel = context.getString(R.string.queue_played)
+        compose.onNode(hasScrollToIndexAction()).performScrollToIndex(0)
+        compose.onNodeWithText(playedLabel).assertIsDisplayed()
+        for (index in 4..6) compose.onNodeWithText(tracks[index].title!!).assertIsDisplayed()
+        compose.onNodeWithText(tracks[0].title!!).assertDoesNotExist()
+        screenshot("collapsed")
+
+        compose.onNodeWithText(playedLabel).performClick()
+        compose.onNode(hasScrollToIndexAction()).performScrollToIndex(0)
+        compose.onNodeWithText(tracks[0].title!!).assertIsDisplayed()
+        compose.onAllNodesWithText(playedLabel).assertCountEquals(1)
+        screenshot("expanded")
+        compose.onNodeWithText(playedLabel).performClick()
+        compose.onNodeWithText(tracks[0].title!!).assertDoesNotExist()
+
+        // Requeue a recent visible past track and play the NEW occurrence.
+        main { vm.insertNext(listOf(tracks[4])); vm.playNext(manual = true) }
+        awaitPlaying(8, tracks[4].id)
+        main {
+            assertEquals(tracks[4].id, vm.queue[4].id)
+            assertEquals(tracks[4].id, vm.queue[8].id)
+            assertEquals(11, vm.queue.size)
+            vm.syncWithCurrentPlayback()
+        }
+        Thread.sleep(800)
+        awaitPlaying(8, tracks[4].id)
+        assertEquals(8, PlayerPreferences(context).getLastQueueIndex())
+        main { vm.removeTrackFromQueue(4) }
+        awaitPlaying(7, tracks[4].id)
+        main { assertEquals(1, vm.queue.count { it.id == tracks[4].id }) }
+        screenshot("duplicate-removed")
+        main { vm.playNext(manual = true) }
+        awaitPlaying(8, tracks[8].id)
+
+        // Repeat with an entry hidden inside the collapsed part of history.
+        main { vm.insertNext(listOf(tracks[0])); vm.playNext(manual = true) }
+        awaitPlaying(9, tracks[0].id)
+        main { vm.toggleShuffle(); vm.toggleShuffle() }
+        awaitPlaying(9, tracks[0].id)
+        main { vm.removeTrackFromQueue(0) }
+        awaitPlaying(8, tracks[0].id)
+        main { vm.playNext(manual = true) }
+        awaitPlaying(9, tracks[9].id)
+        screenshot("final")
+    }
+
+    @Test fun longHistoryStaysInPlaceAndExpandedPlayedTracksCanBeDraggedBack() = withLocalQueue(27) { tracks ->
+        val playing = 22
+        val isSettings = mutableStateOf(false)
+        main { vm.playPlaylist(tracks, playing, autoPlay = true, respectShuffle = false) }
+        awaitPlaying(playing, tracks[playing].id)
+        main {
+            compose.activity.setContent {
+                MaterialTheme {
+                    if (isSettings.value) AudioPlaybackSettingsScreen({}, vm)
+                    else ExpandedQueueScreen(vm, onClose = {})
+                }
+            }
+        }
+
+        val played = compose.onNodeWithText(context.getString(R.string.queue_played))
+        val queueList = compose.onNode(hasScrollToIndexAction())
+        val oldest = compose.onNodeWithText(tracks.first().title!!)
+        val dragLabel = context.getString(R.string.desc_move)
+        queueList.performScrollToIndex(0)
+        oldest.assertDoesNotExist()
+        val headerTop = played.getUnclippedBoundsInRoot().top
+        played.performClick()
+        oldest.assertIsDisplayed()
+        assertEquals(headerTop, played.getUnclippedBoundsInRoot().top)
+
+        // Exercise the preferences screen and reopen the queue with compact history enabled.
+        main { isSettings.value = true }
+        val setting = hasText(context.getString(R.string.pref_keep_played_tracks_visible)) and hasClickAction()
+        compose.onNode(hasScrollAction()).performScrollToNode(setting)
+        compose.onNode(setting).performClick()
+        compose.runOnIdle { assertTrue(PlayerPreferences(context).getKeepPlayedTracksVisible()) }
+        main { isSettings.value = false }
+        queueList.performScrollToIndex(0)
+        oldest.assertIsDisplayed()
+        compose.onAllNodesWithContentDescription(dragLabel).assertCountEquals(0)
+        played.performClick()
+        oldest.assertIsDisplayed()
+        assertEquals(headerTop, played.getUnclippedBoundsInRoot().top)
+
+        // Reorder a played row that used to be compact even when the section was expanded.
+        val moved = playing - RECENT_QUEUE_TRACKS - 1
+        queueList.performScrollToIndex(moved + 1)
+        val movedTitle = compose.onNodeWithText(tracks[moved].title!!).assertIsDisplayed().fetchSemanticsNode()
+        val upcomingTitle = compose.onNodeWithText(tracks[playing + 1].title!!).assertIsDisplayed().fetchSemanticsNode()
+        val handles = compose.onAllNodesWithContentDescription(dragLabel)
+        val candidates = handles.fetchSemanticsNodes()
+        val handleIndex = candidates.indices.minBy { kotlin.math.abs(candidates[it].boundsInRoot.center.y - movedTitle.boundsInRoot.center.y) }
+        val offset = upcomingTitle.boundsInRoot.center.y - candidates[handleIndex].boundsInRoot.center.y
+        handles[handleIndex].performTouchInput {
+            swipe(center, center + Offset(0f, offset), durationMillis = 1_000)
+        }
+        awaitPlaying(playing - 1, tracks[playing].id)
+        compose.runOnIdle {
+            assertTrue(vm.queue.indexOfFirst { it.id == tracks[moved].id } > vm.currentQueueIndex)
+            assertEquals(tracks.size, vm.queue.size)
         }
     }
 }

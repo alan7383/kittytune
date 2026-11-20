@@ -3833,6 +3833,8 @@
     <!-- kept from upstream 3.0.0 -->
     <string name="pref_queue_preserve_upcoming">Atlama sırasında yaklaşan sırayı koru</string>
     <string name="pref_queue_preserve_upcoming_sub">Aradaki parçaları atlamak yerine tıklanan parçayı sıradaki konuma taşır</string>
+    <string name="pref_keep_played_tracks_visible">Çalınan parçaları görünür tut</string>
+    <string name="pref_keep_played_tracks_visible_sub">Bölüm daraltıldığında çalınan tüm parçaları kompakt satırlarda gösterir.</string>
 
     <!-- added translations -->
     <string name="customize_coming_soon">Özelleştirme yakında geliyor</string>

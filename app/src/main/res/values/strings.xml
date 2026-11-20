@@ -3879,6 +3879,8 @@
     <!-- kept from upstream 3.0.0 -->
     <string name="pref_queue_preserve_upcoming">Preserve upcoming queue on jump</string>
     <string name="pref_queue_preserve_upcoming_sub">Moves clicked track next instead of skipping intermediate tracks</string>
+    <string name="pref_keep_played_tracks_visible">Keep played tracks visible</string>
+    <string name="pref_keep_played_tracks_visible_sub">Show all played tracks as compact rows when the section is collapsed.</string>
     <string name="together_listener_joined">%1$s joined your Together session</string>
     <string name="together_reactions">Live reactions</string>
     <string name="together_sync_synced">Synced</string>
