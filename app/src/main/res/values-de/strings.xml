@@ -2219,6 +2219,7 @@
     <string name="proxy_profile_saved_toast">Profil erfolgreich gespeichert!</string>
     <string name="proxy_playback_error">Wiedergabe fehlgeschlagen: Bitte prüfe deine Proxy-Einstellungen</string>
     <string name="network_playback_error">Wiedergabe fehlgeschlagen: Bitte prüfe deine Internetverbindung</string>
+    <string name="track_playback_unavailable">Dieser Titel konnte nicht abgespielt werden. Tippe auf Wiedergabe, um es erneut zu versuchen.</string>
     <string name="restricted_playback_error">Dieser Titel ist nur mit einem SoundCloud-Go+-Abo abspielbar, und es wurde keine alternative Quelle gefunden</string>
     <string name="spotify_verified">Von Spotify verifiziert</string>
     <string name="spotify_monthly_listeners">%1$s monatliche Hörer</string>
@@ -3740,7 +3741,8 @@
     <string name="pref_pause_on_audio_focus_loss">Pausieren, wenn eine andere App Ton abspielt</string>
     <string name="pref_pause_on_audio_focus_loss_sub">Deaktiviere diese Option, um KittyTune gleichzeitig mit anderen Apps zu hören</string>
     <string name="pref_pause_on_mute">Bei Stummschaltung pausieren</string>
-    <string name="pref_pause_on_mute_sub">Wiedergabe pausieren, wenn die Medienlautstärke null erreicht, und fortsetzen, wenn sie zurückkehrt</string>
+    <string name="pref_pause_on_mute_sub">Wiedergabe pausieren, wenn die Medienlautstärke null erreicht</string>
+    <string name="pref_resume_on_unmute">Wiedergabe bei höherer Lautstärke fortsetzen</string>
     <string name="pref_keep_screen_on">Bildschirm im Player anlassen</string>
     <string name="pref_keep_screen_on_sub">Verhindert, dass sich der Bildschirm ausschaltet, solange der Player erweitert ist und spielt</string>
     <string name="pref_pause_listen_history">Hörverlauf pausieren</string>
@@ -3870,4 +3872,16 @@
     <string name="pref_tablet_nav_classic_dock">Ursprüngliches Tablet-Dock</string>
     <string name="pref_tablet_side_player">Player-Seitenleiste rechts</string>
     <string name="pref_tablet_side_player_sub">Ein Tippen auf den Miniplayer öffnet die Seitenleiste statt des Vollbild-Players</string>
+    <string name="together_copy_code">Sitzungscode kopieren</string>
+    <string name="together_invite_qr">QR-Code für die Together-Einladung</string>
+    <string name="together_invite_qr_instructions">Scanne den Code mit deiner Kamera und tippe dann in KittyTune auf Beitreten.</string>
+    <string name="together_listener_joined">%1$s ist deiner Together-Sitzung beigetreten</string>
+    <string name="together_local_not_shareable">Lokale Titel können nicht geteilt werden</string>
+    <string name="together_propose_playlist">Playlist für Together vorschlagen</string>
+    <string name="together_propose_session">Für die Together-Sitzung vorschlagen</string>
+    <string name="together_reactions">Live-Reaktionen</string>
+    <string name="together_sync_connecting">Verbindung wird hergestellt…</string>
+    <string name="together_sync_synced">Synchronisiert</string>
+    <string name="together_sync_syncing">Wird synchronisiert…</string>
+    <string name="together_sync_waiting">Warten auf den Host</string>
 </resources>

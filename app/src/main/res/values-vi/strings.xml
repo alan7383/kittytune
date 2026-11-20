@@ -2205,6 +2205,7 @@
     <string name="proxy_profile_saved_toast">Lưu cấu hình thành công!</string>
     <string name="proxy_playback_error">Phát thất bại: vui lòng kiểm tra cài đặt proxy của bạn</string>
     <string name="network_playback_error">Phát thất bại: vui lòng kiểm tra kết nối mạng Internet</string>
+    <string name="track_playback_unavailable">Không thể phát bài hát này. Nhấn Phát để thử lại.</string>
     <string name="restricted_playback_error">Bài hát này chỉ có thể phát với gói đăng ký SoundCloud Go+, và không tìm thấy nguồn thay thế nào</string>
     <string name="spotify_verified">Xác minh bởi Spotify</string>
     <string name="spotify_monthly_listeners">%1$s người nghe hàng tháng</string>
@@ -3740,7 +3741,8 @@
     <string name="pref_pause_on_audio_focus_loss">Tạm dừng khi ứng dụng khác phát âm thanh</string>
     <string name="pref_pause_on_audio_focus_loss_sub">Tắt tùy chọn này để nghe KittyTune cùng lúc với âm thanh từ ứng dụng khác</string>
     <string name="pref_pause_on_mute">Tạm dừng khi tắt tiếng</string>
-    <string name="pref_pause_on_mute_sub">Tạm dừng phát khi âm lượng phương tiện về không và tiếp tục khi âm lượng trở lại</string>
+    <string name="pref_pause_on_mute_sub">Tạm dừng phát khi âm lượng phương tiện về không</string>
+    <string name="pref_resume_on_unmute">Tiếp tục phát khi âm lượng tăng trở lại</string>
     <string name="pref_keep_screen_on">Giữ màn hình sáng trong trình phát</string>
     <string name="pref_keep_screen_on_sub">Ngăn màn hình tắt khi trình phát đang mở rộng và đang phát</string>
     <string name="pref_pause_listen_history">Tạm dừng lịch sử nghe</string>
@@ -3870,4 +3872,16 @@
     <string name="pref_tablet_nav_classic_dock">Thanh dock máy tính bảng gốc</string>
     <string name="pref_tablet_side_player">Bảng phát nhạc bên phải</string>
     <string name="pref_tablet_side_player_sub">Chạm vào trình phát thu nhỏ để mở bảng bên thay cho trình phát toàn màn hình</string>
+    <string name="together_copy_code">Sao chép mã phiên</string>
+    <string name="together_invite_qr">Mã QR mời tham gia Together</string>
+    <string name="together_invite_qr_instructions">Quét mã bằng máy ảnh, rồi nhấn Tham gia trong KittyTune.</string>
+    <string name="together_listener_joined">%1$s đã tham gia phiên Together của bạn</string>
+    <string name="together_local_not_shareable">Không thể chia sẻ bài hát trên thiết bị</string>
+    <string name="together_propose_playlist">Đề xuất danh sách phát trong Together</string>
+    <string name="together_propose_session">Đề xuất cho phiên Together</string>
+    <string name="together_reactions">Cảm xúc trực tiếp</string>
+    <string name="together_sync_connecting">Đang kết nối…</string>
+    <string name="together_sync_synced">Đã đồng bộ</string>
+    <string name="together_sync_syncing">Đang đồng bộ…</string>
+    <string name="together_sync_waiting">Đang chờ chủ phòng</string>
 </resources>

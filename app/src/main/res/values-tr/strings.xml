@@ -1926,7 +1926,7 @@
     <string name="pref_bottom_menu_tabs_reorder">Sıralamak için sürükle. Çubuk bu sırayı takip eder.</string>
     <string name="reorder_handle">Sırala</string>
     <string name="pref_bottom_menu_tabs">Görünür Sekmeler</string>
-\n    <string name="fab_settings_no_playlists">No playlist found in your library.</string>
+\n    <string name="fab_settings_no_playlists">Kitaplığında çalma listesi bulunamadı.</string>
     <string name="fab_settings_hint">İpucu: Burada yalnızca kitaplığına eklenen çalma listeleri görünür. Kısayol olarak kullanmak için çalma listelerini beğenmekten çekinme!</string>
     <string name="fab_settings_radio">Radyo • YouTube</string>
     <string name="sort_first_added">İlk Eklenen</string>
@@ -2384,6 +2384,7 @@
     <string name="proxy_profile_saved_toast">Profil başarıyla kaydedildi!</string>
     <string name="proxy_playback_error">Çalma başarısız oldu: lütfen proxy ayarlarını kontrol et</string>
     <string name="network_playback_error">Çalma başarısız oldu: lütfen internet bağlantını kontrol et</string>
+    <string name="track_playback_unavailable">Bu parça çalınamadı. Yeniden denemek için Oynat düğmesine dokunun.</string>
     <string name="restricted_playback_error">Bu parça yalnızca SoundCloud Go+ aboneliğiyle dinlenebilir ve alternatif bir kaynak bulunamadı</string>
     <string name="spotify_verified">Spotify tarafından doğrulandı</string>
     <string name="spotify_monthly_listeners">Aylık %1$s dinleyici</string>
@@ -3737,7 +3738,8 @@
     <string name="pref_pause_on_audio_focus_loss">Başka bir uygulama ses çaldığında duraklat</string>
     <string name="pref_pause_on_audio_focus_loss_sub">KittyTune’u diğer uygulamalarla aynı anda dinlemek için bu seçeneği kapat</string>
     <string name="pref_pause_on_mute">Ses kapatılınca duraklat</string>
-    <string name="pref_pause_on_mute_sub">Medya ses düzeyi sıfıra düştüğünde oynatmayı duraklatır, geri geldiğinde devam ettirir</string>
+    <string name="pref_pause_on_mute_sub">Medya ses düzeyi sıfıra düştüğünde oynatmayı duraklatır</string>
+    <string name="pref_resume_on_unmute">Ses düzeyi yükseldiğinde oynatmaya devam et</string>
     <string name="pref_keep_screen_on">Oynatıcıda ekranı açık tut</string>
     <string name="pref_keep_screen_on_sub">Oynatıcı genişletilmiş ve çalarken ekranın kapanmasını engeller</string>
     <string name="pref_pause_listen_history">Dinleme geçmişini duraklat</string>
@@ -3867,4 +3869,16 @@
     <string name="pref_tablet_nav_classic_dock">Orijinal tablet alt çubuğu</string>
     <string name="pref_tablet_side_player">Sağ oynatıcı paneli</string>
     <string name="pref_tablet_side_player_sub">Mini oynatıcıya dokunmak, tam ekran oynatıcı yerine yan paneli açar</string>
+    <string name="together_copy_code">Oturum kodunu kopyala</string>
+    <string name="together_invite_qr">Together davet QR kodu</string>
+    <string name="together_invite_qr_instructions">Kodu kameranla tara, ardından KittyTune’da Katıl’a dokun.</string>
+    <string name="together_listener_joined">%1$s Together oturumuna katıldı</string>
+    <string name="together_local_not_shareable">Yerel parçalar paylaşılamaz</string>
+    <string name="together_propose_playlist">Together’da çalma listesi öner</string>
+    <string name="together_propose_session">Together oturumuna öner</string>
+    <string name="together_reactions">Canlı tepkiler</string>
+    <string name="together_sync_connecting">Bağlanılıyor…</string>
+    <string name="together_sync_synced">Eşitlendi</string>
+    <string name="together_sync_syncing">Eşitleniyor…</string>
+    <string name="together_sync_waiting">Oturum sahibi bekleniyor</string>
 </resources>

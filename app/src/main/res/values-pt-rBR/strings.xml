@@ -2384,6 +2384,7 @@
     <string name="proxy_profile_saved_toast">Perfil salvo!</string>
     <string name="proxy_playback_error">A reprodução falhou. Confira as configurações do proxy.</string>
     <string name="network_playback_error">A reprodução falhou. Confira sua conexão com a internet.</string>
+    <string name="track_playback_unavailable">Não foi possível reproduzir esta faixa. Toque em Reproduzir para tentar novamente.</string>
     <string name="restricted_playback_error">Esta faixa requer SoundCloud Go+ e nenhuma fonte alternativa foi encontrada</string>
     <string name="spotify_verified">Verificado pelo Spotify</string>
     <string name="spotify_monthly_listeners">%1$s ouvintes mensais</string>
@@ -3863,4 +3864,17 @@
     <string name="diag_routing_isolated">Saída exclusiva do DAC, com o DSP totalmente isolado</string>
     <string name="pref_queue_preserve_upcoming">Preservar próximas faixas ao saltar</string>
     <string name="pref_queue_preserve_upcoming_sub">Coloque a faixa escolhida logo a seguir e mantenha as faixas intermediárias na fila</string>
+    <string name="together_copy_code">Copiar código da sessão</string>
+    <string name="together_invite_qr">Código QR do convite para o Together</string>
+    <string name="together_invite_qr_instructions">Escaneie o código com a câmera e toque em Entrar no KittyTune.</string>
+    <string name="together_listener_joined">%1$s entrou na sua sessão Together</string>
+    <string name="together_local_not_shareable">Faixas locais não podem ser compartilhadas</string>
+    <string name="together_propose_playlist">Sugerir playlist no Together</string>
+    <string name="together_propose_session">Sugerir para a sessão Together</string>
+    <string name="together_reactions">Reações ao vivo</string>
+    <string name="together_sync_connecting">Conectando…</string>
+    <string name="together_sync_synced">Sincronizado</string>
+    <string name="together_sync_syncing">Sincronizando…</string>
+    <string name="together_sync_waiting">Aguardando o anfitrião</string>
+    <string name="pref_resume_on_unmute">Retomar quando o volume voltar</string>
 </resources>

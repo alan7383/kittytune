@@ -2204,6 +2204,7 @@
     <string name="proxy_profile_saved_toast">Profil enregistré avec succès !</string>
     <string name="proxy_playback_error">Échec de lecture : vérifiez vos paramètres proxy</string>
     <string name="network_playback_error">Échec de lecture : vérifiez votre connexion Internet</string>
+    <string name="track_playback_unavailable">Impossible de lire ce morceau. Appuyez sur Lecture pour réessayer.</string>
     <string name="restricted_playback_error">Ce titre est uniquement disponible avec un abonnement SoundCloud Go+, et aucune source alternative n\'a été trouvée</string>
     <string name="spotify_verified">Vérifié par Spotify</string>
     <string name="spotify_monthly_listeners">%1$s auditeurs par mois</string>
@@ -3742,7 +3743,8 @@
     <string name="pref_pause_on_audio_focus_loss">Pause quand une autre appli joue du son</string>
     <string name="pref_pause_on_audio_focus_loss_sub">Désactivez cette option pour écouter KittyTune en même temps que les autres applis</string>
     <string name="pref_pause_on_mute">Mettre en pause quand le volume est coupé</string>
-    <string name="pref_pause_on_mute_sub">Met la lecture en pause quand le volume média atteint zéro et la reprend quand il remonte</string>
+    <string name="pref_pause_on_mute_sub">Met la lecture en pause quand le volume média atteint zéro</string>
+    <string name="pref_resume_on_unmute">Reprendre la lecture quand le volume remonte</string>
     <string name="pref_keep_screen_on">Garder l’écran allumé dans le lecteur</string>
     <string name="pref_keep_screen_on_sub">Empêche l’écran de s’éteindre tant que le lecteur est déployé et en lecture</string>
     <string name="pref_pause_listen_history">Suspendre l’historique d’écoute</string>
@@ -3867,4 +3869,16 @@
     <string name="beatmatch_spotify_hint">« Synchroniser » étire le morceau entrant au tempo du morceau sortant ; « Tempo d’origine » conserve les deux vitesses.</string>
     <string name="usb_status_track_mismatch">Bit-Perfect non confirmé : le format de la piste audio diffère de celui du mixeur du DAC</string>
     <string name="usb_automix_conflict">L’Automix est en pause tant que le Bit-Perfect est actif : les morceaux s’enchaînent sans fondu</string>
+    <string name="together_listener_joined">%1$s a rejoint votre session Together</string>
+    <string name="together_reactions">Réactions en direct</string>
+    <string name="together_sync_synced">Synchronisé</string>
+    <string name="together_sync_syncing">Synchronisation…</string>
+    <string name="together_sync_waiting">En attente de l’hôte</string>
+    <string name="together_sync_connecting">Connexion…</string>
+    <string name="together_propose_session">Proposer à la session Together</string>
+    <string name="together_propose_playlist">Proposer la playlist à Together</string>
+    <string name="together_local_not_shareable">Morceau local non diffusable</string>
+    <string name="together_invite_qr">QR code d’invitation Together</string>
+    <string name="together_copy_code">Copier le code de session</string>
+    <string name="together_invite_qr_instructions">Scanne le code avec ton appareil photo, puis touche Rejoindre dans KittyTune.</string>
 </resources>

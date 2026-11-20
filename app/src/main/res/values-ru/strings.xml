@@ -2086,6 +2086,7 @@
     <string name="proxy_profile_saved_toast">Профиль успешно сохранён!</string>
     <string name="proxy_playback_error">Ошибка воспроизведения: проверьте настройки прокси</string>
     <string name="network_playback_error">Ошибка воспроизведения: проверьте интернет-соединение</string>
+    <string name="track_playback_unavailable">Не удалось воспроизвести трек. Нажмите «Воспроизвести», чтобы повторить попытку.</string>
     <string name="restricted_playback_error">Этот трек доступен только с подпиской SoundCloud Go+, и альтернативный источник не найден</string>
     <string name="spotify_verified">Подтверждено Spotify</string>
     <string name="spotify_monthly_listeners">%1$s слушателей за месяц</string>
@@ -3803,7 +3804,8 @@
     <string name="pref_pause_on_audio_focus_loss">Пауза при воспроизведении звука в другом приложении</string>
     <string name="pref_pause_on_audio_focus_loss_sub">Отключите эту настройку, чтобы слушать KittyTune одновременно с другими приложениями</string>
     <string name="pref_pause_on_mute">Пауза при выключении звука</string>
-    <string name="pref_pause_on_mute_sub">Останавливать трек при беззвучном режиме</string>
+    <string name="pref_pause_on_mute_sub">Приостанавливает воспроизведение при нулевой громкости мультимедиа</string>
+    <string name="pref_resume_on_unmute">Возобновлять воспроизведение при повышении громкости</string>
     <string name="pref_share_lyrics_as_text">Поделиться текстом</string>
     <string name="pref_share_lyrics_as_text_sub">Отправить выбранные строки ссылкой в сообщении</string>
     <string name="mix_mode">Микс</string>
@@ -3870,4 +3872,16 @@
     <string name="pref_tablet_nav_classic_dock">Исходная нижняя панель планшета</string>
     <string name="pref_tablet_side_player">Панель плеера справа</string>
     <string name="pref_tablet_side_player_sub">Нажатие на мини-плеер открывает боковую панель вместо полноэкранного плеера</string>
+    <string name="together_copy_code">Скопировать код сеанса</string>
+    <string name="together_invite_qr">QR-код приглашения в Together</string>
+    <string name="together_invite_qr_instructions">Отсканируйте код камерой, затем нажмите «Присоединиться» в KittyTune.</string>
+    <string name="together_listener_joined">%1$s теперь в вашем сеансе Together</string>
+    <string name="together_local_not_shareable">Локальным треком нельзя поделиться</string>
+    <string name="together_propose_playlist">Предложить плейлист в Together</string>
+    <string name="together_propose_session">Предложить для сеанса Together</string>
+    <string name="together_reactions">Реакции в реальном времени</string>
+    <string name="together_sync_connecting">Подключение…</string>
+    <string name="together_sync_synced">Синхронизировано</string>
+    <string name="together_sync_syncing">Синхронизация…</string>
+    <string name="together_sync_waiting">Ожидание ведущего</string>
 </resources>

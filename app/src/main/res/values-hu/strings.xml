@@ -2090,6 +2090,7 @@
     <string name="proxy_profile_saved_toast">Profil sikeresen elmentve!</string>
     <string name="proxy_playback_error">Lejátszási hiba: ellenőrizze a proxy beállításokat</string>
     <string name="network_playback_error">Lejátszási hiba: ellenőrizze az internetkapcsolatot</string>
+    <string name="track_playback_unavailable">Ez a szám nem játszható le. Az újrapróbálkozáshoz koppints a Lejátszás gombra.</string>
     <string name="restricted_playback_error">Ez a szám csak SoundCloud Go+ előfizetéssel játszható le, és nem található alternatív forrás</string>
     <string name="spotify_verified">A Spotify által ellenőrizve</string>
     <string name="spotify_monthly_listeners">%1$s havi hallgató</string>
@@ -3744,7 +3745,8 @@
     <string name="pref_pause_on_audio_focus_loss">Szüneteltetés, ha egy másik alkalmazás hangot játszik le</string>
     <string name="pref_pause_on_audio_focus_loss_sub">Kapcsold ki, hogy a KittyTune más alkalmazások hangja mellett is szóljon</string>
     <string name="pref_pause_on_mute">Szünet elnémításkor</string>
-    <string name="pref_pause_on_mute_sub">A lejátszás szünetel, amikor a médiahangerő nullára csökken, és folytatódik, ha visszatér</string>
+    <string name="pref_pause_on_mute_sub">Szünetelteti a lejátszást, amikor a médiahangerő nullára csökken</string>
+    <string name="pref_resume_on_unmute">Lejátszás folytatása a hangerő visszaállásakor</string>
     <string name="pref_keep_screen_on">Képernyő bekapcsolva tartása a lejátszóban</string>
     <string name="pref_keep_screen_on_sub">Megakadályozza a képernyő kikapcsolását, amíg a lejátszó kibontott és szól</string>
     <string name="pref_pause_listen_history">Hallgatási előzmények szüneteltetése</string>
@@ -3874,4 +3876,16 @@
     <string name="pref_tablet_nav_classic_dock">Eredeti táblagépes dokk</string>
     <string name="pref_tablet_side_player">Jobb oldali lejátszópanel</string>
     <string name="pref_tablet_side_player_sub">A minilejátszó megérintése a teljes képernyős lejátszó helyett az oldalsó panelt nyitja meg</string>
+    <string name="together_copy_code">Munkamenetkód másolása</string>
+    <string name="together_invite_qr">Together-meghívó QR-kódja</string>
+    <string name="together_invite_qr_instructions">Olvasd be a kódot a kamerával, majd koppints a Csatlakozás gombra a KittyTune-ban.</string>
+    <string name="together_listener_joined">%1$s csatlakozott a Together-munkamenetedhez</string>
+    <string name="together_local_not_shareable">A helyi szám nem osztható meg</string>
+    <string name="together_propose_playlist">Lejátszási lista ajánlása a Togetherben</string>
+    <string name="together_propose_session">Ajánlás a Together-munkamenethez</string>
+    <string name="together_reactions">Élő reakciók</string>
+    <string name="together_sync_connecting">Csatlakozás…</string>
+    <string name="together_sync_synced">Szinkronizálva</string>
+    <string name="together_sync_syncing">Szinkronizálás…</string>
+    <string name="together_sync_waiting">Várakozás a házigazdára</string>
 </resources>
