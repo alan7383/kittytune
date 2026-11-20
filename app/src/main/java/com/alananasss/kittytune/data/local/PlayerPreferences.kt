@@ -25,6 +25,7 @@ import java.io.FileWriter
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.map
 import com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider
 import com.alananasss.kittytune.data.lyrics.providers.DefaultDataSaverLyricsProviders
 import com.alananasss.kittytune.data.lyrics.providers.DefaultLyricsProviderOrder
@@ -80,6 +81,29 @@ enum class PlayerProgressMode { SOUNDCLOUD, HYBRID_WAVEFORM, CLASSIC_BAR }
 enum class PlayerSliderStyle { BAR, WAVY, SLIM, SQUIGGLY, EXPRESSIVE }
 enum class PlayerDesign { PIXEL_PLAYER, SOUNDCLOUD, MODERN, CLASSIC, APPLE_MUSIC, IPAD }
 
+/**
+ * The resolution cap for the clips video player. AUTO keeps YouTube's best muxed file (up to 720p);
+ * a fixed height plays the matching video-only DASH stream merged with the best audio track.
+ */
+enum class ClipVideoQuality(val height: Int?) {
+    AUTO(null),
+    P144(144),
+    P240(240),
+    P360(360),
+    P480(480),
+    P720(720),
+    P1080(1080),
+    P1440(1440),
+    P2160(2160);
+
+    /** The stored string: "auto" or the height like "1080". */
+    val raw: String get() = height?.toString() ?: "auto"
+
+    companion object {
+        fun fromRaw(raw: String?): ClipVideoQuality = entries.firstOrNull { it.raw == raw?.trim() } ?: AUTO
+    }
+}
+
  // iPad player (the separate "iPad" design): how the cover art is shown in
  // landscape — centered (as in Apple Music on iPad) or full screen
  
@@ -103,6 +127,14 @@ enum class MiniPlayerStyle {
         }
     }
 }
+
+// Classic mini player strip: three INDEPENDENT on/off toggles so the user can combine them freely
+// instead of picking one of three fixed looks.
+
+// The classic mini player look is three INDEPENDENT on/off toggles — the user mixes them freely:
+// SHOW_COVER          - a small artwork sits on the left of the strip (off: title takes the full width).
+// COVER_AS_BACKGROUND - the artwork stretches across the whole strip behind the title.
+// PROGRESS_FILL       - the song time is a fill sweeping across the strip (off: the familiar 2 dp line).
 
 // background painted inside the modern mini player pill. Liquid glass intentionally excluded
 enum class MiniPlayerBackgroundStyle {
@@ -506,6 +538,12 @@ class PlayerPreferences(context: Context) {
         private const val KEY_ANDROID_AUTO_SYNCED_LYRICS = "android_auto_synced_lyrics"
         const val KEY_ANIMATED_COVERS_ENABLED = "animated_covers_enabled"
         const val KEY_ANIMATED_COVERS_FADE_UI = "animated_covers_fade_ui"
+        const val KEY_FEED_ANIMATED_COVERS_ENABLED = "feed_animated_covers_enabled"
+        const val KEY_FEED_SPOTIFY_CANVAS_ENABLED = "feed_spotify_canvas_enabled"
+        const val KEY_FEED_YOUTUBE_SAMPLES_ENABLED = "feed_youtube_samples_enabled"
+        const val KEY_FEED_VISUAL_PRIORITY = "feed_visual_priority"
+        const val KEY_FEED_OFFICIAL_ONLY_ENABLED = "feed_official_only_enabled"
+        const val KEY_CLIP_VIDEO_QUALITY = "clip_video_quality"
         const val KEY_GYROSCOPE_COVERS_ENABLED = "gyroscope_covers_enabled"
         const val KEY_GYROSCOPE_FLAT_COVER = "gyroscope_flat_cover"
         const val KEY_ANIMATED_ARTIST_PROFILES_ENABLED = "animated_artist_profiles_enabled"
@@ -637,8 +675,9 @@ class PlayerPreferences(context: Context) {
 
         private const val KEY_BOTTOM_MENU_STYLE = "bottom_menu_style"
         private const val KEY_BOTTOM_MENU_ITEMS = "bottom_menu_items_csv"
-        const val DEFAULT_BOTTOM_MENU_ITEMS = "home,search,genres,library"
+        const val DEFAULT_BOTTOM_MENU_ITEMS = "home,feed,search,genres,library"
         private const val KEY_BOTTOM_MENU_ORDER = "bottom_menu_order_csv"
+        private const val KEY_FEED_TAB_MIGRATED = "feed_tab_migrated"
         private const val KEY_BOTTOM_MENU_FAB = "bottom_menu_fab"
         private const val KEY_BOTTOM_MENU_BLUR = "bottom_menu_blur_enabled"
         const val KEY_MINI_PLAYER_SWIPE_ACTION = "mini_player_swipe_action"
@@ -719,6 +758,15 @@ class PlayerPreferences(context: Context) {
         const val KEY_MINI_PLAYER_SHOW_TRACK_BUTTONS = "mini_player_show_track_buttons"
         const val KEY_MINI_PLAYER_WIDTH = "mini_player_width"
         const val KEY_WAVY_PLAY_PAUSE = "wavy_play_pause_button"
+        const val KEY_MINI_PLAYER_CLASSIC_SHOW_COVER = "mini_player_classic_show_cover"
+        const val KEY_MINI_PLAYER_CLASSIC_COVER_AS_BACKGROUND = "mini_player_classic_cover_as_background"
+        const val KEY_MINI_PLAYER_CLASSIC_PROGRESS_FILL = "mini_player_classic_progress_fill"
+        private const val KEY_MINI_PLAYER_CLASSIC_MIGRATED = "mini_player_classic_look_migrated"
+        // Legacy keys of the older selector builds (one fixed mode, then three three-choice
+        // settings); read once by migrateLegacyClassicLook() and dropped.
+        private const val LEGACY_KEY_MINI_PLAYER_CLASSIC_MODE = "mini_player_classic_mode"
+        private const val LEGACY_KEY_MINI_PLAYER_CLASSIC_COVER = "mini_player_classic_cover"
+        private const val LEGACY_KEY_MINI_PLAYER_CLASSIC_PROGRESS = "mini_player_classic_progress"
         const val KEY_SHOW_CODEC_ON_PLAYER = "show_codec_on_player"
         const val KEY_SKIP_SILENCE = "skip_silence"
         const val KEY_INSTANT_SKIP_SILENCE = "instant_skip_silence"
@@ -1148,6 +1196,94 @@ class PlayerPreferences(context: Context) {
         awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
+    /**
+     * The two previous builds stored the classic look as choices instead of toggles: the oldest as
+     * ONE of three fixed modes, the last one as three three-choice settings. The first read after an
+     * upgrade maps whatever is stored onto the three toggles, drops the stale keys and never runs
+     * again: COVER_LEFT -> cover shown, COVER_BACKGROUND -> cover as background, PROGRESS_FILL ->
+     * hidden cover + fill; the intermediate choices map directly (hidden artwork -> off, fill -> on).
+     */
+    private fun migrateLegacyClassicLook() {
+        if (prefs.getBoolean(KEY_MINI_PLAYER_CLASSIC_MIGRATED, false)) return
+        val legacyMode = prefs.getString(LEGACY_KEY_MINI_PLAYER_CLASSIC_MODE, null)
+        val legacyCover = prefs.getString(LEGACY_KEY_MINI_PLAYER_CLASSIC_COVER, null)
+        val legacyProgress = prefs.getString(LEGACY_KEY_MINI_PLAYER_CLASSIC_PROGRESS, null)
+        if (legacyMode != null || legacyCover != null || legacyProgress != null) {
+            val (showCover, coverAsBackground, progressFill) = when (legacyMode) {
+                "COVER_BACKGROUND" -> Triple(true, true, false)
+                "PROGRESS_FILL" -> Triple(false, false, true)
+                "COVER_LEFT" -> Triple(true, false, false)
+                else -> Triple(
+                    legacyCover?.let { it != "HIDDEN" } ?: true,
+                    legacyCover?.let { it == "BACKGROUND" } ?: false,
+                    legacyProgress?.let { it == "FILL" } ?: false
+                )
+            }
+            prefs.edit {
+                putBoolean(KEY_MINI_PLAYER_CLASSIC_SHOW_COVER, showCover)
+                putBoolean(KEY_MINI_PLAYER_CLASSIC_COVER_AS_BACKGROUND, coverAsBackground)
+                putBoolean(KEY_MINI_PLAYER_CLASSIC_PROGRESS_FILL, progressFill)
+            }
+        }
+        prefs.edit {
+            remove(LEGACY_KEY_MINI_PLAYER_CLASSIC_MODE)
+            remove(LEGACY_KEY_MINI_PLAYER_CLASSIC_COVER)
+            remove(LEGACY_KEY_MINI_PLAYER_CLASSIC_PROGRESS)
+            putBoolean(KEY_MINI_PLAYER_CLASSIC_MIGRATED, true)
+        }
+    }
+
+    /** A small artwork sits on the left of the strip; off, the title takes the full width. */
+    fun getMiniPlayerClassicShowCover(): Boolean {
+        migrateLegacyClassicLook()
+        return prefs.getBoolean(KEY_MINI_PLAYER_CLASSIC_SHOW_COVER, true)
+    }
+
+    fun setMiniPlayerClassicShowCover(value: Boolean) = prefs.edit { putBoolean(KEY_MINI_PLAYER_CLASSIC_SHOW_COVER, value) }
+
+    fun miniPlayerClassicShowCoverFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getMiniPlayerClassicShowCover())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_CLASSIC_SHOW_COVER) trySend(getMiniPlayerClassicShowCover())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /** The artwork stretches across the whole strip behind the title, white text over a scrim. */
+    fun getMiniPlayerClassicCoverAsBackground(): Boolean {
+        migrateLegacyClassicLook()
+        return prefs.getBoolean(KEY_MINI_PLAYER_CLASSIC_COVER_AS_BACKGROUND, false)
+    }
+
+    fun setMiniPlayerClassicCoverAsBackground(value: Boolean) = prefs.edit { putBoolean(KEY_MINI_PLAYER_CLASSIC_COVER_AS_BACKGROUND, value) }
+
+    fun miniPlayerClassicCoverAsBackgroundFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getMiniPlayerClassicCoverAsBackground())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_CLASSIC_COVER_AS_BACKGROUND) trySend(getMiniPlayerClassicCoverAsBackground())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /** The song time as a fill sweeping across the strip; off, the familiar 2 dp progress line. */
+    fun getMiniPlayerClassicProgressFill(): Boolean {
+        migrateLegacyClassicLook()
+        return prefs.getBoolean(KEY_MINI_PLAYER_CLASSIC_PROGRESS_FILL, false)
+    }
+
+    fun setMiniPlayerClassicProgressFill(value: Boolean) = prefs.edit { putBoolean(KEY_MINI_PLAYER_CLASSIC_PROGRESS_FILL, value) }
+
+    fun miniPlayerClassicProgressFillFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getMiniPlayerClassicProgressFill())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_CLASSIC_PROGRESS_FILL) trySend(getMiniPlayerClassicProgressFill())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
     fun getMiniPlayerBackgroundStyle(): MiniPlayerBackgroundStyle =
         MiniPlayerBackgroundStyle.fromString(prefs.getString(KEY_MINI_PLAYER_BACKGROUND, MiniPlayerBackgroundStyle.SOLID.name))
 
@@ -1518,6 +1654,69 @@ class PlayerPreferences(context: Context) {
 
     fun getAnimatedCoversFadeUiEnabled(): Boolean = prefs.getBoolean(KEY_ANIMATED_COVERS_FADE_UI, false)
     fun setAnimatedCoversFadeUiEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_ANIMATED_COVERS_FADE_UI, enabled) }
+
+    // ── Feed visuals (the feed section in appearance settings) ──────────────────────────
+    // Three independent sources for the active card's moving picture, tried in the drag-ordered
+    // priority; the first one that resolves wins, the static cover stays as the fallback.
+
+    fun getFeedAnimatedCoversEnabled(): Boolean = prefs.getBoolean(KEY_FEED_ANIMATED_COVERS_ENABLED, true)
+    fun setFeedAnimatedCoversEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_FEED_ANIMATED_COVERS_ENABLED, enabled) }
+
+    fun getFeedSpotifyCanvasEnabled(): Boolean = prefs.getBoolean(KEY_FEED_SPOTIFY_CANVAS_ENABLED, true)
+    fun setFeedSpotifyCanvasEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_FEED_SPOTIFY_CANVAS_ENABLED, enabled) }
+
+    fun getFeedYouTubeSamplesEnabled(): Boolean = prefs.getBoolean(KEY_FEED_YOUTUBE_SAMPLES_ENABLED, true)
+    fun setFeedYouTubeSamplesEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_FEED_YOUTUBE_SAMPLES_ENABLED, enabled) }
+
+    /** When on, the feed shows only tracks from official artists (verified / Pro / ISRC release). */
+    fun getFeedOfficialOnlyEnabled(): Boolean = prefs.getBoolean(KEY_FEED_OFFICIAL_ONLY_ENABLED, false)
+    fun setFeedOfficialOnlyEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_FEED_OFFICIAL_ONLY_ENABLED, enabled) }
+
+    /** Raw drag order, e.g. "SPOTIFY_CANVAS,ANIMATED_COVERS,YOUTUBE_SAMPLES". */
+    fun getFeedVisualPriorityRaw(): String = prefs.getString(KEY_FEED_VISUAL_PRIORITY, null).orEmpty()
+    fun setFeedVisualPriorityRaw(raw: String) = prefs.edit { putString(KEY_FEED_VISUAL_PRIORITY, raw) }
+
+    /** The clips player's resolution cap; "auto" plays the best muxed stream as before. */
+    fun getClipVideoQuality(): ClipVideoQuality =
+        ClipVideoQuality.fromRaw(prefs.getString(KEY_CLIP_VIDEO_QUALITY, null))
+    fun setClipVideoQuality(quality: ClipVideoQuality) =
+        prefs.edit { putString(KEY_CLIP_VIDEO_QUALITY, quality.raw) }
+
+    private fun feedVisualFlow(keys: Set<String>, read: () -> String): Flow<String> = callbackFlow {
+        trySend(read())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key != null && key in keys) trySend(read())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /** One flow for the whole feed-visual configuration, so the feed reacts to every toggle at once. */
+    fun getFeedVisualConfigFlow(): Flow<FeedVisualConfig> =
+        feedVisualFlow(
+            setOf(
+                KEY_FEED_ANIMATED_COVERS_ENABLED,
+                KEY_FEED_SPOTIFY_CANVAS_ENABLED,
+                KEY_FEED_YOUTUBE_SAMPLES_ENABLED,
+                KEY_FEED_VISUAL_PRIORITY,
+            )
+        ) {
+            ""
+        }.map {
+            FeedVisualConfig(
+                animatedCovers = getFeedAnimatedCoversEnabled(),
+                spotifyCanvas = getFeedSpotifyCanvasEnabled(),
+                youtubeSamples = getFeedYouTubeSamplesEnabled(),
+                priorityRaw = getFeedVisualPriorityRaw(),
+            )
+        }
+
+    data class FeedVisualConfig(
+        val animatedCovers: Boolean,
+        val spotifyCanvas: Boolean,
+        val youtubeSamples: Boolean,
+        val priorityRaw: String,
+    )
 
     fun getGyroscopeCoversEnabled(): Boolean = prefs.getBoolean(KEY_GYROSCOPE_COVERS_ENABLED, false)
     fun setGyroscopeCoversEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_GYROSCOPE_COVERS_ENABLED, enabled) }
@@ -1943,7 +2142,21 @@ class PlayerPreferences(context: Context) {
 
     fun getBottomMenuItems(): List<String> {
         val csv = prefs.getString(KEY_BOTTOM_MENU_ITEMS, DEFAULT_BOTTOM_MENU_ITEMS) ?: DEFAULT_BOTTOM_MENU_ITEMS
-        return csv.split(",").filter { it.isNotBlank() }
+        var items = csv.split(",").filter { it.isNotBlank() }
+        // The feed tab ships enabled for everyone: a one-time insertion for existing installs, so
+        // users who never touched the bottom-bar settings still get the new tab. The flag keeps
+        // the migration from resurrecting the tab after the user deliberately hides it.
+        if (!prefs.getBoolean(KEY_FEED_TAB_MIGRATED, false)) {
+            prefs.edit { putBoolean(KEY_FEED_TAB_MIGRATED, true) }
+            if ("feed" !in items) {
+                items = if ("home" in items) {
+                    items.flatMap { listOf(it) + if (it == "home") listOf("feed") else emptyList() }.distinct()
+                } else {
+                    listOf("feed") + items
+                }
+            }
+        }
+        return items
     }
 
     fun setBottomMenuItems(items: List<String>) =
@@ -1959,7 +2172,7 @@ class PlayerPreferences(context: Context) {
     }
 
     fun getBottomMenuOrder(): List<String> {
-        val allTabKeys = listOf("home", "search", "genres", "library", "queue")
+        val allTabKeys = listOf("home", "feed", "search", "genres", "library", "queue")
         val csv = prefs.getString(KEY_BOTTOM_MENU_ORDER, null)
         if (csv.isNullOrBlank()) {
             val currentItems = getBottomMenuItems()

@@ -152,7 +152,6 @@ object FullTrackWaveformDecoder {
 
         handler.post {
             try {
-                val cache = ExoCacheManager.getCache(context)
                 val httpFactory = DefaultHttpDataSource.Factory()
                     .setUserAgent(Config.USER_AGENT)
                     .setAllowCrossProtocolRedirects(true)
@@ -160,10 +159,7 @@ object FullTrackWaveformDecoder {
                     .setReadTimeoutMs(15_000)
 
                 val defaultDataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(context, httpFactory)
-                val cacheFactory = CacheDataSource.Factory()
-                    .setCache(cache)
-                    .setUpstreamDataSourceFactory(defaultDataSourceFactory)
-                    .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+                val cacheFactory = ExoCacheManager.getAnalysisCacheFactory(context, defaultDataSourceFactory)
 
                 val drmProvider = DrmSessionManagerProvider {
                     if (!licenseAuthToken.isNullOrEmpty()) {

@@ -45,6 +45,15 @@ internal fun rememberSettingsSearchCatalog(
         var pureBlack = prefs.getPureBlack()
         var animatedCovers = prefs.getAnimatedCoversEnabled()
         var animatedCoversFadeUi = prefs.getAnimatedCoversFadeUiEnabled()
+        // Feed visuals: the three moving-picture sources of the feed section.
+        var feedAnimatedCovers = prefs.getFeedAnimatedCoversEnabled()
+        var feedSpotifyCanvas = prefs.getFeedSpotifyCanvasEnabled()
+        var feedYouTubeSamples = prefs.getFeedYouTubeSamplesEnabled()
+        var feedOfficialOnly = prefs.getFeedOfficialOnlyEnabled()
+        // 3D gyroscope covers + the "no overlay" (flat cover) mode — restored
+        // together with the switches in Appearance → Covers.
+        var gyroscopeCovers = prefs.getGyroscopeCoversEnabled()
+        var gyroFlatCover = prefs.getGyroscopeFlatCover()
         var animatedArtistProfiles = prefs.getAnimatedArtistProfilesEnabled()
         var lyricsUnderCover = prefs.getLyricsUnderCoverEnabled()
         var showRemainingTime = prefs.getShowRemainingTime()
@@ -434,6 +443,100 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
+                titleRes = R.string.pref_feed_animated_covers,
+                subtitleRes = R.string.pref_feed_animated_covers_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.PlayCircle,
+                route = "appearance_settings",
+                highlightKey = "pref_feed_animated_covers",
+                keywords = listOf("feed", "лента", "animated", "анимированные", "обложки", "apple music"),
+                hasSwitch = true,
+                switchState = feedAnimatedCovers,
+                onSwitchChange = {
+                    feedAnimatedCovers = it
+                    prefs.setFeedAnimatedCoversEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_feed_spotify_canvas,
+                subtitleRes = R.string.pref_feed_spotify_canvas_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.VideoLibrary,
+                route = "appearance_settings",
+                highlightKey = "pref_feed_spotify_canvas",
+                keywords = listOf("feed", "лента", "canvas", "spotify", "спотифай", "видео"),
+                hasSwitch = true,
+                switchState = feedSpotifyCanvas,
+                onSwitchChange = {
+                    feedSpotifyCanvas = it
+                    prefs.setFeedSpotifyCanvasEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_feed_youtube_samples,
+                subtitleRes = R.string.pref_feed_youtube_samples_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.SmartDisplay,
+                route = "appearance_settings",
+                highlightKey = "pref_feed_youtube_samples",
+                keywords = listOf("feed", "лента", "samples", "сэмплы", "youtube", "видеоклип", "клип"),
+                hasSwitch = true,
+                switchState = feedYouTubeSamples,
+                onSwitchChange = {
+                    feedYouTubeSamples = it
+                    prefs.setFeedYouTubeSamplesEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_feed_official_only,
+                subtitleRes = R.string.pref_feed_official_only_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Verified,
+                route = "appearance_settings",
+                highlightKey = "pref_feed_official_only",
+                keywords = listOf("feed", "лента", "official", "официальные", "verified", "верифицированные", "pro", "isrc", "артисты", "артисты"),
+                hasSwitch = true,
+                switchState = feedOfficialOnly,
+                onSwitchChange = {
+                    feedOfficialOnly = it
+                    prefs.setFeedOfficialOnlyEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_feed_visual_priority,
+                subtitleRes = R.string.pref_feed_visual_priority_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.LowPriority,
+                route = "appearance_settings",
+                highlightKey = "pref_feed_visual_priority",
+                keywords = listOf("feed", "лента", "priority", "приоритет", "порядок", "drag", "перетаскивание")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_clip_video_quality,
+                subtitleRes = R.string.pref_clip_video_quality_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Hd,
+                route = "appearance_settings",
+                highlightKey = "pref_clip_video_quality",
+                keywords = listOf("video quality", "качество видео", "клипы", "resolution", "разрешение", "4k", "2160", "1080")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
                 titleRes = R.string.pref_animated_covers_fade_ui,
                 subtitleRes = R.string.pref_animated_covers_fade_ui_desc,
                 categoryName = catInterface,
@@ -446,6 +549,42 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     animatedCoversFadeUi = it
                     prefs.setAnimatedCoversFadeUiEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_gyroscope_covers,
+                subtitleRes = R.string.pref_gyroscope_covers_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Layers,
+                route = "appearance_settings",
+                highlightKey = "pref_gyroscope_covers",
+                keywords = listOf("gyroscope", "gyro", "3d", "parallax", "tilt", "layer", "cover", "pochette", "гироскоп", "обложка", "параллакс"),
+                hasSwitch = true,
+                switchState = gyroscopeCovers,
+                onSwitchChange = {
+                    gyroscopeCovers = it
+                    prefs.setGyroscopeCoversEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_gyro_flat_cover,
+                subtitleRes = R.string.pref_gyro_flat_cover_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.CropSquare,
+                route = "appearance_settings",
+                highlightKey = "pref_gyro_flat_cover",
+                keywords = listOf("flat cover", "no overlay", "overlay", "gyroscope", "3d", "shadowbox", "наложение", "обложка", "без наложения"),
+                hasSwitch = true,
+                switchState = gyroFlatCover,
+                onSwitchChange = {
+                    gyroFlatCover = it
+                    prefs.setGyroscopeFlatCover(it)
                     onPreferenceChange()
                 }
             ),
@@ -1068,7 +1207,7 @@ internal fun rememberSettingsSearchCatalog(
                 titleRes = R.string.diag_hero_title,
                 categoryName = catAudio,
                 icon = Icons.Rounded.GraphicEq,
-                route = "audio_playback_settings",
+                route = "audio_quality_settings",
                 highlightKey = "diag_hero_title",
                 keywords = listOf("audio path", "codec", "bitrate", "resampling")
             ),
@@ -1129,7 +1268,7 @@ internal fun rememberSettingsSearchCatalog(
                 subtitleRes = R.string.pref_usb_bit_perfect_sub,
                 categoryName = catSources,
                 icon = Icons.Rounded.Usb,
-                route = "audio_playback_settings",
+                route = "audio_quality_settings",
                 highlightKey = "pref_usb_bit_perfect",
                 keywords = listOf("usb", "dac", "bit", "perfect", "audiophile"),
                 hasSwitch = true,

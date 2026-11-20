@@ -69,6 +69,14 @@ interface SoundCloudApi {
         @Query("linked_partitioning") linkedPartitioning: Int = 1
     ): ChartsResponse
 
+    /**
+     * The charts cursor the feed follows: `ChartsResponse.next_href` was already parsed (and
+     * `linked_partitioning=1` already requested) but nothing ever read it, so every page
+     * re-fetched page one. The URL is absolute, as all the other NextPage calls here are.
+     */
+    @GET
+    suspend fun getChartsNextPage(@Url url: String): ChartsResponse
+
     @GET("stream")
     suspend fun getMyStream(
         @Query("limit") limit: Int = 20,

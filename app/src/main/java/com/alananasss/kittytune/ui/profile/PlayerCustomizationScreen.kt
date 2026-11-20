@@ -917,6 +917,12 @@ fun PlayerCustomizationScreen(
                         )
                     }
 
+                    // NOTE: the 3D gyroscope covers / "cover without overlay"
+                    // switches live ONLY in Appearance → Covers:
+                    // they describe the cover itself, not the player design, and
+                    // having them in two places made it unclear which one wins.
+                    // The settings search routes them to "appearance_settings".
+
                     if (currentDesign == PlayerDesign.SOUNDCLOUD) {
                         add { shape ->
                             SettingsItem(

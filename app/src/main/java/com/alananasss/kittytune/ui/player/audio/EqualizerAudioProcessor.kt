@@ -7,24 +7,88 @@ import java.nio.ByteBuffer
 import kotlin.math.*
 
 /**
- * High-performance 16-band graphic equalizer & preamp audio processor for ExoPlayer / Media3.
+ * High-performance 16-band fixed-frequency, fixed-Q parametric equalizer (PEQ) & preamp
+ * audio processor for ExoPlayer / Media3.
  *
- * Implements 16 peaking biquad filters using Robert Bristow-Johnson (RBJ) Audio EQ Cookbook formulas
- * in Transposed Direct Form II with per-channel state arrays, lock-free parameter publishing,
- * denormal protection, and smooth hyperbolic tangent soft limiting to eliminate digital clipping.
+ * Implements 16 RBJ Audio EQ Cookbook peaking biquad filters with fixed center frequencies (f0)
+ * and fixed per-band Q factors tailored to each band's octave spacing, in Transposed Direct Form II
+ * with per-channel state arrays, lock-free parameter publishing, denormal protection, and
+ * smooth hyperbolic tangent soft limiting to eliminate digital clipping.
  */
 class EqualizerAudioProcessor : BaseAudioProcessor() {
 
     companion object {
         const val NUM_BANDS = 16
+
+        /** Fixed center frequencies (Hz) for the 16 parametric bands. */
         val BAND_FREQUENCIES = floatArrayOf(
             32f, 64f, 125f, 200f, 315f, 500f, 800f, 1250f,
             2000f, 3150f, 5000f, 8000f, 10000f, 12500f, 16000f, 20000f
         )
-        private const val DEFAULT_Q = 1.8f
+
+        /**
+         * Fixed Q factors per band matched to the logarithmic spacing of [BAND_FREQUENCIES]:
+         * - 1-octave low bands (32, 64 Hz): Q = 1.41
+         * - ~2/3-octave mid bands (125 Hz .. 8 kHz): Q = 1.80
+         * - ~1/3-octave high/air bands (10 kHz .. 20 kHz): Q = 2.40
+         */
+        val BAND_Q_FACTORS = floatArrayOf(
+            1.41f, 1.41f, 1.70f, 1.80f, 1.80f, 1.80f, 1.80f, 1.80f,
+            1.80f, 1.80f, 1.80f, 2.00f, 2.40f, 2.40f, 2.40f, 2.40f
+        )
+
         private const val SOFT_LIMIT_THRESHOLD = 28000f
         private const val MAX_PCM_VAL = 32767f
         private const val DENORMAL_THRESHOLD = 1e-15f
+
+        /**
+         * Evaluates the exact cascaded RBJ peaking biquad magnitude response (in dB) at [freqHz]
+         * for the given 16 band gains, using the fixed [BAND_FREQUENCIES] and [BAND_Q_FACTORS].
+         */
+        fun computeResponseDbAt(
+            freqHz: Float,
+            bandGainsDb: List<Float>,
+            preampDb: Float = 0f,
+            sampleRate: Float = 48000f
+        ): Float {
+            val fs = sampleRate.coerceAtLeast(44100f).toDouble()
+            val nyquist = fs * 0.5
+            val f = freqHz.toDouble().coerceIn(20.0, nyquist - 10.0)
+            val w = 2.0 * PI * f / fs
+            val cosW = cos(w)
+            val cos2W = cos(2.0 * w)
+
+            var totalDb = preampDb.toDouble()
+
+            for (i in 0 until NUM_BANDS) {
+                val gain = bandGainsDb.getOrElse(i) { 0f }.toDouble()
+                if (abs(gain) < 0.05) continue
+
+                val f0 = BAND_FREQUENCIES[i].toDouble()
+                if (f0 >= nyquist - 100.0 || f0 <= 0.0) continue
+
+                val q = BAND_Q_FACTORS[i].toDouble()
+                val aVal = 10.0.pow(gain / 40.0)
+                val w0 = 2.0 * PI * f0 / fs
+                val sinW0 = sin(w0)
+                val cosW0 = cos(w0)
+                val alpha = sinW0 / (2.0 * q)
+
+                val b0 = 1.0 + alpha * aVal
+                val b1 = -2.0 * cosW0
+                val b2 = 1.0 - alpha * aVal
+                val a0 = 1.0 + alpha / aVal
+                val a1 = -2.0 * cosW0
+                val a2 = 1.0 - alpha / aVal
+
+                val num = b0 * b0 + b1 * b1 + b2 * b2 + 2.0 * (b0 * b1 + b1 * b2) * cosW + 2.0 * b0 * b2 * cos2W
+                val den = a0 * a0 + a1 * a1 + a2 * a2 + 2.0 * (a0 * a1 + a1 * a2) * cosW + 2.0 * a0 * a2 * cos2W
+                if (num > 0.0 && den > 0.0) {
+                    totalDb += 10.0 * log10(num / den)
+                }
+            }
+            return totalDb.toFloat()
+        }
     }
 
     /**
@@ -89,10 +153,6 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
-        // Channel structure and coefficients are rebuilt BEFORE the Bit-Perfect bypass:
-        // a hot-unplug (DAC off mid-playback) re-routes queueInput off the passthrough
-        // with channelCount/s1/s2 still valid for the biquad loop - not the stale
-        // defaults from before the DAC ever appeared.
         val channels = inputAudioFormat.channelCount.coerceAtLeast(1)
         synchronized(this) {
             channelCount = channels
@@ -101,16 +161,12 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
             rebuildFilterConfig(inputAudioFormat.sampleRate)
         }
 
-        // Bit-Perfect: while the DAC owns the output this processor must never negotiate
-        // a conversion or throw - identity configuration for ANY PCM encoding keeps the
-        // chain format 1:1, so the byte passthrough in queueInput is bit-exact (an
-        // int->float mismatch on a container-upgrade stream would surface as white noise).
         if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.EQUALIZER)) {
             return inputAudioFormat
         }
-        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) {
-            // NOT_SET = "inactive, skip me" - the rest of the chain keeps working. Throwing here
-            // used to turn a float/hi-res input into a fatal sink ConfigurationException.
+        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT &&
+            inputAudioFormat.encoding != C.ENCODING_PCM_FLOAT
+        ) {
             return AudioProcessor.AudioFormat.NOT_SET
         }
         return inputAudioFormat
@@ -152,7 +208,6 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
             }
 
             val f0 = BAND_FREQUENCIES[i]
-            // Skip frequencies at or exceeding Nyquist
             if (f0 >= nyquist - 100f || f0 <= 0f) {
                 isBandActive[i] = false
                 continue
@@ -161,12 +216,12 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
             isBandActive[i] = true
             anyActive = true
 
-            // Peaking EQ RBJ Biquad coefficients:
+            val q = BAND_Q_FACTORS[i].toDouble()
             val aVal = 10.0.pow(gain.toDouble() / 40.0)
             val w0 = 2.0 * PI * f0.toDouble() / fs.toDouble()
             val sinW0 = sin(w0)
             val cosW0 = cos(w0)
-            val alpha = sinW0 / (2.0 * DEFAULT_Q.toDouble())
+            val alpha = sinW0 / (2.0 * q)
 
             val a0 = 1.0 + alpha / aVal
             b0[i] = ((1.0 + alpha * aVal) / a0).toFloat()
@@ -197,8 +252,6 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
-        // Bit-Perfect on a USB DAC: the EQ (and AutoEQ behind it) must be a
-        // bit-transparent copy - flat response, PCM bytes untouched.
         if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.EQUALIZER)) {
             val passthrough = replaceOutputBuffer(remaining)
             passthrough.put(inputBuffer)
@@ -208,7 +261,6 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
 
         val config = filterConfig
 
-        // Zero-overhead bypass when disabled or when flat with 0 dB preamp
         if (!config.isEnabled || (!config.hasAnyActiveBand && !config.hasPreamp)) {
             val buffer = replaceOutputBuffer(remaining)
             buffer.put(inputBuffer)
@@ -228,56 +280,73 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
         val isBandActive = config.isBandActive
         val hasActiveBands = config.hasAnyActiveBand
         val preamp = config.preampLinear
+        val isFloat = inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT
 
         var channelIndex = 0
-        // Byte-wise bound: a lone trailing byte cannot form a 16-bit sample, so
-        // remaining() >= 2 keeps getShort() from throwing BufferUnderflowException and
-        // terminates the loop deterministically on an odd-sized buffer.
-        while (inputBuffer.remaining() >= 2) {
-            val sample = inputBuffer.getShort().toFloat()
-            val ch = channelIndex
+        if (isFloat) {
+            while (inputBuffer.remaining() >= 4) {
+                val sample = inputBuffer.getFloat() * MAX_PCM_VAL
+                val ch = channelIndex
+                var x = sample * preamp
 
-            // Apply Preamp gain
-            var x = sample * preamp
-
-            // Apply 16 Biquad Peaking Filters in Transposed Direct Form II
-            if (hasActiveBands && ch < localS1.size) {
-                val chS1 = localS1[ch]
-                val chS2 = localS2[ch]
-
-                for (b in 0 until NUM_BANDS) {
-                    if (!isBandActive[b]) continue
-
-                    val nb0 = b0[b]
-                    val nb1 = b1[b]
-                    val nb2 = b2[b]
-                    val na1 = a1[b]
-                    val na2 = a2[b]
-
-                    val s1Val = chS1[b]
-                    val s2Val = chS2[b]
-
-                    val y = nb0 * x + s1Val
-                    var nextS1 = nb1 * x - na1 * y + s2Val
-                    var nextS2 = nb2 * x - na2 * y
-
-                    // Flush subnormal values to zero (denormal prevention)
-                    if (abs(nextS1) < DENORMAL_THRESHOLD) nextS1 = 0f
-                    if (abs(nextS2) < DENORMAL_THRESHOLD) nextS2 = 0f
-
-                    chS1[b] = nextS1
-                    chS2[b] = nextS2
-                    x = y
+                if (hasActiveBands && ch < localS1.size) {
+                    val chS1 = localS1[ch]
+                    val chS2 = localS2[ch]
+                    for (b in 0 until NUM_BANDS) {
+                        if (!isBandActive[b]) continue
+                        val y = b0[b] * x + chS1[b]
+                        var nextS1 = b1[b] * x - a1[b] * y + chS2[b]
+                        var nextS2 = b2[b] * x - a2[b] * y
+                        if (abs(nextS1) < DENORMAL_THRESHOLD) nextS1 = 0f
+                        if (abs(nextS2) < DENORMAL_THRESHOLD) nextS2 = 0f
+                        chS1[b] = nextS1
+                        chS2[b] = nextS2
+                        x = y
+                    }
                 }
+                buffer.putFloat(softLimitFloat(x) / MAX_PCM_VAL)
+                channelIndex = (channelIndex + 1) % channels
             }
+        } else {
+            while (inputBuffer.remaining() >= 2) {
+                val sample = inputBuffer.getShort().toFloat()
+                val ch = channelIndex
+                var x = sample * preamp
 
-            // High-fidelity soft saturation limiter (smooth hyperbolic tangent knee)
-            buffer.putShort(softLimit(x))
+                if (hasActiveBands && ch < localS1.size) {
+                    val chS1 = localS1[ch]
+                    val chS2 = localS2[ch]
 
-            channelIndex = (channelIndex + 1) % channels
+                    for (b in 0 until NUM_BANDS) {
+                        if (!isBandActive[b]) continue
+
+                        val nb0 = b0[b]
+                        val nb1 = b1[b]
+                        val nb2 = b2[b]
+                        val na1 = a1[b]
+                        val na2 = a2[b]
+
+                        val s1Val = chS1[b]
+                        val s2Val = chS2[b]
+
+                        val y = nb0 * x + s1Val
+                        var nextS1 = nb1 * x - na1 * y + s2Val
+                        var nextS2 = nb2 * x - na2 * y
+
+                        if (abs(nextS1) < DENORMAL_THRESHOLD) nextS1 = 0f
+                        if (abs(nextS2) < DENORMAL_THRESHOLD) nextS2 = 0f
+
+                        chS1[b] = nextS1
+                        chS2[b] = nextS2
+                        x = y
+                    }
+                }
+
+                buffer.putShort(softLimit(x))
+                channelIndex = (channelIndex + 1) % channels
+            }
         }
-        // Swallow the odd trailing byte (sub-sample remainder) so Media3's audio thread
-        // can never spin in while(inputBuffer.hasRemaining()) on it.
+
         if (inputBuffer.hasRemaining()) {
             inputBuffer.position(inputBuffer.limit())
         }
@@ -285,20 +354,16 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
         buffer.flip()
     }
 
-    /**
-     * C-infinity continuous hyperbolic tangent soft-limiter:
-     * Transparent linear pass-through up to [SOFT_LIMIT_THRESHOLD] (28000, ~ -1.36 dBFS).
-     * Smooth analog-like saturation approaching [MAX_PCM_VAL] (32767) to eliminate digital clipping.
-     */
-    private fun softLimit(sample: Float): Short {
+    private fun softLimitFloat(sample: Float): Float {
         val absSample = abs(sample)
-        if (absSample <= SOFT_LIMIT_THRESHOLD) {
-            return sample.toInt().toShort()
-        }
-
+        if (absSample <= SOFT_LIMIT_THRESHOLD) return sample
         val sign = if (sample >= 0f) 1f else -1f
         val excess = (absSample - SOFT_LIMIT_THRESHOLD) / (MAX_PCM_VAL - SOFT_LIMIT_THRESHOLD)
         val compressed = SOFT_LIMIT_THRESHOLD + (MAX_PCM_VAL - SOFT_LIMIT_THRESHOLD) * tanh(excess.toDouble()).toFloat()
-        return (sign * compressed).coerceIn(-32768f, 32767f).toInt().toShort()
+        return (sign * compressed).coerceIn(-32768f, 32767f)
+    }
+
+    private fun softLimit(sample: Float): Short {
+        return softLimitFloat(sample).toInt().toShort()
     }
 }

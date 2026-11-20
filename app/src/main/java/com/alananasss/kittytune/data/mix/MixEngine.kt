@@ -72,6 +72,9 @@ object MixEngine {
             val artists: List<ArtistSeed> = emptyList(),
             val genres: List<String> = emptyList()
         ) : Recipe
+
+        /** Only tracks from official artists — verified/pro accounts and releases carrying an ISRC. */
+        data object Official : Recipe
     }
 
     data class ArtistSeed(
@@ -141,8 +144,16 @@ object MixEngine {
             println("KittyTune mix: ${seeds.size} seeds -> ${candidates.size} candidates")
             if (candidates.isEmpty()) return@withContext Result.NothingFound(Result.Stage.NO_CANDIDATES)
 
+            // The official station keeps only what official artists released; filtering happens here rather
+            // than inside the ranking so the queue still gets [size] tracks out of what survives.
+            val usable = if (recipe is Recipe.Official) {
+                val official = candidates.filter { MixRanking.isOfficialArtist(it.track) }
+                if (official.isEmpty()) return@withContext Result.NothingFound(Result.Stage.ALL_FILTERED)
+                official
+            } else candidates
+
             val tracks = MixRanking.order(
-                candidates = candidates,
+                candidates = usable,
                 taste = taste,
                 size = size,
                 seed = now,
@@ -168,6 +179,7 @@ object MixEngine {
      * no path to at all, so there is always at least one when the profile can supply it.
      */
     private suspend fun seedsFor(recipe: Recipe, taste: MixProfile.Taste): List<Seed> = when (recipe) {
+        Recipe.Official -> seedsFor(Recipe.MyTaste, taste)
         is Recipe.LikeArtist -> {
             // "In the Yeat style." One seed, full affinity, and the station endpoint does the rest — an artist
             // station is the neighbourhood around them rather than their own back catalogue, which is exactly
@@ -449,6 +461,7 @@ object MixEngine {
         Recipe.MyTaste -> seeds.filterIsInstance<Seed.OfArtist>()
             .take(2)
             .joinToString(", ") { it.name }
+        Recipe.Official -> ""
     }
 
     /**

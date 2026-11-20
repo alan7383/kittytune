@@ -4765,7 +4765,9 @@ query CommentsWithReactions(
         maintainPlayerState: Boolean = false,
         autoPlay: Boolean = true,
         respectShuffle: Boolean = true,
+        startAtPositionMs: Long = 0L,
     ) {
+        if (startAtPositionMs > 0L) pendingSeekPosition = startAtPositionMs
         if (!applyingConnectCommand && autoPlay && ConnectManager.selectedDevice.value != null && tracks.isNotEmpty()) {
             val index = startIndex.coerceIn(0, tracks.lastIndex)
             val start = if (tracks.size > 500) (index - 250).coerceIn(0, tracks.size - 500) else 0
@@ -4869,10 +4871,11 @@ query CommentsWithReactions(
      * the snake game replays a cover it just swallowed. Returns false when the track is not in
      * the queue (blocked, or another context took over), so the caller can start a fresh one.
      */
-    fun playTrackInQueue(trackId: Long): Boolean {
+    fun playTrackInQueue(trackId: Long, startAtPositionMs: Long = 0L): Boolean {
         val index = _queue.indexOfFirst { it.id == trackId }
         if (index < 0) return false
         com.alananasss.kittytune.audio.haptics.HapticUtil.performUIHaptic(context)
+        if (startAtPositionMs > 0L) pendingSeekPosition = startAtPositionMs
         playTrackAtIndex(index, addToHistory = false, autoPlay = true)
         return true
     }
@@ -6414,6 +6417,18 @@ query CommentsWithReactions(
         val track = currentTrack ?: return
         com.alananasss.kittytune.data.wave.WaveFeedback.onDisliked(track)
         playNext(manual = true)
+    }
+
+    /**
+     * A thumbs-down in the feed, same as in My Wave: the track is blocked and the artist
+     * silenced, so neither comes back in the feed or the wave; the next card takes over (the caller
+     * advances the pager).
+     */
+    fun dislikeFeedTrack(track: com.alananasss.kittytune.domain.Track) {
+        com.alananasss.kittytune.data.wave.WaveFeedback.onDisliked(track)
+        com.alananasss.kittytune.data.wave.WaveFeedback.dislikeArtist(
+            track.displayArtist.ifBlank { track.user?.username.orEmpty() }
+        )
     }
 
     /** Fetches the waveform_url for a track using the single-track endpoint (includes waveform_url). */
@@ -8185,8 +8200,11 @@ query CommentsWithReactions(
             val bitmap = loadBitmap(track.fullResArtwork)
             if (bitmap != null) {
                 try {
-                    val artFile = File(context.filesDir, "art_${track.id}.jpg")
+                    // Regenerable from the track's artwork at any time, so it lives in the cache:
+                    // clearable, and it cannot pile up in the permanent app storage.
+                    val artFile = com.alananasss.kittytune.utils.PlayerArtworkCache.cacheFile(context, track.id)
                     if (!artFile.exists()) {
+                        artFile.parentFile?.mkdirs()
                         artFile.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out) }
                     }
                 } catch (e: Exception) {

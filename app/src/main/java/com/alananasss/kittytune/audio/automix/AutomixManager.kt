@@ -160,10 +160,23 @@ object AutomixManager {
         }
     }
 
-        fun cancelAllBeatAnalyses() {
+    fun cancelAllBeatAnalyses() {
         synchronized(beatAnalysisJobs) {
             beatAnalysisJobs.values.forEach { it.job.cancel() }
             beatAnalysisJobs.clear()
+        }
+    }
+
+    fun cancelImmediateBeatAnalyses(keepSongId: String? = null) {
+        synchronized(beatAnalysisJobs) {
+            val iterator = beatAnalysisJobs.entries.iterator()
+            while (iterator.hasNext()) {
+                val (id, handle) = iterator.next()
+                if (handle.priority == BeatAnalysisPriority.IMMEDIATE && id != keepSongId) {
+                    handle.job.cancel()
+                    iterator.remove()
+                }
+            }
         }
     }
 
@@ -178,17 +191,14 @@ object AutomixManager {
 
         synchronized(beatAnalysisJobs) {
             val existing = beatAnalysisJobs[songId]
-            if (existing != null) {
+            if (existing != null && existing.job.isActive) {
                 if (priority == BeatAnalysisPriority.IMMEDIATE && existing.priority == BeatAnalysisPriority.LOOKAHEAD) {
                     beatAnalysisJobs[songId] = existing.copy(priority = BeatAnalysisPriority.IMMEDIATE)
                 }
                 return
             }
 
-            // Beat analysis decodes up to 40 s of audio at full MediaCodec speed. At foreground
-            // priority it starved the two live audio threads (2 decks × ~44 processors) whenever
-            // a decode window overlapped a transition - the "hissy/interrupted" playback right
-            // after a skip. It therefore runs on [analysisDispatcher] (background priority).
+            lateinit var handle: BeatAnalysisHandle
             val job = scope.launch(analysisDispatcher) {
                 val mutex = when (priority) {
                     BeatAnalysisPriority.IMMEDIATE -> immediateAnalysisMutex
@@ -204,15 +214,18 @@ object AutomixManager {
                         Log.w(TAG, "Beat analysis failed for $songId: ${e.message}")
                     } finally {
                         synchronized(beatAnalysisJobs) {
-                            beatAnalysisJobs.remove(songId)
+                            if (beatAnalysisJobs[songId]?.job === handle.job) {
+                                beatAnalysisJobs.remove(songId)
+                            }
                         }
                     }
                 }
             }
-            beatAnalysisJobs[songId] = BeatAnalysisHandle(priority, job)
+            handle = BeatAnalysisHandle(priority, job)
+            beatAnalysisJobs[songId] = handle
         }
     }
-
+    
     private suspend fun runBeatAnalysis(context: Context, track: Track, priority: BeatAnalysisPriority) {
         val songId = track.id.toString()
         val db = AppDatabase.getDatabase(context)

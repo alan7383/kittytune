@@ -167,9 +167,7 @@
             }
 
             private fun getCachedArtworkPath(context: Context, trackId: Long): String? {
-                val artFile = File(context.filesDir, "art_${trackId}.jpg")
-                if (artFile.exists()) return artFile.absolutePath
-                return null
+                return com.alananasss.kittytune.utils.PlayerArtworkCache.pathOrNull(context, trackId)
             }
 
             private fun updateCommonState(

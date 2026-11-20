@@ -91,13 +91,6 @@ fun AudioPlaybackSettingsScreen(
     var keepScreenOn by remember { mutableStateOf(prefs.getKeepScreenOn()) }
     var pauseListenHistory by remember { mutableStateOf(prefs.getPauseListenHistory()) }
     var pauseSearchHistory by remember { mutableStateOf(prefs.getPauseSearchHistory()) }
-    var usbBitPerfect by remember { mutableStateOf(prefs.getUsbBitPerfect()) }
-    var usbShowStatus by remember { mutableStateOf(prefs.getUsbShowStatus()) }
-    var dapExclusive by remember { mutableStateOf(prefs.getDapAaudioExclusive()) }
-    var showAudioPathSheet by remember { mutableStateOf(false) }
-    val usbStatus by com.alananasss.kittytune.audio.usb.UsbAudioManager.status.collectAsState()
-    val automixConflictsWithBitPerfect by com.alananasss.kittytune.audio.usb.UsbAudioManager
-        .automixConflictsWithBitPerfect.collectAsState()
 
     val listState = rememberLazyListState()
 
@@ -347,82 +340,16 @@ fun AudioPlaybackSettingsScreen(
                             highlightKey = "pref_pause_search_history"
                         )
                     }
-
-                    SettingsGroupTitle(stringResource(R.string.usb_section_title))
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val usbStatusText = when {
-                            usbStatus.reason == "android_version" -> stringResource(R.string.usb_status_android_version)
-                            usbStatus.reason == "track_format_mismatch" -> stringResource(R.string.usb_status_track_mismatch)
-                            usbStatus.bitPerfectActive -> stringResource(R.string.usb_status_active) +
-                                    if (usbStatus.activeSampleRate > 0) " · ${usbStatus.activeSampleRate / 1000} kHz" else ""
-                            usbStatus.usbDacConnected -> stringResource(R.string.usb_status_unsupported)
-                            else -> stringResource(R.string.usb_status_no_device)
-                        }
-                        // Bit-perfect and automix cannot coexist (two decks cannot be summed
-                        // bit-exactly): say so instead of silently falling back to hard switches.
-                        val usbSubtitle = if (automixConflictsWithBitPerfect) {
-                            usbStatusText + "\n" + stringResource(R.string.usb_automix_conflict)
-                        } else usbStatusText
-                        SettingsItem(
-                            shape = getSettingsShape(3, 0),
-                            title = stringResource(R.string.pref_usb_bit_perfect),
-                            subtitle = usbSubtitle,
-                            hasSwitch = true,
-                            switchState = usbBitPerfect,
-                            onSwitchChange = { on ->
-                                usbBitPerfect = on
-                                prefs.setUsbBitPerfect(on)
-                                com.alananasss.kittytune.audio.usb.UsbAudioManager.refresh()
-                            },
-                            highlightKey = "pref_usb_bit_perfect"
-                        )
-                        SettingsItem(
-                            shape = getSettingsShape(3, 1),
-                            title = stringResource(R.string.pref_usb_show_status),
-                            subtitle = stringResource(R.string.pref_usb_show_status_sub),
-                            hasSwitch = true,
-                            switchState = usbShowStatus,
-                            onSwitchChange = { usbShowStatus = it; prefs.setUsbShowStatus(it) },
-                            highlightKey = "pref_usb_show_status"
-                        )
-                        SettingsItem(
-                            shape = getSettingsShape(3, 2),
-                            title = stringResource(R.string.pref_dap_exclusive),
-                            subtitle = stringResource(R.string.pref_dap_exclusive_sub),
-                            hasSwitch = true,
-                            switchState = dapExclusive,
-                            onSwitchChange = { on ->
-                                dapExclusive = on
-                                prefs.setDapAaudioExclusive(on)
-                                com.alananasss.kittytune.audio.usb.UsbAudioManager.refresh()
-                            },
-                            highlightKey = "pref_dap_exclusive"
-                        )
-                    }
-
-                    // Audio path diagnostics - under the USB DAC / Bit-Perfect section.
-                    AudioPathHeroCard(
-                        playerViewModel = playerViewModel,
-                        onOpen = hapticAction(HapticKind.UI) { showAudioPathSheet = true },
-                        modifier = Modifier.padding(top = 16.dp).settingHighlight("diag_hero_title", RoundedCornerShape(24.dp))
-                    )
                 }
             }
         }
-    }
-
-    if (showAudioPathSheet) {
-        AudioPathDiagnosticSheet(
-            visible = true,
-            onDismiss = { showAudioPathSheet = false },
-            playerViewModel = playerViewModel
-        )
     }
 }
 
 /**
  * Sound & Output subpage:
- * Equalizer, volume normalization, mono audio, DRM download.
+ * Equalizer, volume normalization, mono audio, DRM download,
+ * USB DAC & bit-perfect audio, audio path diagnostics.
  */
 @Composable
 fun AudioQualitySettingsScreen(
@@ -434,6 +361,13 @@ fun AudioQualitySettingsScreen(
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
     var downloadDrmEnabled by remember { mutableStateOf(prefs.getDownloadDrmStreamsEnabled()) }
+    var usbBitPerfect by remember { mutableStateOf(prefs.getUsbBitPerfect()) }
+    var usbShowStatus by remember { mutableStateOf(prefs.getUsbShowStatus()) }
+    var dapExclusive by remember { mutableStateOf(prefs.getDapAaudioExclusive()) }
+    var showAudioPathSheet by remember { mutableStateOf(false) }
+    val usbStatus by com.alananasss.kittytune.audio.usb.UsbAudioManager.status.collectAsState()
+    val automixConflictsWithBitPerfect by com.alananasss.kittytune.audio.usb.UsbAudioManager
+        .automixConflictsWithBitPerfect.collectAsState()
 
     var showNormalizationDialog by remember { mutableStateOf(false) }
     var showNormalizationInfoDialog by remember { mutableStateOf(false) }
@@ -556,7 +490,11 @@ fun AudioQualitySettingsScreen(
             "equalizer" to 0,
             "pref_audio_mono" to 0,
             "pref_norm" to 0,
-            "pref_download_drm" to 0
+            "pref_download_drm" to 0,
+            "pref_usb_bit_perfect" to 0,
+            "pref_usb_show_status" to 0,
+            "pref_dap_exclusive" to 0,
+            "diag_hero_title" to 0
         )
     )
 
@@ -622,9 +560,76 @@ fun AudioQualitySettingsScreen(
                             highlightKey = "pref_download_drm"
                         )
                     }
+
+                    SettingsGroupTitle(stringResource(R.string.usb_section_title))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val usbStatusText = when {
+                            usbStatus.reason == "android_version" -> stringResource(R.string.usb_status_android_version)
+                            usbStatus.reason == "track_format_mismatch" -> stringResource(R.string.usb_status_track_mismatch)
+                            usbStatus.bitPerfectActive -> stringResource(R.string.usb_status_active) +
+                                    if (usbStatus.activeSampleRate > 0) " · ${usbStatus.activeSampleRate / 1000} kHz" else ""
+                            usbStatus.usbDacConnected -> stringResource(R.string.usb_status_unsupported)
+                            else -> stringResource(R.string.usb_status_no_device)
+                        }
+                        // Bit-perfect and automix cannot coexist (two decks cannot be summed
+                        // bit-exactly): say so instead of silently falling back to hard switches.
+                        val usbSubtitle = if (automixConflictsWithBitPerfect) {
+                            usbStatusText + "\n" + stringResource(R.string.usb_automix_conflict)
+                        } else usbStatusText
+                        SettingsItem(
+                            shape = getSettingsShape(3, 0),
+                            title = stringResource(R.string.pref_usb_bit_perfect),
+                            subtitle = usbSubtitle,
+                            hasSwitch = true,
+                            switchState = usbBitPerfect,
+                            onSwitchChange = { on ->
+                                usbBitPerfect = on
+                                prefs.setUsbBitPerfect(on)
+                                com.alananasss.kittytune.audio.usb.UsbAudioManager.refresh()
+                            },
+                            highlightKey = "pref_usb_bit_perfect"
+                        )
+                        SettingsItem(
+                            shape = getSettingsShape(3, 1),
+                            title = stringResource(R.string.pref_usb_show_status),
+                            subtitle = stringResource(R.string.pref_usb_show_status_sub),
+                            hasSwitch = true,
+                            switchState = usbShowStatus,
+                            onSwitchChange = { usbShowStatus = it; prefs.setUsbShowStatus(it) },
+                            highlightKey = "pref_usb_show_status"
+                        )
+                        SettingsItem(
+                            shape = getSettingsShape(3, 2),
+                            title = stringResource(R.string.pref_dap_exclusive),
+                            subtitle = stringResource(R.string.pref_dap_exclusive_sub),
+                            hasSwitch = true,
+                            switchState = dapExclusive,
+                            onSwitchChange = { on ->
+                                dapExclusive = on
+                                prefs.setDapAaudioExclusive(on)
+                                com.alananasss.kittytune.audio.usb.UsbAudioManager.refresh()
+                            },
+                            highlightKey = "pref_dap_exclusive"
+                        )
+                    }
+
+                    // Audio path diagnostics - under the USB DAC / Bit-Perfect section.
+                    AudioPathHeroCard(
+                        playerViewModel = playerViewModel,
+                        onOpen = hapticAction(HapticKind.UI) { showAudioPathSheet = true },
+                        modifier = Modifier.padding(top = 16.dp).settingHighlight("diag_hero_title", RoundedCornerShape(24.dp))
+                    )
                 }
             }
         }
+    }
+
+    if (showAudioPathSheet) {
+        AudioPathDiagnosticSheet(
+            visible = true,
+            onDismiss = { showAudioPathSheet = false },
+            playerViewModel = playerViewModel
+        )
     }
 }
 

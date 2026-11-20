@@ -14,7 +14,10 @@ import com.zionhuang.innertube.models.WatchEndpoint
 import com.zionhuang.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
 import com.zionhuang.innertube.models.YTItem
 import com.zionhuang.innertube.models.YouTubeClient.Companion.ANDROID_MUSIC
+import com.zionhuang.innertube.models.YouTubeClient.Companion.ANDROID_VR
+import com.zionhuang.innertube.models.YouTubeClient.Companion.IOS
 import com.zionhuang.innertube.models.YouTubeClient.Companion.TVHTML5
+import com.zionhuang.innertube.models.YouTubeClient.Companion.VISIONOS
 import com.zionhuang.innertube.models.YouTubeClient.Companion.WEB
 import com.zionhuang.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.zionhuang.innertube.models.YouTubeLocale
@@ -418,21 +421,42 @@ object YouTube {
             setLogin = true
         ).body<BrowseResponse>()
         response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.gridRenderer?.items!!
-            .drop(1) // the first item is "create new playlist"
+            .drop(1)
             .mapNotNull(GridRenderer.Item::musicTwoRowItemRenderer)
             .mapNotNull {
                 ArtistItemsPage.fromMusicTwoRowItemRenderer(it) as? PlaylistItem
             }
     }
 
+    private fun PlayerResponse?.hasDirectStreams(): Boolean {
+        if (this?.playabilityStatus?.status != "OK") return false
+        val data = streamingData ?: return false
+        return data.adaptiveFormats.any { !it.url.isNullOrBlank() && !it.url!!.contains("/manifest/") } ||
+            data.formats?.any { !it.url.isNullOrBlank() && !it.url!!.contains("/manifest/") } == true
+    }
+
     suspend fun player(videoId: String, playlistId: String? = null): Result<PlayerResponse> = runCatching {
-        val playerResponse = innerTube.player(ANDROID_MUSIC, videoId, playlistId).body<PlayerResponse>()
-        if (playerResponse.playabilityStatus.status == "OK") {
-            return@runCatching playerResponse
+        // VISIONOS leads: hands out full-length token-free direct H.264 MP4 + M4A URLs up to
+        // 1080p/4K without the 60s/403 GVS cap that ANDROID_VR hits and without IOS PoToken.
+        var lastResponse: PlayerResponse? = null
+        for (client in listOf(VISIONOS, IOS, ANDROID_VR, ANDROID_MUSIC)) {
+            val resp = runCatching {
+                innerTube.player(client, videoId, playlistId).body<PlayerResponse>()
+            }.getOrNull()
+            if (resp != null) {
+                lastResponse = resp
+                if (resp.hasDirectStreams()) return@runCatching resp
+            }
         }
-        val safePlayerResponse = innerTube.player(TVHTML5, videoId, playlistId).body<PlayerResponse>()
-        if (safePlayerResponse.playabilityStatus.status != "OK") {
-            return@runCatching playerResponse
+
+        val safePlayerResponse = runCatching {
+            innerTube.player(TVHTML5, videoId, playlistId).body<PlayerResponse>()
+        }.getOrNull()
+        if (safePlayerResponse == null ||
+            safePlayerResponse.playabilityStatus.status != "OK" ||
+            safePlayerResponse.streamingData == null
+        ) {
+            return@runCatching lastResponse ?: error("All InnerTube player clients failed for $videoId")
         }
         val audioStreams = innerTube.pipedStreams(videoId).body<PipedResponse>().audioStreams
         safePlayerResponse.copy(
@@ -453,7 +477,6 @@ object YouTube {
         val title = response.contents.singleColumnMusicWatchNextResultsRenderer.tabbedRenderer.watchNextTabbedResultsRenderer.tabs[0].tabRenderer.content?.musicQueueRenderer?.header?.musicQueueHeaderRenderer?.subtitle?.runs?.firstOrNull()?.text
         val playlistPanelRenderer = response.continuationContents?.playlistPanelContinuation
             ?: response.contents.singleColumnMusicWatchNextResultsRenderer.tabbedRenderer.watchNextTabbedResultsRenderer.tabs[0].tabRenderer.content?.musicQueueRenderer?.content?.playlistPanelRenderer!!
-        // load automix items
         playlistPanelRenderer.contents.lastOrNull()?.automixPreviewVideoRenderer?.content?.automixPlaylistVideoRenderer?.navigationEndpoint?.watchPlaylistEndpoint?.let { watchPlaylistEndpoint ->
             return@runCatching next(watchPlaylistEndpoint).getOrThrow().let { result ->
                 result.copy(
@@ -517,7 +540,7 @@ object YouTube {
 
     suspend fun queue(videoIds: List<String>? = null, playlistId: String? = null): Result<List<SongItem>> = runCatching {
         if (videoIds != null) {
-            assert(videoIds.size <= MAX_GET_QUEUE_SIZE) // Max video limit
+            assert(videoIds.size <= MAX_GET_QUEUE_SIZE)
         }
         innerTube.getQueue(WEB_REMIX, videoIds, playlistId).body<GetQueueResponse>().queueDatas
             .mapNotNull {

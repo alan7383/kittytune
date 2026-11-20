@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.rounded.RssFeed
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.alananasss.kittytune.R
 
@@ -16,6 +17,7 @@ sealed class Screen(val route: String, val titleResId: Int, val icon: ImageVecto
     data object Search : Screen("search", R.string.nav_search, Icons.Default.Search)
     data object Explore : Screen("genres", R.string.explorer_title, Icons.Default.Explore)
     data object Queue : Screen("queue", R.string.player_queue, Icons.AutoMirrored.Rounded.QueueMusic)
+    data object Feed : Screen("feed", R.string.nav_feed, Icons.Rounded.RssFeed)
     data object Login : Screen("login", R.string.nav_login, null)
     data object Recognition : Screen("recognition", R.string.nav_search, null)
     data object RecognitionHistory : Screen("recognition_history", R.string.nav_search, null)

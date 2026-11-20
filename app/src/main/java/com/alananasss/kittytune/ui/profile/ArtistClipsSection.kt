@@ -4,12 +4,15 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
+import android.util.Log
 import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewParent
 import android.view.Window
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -35,33 +38,32 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.VolumeOff
-import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Forward5
 import androidx.compose.material.icons.rounded.Fullscreen
-import androidx.compose.material.icons.rounded.FullscreenExit
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Replay
+import androidx.compose.material.icons.rounded.Replay5
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -97,26 +99,31 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import com.alananasss.kittytune.data.network.ProxyManager
-import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
+import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.source.MergingMediaSource
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
-import com.alananasss.kittytune.ui.common.HapticKind
-import com.alananasss.kittytune.ui.common.hapticAction
-import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.data.MusicManager
 import com.alananasss.kittytune.data.artist.ArtistClips
 import com.alananasss.kittytune.data.artist.Clip
+import com.alananasss.kittytune.data.local.ClipVideoQuality
+import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.network.ProxyManager
 import com.alananasss.kittytune.data.together.Together
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.pressScale
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.slider.PlayerSlider
+import com.zionhuang.innertube.models.YouTubeClient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import java.util.Locale
 
-/**
- * An artist's music videos, watched right here in a dialog styled after KittyTuneDesktop:
- * tap one to watch, pausing the background music, with easy dismiss, fullscreen, and video controls.
- */
+private const val CLIP_BROWSER_UA =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+
 @Composable
 fun ArtistClipsSection(artistName: String, playerViewModel: PlayerViewModel) {
     val clips by produceState(initialValue = emptyList<Clip>(), artistName) {
@@ -142,10 +149,6 @@ fun ArtistClipsSection(artistName: String, playerViewModel: PlayerViewModel) {
     }
 }
 
-/**
- * Clips on the home page: the videos of the artists the listener plays most (round 3 of the tester's list, 24). The
- * artists come from the liked songs, the most liked first, and each one's clips are looked up once and kept.
- */
 @Composable
 fun HomeClipsShelf(
     playerViewModel: PlayerViewModel,
@@ -243,70 +246,95 @@ private fun ClipCard(clip: Clip, onClick: () -> Unit) {
     }
 }
 
-/**
- * A clip playing in a dedicated dialog matching KittyTuneDesktop:
- * music pauses during playback and resumes cleanly upon dismiss; title, uploader and close button
- * in the header; fullscreen toggle; audio scrubber and volume toggle.
- */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
     val scope = rememberCoroutineScope()
-    var streamUrl by remember(clip) { mutableStateOf<String?>(null) }
+    val prefs = remember { PlayerPreferences(context) }
+    var clipStreams by remember(clip) { mutableStateOf<ArtistClips.ClipStreams?>(null) }
+    // 0 = primary adaptive (up to 4K/2160p), 1 = backup/1080p adaptive, 2 = muxed 360p
+    var fallbackStage by remember(clip) { mutableIntStateOf(0) }
     var failed by remember(clip) { mutableStateOf(false) }
     var isFullscreen by remember(clip) { mutableStateOf(false) }
     var isPaused by remember(clip) { mutableStateOf(false) }
     var hasEnded by remember(clip) { mutableStateOf(false) }
-    var muted by remember(clip) { mutableStateOf(false) }
+    var controlsVisible by remember(clip) { mutableStateOf(true) }
     var positionMs by remember(clip) { mutableLongStateOf(0L) }
     var durationMs by remember(clip) { mutableLongStateOf(0L) }
     var videoAspectRatio by remember(clip) { mutableFloatStateOf(16f / 9f) }
+    val quality = remember(clip) { prefs.getClipVideoQuality() }
 
     LaunchedEffect(clip) {
-        streamUrl = ArtistClips.streamUrl(clip)
-        if (streamUrl == null) failed = true
+        fallbackStage = 0
+        clipStreams = ArtistClips.streams(clip)
+        if (clipStreams?.hasAnything != true) failed = true
     }
 
-    // Pause current music and stop together listening while watching a clip; resume when leaving
+    var pendingSyncMs by remember(clip) { mutableLongStateOf(0L) }
+    LaunchedEffect(clip) {
+        if (playerViewModel.uiCurrentTrack != null) {
+            val musicPosition = runCatching { MusicManager.player.currentPosition }.getOrDefault(0L)
+            if (musicPosition > 3_000L) pendingSyncMs = musicPosition
+        }
+    }
+
     var wasPlaying by remember(clip) { mutableStateOf(false) }
     DisposableEffect(clip) {
         wasPlaying = playerViewModel.isPlaying
         Together.stopListening()
         playerViewModel.pause()
         onDispose {
+            if (playerViewModel.uiCurrentTrack != null && positionMs > 0L) {
+                val trackDuration = playerViewModel.uiCurrentTrack?.actualDurationMs ?: 0L
+                val target = if (trackDuration > 0) positionMs.coerceAtMost(trackDuration - 500L) else positionMs
+                runCatching { MusicManager.player.seekTo(target.coerceAtLeast(0L)) }
+                playerViewModel.currentPosition = target.coerceAtLeast(0L)
+            }
             if (wasPlaying && !playerViewModel.isPlaying) playerViewModel.togglePlayPause()
         }
     }
 
-    // Configure ExoPlayer with OkHttpDataSource (supports HTTP/2 and modern TLS) and proper YouTube client headers to prevent HTTP 403
-    val player = remember(clip) {
+    val mediaSourceFactory = remember(clip) {
         val okHttpClient = ProxyManager.getOkHttpClient().newBuilder()
             .addInterceptor { chain ->
                 val req = chain.request()
                 val url = req.url.toString()
                 val builder = req.newBuilder()
                 if (url.contains("googlevideo.com") || url.contains("youtube.com")) {
-                    val ua = if (YoutubeParsingHelper.isAndroidStreamingUrl(url)) {
-                        YoutubeParsingHelper.getAndroidUserAgent(null)
-                    } else if (YoutubeParsingHelper.isVisionOsStreamingUrl(url)) {
-                        YoutubeParsingHelper.getVisionOsUserAgent(null)
-                    } else {
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                    val isMobileStream = url.contains("c=VISIONOS") ||
+                        url.contains("c=IOS") ||
+                        url.contains("c=ANDROID_VR") ||
+                        YoutubeParsingHelper.isVisionOsStreamingUrl(url) ||
+                        YoutubeParsingHelper.isAndroidStreamingUrl(url)
+
+                    val ua = when {
+                        url.contains("c=VISIONOS") -> YouTubeClient.VISIONOS.userAgent
+                        url.contains("c=IOS") -> YouTubeClient.IOS.userAgent
+                        url.contains("c=ANDROID_VR") -> YouTubeClient.ANDROID_VR.userAgent
+                        YoutubeParsingHelper.isVisionOsStreamingUrl(url) ->
+                            YoutubeParsingHelper.getVisionOsUserAgent(null)
+                        YoutubeParsingHelper.isAndroidStreamingUrl(url) ->
+                            YoutubeParsingHelper.getAndroidUserAgent(null)
+                        else -> CLIP_BROWSER_UA
                     }
-                    builder.header("User-Agent", ua)
-                    builder.header("Accept", "*/*")
-                    builder.header("Origin", "https://www.youtube.com")
-                    builder.header("Referer", "https://www.youtube.com/")
+                    builder
+                        .header("User-Agent", ua)
+                        .header("Accept", "*/*")
+                    if (!isMobileStream) {
+                        builder
+                            .header("Origin", "https://www.youtube.com")
+                            .header("Referer", "https://www.youtube.com/")
+                    }
                 }
                 chain.proceed(builder.build())
             }
             .build()
-        val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
-        val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
-        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+        DefaultMediaSourceFactory(DefaultDataSource.Factory(context, OkHttpDataSource.Factory(okHttpClient)))
+    }
 
+    val player = remember(clip) {
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)
             .setLoadControl(
@@ -321,10 +349,15 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
             }
     }
 
-    DisposableEffect(player) {
+    val mediaSource = remember(clipStreams, quality, fallbackStage, mediaSourceFactory) {
+        buildClipMediaSource(mediaSourceFactory, clipStreams, quality, stage = fallbackStage)
+    }
+
+    DisposableEffect(player, clipStreams, fallbackStage) {
         val listener = object : Player.Listener {
             override fun onVideoSizeChanged(videoSize: VideoSize) {
                 if (videoSize.width > 0 && videoSize.height > 0) {
+                    Log.d("ArtistClipsSection", "Playing clip at ${videoSize.width}x${videoSize.height} (stage=$fallbackStage, quality=$quality)")
                     val pixelRatio = if (videoSize.pixelWidthHeightRatio > 0f) videoSize.pixelWidthHeightRatio else 1f
                     videoAspectRatio = (videoSize.width.toFloat() * pixelRatio) / videoSize.height.toFloat()
                 }
@@ -337,6 +370,12 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY) {
                     durationMs = player.duration.coerceAtLeast(0L)
+                    if (pendingSyncMs > 0L) {
+                        val target = player.duration.takeIf { it > 0 }
+                            ?.let { pendingSyncMs.coerceAtMost(it - 500L) } ?: pendingSyncMs
+                        player.seekTo(target.coerceAtLeast(0L))
+                        pendingSyncMs = 0L
+                    }
                     if (player.videoSize.width > 0 && player.videoSize.height > 0) {
                         val vs = player.videoSize
                         val pixelRatio = if (vs.pixelWidthHeightRatio > 0f) vs.pixelWidthHeightRatio else 1f
@@ -350,7 +389,19 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
             }
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                failed = true
+                Log.e("ArtistClipsSection", "Clip playback error (stage=$fallbackStage) for ${clip.url}", error)
+                val streams = clipStreams
+                when {
+                    fallbackStage == 0 && (streams?.hasBackupAdaptive == true || streams?.videoOnly?.any { it.height <= 1080 } == true) -> {
+                        Log.w("ArtistClipsSection", "Retrying with backup / <=1080p adaptive streams (stage=1)")
+                        fallbackStage = 1
+                    }
+                    fallbackStage < 2 && streams?.muxedUrl != null -> {
+                        Log.w("ArtistClipsSection", "Falling back to muxed stream (stage=2)")
+                        fallbackStage = 2
+                    }
+                    else -> failed = true
+                }
             }
         }
         player.addListener(listener)
@@ -361,25 +412,62 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
         }
         onDispose {
             player.removeListener(listener)
+        }
+    }
+
+    DisposableEffect(player) {
+        onDispose {
             player.release()
         }
     }
 
-    LaunchedEffect(streamUrl) {
-        streamUrl?.let { url ->
+    LaunchedEffect(mediaSource) {
+        mediaSource?.let { source ->
             failed = false
-            player.setMediaItem(MediaItem.Builder().setUri(url).build())
+            player.setMediaSource(source)
             player.prepare()
             player.play()
         }
     }
 
-    // Progress updates
-    LaunchedEffect(player, isPaused) {
+    LaunchedEffect(player, isPaused, hasEnded) {
         while (true) {
-            if (!isPaused) positionMs = player.currentPosition.coerceAtLeast(0L)
+            if (!isPaused && !hasEnded) {
+                positionMs = player.currentPosition.coerceAtLeast(0L)
+                if (playerViewModel.uiCurrentTrack != null) {
+                    playerViewModel.currentPosition = positionMs
+                }
+            }
             delay(250)
         }
+    }
+
+    val duration = durationMs.coerceAtLeast(1L)
+    var draggedPosition by remember { mutableStateOf<Float?>(null) }
+    val sliderStyle = remember { prefs.getPlayerSliderStyle() }
+
+    val onTogglePause = {
+        if (hasEnded) {
+            player.seekTo(0)
+            player.play()
+            hasEnded = false
+        } else if (player.isPlaying) {
+            player.pause()
+        } else {
+            player.play()
+        }
+    }
+    val onSeek: (Long) -> Unit = { targetMs ->
+        player.seekTo(targetMs)
+        positionMs = targetMs
+        if (hasEnded) {
+            hasEnded = false
+            player.play()
+        }
+    }
+    val onSeekBy: (Long) -> Unit = { deltaMs ->
+        val limit = player.duration.takeIf { it > 0 } ?: Long.MAX_VALUE
+        onSeek((player.currentPosition + deltaMs).coerceIn(0L, limit))
     }
 
     BackHandler(enabled = true) {
@@ -508,24 +596,11 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                         .pointerInput(clip, isFullscreen, failed) {
                             detectTapGestures(
                                 onDoubleTap = { isFullscreen = !isFullscreen },
-                                onTap = {
-                                    if (!failed) {
-                                        if (hasEnded) {
-                                            player.seekTo(0)
-                                            player.play()
-                                            hasEnded = false
-                                        } else if (player.isPlaying) {
-                                            player.pause()
-                                        } else {
-                                            player.play()
-                                        }
-                                    }
-                                }
+                                onTap = { if (!failed) controlsVisible = !controlsVisible },
                             )
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    // Preserves the natural video aspect ratio without stretching to screen width
                     Box(
                         modifier = Modifier.aspectRatio(videoAspectRatio),
                         contentAlignment = Alignment.Center
@@ -539,7 +614,7 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        if (streamUrl == null && !failed) {
+                        if (clipStreams == null && !failed) {
                             AsyncImage(
                                 model = clip.thumbnailUrl,
                                 contentDescription = null,
@@ -567,10 +642,11 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                             FilledTonalButton(
                                 onClick = hapticAction(HapticKind.UI) {
                                     failed = false
-                                    streamUrl = null
+                                    fallbackStage = 0
+                                    clipStreams = null
                                     scope.launch {
-                                        streamUrl = ArtistClips.streamUrl(clip)
-                                        if (streamUrl == null) failed = true
+                                        clipStreams = ArtistClips.streams(clip)
+                                        if (clipStreams?.hasAnything != true) failed = true
                                     }
                                 },
                                 shapes = ButtonDefaults.shapes()
@@ -599,136 +675,206 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                             )
                         }
                     }
-                }
 
-                Box(
-                    modifier = if (isFullscreen) {
-                        Modifier
-                            .fillMaxWidth()
-                            .safeDrawingPadding()
-                            .padding(horizontal = 24.dp, vertical = 12.dp)
-                    } else {
-                        Modifier.fillMaxWidth()
-                    }
-                ) {
-                    ClipControls(
-                        isPaused = isPaused,
-                        hasEnded = hasEnded,
-                        positionMs = positionMs,
-                        durationMs = durationMs,
-                        muted = muted,
-                        isFullscreen = isFullscreen,
-                        isLoading = streamUrl == null && !failed,
-                        onTogglePause = {
-                            if (hasEnded) {
-                                player.seekTo(0)
-                                player.play()
-                                hasEnded = false
-                            } else if (player.isPlaying) {
-                                player.pause()
-                            } else {
-                                player.play()
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = controlsVisible && !failed,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                        modifier = Modifier.matchParentSize(),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.35f))
+                                .pointerInput(clip, isFullscreen) {
+                                    detectTapGestures(
+                                        onDoubleTap = { isFullscreen = !isFullscreen },
+                                        onTap = { controlsVisible = false },
+                                    )
+                                },
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(22.dp),
+                                modifier = Modifier.align(Alignment.Center),
+                            ) {
+                                IconButton(
+                                    onClick = hapticAction(HapticKind.UI) { onSeekBy(-5_000L) },
+                                    enabled = durationMs > 0,
+                                    shapes = IconButtonDefaults.shapes(),
+                                    modifier = Modifier.size(44.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.Replay5,
+                                        contentDescription = stringResource(R.string.clip_seek_back),
+                                        tint = Color.White,
+                                        modifier = Modifier.size(30.dp),
+                                    )
+                                }
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color.Black.copy(alpha = 0.55f),
+                                ) {
+                                    IconButton(
+                                        onClick = hapticAction(HapticKind.UI) { onTogglePause() },
+                                        enabled = clipStreams != null && !failed,
+                                        shapes = IconButtonDefaults.shapes(),
+                                        modifier = Modifier.size(72.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = when {
+                                                hasEnded -> Icons.Rounded.Replay
+                                                isPaused -> Icons.Rounded.PlayArrow
+                                                else -> Icons.Rounded.Pause
+                                            },
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(40.dp),
+                                        )
+                                    }
+                                }
+                                IconButton(
+                                    onClick = hapticAction(HapticKind.UI) { onSeekBy(5_000L) },
+                                    enabled = durationMs > 0,
+                                    shapes = IconButtonDefaults.shapes(),
+                                    modifier = Modifier.size(44.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.Forward5,
+                                        contentDescription = stringResource(R.string.clip_seek_forward),
+                                        tint = Color.White,
+                                        modifier = Modifier.size(30.dp),
+                                    )
+                                }
                             }
-                        },
-                        onSeek = { targetMs ->
-                            player.seekTo(targetMs)
-                            positionMs = targetMs
-                        },
-                        onToggleMute = {
-                            muted = !muted
-                            player.volume = if (muted) 0f else 1f
-                        },
-                        onToggleFullscreen = {
-                            isFullscreen = !isFullscreen
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                                    .safeDrawingPadding(),
+                            ) {
+                                Text(
+                                    text = formatClock(draggedPosition?.let { (it * duration).toLong() } ?: positionMs),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                )
+                                PlayerSlider(
+                                    value = draggedPosition ?: (positionMs.toFloat() / duration).coerceIn(0f, 1f),
+                                    onValueChange = { draggedPosition = it },
+                                    onValueChangeFinished = {
+                                        draggedPosition?.let { onSeek((it * duration).toLong()) }
+                                        draggedPosition = null
+                                    },
+                                    sliderStyle = sliderStyle,
+                                    isPlaying = !isPaused && !hasEnded,
+                                    enabled = durationMs > 0,
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = Color.White,
+                                        activeTrackColor = Color.White,
+                                        inactiveTrackColor = Color.White.copy(alpha = 0.35f),
+                                    ),
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    text = formatClock(durationMs),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                )
+                                if (!isFullscreen) {
+                                    IconButton(
+                                        onClick = hapticAction(HapticKind.UI) { isFullscreen = !isFullscreen },
+                                        shapes = IconButtonDefaults.shapes(),
+                                        modifier = Modifier.size(36.dp),
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.Fullscreen,
+                                            contentDescription = stringResource(R.string.clip_fullscreen),
+                                            tint = Color.White,
+                                            modifier = Modifier.size(22.dp),
+                                        )
+                                    }
+                                }
+                            }
                         }
-                    )
+                    }
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun ClipControls(
-    isPaused: Boolean,
-    hasEnded: Boolean,
-    positionMs: Long,
-    durationMs: Long,
-    muted: Boolean,
-    isFullscreen: Boolean,
-    isLoading: Boolean,
-    onTogglePause: () -> Unit,
-    onSeek: (Long) -> Unit,
-    onToggleMute: () -> Unit,
-    onToggleFullscreen: () -> Unit,
-) {
-    val duration = durationMs.coerceAtLeast(1L)
-    var draggedPosition by remember { mutableStateOf<Float?>(null) }
+private val ArtistClips.ClipStreams.hasBackupAdaptive: Boolean
+    get() = backupVideoOnly.any { (it.audioUrl ?: backupAudioUrl ?: audioUrl) != null }
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        FilledIconButton(
-            onClick = onTogglePause,
-            enabled = !isLoading,
-            shapes = IconButtonDefaults.shapes(),
-        ) {
-            Icon(
-                imageVector = when {
-                    hasEnded -> Icons.Rounded.Replay
-                    isPaused -> Icons.Rounded.PlayArrow
-                    else -> Icons.Rounded.Pause
-                },
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-        Text(
-            text = formatClock(draggedPosition?.let { (it * duration).toLong() } ?: positionMs),
-            style = MaterialTheme.typography.labelMedium,
-            color = if (isFullscreen) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Slider(
-            value = draggedPosition ?: (positionMs.toFloat() / duration).coerceIn(0f, 1f),
-            onValueChange = { draggedPosition = it },
-            onValueChangeFinished = {
-                draggedPosition?.let { onSeek((it * duration).toLong()) }
-                draggedPosition = null
-            },
-            enabled = durationMs > 0,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = formatClock(durationMs),
-            style = MaterialTheme.typography.labelMedium,
-            color = if (isFullscreen) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        IconButton(
-            onClick = onToggleMute,
-            shapes = IconButtonDefaults.shapes(),
-        ) {
-            Icon(
-                imageVector = if (muted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp,
-                contentDescription = null,
-                tint = if (isFullscreen) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp)
-            )
-        }
-        IconButton(
-            onClick = onToggleFullscreen,
-            shapes = IconButtonDefaults.shapes(),
-        ) {
-            Icon(
-                imageVector = if (isFullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
-                contentDescription = null,
-                tint = if (isFullscreen) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp)
-            )
-        }
+private val ArtistClips.ClipStreams.hasAnything: Boolean
+    get() = muxedUrl != null ||
+        videoOnly.any { (it.audioUrl ?: audioUrl) != null } ||
+        hasBackupAdaptive
+
+private fun buildClipMediaSource(
+    factory: DefaultMediaSourceFactory,
+    streams: ArtistClips.ClipStreams?,
+    quality: ClipVideoQuality,
+    stage: Int = 0,
+): MediaSource? {
+    if (streams == null) return null
+
+    if (stage >= 2) {
+        return streams.muxedUrl?.let { factory.createMediaSource(MediaItem.fromUri(it)) }
     }
+
+    val requestedHeight = quality.height ?: ArtistClips.MAX_HEIGHT
+
+    if (stage == 1) {
+        // Step down cleanly to <=1080p adaptive before dropping to 360p muxed
+        val cappedHeight = minOf(requestedHeight, 1080)
+        val backupRendition = streams.backupVideoOnly
+            .filter { it.height <= cappedHeight }
+            .maxByOrNull { it.height }
+            ?: streams.backupVideoOnly.minByOrNull { it.height }
+        mergeVideoWithAudio(factory, backupRendition, streams.backupAudioUrl ?: streams.audioUrl)?.let { return it }
+
+        val primary1080 = streams.videoOnly
+            .filter { it.height <= cappedHeight }
+            .maxByOrNull { it.height }
+        mergeVideoWithAudio(factory, primary1080, streams.audioUrl)?.let { return it }
+
+        return streams.muxedUrl?.let { factory.createMediaSource(MediaItem.fromUri(it)) }
+    }
+
+    val rendition = streams.videoOnly
+        .filter { it.height <= requestedHeight }
+        .maxByOrNull { it.height }
+        ?: streams.videoOnly.minByOrNull { it.height }
+
+    mergeVideoWithAudio(factory, rendition, streams.audioUrl)?.let { return it }
+
+    if (streams.hasBackupAdaptive) {
+        val backupRendition = streams.backupVideoOnly
+            .filter { it.height <= requestedHeight }
+            .maxByOrNull { it.height }
+            ?: streams.backupVideoOnly.minByOrNull { it.height }
+        mergeVideoWithAudio(factory, backupRendition, streams.backupAudioUrl ?: streams.audioUrl)?.let { return it }
+    }
+
+    return streams.muxedUrl?.let { factory.createMediaSource(MediaItem.fromUri(it)) }
+}
+
+private fun mergeVideoWithAudio(
+    factory: DefaultMediaSourceFactory,
+    rendition: ArtistClips.VideoRendition?,
+    fallbackAudioUrl: String?,
+): MediaSource? {
+    val effectiveAudio = rendition?.audioUrl ?: fallbackAudioUrl
+    if (rendition == null || effectiveAudio == null) return null
+    return MergingMediaSource(
+        factory.createMediaSource(MediaItem.fromUri(rendition.url)),
+        factory.createMediaSource(MediaItem.fromUri(effectiveAudio)),
+    )
 }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {

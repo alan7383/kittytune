@@ -30,10 +30,10 @@ class InnerTube {
     private var httpClient = createClient()
 
     var locale = YouTubeLocale(
-        gl = Locale.getDefault().country,
-        hl = Locale.getDefault().toLanguageTag()
+        gl = Locale.getDefault().country.ifBlank { "US" },
+        hl = Locale.getDefault().language.ifBlank { "en" }
     )
-    var visitorData: String = "CgtsZG1ySnZiQWtSbyiMjuGSBg%3D%3D"
+    var visitorData: String = LEGACY_VISITOR_DATA
     var cookie: String? = null
         set(value) {
             field = value
@@ -48,10 +48,6 @@ class InnerTube {
             httpClient = createClient()
         }
 
-    /**
-     * Optional plain [SocketFactory] (e.g. the app's DPI-bypass factory). Applied together with
-     * [proxy] through a preconfigured OkHttp client; dynamic factories need to be set only once.
-     */
     var socketFactory: SocketFactory? = null
         set(value) {
             field = value
@@ -59,9 +55,6 @@ class InnerTube {
             httpClient = createClient()
         }
 
-    /**
-     * Optional preconfigured [okhttp3.OkHttpClient] (e.g. KittyTune's app-wide proxy client).
-     */
     var okHttpClient: okhttp3.OkHttpClient? = null
         set(value) {
             field = value
@@ -109,14 +102,21 @@ class InnerTube {
     private fun HttpRequestBuilder.ytClient(client: YouTubeClient, setLogin: Boolean = false) {
         contentType(ContentType.Application.Json)
         headers {
-            append("X-Goog-Api-Format-Version", "1")
-            append("X-YouTube-Client-Name", client.clientName)
+            append("X-YouTube-Client-Name", client.clientId ?: client.clientName)
             append("X-YouTube-Client-Version", client.clientVersion)
-            append("x-origin", "https://music.youtube.com")
+            if (client.isMusicClient) {
+                append("X-Goog-Api-Format-Version", "1")
+                append("Origin", "https://music.youtube.com")
+                append("x-origin", "https://music.youtube.com")
+            } else if (client.referer != null) {
+                val origin = client.referer.trimEnd('/')
+                append("Origin", origin)
+                append("x-origin", origin)
+            }
             if (client.referer != null) {
                 append("Referer", client.referer)
             }
-            if (setLogin) {
+            if (setLogin && client.isMusicClient) {
                 cookie?.let { cookie ->
                     append("cookie", cookie)
                     if ("SAPISID" !in cookieMap) return@let
@@ -153,23 +153,40 @@ class InnerTube {
         client: YouTubeClient,
         videoId: String,
         playlistId: String?,
-    ) = httpClient.post("player") {
-        ytClient(client, setLogin = true)
-        setBody(
-            PlayerBody(
-                context = client.toContext(locale, visitorData).let {
-                    if (client == YouTubeClient.TVHTML5) {
-                        it.copy(
-                            thirdParty = Context.ThirdParty(
-                                embedUrl = "https://www.youtube.com/watch?v=${videoId}"
+    ): io.ktor.client.statement.HttpResponse {
+        // Non-music clients (ANDROID_VR, IOS, VISIONOS, TVHTML5) must call www.youtube.com
+        // instead of music.youtube.com, without music x-origin or stale URL-encoded visitorData.
+        // Using www.youtube.com also guarantees the host is covered by Zapret's youtube.com rule.
+        val endpoint = if (client.isMusicClient) {
+            "https://music.youtube.com/youtubei/v1/player"
+        } else {
+            "https://www.youtube.com/youtubei/v1/player"
+        }
+        val effectiveVisitorData = if (client.isMusicClient) {
+            visitorData
+        } else {
+            visitorData.takeUnless { it == LEGACY_VISITOR_DATA || it.contains('%') }
+        }
+        return httpClient.post(endpoint) {
+            ytClient(client, setLogin = client.isMusicClient)
+            setBody(
+                PlayerBody(
+                    context = client.toContext(locale, effectiveVisitorData).let {
+                        if (client == YouTubeClient.TVHTML5) {
+                            it.copy(
+                                thirdParty = Context.ThirdParty(
+                                    embedUrl = "https://www.youtube.com/watch?v=${videoId}"
+                                )
                             )
-                        )
-                    } else it
-                },
-                videoId = videoId,
-                playlistId = playlistId
+                        } else it
+                    },
+                    videoId = videoId,
+                    playlistId = playlistId,
+                    contentCheckOk = true,
+                    racyCheckOk = true,
+                )
             )
-        )
+        }
     }
 
     suspend fun pipedStreams(videoId: String) =
@@ -271,5 +288,9 @@ class InnerTube {
     suspend fun accountMenu(client: YouTubeClient) = httpClient.post("account/account_menu") {
         ytClient(client, setLogin = true)
         setBody(AccountMenuBody(client.toContext(locale, visitorData)))
+    }
+
+    companion object {
+        private const val LEGACY_VISITOR_DATA = "CgtsZG1ySnZiQWtSbyiMjuGSBg%3D%3D"
     }
 }

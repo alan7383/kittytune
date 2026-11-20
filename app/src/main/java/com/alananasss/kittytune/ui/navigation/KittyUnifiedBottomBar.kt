@@ -5,7 +5,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -18,11 +17,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Devices
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,13 +30,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.MiniPlayerSwipeAction
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.player.PlayerViewModel
@@ -75,7 +65,6 @@ fun KittyUnifiedBottomBar(
     showLabels: Boolean = true
 ) {
     val track = playerViewModel.uiCurrentTrack
-    val isPlaying = playerViewModel.uiIsPlaying
 
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
@@ -85,6 +74,12 @@ fun KittyUnifiedBottomBar(
     val context = LocalContext.current
     val playerPrefs = remember { PlayerPreferences(context) }
     val miniPlayerStyle by playerPrefs.miniPlayerStyleFlow().collectAsState(initial = playerPrefs.getMiniPlayerStyle())
+    val miniPlayerShowCover by playerPrefs.miniPlayerClassicShowCoverFlow().collectAsState(initial = playerPrefs.getMiniPlayerClassicShowCover())
+    val miniPlayerCoverAsBackground by playerPrefs.miniPlayerClassicCoverAsBackgroundFlow().collectAsState(initial = playerPrefs.getMiniPlayerClassicCoverAsBackground())
+    val miniPlayerProgressFill by playerPrefs.miniPlayerClassicProgressFillFlow().collectAsState(initial = playerPrefs.getMiniPlayerClassicProgressFill())
+    // Feed tab: the mini player is always hidden there (feed previews fill the screen);
+    // every other tab keeps the normal bar.
+    val miniHiddenOnFeed = selectedRoute == Screen.Feed.route
     val swipeAction by playerPrefs.miniPlayerSwipeActionFlow().collectAsState(initial = playerPrefs.getMiniPlayerSwipeAction())
 
     val screenWidthPx = remember(configuration, density) {
@@ -122,7 +117,7 @@ fun KittyUnifiedBottomBar(
                     detectTapGestures(onTap = {})
                 }
         ) {
-            if (track != null) {
+            if (track != null && !miniHiddenOnFeed) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     FloatingLyricChip(
                         vm = playerViewModel,
@@ -153,107 +148,16 @@ fun KittyUnifiedBottomBar(
                             enabled = true,
                             handler = miniDismissGestureHandler
                         )
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                        .clickable { onPlayerClick() }
-                        .background(MaterialTheme.colorScheme.surfaceContainer)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AsyncImage(
-                            model = track.thumbnailUrl,
-                            contentDescription = null,
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        )
-
-                        Spacer(Modifier.width(12.dp))
-
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(vertical = 8.dp),
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = track.title ?: stringResource(R.string.untitled_track),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val deviceLabel = playerViewModel.playbackDeviceLabel
-                                if (deviceLabel != null) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.clickable { playerViewModel.showConnectSheet = true }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Devices,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                        Spacer(Modifier.width(3.dp))
-                                        Text(
-                                            text = deviceLabel,
-                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                                            color = MaterialTheme.colorScheme.primary,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Spacer(Modifier.width(4.dp))
-                                }
-                                Text(
-                                    text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                        IconButton(onClick = { playerViewModel.togglePlayPause() }) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                contentDescription = stringResource(if (isPlaying) R.string.btn_pause else R.string.btn_play),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        if (showSkipInMiniPlayer) {
-                            IconButton(onClick = { playerViewModel.requestSkipNext() }) {
-                                Icon(
-                                    imageVector = Icons.Rounded.SkipNext,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
-
-                    val progress = rememberDockProgress(playerViewModel)
-
-                    LinearProgressIndicator(
-                        progress = { progress.value },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(2.dp)
-                            .align(Alignment.BottomCenter),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = Color.Transparent
+                    com.alananasss.kittytune.ui.player.ClassicMiniPlayerContent(
+                        viewModel = playerViewModel,
+                        showCover = miniPlayerShowCover,
+                        coverAsBackground = miniPlayerCoverAsBackground,
+                        progressFill = miniPlayerProgressFill,
+                        onClick = onPlayerClick,
+                        progress = rememberDockProgress(playerViewModel),
+                        showSkip = showSkipInMiniPlayer,
+                        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
                     )
                 }
                     } // else: classic mini player strip
@@ -299,7 +203,7 @@ fun KittyUnifiedBottomBar(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (track != null) {
+            if (track != null && !miniHiddenOnFeed) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     FloatingLyricChip(
                         vm = playerViewModel,
@@ -330,102 +234,16 @@ fun KittyUnifiedBottomBar(
                             enabled = true,
                             handler = miniDismissGestureHandler
                         )
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainer)
-                        .clickable { onPlayerClick() }
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AsyncImage(
-                            model = track.thumbnailUrl,
-                            contentDescription = null,
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        )
-
-                        Spacer(Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-                            Text(
-                                text = track.title ?: stringResource(R.string.untitled_track),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val deviceLabel = playerViewModel.playbackDeviceLabel
-                                if (deviceLabel != null) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.clickable { playerViewModel.showConnectSheet = true }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Devices,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                        Spacer(Modifier.width(3.dp))
-                                        Text(
-                                            text = deviceLabel,
-                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                                            color = MaterialTheme.colorScheme.primary,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Spacer(Modifier.width(4.dp))
-                                }
-                                Text(
-                                    text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                        IconButton(onClick = { playerViewModel.togglePlayPause() }) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                contentDescription = stringResource(if (isPlaying) R.string.btn_pause else R.string.btn_play),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        if (showSkipInMiniPlayer) {
-                            IconButton(onClick = { playerViewModel.requestSkipNext() }) {
-                                Icon(
-                                    imageVector = Icons.Rounded.SkipNext,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
-
-                    val progress = rememberDockProgress(playerViewModel)
-
-                    LinearProgressIndicator(
-                        progress = { progress.value },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(2.dp)
-                            .align(Alignment.BottomCenter),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = Color.Transparent
+                    com.alananasss.kittytune.ui.player.ClassicMiniPlayerContent(
+                        viewModel = playerViewModel,
+                        showCover = miniPlayerShowCover,
+                        coverAsBackground = miniPlayerCoverAsBackground,
+                        progressFill = miniPlayerProgressFill,
+                        onClick = onPlayerClick,
+                        progress = rememberDockProgress(playerViewModel),
+                        showSkip = showSkipInMiniPlayer,
+                        shape = RoundedCornerShape(16.dp)
                     )
                 }
                     } // else: classic mini player card

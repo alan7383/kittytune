@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.RssFeed
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.*
@@ -81,6 +82,9 @@ fun BottomBarSettingsScreen(
     val miniPlayerWidth by prefs.miniPlayerWidthFlow().collectAsState(initial = prefs.getMiniPlayerWidth())
     var showMiniPlayerWidthDialog by remember { mutableStateOf(false) }
     var showMiniPlayerStyleDialog by remember { mutableStateOf(false) }
+    val miniPlayerClassicShowCover by prefs.miniPlayerClassicShowCoverFlow().collectAsState(initial = prefs.getMiniPlayerClassicShowCover())
+    val miniPlayerClassicCoverAsBackground by prefs.miniPlayerClassicCoverAsBackgroundFlow().collectAsState(initial = prefs.getMiniPlayerClassicCoverAsBackground())
+    val miniPlayerClassicProgressFill by prefs.miniPlayerClassicProgressFillFlow().collectAsState(initial = prefs.getMiniPlayerClassicProgressFill())
     val wavyPlayPause by prefs.wavyPlayPauseFlow().collectAsState(initial = prefs.getWavyPlayPauseButton())
 
     // The placement row only makes sense where a left rail can actually live.
@@ -96,6 +100,9 @@ fun BottomBarSettingsScreen(
             "pref_nav_hide_labels" to 0,
             "pref_mini_player_style" to 1,
             "pref_mini_player_background" to 1,
+            "pref_mini_player_classic_cover" to 1,
+            "pref_mini_player_classic_background" to 1,
+            "pref_mini_player_classic_progress" to 1,
             "pref_mini_player_swipe_track" to 1,
             "pref_mini_player_vertical_gesture" to 1,
             "pref_mini_player_show_track_buttons" to 1,
@@ -517,8 +524,9 @@ fun BottomBarSettingsScreen(
                         // The width switch only exists where a WIDE pill makes sense - on a
                         // tablet. Phones always run the compact pill, so the row is hidden there.
                         val modernGroupCount = if (isTablet) 7 else 6
+                        val classicGroupCount = 5
                         SettingsItem(
-                            shape = if (miniPlayerStyle == com.alananasss.kittytune.data.local.MiniPlayerStyle.MODERN) getSettingsShape(modernGroupCount, 0) else getSettingsShape(2, 0),
+                            shape = if (miniPlayerStyle == com.alananasss.kittytune.data.local.MiniPlayerStyle.MODERN) getSettingsShape(modernGroupCount, 0) else getSettingsShape(classicGroupCount, 0),
                             title = stringResource(R.string.pref_mini_player_style),
                             subtitle = if (miniPlayerStyle == com.alananasss.kittytune.data.local.MiniPlayerStyle.MODERN) {
                                 stringResource(R.string.pref_mini_player_style_modern)
@@ -598,9 +606,37 @@ fun BottomBarSettingsScreen(
                                 highlightKey = "pref_wavy_play_pause"
                             )
                         } else {
-                            // ── Classic strip: just the swipe gesture (2 options) ──
+                            // ── Classic strip: three INDEPENDENT on/off toggles the user mixes
+                            //    freely, plus the swipe gesture. ──
                             SettingsItem(
-                                shape = getSettingsShape(2, 1),
+                                shape = getSettingsShape(classicGroupCount, 1),
+                                title = stringResource(R.string.pref_mini_player_classic_cover),
+                                subtitle = stringResource(R.string.pref_mini_player_classic_cover_left_desc),
+                                hasSwitch = true,
+                                switchState = miniPlayerClassicShowCover,
+                                onSwitchChange = { prefs.setMiniPlayerClassicShowCover(it) },
+                                highlightKey = "pref_mini_player_classic_cover"
+                            )
+                            SettingsItem(
+                                shape = getSettingsShape(classicGroupCount, 2),
+                                title = stringResource(R.string.pref_mini_player_classic_background),
+                                subtitle = stringResource(R.string.pref_mini_player_classic_cover_bg_desc),
+                                hasSwitch = true,
+                                switchState = miniPlayerClassicCoverAsBackground,
+                                onSwitchChange = { prefs.setMiniPlayerClassicCoverAsBackground(it) },
+                                highlightKey = "pref_mini_player_classic_background"
+                            )
+                            SettingsItem(
+                                shape = getSettingsShape(classicGroupCount, 3),
+                                title = stringResource(R.string.pref_mini_player_classic_progress),
+                                subtitle = stringResource(R.string.pref_mini_player_classic_progress_fill_desc),
+                                hasSwitch = true,
+                                switchState = miniPlayerClassicProgressFill,
+                                onSwitchChange = { prefs.setMiniPlayerClassicProgressFill(it) },
+                                highlightKey = "pref_mini_player_classic_progress"
+                            )
+                            SettingsItem(
+                                shape = getSettingsShape(classicGroupCount, 4),
                                 title = stringResource(R.string.pref_mini_player_swipe_action_title),
                                 subtitle = when (miniPlayerSwipeAction) {
                                     com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK ->
@@ -638,6 +674,7 @@ fun BottomBarSettingsScreen(
 
                         val screen = when (tabKey) {
                             "home" -> Screen.Home
+                            "feed" -> Screen.Feed
                             "search" -> Screen.Search
                             "genres" -> Screen.Explore
                             "library" -> Screen.Library
@@ -647,6 +684,7 @@ fun BottomBarSettingsScreen(
 
                         val icon = when (tabKey) {
                             "home" -> Icons.Rounded.Home
+                            "feed" -> Icons.Rounded.RssFeed
                             "search" -> Icons.Rounded.Search
                             "genres" -> Icons.Default.Explore
                             "library" -> Icons.Default.LibraryMusic

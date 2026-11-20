@@ -128,6 +128,7 @@ import com.alananasss.kittytune.data.local.PlayerSliderStyle
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
+import com.alananasss.kittytune.ui.common.TrackSourceBadge
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticCombinedClickable
 import com.alananasss.kittytune.ui.player.AppleMusicV2Background
@@ -139,6 +140,8 @@ import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.RepeatMode
 import com.alananasss.kittytune.ui.player.SleepTimerDialog
 import com.alananasss.kittytune.ui.player.playerDismissGesture
+import com.alananasss.kittytune.ui.player.cover.AnimatedArtwork
+import com.alananasss.kittytune.ui.player.cover.ArtworkPlaceholder
 import com.alananasss.kittytune.ui.player.lyrics.MiniImmersiveLyricsView
 import com.alananasss.kittytune.ui.player.lyrics.PlayerInlineLyrics
 import com.alananasss.kittytune.ui.player.slider.PlayerSlider
@@ -153,11 +156,12 @@ import kotlin.math.roundToInt
  * Portrait (phone and tablet), the "Portrait artwork" setting:
  * - Full-bleed (default): the artwork fills the entire top of the screen and
  *   smoothly fades out toward the bottom (DstIn gradient mask), controls panel below.
- * - "No artwork" (SQUARE): on a PHONE the artwork is removed from portrait on
- *   request — only the controls panel remains, centered; on a TABLET the square
- *   cover stays, centered above the controls (an empty portrait panel looked
- *   broken on the big screen). In landscape SQUARE keeps the square artwork on
- *   the left with the controls panel on the right.
+ * - SQUARE: the square cover stays centered above the controls panel in
+ *   portrait — on a PHONE and on a TABLET alike, the same cover treatment as
+ *   in the KittyTune Modern player (AnimatedArtwork: placeholder while the
+ *   artwork loads, 3D gyroscope layers / "no overlay" mode per the global
+ *   cover settings, animated cover video). In landscape SQUARE keeps the
+ *   square artwork on the left with the controls panel on the right.
  *
  * The animated (motion) artwork follows two switches:
  * - "Animated album covers" (master): the video plays right on the artwork —
@@ -407,11 +411,6 @@ fun AppleMusicPlayerScreen(
         // On phones and in portrait this layout is never shown —
         // the regular Apple Music player works as before.
         val isTabletLandscape = isTablet && isLandscape && forceIpadLayout
-        // Local copies of constraints for nested non-inline lambdas (the content
-        // Column/Box, etc.): K2 forbids accessing members of the outer
-        // implicit receiver (BoxWithConstraintsScope) inside such lambdas.
-        val playerMaxWidth = maxWidth
-        val playerMaxHeight = maxHeight
 
         // ── Apple Music background: heavily blurred artwork + animated (video) artwork.
         //    The animated layer follows the "Fade animated cover into UI backdrop"
@@ -549,19 +548,17 @@ fun AppleMusicPlayerScreen(
                                     .clip(RoundedCornerShape(if (isTablet) 28.dp else 20.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                AsyncImage(
-                                    model = artworkUrl,
+                                // The KittyTune Modern cover component: the same
+                                // cover treatment as in the portrait "Square cover"
+                                // mode (placeholder, animated video, 3D gyroscope
+                                // layers / "no overlay" mode per the global settings).
+                                AnimatedArtwork(
+                                    artworkUrl = artworkUrl,
+                                    animatedCoverUrl = squareCanvasUrl,
+                                    isPlaying = viewModel.uiIsPlaying,
                                     contentDescription = track.title,
-                                    contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
                                 )
-                                if (squareCanvasUrl != null) {
-                                    com.alananasss.kittytune.ui.player.cover.CanvasVideo(
-                                        canvasUrl = squareCanvasUrl,
-                                        isPlaying = viewModel.uiIsPlaying,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
                             }
                         }
 
@@ -704,12 +701,14 @@ fun AppleMusicPlayerScreen(
                 // =================================================================
                 // APPLE MUSIC: PORTRAIT MODE (phone and tablet)
                 // The "Portrait artwork" setting: Full-bleed (artwork across the
-                // whole top with a fade) or SQUARE (no artwork — controls panel only).
+                // whole top with a fade) or SQUARE (square cover above the panel).
                 // =================================================================
                 if (portraitArt == AppleMusicPortraitArt.SQUARE) {
-                    // Artwork removed from portrait on request: only the
-                    // controls panel remains, centered. In landscape the
-                    // artwork is unchanged (square on the left, panel on the right).
+                    // ── Portrait (phone AND tablet): the square (animated) cover
+                    //    stays centered above the controls panel — the same cover
+                    //    treatment as in the KittyTune Modern player. Previously
+                    //    the artwork was removed on a phone entirely, which left
+                    //    an empty player. ──
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -717,106 +716,77 @@ fun AppleMusicPlayerScreen(
                             .padding(horizontal = if (isTablet) 48.dp else 26.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        if (isTablet) {
-                            // ── Tablet portrait: the square (animated) cover stays.
-                            //    Same treatment as the landscape "No artwork" mode:
-                            //    a rounded square artwork, centered above the panel. ──
+                        BoxWithConstraints(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // The cover fills ALL the free space between the top
+                            // edge and the controls panel — the same rule as the
+                            // KittyTune Modern design (min of the available width
+                            // and height), only a small breathing margin is left.
+                            // The previous fixed fractions of the whole screen
+                            // (0.72/0.34 on phones, 0.58/0.40 on tablets) wasted a
+                            // lot of space on big devices and were too small; sizes
+                            // taken from the real container can never overflow it.
+                            val portraitCoverSize = (minOf(maxWidth, maxHeight) - 16.dp)
+                                .coerceAtLeast(if (isTablet) 220.dp else 180.dp)
                             Box(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                val portraitCoverSize = minOf(
-                                    playerMaxWidth * 0.58f,
-                                    playerMaxHeight * 0.40f
-                                ).coerceAtLeast(180.dp)
-                                Box(
-                                    modifier = Modifier
-                                        .size(portraitCoverSize)
-                                        .scale(coverScale)
-                                        .shadow(
-                                            elevation = 28.dp,
-                                            shape = RoundedCornerShape(28.dp)
-                                        )
-                                        .clip(RoundedCornerShape(28.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    AsyncImage(
-                                        model = artworkUrl,
-                                        contentDescription = track.title,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
+                                    .size(portraitCoverSize)
+                                    .scale(coverScale)
+                                    .shadow(
+                                        elevation = 28.dp,
+                                        shape = RoundedCornerShape(if (isTablet) 28.dp else 20.dp)
                                     )
-                                    if (squareCanvasUrl != null) {
-                                        com.alananasss.kittytune.ui.player.cover.CanvasVideo(
-                                            canvasUrl = squareCanvasUrl,
-                                            isPlaying = viewModel.uiIsPlaying,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
-                                    }
-                                }
-                            }
-
-                            AppleControlsColumn(
-                                viewModel = viewModel,
-                                track = track,
-                                bottomSlots = bottomSlots,
-                                onFullscreenLyrics = {
-                                    viewModel.showInlineLyrics = true
-                                    isImmersiveLyrics = true
-                                },
-                                compactTransport = false,
-                                showVolumeSlider = !hideVolumeSlider,
-                                appleMusicInspired = appleMusicInspired,
-                                sliderStyle = sliderStyle,
-                                progressFraction = progressFraction.value,
-                                totalDuration = totalDuration,
-                                onSeek = onSeekFraction,
-                                isLyricsActive = false,
-                                onEffectsClick = { showEffectsSheet = true },
-                                modifier = Modifier
-                                    .widthIn(max = 560.dp)
-                                    .fillMaxWidth()
-                            )
-                            Spacer(Modifier.height(24.dp))
-                        } else {
-                            // ── Phone portrait: the artwork is removed on request —
-                            //    only the controls panel remains, centered. ──
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth(),
+                                    .clip(RoundedCornerShape(if (isTablet) 28.dp else 20.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                AppleControlsColumn(
-                                    viewModel = viewModel,
-                                    track = track,
-                                    bottomSlots = bottomSlots,
-                                    onFullscreenLyrics = {
-                                        viewModel.showInlineLyrics = true
-                                        isImmersiveLyrics = true
-                                    },
-                                    compactTransport = false,
-                                    showVolumeSlider = !hideVolumeSlider,
-                                    appleMusicInspired = appleMusicInspired,
-                                    sliderStyle = sliderStyle,
-                                    progressFraction = progressFraction.value,
-                                    totalDuration = totalDuration,
-                                    onSeek = onSeekFraction,
-                                    isLyricsActive = false,
-                                    onEffectsClick = { showEffectsSheet = true },
-                                    modifier = Modifier
-                                        .widthIn(max = 480.dp)
-                                        .fillMaxWidth()
+                                // The KittyTune Modern cover component: the
+                                // placeholder while the artwork loads, the animated
+                                // cover video, and the 3D gyroscope layers /
+                                // "no overlay" mode — all per the global cover
+                                // settings (Appearance → Covers).
+                                AnimatedArtwork(
+                                    artworkUrl = artworkUrl,
+                                    animatedCoverUrl = squareCanvasUrl,
+                                    isPlaying = viewModel.uiIsPlaying,
+                                    contentDescription = track.title,
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             }
-                            Spacer(Modifier.height(12.dp))
                         }
+
+                        AppleControlsColumn(
+                            viewModel = viewModel,
+                            track = track,
+                            bottomSlots = bottomSlots,
+                            onFullscreenLyrics = {
+                                viewModel.showInlineLyrics = true
+                                isImmersiveLyrics = true
+                            },
+                            compactTransport = false,
+                            showVolumeSlider = !hideVolumeSlider,
+                            appleMusicInspired = appleMusicInspired,
+                            sliderStyle = sliderStyle,
+                            progressFraction = progressFraction.value,
+                            totalDuration = totalDuration,
+                            onSeek = onSeekFraction,
+                            isLyricsActive = false,
+                            onEffectsClick = { showEffectsSheet = true },
+                            modifier = Modifier
+                                .widthIn(max = if (isTablet) 560.dp else 480.dp)
+                                .fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(if (isTablet) 24.dp else 12.dp))
                     }
                 } else {
                     // ── Full-bleed: sharp artwork in the upper part, smooth
-                    //    fade toward the bottom via a DstIn gradient mask ──
+                    //    fade toward the bottom via a DstIn gradient mask.
+                    //    A track with no artwork must not leave a bare black
+                    //    void here — the themed placeholder (like in the SQUARE
+                    //    cover and the Modern player) sits underneath. ──
                     Box(modifier = Modifier.fillMaxSize()) {
                         Box(
                             modifier = Modifier
@@ -838,6 +808,7 @@ fun AppleMusicPlayerScreen(
                                     )
                                 }
                         ) {
+                            ArtworkPlaceholder(Modifier.fillMaxSize())
                             AsyncImage(
                                 model = artworkUrl,
                                 contentDescription = null,
@@ -940,7 +911,7 @@ fun AppleMusicPlayerScreen(
  * title/artist, a progress slider with timecodes and a codec badge,
  * the transport (Apple or KittyTune — per the setting), the volume slider (if
  * not hidden) and the bottom row [Queue | Two customizable icons | Lyrics].
- * With "Apple Music inspired" off, all Apple elements (the ⋮/♡ buttons next to
+ * With "Apple Music inspired" off, all Apple elements (the ♡/⋮ buttons next to
  * the title, the volume slider, the bottom liquid row) are removed — what
  * remains is a clean player with KittyTune Modern buttons.
  */
@@ -966,16 +937,19 @@ private fun AppleControlsColumn(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Track title, artist and two round glass buttons (⋮ and ♡) —
-        // only with the Apple styling enabled.
+        // Track title, artist (with the source badge) and two round glass
+        // buttons (♡ and ⋮) — only with the Apple styling enabled for buttons.
         AppleTitleAndGlassActions(
             title = track.title ?: stringResource(R.string.untitled_track),
             artist = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
             isLiked = viewModel.uiIsLiked,
             showActions = appleMusicInspired,
+            track = track,
+            resolvedSource = viewModel.currentStreamSource,
             onArtistClick = { viewModel.navigateToTrackArtist(track) },
             onMoreClick = { viewModel.showTrackOptions(track, fromPlayer = true) },
-            onLikeClick = { viewModel.toggleLike() }
+            onLikeClick = { viewModel.toggleLike() },
+            onAiBadgeClick = { viewModel.showAiDetectionSheet = true }
         )
 
         Spacer(Modifier.height(16.dp))
@@ -1328,8 +1302,11 @@ private fun AppleCapsuleSlider(
 }
 
 /**
- * Title + artist on the left and two round glass buttons (⋮ menu and ♡ like)
- * on the right — the Apple Music header from the mini-style player.
+ * Title + artist on the left (with the music source badge and the AI detection
+ * badge next to the artist, as in KittyTune Modern) and two round glass buttons
+ * (♡ like, ⋮ menu) on the right — the Apple Music header from the mini-style
+ * player. The buttons were swapped on request: the like button now sits on the
+ * LEFT and the ⋮ menu on the RIGHT, in every orientation on phone and tablet.
  */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -1338,9 +1315,12 @@ private fun AppleTitleAndGlassActions(
     artist: String,
     isLiked: Boolean,
     showActions: Boolean,
+    track: Track,
+    resolvedSource: String?,
     onArtistClick: () -> Unit,
     onMoreClick: () -> Unit,
-    onLikeClick: () -> Unit
+    onLikeClick: () -> Unit,
+    onAiBadgeClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1356,43 +1336,50 @@ private fun AppleTitleAndGlassActions(
                 modifier = Modifier.basicMarquee()
             )
             Spacer(Modifier.height(3.dp))
-            Text(
-                text = artist,
-                color = Color.White.copy(alpha = 0.78f),
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.clickable { onArtistClick() }
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = artist,
+                    color = Color.White.copy(alpha = 0.78f),
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .clickable { onArtistClick() }
+                )
+                // The music source indicator (YouTube / SoundCloud / Deezer / …)
+                // — the same badge as in the KittyTune Modern player. It is gated
+                // by its own settings ("Music source in player" + badge style),
+                // and was simply missing in the Apple Music design before.
+                TrackSourceBadge(
+                    track = track,
+                    resolvedSource = resolvedSource,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+                // The AI detection badge ("AI…" while analyzing, "AI 87%" for
+                // AI-generated audio, "Human 92%" when the human tag is enabled)
+                // — the same on-device ArtifactNet indicator as in KittyTune
+                // Modern. It is gated by the global "Show AI badge in player"
+                // setting and was simply missing in the Apple Music design. The
+                // tap opens the forensic sheet, hosted once at the MainScreen
+                // level, so the badge itself only raises the flag.
+                val aiResult by com.alananasss.kittytune.audio.ai.AiDetectionManager.result.collectAsState()
+                com.alananasss.kittytune.ui.player.ai.AiDetectionBadge(
+                    result = aiResult,
+                    textColor = Color.White,
+                    onClick = onAiBadgeClick,
+                    modifier = Modifier.padding(start = 6.dp)
+                )
+            }
         }
 
-        // The glass buttons (⋮ and ♡) — an Apple styling element: with
+        // The glass buttons (♡ and ⋮) — an Apple styling element: with
         // "Apple Music inspired" off only the title and artist remain.
         if (showActions) {
             Spacer(Modifier.width(14.dp))
 
-            // Round glass menu button (⋮)
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.18f))
-                    .border(0.8.dp, Color.White.copy(alpha = 0.22f), CircleShape)
-                    .clickable { onMoreClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.MoreVert,
-                    contentDescription = stringResource(R.string.btn_options),
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Spacer(Modifier.width(10.dp))
-
-            // Round glass like button (♡)
+            // Round glass like button (♡) — on the LEFT (was the ⋮ menu before).
             Box(
                 modifier = Modifier
                     .size(42.dp)
@@ -1405,6 +1392,26 @@ private fun AppleTitleAndGlassActions(
                 Icon(
                     imageVector = if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                     contentDescription = stringResource(R.string.desc_like),
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(Modifier.width(10.dp))
+
+            // Round glass menu button (⋮) — on the RIGHT (was the like before).
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.18f))
+                    .border(0.8.dp, Color.White.copy(alpha = 0.22f), CircleShape)
+                    .clickable { onMoreClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.MoreVert,
+                    contentDescription = stringResource(R.string.btn_options),
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )
@@ -2070,7 +2077,9 @@ private fun AppleTabletLandscapePlayer(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    val coverSize = minOf(zoneHeight * 0.87f, zoneWidth * 0.40f)
+                    // Enlarged centered cover: 40% of the zone width capped it
+                    // noticeably below the real Apple Music iPad proportions.
+                    val coverSize = minOf(zoneHeight * 0.87f, zoneWidth * 0.46f)
                     AppleTabletArtwork(
                         artworkUrl = artworkUrl,
                         animatedCoverUrl = squareAnimatedCoverUrl,
@@ -2158,14 +2167,35 @@ private fun AppleTabletLandscapePlayer(
                                 modifier = Modifier.basicMarquee()
                             )
                             Spacer(Modifier.height(3.dp))
-                            Text(
-                                text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
-                                color = Color.White.copy(alpha = 0.74f),
-                                fontSize = 17.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.clickable { viewModel.navigateToTrackArtist(track) }
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+                                    color = Color.White.copy(alpha = 0.74f),
+                                    fontSize = 17.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier
+                                        .weight(1f, fill = false)
+                                        .clickable { viewModel.navigateToTrackArtist(track) }
+                                )
+                                // The music source indicator — the same badge as in
+                                // the KittyTune Modern player and the rest of the
+                                // Apple Music design (was missing in the iPad layout).
+                                TrackSourceBadge(
+                                    track = track,
+                                    resolvedSource = viewModel.currentStreamSource,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                                // The AI detection badge — same indicator as in the
+                                // portrait header, next to the source badge.
+                                val aiResult by com.alananasss.kittytune.audio.ai.AiDetectionManager.result.collectAsState()
+                                com.alananasss.kittytune.ui.player.ai.AiDetectionBadge(
+                                    result = aiResult,
+                                    textColor = Color.White,
+                                    onClick = { viewModel.showAiDetectionSheet = true },
+                                    modifier = Modifier.padding(start = 6.dp)
+                                )
+                            }
                         }
                     }
                 }

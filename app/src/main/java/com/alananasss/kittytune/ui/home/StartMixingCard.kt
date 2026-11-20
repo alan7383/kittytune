@@ -225,6 +225,15 @@ fun StartMixingCard(
                     )
                 )
             }
+            add(
+                VibeStation(
+                    id = "official",
+                    title = context.getString(R.string.mix_vibe_official),
+                    subtitle = context.getString(R.string.mix_vibe_official_sub),
+                    icon = Icons.Rounded.Verified,
+                    recipe = MixEngine.Recipe.Official
+                )
+            )
         }
     }
 
@@ -249,7 +258,11 @@ fun StartMixingCard(
                         artistName = null
                     )
                     playerViewModel.playPlaylist(result.tracks, 0, context = mixContext)
-                    MixState.Done(result.tracks.size, result.describedBy.takeIf { it.isNotBlank() })
+                    // The official station names its source itself: the engine cannot localise it.
+                    val from = if (recipe is MixEngine.Recipe.Official) {
+                        context.getString(R.string.mix_official_source)
+                    } else result.describedBy.takeIf { it.isNotBlank() }
+                    MixState.Done(result.tracks.size, from)
                 }
                 MixEngine.Result.NotEnoughHistory ->
                     MixState.Empty(context.getString(R.string.mix_needs_history))
