@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.RssFeed
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.*
@@ -638,6 +639,7 @@ fun BottomBarSettingsScreen(
 
                         val screen = when (tabKey) {
                             "home" -> Screen.Home
+                            "feed" -> Screen.Feed
                             "search" -> Screen.Search
                             "genres" -> Screen.Explore
                             "library" -> Screen.Library
@@ -647,6 +649,7 @@ fun BottomBarSettingsScreen(
 
                         val icon = when (tabKey) {
                             "home" -> Icons.Rounded.Home
+                            "feed" -> Icons.Rounded.RssFeed
                             "search" -> Icons.Rounded.Search
                             "genres" -> Icons.Default.Explore
                             "library" -> Icons.Default.LibraryMusic

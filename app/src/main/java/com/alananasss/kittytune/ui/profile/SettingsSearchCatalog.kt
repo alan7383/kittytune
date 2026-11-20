@@ -45,6 +45,7 @@ internal fun rememberSettingsSearchCatalog(
         var pureBlack = prefs.getPureBlack()
         var animatedCovers = prefs.getAnimatedCoversEnabled()
         var animatedCoversFadeUi = prefs.getAnimatedCoversFadeUiEnabled()
+        var feedOfficialOnly = prefs.getFeedOfficialOnlyEnabled()
         var animatedArtistProfiles = prefs.getAnimatedArtistProfilesEnabled()
         var lyricsUnderCover = prefs.getLyricsUnderCoverEnabled()
         var showRemainingTime = prefs.getShowRemainingTime()
@@ -428,6 +429,24 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     animatedCovers = it
                     prefs.setAnimatedCoversEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_feed_official_only,
+                subtitleRes = R.string.pref_feed_official_only_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Verified,
+                route = "appearance_settings",
+                highlightKey = "pref_feed_official_only",
+                keywords = listOf("feed", "лента", "official", "официальные", "verified", "верифицированные", "pro", "isrc", "артисты", "артисты"),
+                hasSwitch = true,
+                switchState = feedOfficialOnly,
+                onSwitchChange = {
+                    feedOfficialOnly = it
+                    prefs.setFeedOfficialOnlyEnabled(it)
                     onPreferenceChange()
                 }
             ),

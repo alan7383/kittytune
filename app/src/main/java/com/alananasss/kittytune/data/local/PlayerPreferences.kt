@@ -506,6 +506,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_ANDROID_AUTO_SYNCED_LYRICS = "android_auto_synced_lyrics"
         const val KEY_ANIMATED_COVERS_ENABLED = "animated_covers_enabled"
         const val KEY_ANIMATED_COVERS_FADE_UI = "animated_covers_fade_ui"
+        const val KEY_FEED_OFFICIAL_ONLY_ENABLED = "feed_official_only_enabled"
         const val KEY_GYROSCOPE_COVERS_ENABLED = "gyroscope_covers_enabled"
         const val KEY_GYROSCOPE_FLAT_COVER = "gyroscope_flat_cover"
         const val KEY_ANIMATED_ARTIST_PROFILES_ENABLED = "animated_artist_profiles_enabled"
@@ -637,8 +638,9 @@ class PlayerPreferences(context: Context) {
 
         private const val KEY_BOTTOM_MENU_STYLE = "bottom_menu_style"
         private const val KEY_BOTTOM_MENU_ITEMS = "bottom_menu_items_csv"
-        const val DEFAULT_BOTTOM_MENU_ITEMS = "home,search,genres,library"
+        const val DEFAULT_BOTTOM_MENU_ITEMS = "home,feed,search,genres,library"
         private const val KEY_BOTTOM_MENU_ORDER = "bottom_menu_order_csv"
+        private const val KEY_FEED_TAB_MIGRATED = "feed_tab_migrated"
         private const val KEY_BOTTOM_MENU_FAB = "bottom_menu_fab"
         private const val KEY_BOTTOM_MENU_BLUR = "bottom_menu_blur_enabled"
         const val KEY_MINI_PLAYER_SWIPE_ACTION = "mini_player_swipe_action"
@@ -1519,6 +1521,10 @@ class PlayerPreferences(context: Context) {
     fun getAnimatedCoversFadeUiEnabled(): Boolean = prefs.getBoolean(KEY_ANIMATED_COVERS_FADE_UI, false)
     fun setAnimatedCoversFadeUiEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_ANIMATED_COVERS_FADE_UI, enabled) }
 
+    /** When on, the feed shows only tracks from official artists (verified / Pro / ISRC release). */
+    fun getFeedOfficialOnlyEnabled(): Boolean = prefs.getBoolean(KEY_FEED_OFFICIAL_ONLY_ENABLED, false)
+    fun setFeedOfficialOnlyEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_FEED_OFFICIAL_ONLY_ENABLED, enabled) }
+
     fun getGyroscopeCoversEnabled(): Boolean = prefs.getBoolean(KEY_GYROSCOPE_COVERS_ENABLED, false)
     fun setGyroscopeCoversEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_GYROSCOPE_COVERS_ENABLED, enabled) }
 
@@ -1943,7 +1949,21 @@ class PlayerPreferences(context: Context) {
 
     fun getBottomMenuItems(): List<String> {
         val csv = prefs.getString(KEY_BOTTOM_MENU_ITEMS, DEFAULT_BOTTOM_MENU_ITEMS) ?: DEFAULT_BOTTOM_MENU_ITEMS
-        return csv.split(",").filter { it.isNotBlank() }
+        var items = csv.split(",").filter { it.isNotBlank() }
+        // The feed tab ships enabled for everyone: a one-time insertion for existing installs, so
+        // users who never touched the bottom-bar settings still get the new tab. The flag keeps
+        // the migration from resurrecting the tab after the user deliberately hides it.
+        if (!prefs.getBoolean(KEY_FEED_TAB_MIGRATED, false)) {
+            prefs.edit { putBoolean(KEY_FEED_TAB_MIGRATED, true) }
+            if ("feed" !in items) {
+                items = if ("home" in items) {
+                    items.flatMap { listOf(it) + if (it == "home") listOf("feed") else emptyList() }.distinct()
+                } else {
+                    listOf("feed") + items
+                }
+            }
+        }
+        return items
     }
 
     fun setBottomMenuItems(items: List<String>) =
@@ -1959,7 +1979,7 @@ class PlayerPreferences(context: Context) {
     }
 
     fun getBottomMenuOrder(): List<String> {
-        val allTabKeys = listOf("home", "search", "genres", "library", "queue")
+        val allTabKeys = listOf("home", "feed", "search", "genres", "library", "queue")
         val csv = prefs.getString(KEY_BOTTOM_MENU_ORDER, null)
         if (csv.isNullOrBlank()) {
             val currentItems = getBottomMenuItems()
