@@ -2382,9 +2382,12 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
     val isOfflineMode = isLocalFile || isDownloadedContext || isOffline
     val menuPrefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
     val trackRemovalMethod by menuPrefs.getTrackRemovalMethodFlow().collectAsState(initial = menuPrefs.getTrackRemovalMethod())
+    val queueIndex = viewModel.menuContextQueueIndex
+    val selectedDevice by com.alananasss.kittytune.data.sync.ConnectManager.selectedDevice.collectAsState()
+    val isLocalQueueItem = queueIndex != null && selectedDevice == null
 
     val gridItems = mutableListOf<DockOptionItem>().apply {
-        if (!isLocalFile && !viewModel.isMenuContextFromPlayer) {
+        if (!isLocalFile && (!viewModel.isMenuContextFromPlayer || isLocalQueueItem)) {
             add(
                 DockOptionItem(
                     if (isTrackLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
@@ -2409,13 +2412,19 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     id = "repeat"
                 ) { viewModel.toggleRepeatMode() })
         }
-        if (!viewModel.isMenuContextFromPlayer) {
+        if (!viewModel.isMenuContextFromPlayer || isLocalQueueItem) {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.PlaylistPlay,
                     stringResource(R.string.menu_play_next),
                     id = "play_next"
-                ) { viewModel.insertNext(listOf(track)); viewModel.showMenuSheet = false })
+                ) {
+                    if (queueIndex == null) viewModel.insertNext(listOf(track))
+                    else viewModel.playQueueItemNext(queueIndex)
+                    viewModel.showMenuSheet = false
+                })
+        }
+        if (!viewModel.isMenuContextFromPlayer) {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.QueueMusic,
