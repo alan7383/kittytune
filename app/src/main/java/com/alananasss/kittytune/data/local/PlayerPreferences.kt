@@ -80,6 +80,29 @@ enum class PlayerProgressMode { SOUNDCLOUD, HYBRID_WAVEFORM, CLASSIC_BAR }
 enum class PlayerSliderStyle { BAR, WAVY, SLIM, SQUIGGLY, EXPRESSIVE }
 enum class PlayerDesign { PIXEL_PLAYER, SOUNDCLOUD, MODERN, CLASSIC, APPLE_MUSIC, IPAD }
 
+/**
+ * The resolution cap for the clips video player. AUTO keeps YouTube's best muxed file (up to 720p);
+ * a fixed height plays the matching video-only DASH stream merged with the best audio track.
+ */
+enum class ClipVideoQuality(val height: Int?) {
+    AUTO(null),
+    P144(144),
+    P240(240),
+    P360(360),
+    P480(480),
+    P720(720),
+    P1080(1080),
+    P1440(1440),
+    P2160(2160);
+
+    /** The stored string: "auto" or the height like "1080". */
+    val raw: String get() = height?.toString() ?: "auto"
+
+    companion object {
+        fun fromRaw(raw: String?): ClipVideoQuality = entries.firstOrNull { it.raw == raw?.trim() } ?: AUTO
+    }
+}
+
  // iPad player (the separate "iPad" design): how the cover art is shown in
  // landscape — centered (as in Apple Music on iPad) or full screen
  
@@ -507,6 +530,7 @@ class PlayerPreferences(context: Context) {
         const val KEY_ANIMATED_COVERS_ENABLED = "animated_covers_enabled"
         const val KEY_ANIMATED_COVERS_FADE_UI = "animated_covers_fade_ui"
         const val KEY_FEED_OFFICIAL_ONLY_ENABLED = "feed_official_only_enabled"
+        const val KEY_CLIP_VIDEO_QUALITY = "clip_video_quality"
         const val KEY_GYROSCOPE_COVERS_ENABLED = "gyroscope_covers_enabled"
         const val KEY_GYROSCOPE_FLAT_COVER = "gyroscope_flat_cover"
         const val KEY_ANIMATED_ARTIST_PROFILES_ENABLED = "animated_artist_profiles_enabled"
@@ -1524,6 +1548,12 @@ class PlayerPreferences(context: Context) {
     /** When on, the feed shows only tracks from official artists (verified / Pro / ISRC release). */
     fun getFeedOfficialOnlyEnabled(): Boolean = prefs.getBoolean(KEY_FEED_OFFICIAL_ONLY_ENABLED, false)
     fun setFeedOfficialOnlyEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_FEED_OFFICIAL_ONLY_ENABLED, enabled) }
+
+    /** The clips player's resolution cap; "auto" plays the best muxed stream as before. */
+    fun getClipVideoQuality(): ClipVideoQuality =
+        ClipVideoQuality.fromRaw(prefs.getString(KEY_CLIP_VIDEO_QUALITY, null))
+    fun setClipVideoQuality(quality: ClipVideoQuality) =
+        prefs.edit { putString(KEY_CLIP_VIDEO_QUALITY, quality.raw) }
 
     fun getGyroscopeCoversEnabled(): Boolean = prefs.getBoolean(KEY_GYROSCOPE_COVERS_ENABLED, false)
     fun setGyroscopeCoversEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_GYROSCOPE_COVERS_ENABLED, enabled) }

@@ -991,6 +991,14 @@
 <string name="settings_group_feed">Feed</string>
     <string name="pref_feed_official_only">Official artists only</string>
     <string name="pref_feed_official_only_desc">Show only tracks from official artists: verified or Pro accounts and releases with an ISRC</string>
+<string name="settings_group_video">Video</string>
+<string name="pref_clip_video_quality">Clip video quality</string>
+<string name="pref_clip_video_quality_desc">Resolution cap for the clips player: Auto or 144p up to 4K</string>
+<string name="dialog_clip_quality_title">Clip video quality</string>
+<string name="quality_auto">Auto</string>
+<string name="clip_seek_back">Back 5 seconds</string>
+<string name="clip_seek_forward">Forward 5 seconds</string>
+<string name="clip_fullscreen">Fullscreen</string>
 <string name="pref_animated_covers_fade_ui">Fade animated cover into UI backdrop</string>
 <string name="pref_animated_covers_fade_ui_desc">Uses tall motion artwork as a dynamic background</string>
 <string name="pref_animated_artist_profiles">Animated artist profiles</string>

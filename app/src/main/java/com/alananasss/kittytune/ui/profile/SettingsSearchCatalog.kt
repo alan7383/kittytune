@@ -453,6 +453,17 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
+                titleRes = R.string.pref_clip_video_quality,
+                subtitleRes = R.string.pref_clip_video_quality_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Hd,
+                route = "appearance_settings",
+                highlightKey = "pref_clip_video_quality",
+                keywords = listOf("video quality", "качество видео", "клипы", "resolution", "разрешение", "4k", "2160", "1080")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
                 titleRes = R.string.pref_animated_covers_fade_ui,
                 subtitleRes = R.string.pref_animated_covers_fade_ui_desc,
                 categoryName = catInterface,
