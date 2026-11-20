@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wear_companion_title">Ứng dụng đồng hành KittyTune</string>
+    <string name="action_play">Phát</string>
+    <string name="action_pause">Tạm dừng</string>
+    <string name="action_previous">Bài trước</string>
+    <string name="action_next">Bài tiếp theo</string>
+    <string name="action_volume_up">Tăng âm lượng</string>
+    <string name="action_volume_down">Giảm âm lượng</string>
+    <string name="action_select_target">Đổi thiết bị phát</string>
+    <string name="target_phone">Điện thoại</string>
+    <string name="target_desktop">Máy tính</string>
+    <string name="target_selector_description">Đang phát trên %1$s, %2$s</string>
+    <string name="target_status_connected">đã kết nối</string>
+    <string name="target_status_connecting">đang kết nối</string>
+    <string name="target_status_disconnected">đã ngắt kết nối</string>
+    <string name="target_status_error">không thể kết nối</string>
+    <string name="target_picker_title">Chọn thiết bị</string>
+    <string name="target_picker_connected">Đã kết nối</string>
+    <string name="target_picker_offline">Ngoại tuyến</string>
+    <string name="track_unknown_title">Không rõ tên bài hát</string>
+    <string name="track_unknown_artist">Không rõ nghệ sĩ</string>
+    <string name="volume_decrease">Giảm âm lượng %1$d phần trăm</string>
+    <string name="volume_increase">Tăng âm lượng %1$d phần trăm</string>
+    <string name="volume_current">Âm lượng hiện tại: %1$d phần trăm</string>
+    <string name="status_connecting">Đang kết nối…</string>
+    <string name="status_disconnected">Đã ngắt kết nối</string>
+    <string name="status_no_playback">Không có nội dung đang phát</string>
+    <string name="status_position">%1$s trên %2$s</string>
+</resources>

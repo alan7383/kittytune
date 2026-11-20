@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wear_companion_title">Companheiro KittyTune</string>
+    <string name="action_play">Reproduzir</string>
+    <string name="action_pause">Pausar</string>
+    <string name="action_previous">Faixa anterior</string>
+    <string name="action_next">Próxima faixa</string>
+    <string name="action_volume_up">Aumentar volume</string>
+    <string name="action_volume_down">Diminuir volume</string>
+    <string name="action_select_target">Trocar dispositivo de reprodução</string>
+    <string name="target_phone">Celular</string>
+    <string name="target_desktop">Computador</string>
+    <string name="target_selector_description">Reproduzindo em %1$s, %2$s</string>
+    <string name="target_status_connected">conectado</string>
+    <string name="target_status_connecting">conectando</string>
+    <string name="target_status_disconnected">desconectado</string>
+    <string name="target_status_error">inacessível</string>
+    <string name="target_picker_title">Selecionar dispositivo</string>
+    <string name="target_picker_connected">Conectado</string>
+    <string name="target_picker_offline">Offline</string>
+    <string name="track_unknown_title">Título desconhecido</string>
+    <string name="track_unknown_artist">Artista desconhecido</string>
+    <string name="volume_decrease">Diminuir o volume em %1$d por cento</string>
+    <string name="volume_increase">Aumentar o volume em %1$d por cento</string>
+    <string name="volume_current">Volume atual: %1$d por cento</string>
+    <string name="status_connecting">Conectando…</string>
+    <string name="status_disconnected">Desconectado</string>
+    <string name="status_no_playback">Nada em reprodução</string>
+    <string name="status_position">%1$s de %2$s</string>
+</resources>
