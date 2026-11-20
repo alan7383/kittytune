@@ -2385,6 +2385,7 @@
     <string name="proxy_profile_saved_toast">Profile saved successfully!</string>
     <string name="proxy_playback_error">Playback failed: please check your proxy settings</string>
     <string name="network_playback_error">Playback failed: please check your internet connection</string>
+    <string name="track_playback_unavailable">This track could not be played. Press Play to try again.</string>
     <string name="restricted_playback_error">This track is only streamable with a SoundCloud Go+ subscription, and no alternative source was found</string>
     <string name="spotify_verified">Verified by Spotify</string>
     <string name="spotify_monthly_listeners">%1$s monthly listeners</string>
@@ -3802,7 +3803,8 @@
     <string name="pref_pause_on_audio_focus_loss">Pause when another app plays audio</string>
     <string name="pref_pause_on_audio_focus_loss_sub">Turn off to keep listening alongside other apps</string>
     <string name="pref_pause_on_mute">Pause when volume is muted</string>
-    <string name="pref_pause_on_mute_sub">Pause playback when the media volume reaches zero, resume when it returns</string>
+    <string name="pref_pause_on_mute_sub">Pause playback when the media volume reaches zero</string>
+    <string name="pref_resume_on_unmute">Resume when volume returns</string>
     <string name="pref_keep_screen_on">Keep screen on in player</string>
     <string name="pref_keep_screen_on_sub">Prevent the screen from turning off while the player is expanded and playing</string>
     <string name="pref_pause_listen_history">Pause listen history</string>
@@ -3873,4 +3875,18 @@
     <!-- kept from upstream 3.0.0 -->
     <string name="pref_queue_preserve_upcoming">Preserve upcoming queue on jump</string>
     <string name="pref_queue_preserve_upcoming_sub">Moves clicked track next instead of skipping intermediate tracks</string>
+    <string name="pref_keep_played_tracks_visible">Keep played tracks visible</string>
+    <string name="pref_keep_played_tracks_visible_sub">Show all played tracks as compact rows when the section is collapsed.</string>
+    <string name="together_listener_joined">%1$s joined your Together session</string>
+    <string name="together_reactions">Live reactions</string>
+    <string name="together_sync_synced">Synced</string>
+    <string name="together_sync_syncing">Syncing…</string>
+    <string name="together_sync_waiting">Waiting for the host</string>
+    <string name="together_sync_connecting">Connecting…</string>
+    <string name="together_propose_session">Suggest to Together session</string>
+    <string name="together_propose_playlist">Suggest playlist to Together</string>
+    <string name="together_local_not_shareable">Local track can’t be shared</string>
+    <string name="together_invite_qr">Together invite QR code</string>
+    <string name="together_copy_code">Copy session code</string>
+    <string name="together_invite_qr_instructions">Scan with your camera, then tap Join in KittyTune.</string>
 </resources>
