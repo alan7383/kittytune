@@ -56,6 +56,11 @@
 -keep class com.google.gson.reflect.TypeToken { *; }
 -keep class * extends com.google.gson.reflect.TypeToken
 
+# Together peers exchange Gson field names and message class names across platforms.
+-keep class com.alananasss.kittytune.data.together.TogetherMessage$* { *; }
+-keep class com.alananasss.kittytune.data.together.SharedTrack { *; }
+-keep class com.alananasss.kittytune.data.together.SharedListener { *; }
+
 # Kotlinx Serialization
 -dontnote kotlinx.serialization.SerializationKt
 -keepclassmembers class * {

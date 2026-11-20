@@ -23,6 +23,7 @@ object MenuTiles {
         Tile("repeat", R.string.menu_repeat),
         Tile("play_next", R.string.menu_play_next),
         Tile("add_queue", R.string.menu_add_queue),
+        Tile("together_next", R.string.together_propose_session),
         Tile("comments", R.string.menu_comments),
         Tile("repost", R.string.menu_repost),
         Tile("details", R.string.menu_details),
@@ -90,6 +91,7 @@ object MenuTiles {
         "repeat" -> Icons.Rounded.Repeat
         "play_next" -> Icons.AutoMirrored.Rounded.PlaylistPlay
         "add_queue" -> Icons.AutoMirrored.Rounded.QueueMusic
+        "together_next" -> Icons.Rounded.Groups
         "comments" -> Icons.Rounded.ChatBubbleOutline
         "repost" -> Icons.Rounded.Repeat
         "details" -> Icons.Rounded.Info

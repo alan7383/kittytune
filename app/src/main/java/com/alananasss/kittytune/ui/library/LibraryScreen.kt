@@ -626,7 +626,8 @@ fun LibraryScreen(
         val isDbUserCreated = userDbPlaylists.any { it.id == playlist.id && (it.isUserCreated || it.id < 0) }
         val isUserOwned = playlist.id < 0 || isSoundCloudUserCreated || isLocalMe || isDbUserCreated
 
-        val actionItems = remember(playlist, isItemPinned, isInsideFolder, primaryColor, errorColor, isPlaylistLiked, isUserOwned, trackRemovalMethod) {
+        val togetherCode by com.alananasss.kittytune.data.together.Together.active.collectAsState()
+        val actionItems = remember(playlist, isItemPinned, isInsideFolder, primaryColor, errorColor, isPlaylistLiked, isUserOwned, trackRemovalMethod, togetherCode) {
             mutableListOf<PlaylistActionItem>().apply {
                 add(PlaylistActionItem(Icons.Rounded.PlayArrow, context.getString(R.string.btn_play)) {
                     playPlaylistHelper(playlist, shuffle = false)
@@ -652,6 +653,15 @@ fun LibraryScreen(
                         playPlaylistHelper(playlist, addToQueue = true)
                         selectedPlaylistForMenu = null
                     })
+                togetherCode?.let { code ->
+                    add(PlaylistActionItem(Icons.Rounded.Groups, context.getString(R.string.together_propose_playlist)) {
+                        scope.launch {
+                            val tracks = kotlinx.coroutines.withContext(Dispatchers.IO) { resolvePlaylistTracks(playlist) }
+                            com.alananasss.kittytune.data.together.Together.proposePlaylist(code, tracks)
+                        }
+                        selectedPlaylistForMenu = null
+                    })
+                }
                 add(PlaylistActionItem(Icons.Default.Add, context.getString(R.string.menu_add_playlist)) {
                     playPlaylistHelper(playlist, prepareBulkAdd = true)
                     selectedPlaylistForMenu = null

@@ -3329,7 +3329,7 @@ fun SearchResultsList(
                 }
 
                 val coroutineScope = rememberCoroutineScope()
-                fun playHelper(shuffle: Boolean = false, insertNext: Boolean = false, addToQueue: Boolean = false) {
+                fun playHelper(shuffle: Boolean = false, insertNext: Boolean = false, addToQueue: Boolean = false, togetherCode: String? = null) {
                     coroutineScope.launch(Dispatchers.IO) {
                         val rawTracks: List<Track> = if (!playlist.tracks.isNullOrEmpty()) {
                             playlist.tracks!!
@@ -3351,7 +3351,12 @@ fun SearchResultsList(
                             }
                         } else emptyList()
 
-                        if (tracks.isNotEmpty()) {
+                        if (togetherCode != null) {
+                            kotlinx.coroutines.withContext(Dispatchers.Main) {
+                                com.alananasss.kittytune.data.together.Together.proposePlaylist(togetherCode, tracks)
+                                selectedPlaylistForMenu = null
+                            }
+                        } else if (tracks.isNotEmpty()) {
                             kotlinx.coroutines.withContext(Dispatchers.Main) {
                                 if (shuffle) {
                                     playerViewModel.playPlaylistShuffled(tracks)
@@ -3367,7 +3372,8 @@ fun SearchResultsList(
                     }
                 }
 
-                val playlistActionItems = remember(playlist, isPlaylistLiked, primaryColor) {
+                val togetherCode by com.alananasss.kittytune.data.together.Together.active.collectAsState()
+                val playlistActionItems = remember(playlist, isPlaylistLiked, primaryColor, togetherCode) {
                     listOf(
                         Triple(Icons.Rounded.PlayArrow, context.getString(R.string.btn_play)) {
                             playHelper(shuffle = false)
@@ -3385,6 +3391,11 @@ fun SearchResultsList(
                             playHelper(addToQueue = true)
                             selectedPlaylistForMenu = null
                         },
+                        *listOfNotNull(togetherCode?.let { code ->
+                            Triple(Icons.Rounded.Groups, context.getString(R.string.together_propose_playlist)) {
+                                playHelper(togetherCode = code)
+                            }
+                        }).toTypedArray(),
                         Triple(
                             if (isPlaylistLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
                             if (isPlaylistLiked) context.getString(R.string.action_unlike) else context.getString(R.string.player_like_action)
