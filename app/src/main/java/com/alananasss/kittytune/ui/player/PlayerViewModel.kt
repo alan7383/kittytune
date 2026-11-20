@@ -54,6 +54,8 @@ import com.alananasss.kittytune.ui.common.AchievementNotification
 import com.alananasss.kittytune.data.local.LyricsAlignment
 import com.alananasss.kittytune.data.local.LyricsDisplayState
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.together.TOGETHER_SYNC_TOLERANCE_MS
+import com.alananasss.kittytune.data.together.TogetherSyncPlayback
 import com.alananasss.kittytune.data.local.gridTrust
 import com.alananasss.kittytune.data.local.trustedAnchorMs
 import com.alananasss.kittytune.data.network.LrcLibClient
@@ -6054,7 +6056,9 @@ query CommentsWithReactions(
         saveStateAsync(savePositionOnly = true)
     }
 
-    fun seekTo(position: Long) {
+    fun seekTo(position: Long) = seekTo(position, fromTogetherSync = false)
+
+    private fun seekTo(position: Long, fromTogetherSync: Boolean) {
         if (routeRemote("seek", position)) { isScrubbing = false; return }
         if (!applyingTogether && com.alananasss.kittytune.data.together.Together.active.value != null) {
             com.alananasss.kittytune.data.together.Together.control(
@@ -6063,10 +6067,12 @@ query CommentsWithReactions(
         }
         SyncPlayback.claimLocal()
         MusicManager.releasePrebuffered()
-        com.alananasss.kittytune.audio.haptics.PlayerHapticManager.triggerInteractionHaptic(
-            context,
-            com.alananasss.kittytune.data.local.PlayerPreferences.KEY_HAPTICS_SEEK
-        )
+        if (!fromTogetherSync) {
+            com.alananasss.kittytune.audio.haptics.PlayerHapticManager.triggerInteractionHaptic(
+                context,
+                com.alananasss.kittytune.data.local.PlayerPreferences.KEY_HAPTICS_SEEK
+            )
+        }
         isScrubbing = false
         lastSeekTimestamp = System.currentTimeMillis()
         if (MusicManager.isLoadingTrack) {
@@ -6117,6 +6123,14 @@ query CommentsWithReactions(
     override fun sharedCurrent() = currentTrack?.let { com.alananasss.kittytune.data.together.SharedTrack.of(it) }
     override fun sharedPositionMs() = currentPosition
     override fun sharedIsPlaying() = isPlaying
+    override fun sharedPlaybackForSync(): TogetherSyncPlayback? {
+        val track = currentTrack ?: return null
+        val engine = player
+        if (engine.playbackState != Player.STATE_READY || isLoading) return null
+        val playingId = engine.currentMediaItem?.mediaId?.removePrefix("yt_")
+        if (playingId != track.id.toString()) return null
+        return TogetherSyncPlayback(track.id, track.source, engine.currentPosition, engine.isPlaying)
+    }
     override fun sharedUpcoming() =
         _queue.drop(currentQueueIndex + 1).map { com.alananasss.kittytune.data.together.SharedTrack.of(it) }
     override fun sharedAutomix() = playerPrefs.getAutomixEnabled()
@@ -6134,8 +6148,12 @@ query CommentsWithReactions(
             // any newer one, whether it pauses (applies it immediately below) or resumes (the
             // stale pause must not fire after it).
             val generation = ++togetherFollowGeneration
+            if (track.isLocalOnly) {
+                if (player.playWhenReady) pause()
+                return
+            }
             if (playerPrefs.getAutomixEnabled() != automix) playerPrefs.setAutomixEnabled(automix)
-            if (currentTrack?.id != track.id) {
+            if (currentTrack?.id != track.id || currentTrack?.source != track.source) {
                 pendingSeekPosition = positionMs
                 val tracks = listOf(track) + upcoming.orEmpty().filter { it.id != track.id }
                 playPlaylist(
@@ -6161,7 +6179,9 @@ query CommentsWithReactions(
                 }
                 return
             }
-            if (kotlin.math.abs(currentPosition - positionMs) > TOGETHER_MAX_DRIFT_MS) seekTo(positionMs)
+            if (kotlin.math.abs(player.currentPosition - positionMs) > TOGETHER_SYNC_TOLERANCE_MS) {
+                seekTo(positionMs, fromTogetherSync = true)
+            }
             if (isPlaying != this.isPlaying) togglePlayPause()
             if (upcoming != null) {
                 val mine = _queue.drop(currentQueueIndex + 1).map { it.id }
@@ -6191,12 +6211,15 @@ query CommentsWithReactions(
         com.alananasss.kittytune.data.together.Together.onHostPlaybackChanged()
     }
 
-    override fun hostPlayNext(track: com.alananasss.kittytune.data.together.SharedTrack) {
+    override fun hostPlayNext(track: com.alananasss.kittytune.data.together.SharedTrack) = hostPlayNext(listOf(track))
+
+    override fun hostPlayNext(tracks: List<com.alananasss.kittytune.data.together.SharedTrack>) {
+        if (tracks.isEmpty()) return
         val at = (currentQueueIndex + 1 + togetherNextOffset).coerceIn(0, _queue.size)
-        val item = track.toTrack()
-        _queue.add(at, item)
-        _originalQueue.add(item)
-        togetherNextOffset++
+        val items = tracks.map { it.toTrack() }
+        _queue.addAll(at, items)
+        _originalQueue.addAll(items)
+        togetherNextOffset += items.size
         updateQueueState()
         refreshPreloadedNext()
         saveStateAsync(saveQueue = true)

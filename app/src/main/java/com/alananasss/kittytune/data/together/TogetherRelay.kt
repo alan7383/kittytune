@@ -78,7 +78,10 @@ internal class TogetherRelay(private val clientId: String) {
     private var lastConnectAttemptAt = 0L
     private val worker: Job = scope.launch(workerDispatcher) {
         for (work in outbox) {
-            if (!ensureConnected()) continue
+            // Reactions are transient. Drop them when disconnected or delayed in the queue.
+            if (work is Pending.Publish && work.message is TogetherMessage.Reaction) {
+                if (client?.isConnected != true || System.currentTimeMillis() - work.message.sentAt > 3_000L) continue
+            } else if (!ensureConnected()) continue
             val missingCodes = followedCodes.filter {
                 it !in subscribedOnCurrentSession && (work as? Pending.Subscribe)?.code != it
             }

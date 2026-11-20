@@ -2638,6 +2638,8 @@ fun MainScreen(
             }
         }
 
+        com.alananasss.kittytune.ui.together.TogetherReactionOverlay(Modifier.zIndex(1f))
+
         invitePromptCode?.let { promptCode ->
             com.alananasss.kittytune.ui.together.TogetherInviteSheet(
                 code = promptCode,

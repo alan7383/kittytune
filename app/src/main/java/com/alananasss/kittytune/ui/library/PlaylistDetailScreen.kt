@@ -3395,7 +3395,8 @@ fun PlaylistOptionsSheet(
             )
         }
         val primaryColor = MaterialTheme.colorScheme.primary
-        val items = remember(isLocal, playlistId, isYoutubeRadio, isUserOwned, playlistSharing, onDeleteClick, isAlbum, tracks, canRemoveTracks, trackRemovalMethod, primaryColor) {
+        val togetherCode by com.alananasss.kittytune.data.together.Together.active.collectAsState()
+        val items = remember(isLocal, playlistId, isYoutubeRadio, isUserOwned, playlistSharing, onDeleteClick, isAlbum, tracks, canRemoveTracks, trackRemovalMethod, primaryColor, togetherCode) {
             mutableListOf(
                 DockOptionItem(
                     Icons.Rounded.PlayArrow,
@@ -3425,6 +3426,12 @@ fun PlaylistOptionsSheet(
                 }
 
                 if (tracks.isNotEmpty()) {
+                    togetherCode?.let { code ->
+                        add(DockOptionItem(Icons.Rounded.Groups, context.getString(R.string.together_propose_playlist)) {
+                            com.alananasss.kittytune.data.together.Together.proposePlaylist(code, tracks)
+                            onDismiss()
+                        })
+                    }
                     add(
                         DockOptionItem(
                             Icons.Rounded.SportsEsports,

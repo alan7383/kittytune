@@ -1861,6 +1861,7 @@ fun PlayerHeader(
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.btn_close), tint = contentColor)
             }
+            com.alananasss.kittytune.ui.together.TogetherReactionButton(tint = contentColor)
         }
 
         Column(
@@ -1890,6 +1891,7 @@ fun PlayerHeader(
                     modifier = Modifier.hapticClickable { viewModel.navigateToContext() }
                 )
             }
+            com.alananasss.kittytune.ui.together.TogetherSyncBadge(Modifier.padding(top = 3.dp))
         }
 
         IconButton(onClick = hapticAction(HapticKind.UI) { viewModel.uiCurrentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) } }) {
@@ -2432,6 +2434,22 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     id = "add_queue"
                 ) { viewModel.addToQueue(listOf(track)); viewModel.showMenuSheet = false })
         }
+        val togetherCode by com.alananasss.kittytune.data.together.Together.active.collectAsState()
+        togetherCode?.let { code ->
+            val shared = com.alananasss.kittytune.data.together.SharedTrack.of(track)
+            if (!shared.isLocalOnly) {
+                add(
+                    DockOptionItem(
+                        Icons.Rounded.Groups,
+                        stringResource(R.string.together_propose_session),
+                        id = "together_next",
+                    ) {
+                        com.alananasss.kittytune.data.together.Together.playNext(shared, code)
+                        viewModel.showMenuSheet = false
+                    },
+                )
+            }
+        }
         if (!isOfflineMode && track.source != "youtube" && !isSpotify) {
             add(
                 DockOptionItem(
@@ -2687,11 +2705,10 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 viewModel.showConnectSheet = true
             }
         )
-        val activeTogetherCode by com.alananasss.kittytune.data.together.Together.active.collectAsState()
         add(
             DockOptionItem(
-                if (activeTogetherCode != null) Icons.Rounded.Podcasts else Icons.Rounded.Groups,
-                stringResource(if (activeTogetherCode != null) R.string.together_live_title else R.string.together_listen),
+                if (togetherCode != null) Icons.Rounded.Podcasts else Icons.Rounded.Groups,
+                stringResource(if (togetherCode != null) R.string.together_live_title else R.string.together_listen),
                 id = "listen_together"
             ) {
                 viewModel.showMenuSheet = false

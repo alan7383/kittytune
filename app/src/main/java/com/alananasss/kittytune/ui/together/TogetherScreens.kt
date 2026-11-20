@@ -826,7 +826,7 @@ internal fun ListeningBars(
     }
 }
 
-private fun copyCode(context: Context, code: String) {
+internal fun copyCode(context: Context, code: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     clipboard.setPrimaryClip(ClipData.newPlainText("KittyTune", TogetherWire.displayCode(code)))
     Toast.makeText(context, context.getString(R.string.together_code_copied), Toast.LENGTH_SHORT).show()
@@ -1443,11 +1443,19 @@ private fun RoomExpressiveHeroCard(
                         )
                         Icon(
                             imageVector = Icons.Rounded.ContentCopy,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.together_copy_code),
                             tint = cs.onSecondaryContainer,
                             modifier = Modifier.size(15.dp),
                         )
                     }
+                }
+                TogetherInviteQrButton(room.code)
+            }
+
+            if (isListening) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TogetherReactionButton(roomCode = room.code)
+                    TogetherSyncBadge(roomCode = room.code)
                 }
             }
 
