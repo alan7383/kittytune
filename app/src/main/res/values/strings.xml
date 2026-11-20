@@ -992,11 +992,11 @@
 <string name="pref_feed_animated_covers">Animated covers (Apple Music)</string>
 <string name="pref_feed_animated_covers_desc">Play Apple Music motion artwork on the active feed card</string>
 <string name="pref_feed_spotify_canvas">Spotify Canvas</string>
-<string name="pref_feed_spotify_canvas_desc">Vertical canvas loops for tracks, works without a Spotify account</string>
+<string name="pref_feed_spotify_canvas_desc">Vertical canvas loops for tracks</string>
 <string name="pref_feed_youtube_samples">YouTube Samples</string>
 <string name="pref_feed_youtube_samples_desc">Auto-cut 15-30 second clips from official videos, cropped to 9:16 and looped</string>
     <string name="pref_feed_official_only">Official artists only</string>
-    <string name="pref_feed_official_only_desc">Show only tracks from official artists: verified or Pro accounts and releases with an ISRC</string>
+    <string name="pref_feed_official_only_desc">Show only tracks from official artists: verified or Pro accounts</string>
 <string name="pref_feed_visual_priority">Visual priority</string>
 <string name="pref_feed_visual_priority_desc">Drag to choose which source is used first and which are fallbacks</string>
 <string name="dialog_feed_priority_title">Feed visual priority</string>
@@ -3732,8 +3732,8 @@
 <string name="wave_pause_solid">Collapse into a solid line</string>
 <string name="pref_inline_lyrics_side_title">Lyrics position</string>
 <string name="pref_inline_lyrics_side_subtitle">Applies in landscape to the Pixel, KittyTune Modern and Classic players</string>
-<string name="inline_lyrics_side_left">Left — instead of the cover</string>
-<string name="inline_lyrics_side_right">Right — instead of the controls</string>
+<string name="inline_lyrics_side_left">Left - instead of the cover</string>
+<string name="inline_lyrics_side_right">Right - instead of the controls</string>
 <string name="game_eat_playlist">Eat this playlist</string>
 <string name="game_wave_title">Eat the wave</string>
 <string name="game_score">Eaten: %1$d</string>
@@ -3776,7 +3776,7 @@
 <string name="diag_equalizer">Equalizer</string>
 <string name="diag_eq_off">Bypassed (off)</string>
 <string name="diag_eq_active">Active (%1$d bands)</string>
-<string name="diag_eq_active_bp">Active — disable it for Bit-Perfect</string>
+<string name="diag_eq_active_bp">Active - disable it for Bit-Perfect</string>
 <string name="diag_normalizer">Loudness (EBU R128)</string>
 <string name="diag_norm_off">Off</string>
 <string name="diag_norm_on">On · target %1$s</string>
