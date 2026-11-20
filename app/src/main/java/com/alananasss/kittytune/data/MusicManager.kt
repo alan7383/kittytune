@@ -722,15 +722,25 @@ object MusicManager {
         val tieredCacheDataSourceFactory = androidx.media3.datasource.DataSource.Factory {
             val downloadSource = downloadCacheFactory.createDataSource()
             val playbackSource = playbackCacheFactory.createDataSource()
+            val directSource = deezerAwareDataSourceFactory.createDataSource()
             object : androidx.media3.datasource.DataSource {
                 private var currentSource: androidx.media3.datasource.DataSource = playbackSource
 
                 override fun addTransferListener(transferListener: androidx.media3.datasource.TransferListener) {
                     downloadSource.addTransferListener(transferListener)
                     playbackSource.addTransferListener(transferListener)
+                    directSource.addTransferListener(transferListener)
                 }
 
                 override fun open(dataSpec: androidx.media3.datasource.DataSpec): Long {
+                    // Local and already-downloaded media (content:// or a plain file): the bytes
+                    // live on the device already, so a cached copy would only duplicate storage.
+                    // Open these straight from the source instead of through either cache.
+                    val scheme = dataSpec.uri.scheme
+                    if (scheme == "content" || scheme == "file") {
+                        currentSource = directSource
+                        return currentSource.open(dataSpec)
+                    }
                     val key = dataSpec.key ?: dataSpec.uri.toString()
                     val isDownloaded = try {
                         downloadCache.keys.contains(key)

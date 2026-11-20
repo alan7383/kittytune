@@ -8200,8 +8200,11 @@ query CommentsWithReactions(
             val bitmap = loadBitmap(track.fullResArtwork)
             if (bitmap != null) {
                 try {
-                    val artFile = File(context.filesDir, "art_${track.id}.jpg")
+                    // Regenerable from the track's artwork at any time, so it lives in the cache:
+                    // clearable, and it cannot pile up in the permanent app storage.
+                    val artFile = com.alananasss.kittytune.utils.PlayerArtworkCache.cacheFile(context, track.id)
                     if (!artFile.exists()) {
+                        artFile.parentFile?.mkdirs()
                         artFile.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out) }
                     }
                 } catch (e: Exception) {

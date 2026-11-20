@@ -588,10 +588,10 @@ class TransitionPreviewPlayer(
             .setConnectTimeoutMs(15_000)
             .setReadTimeoutMs(15_000)
 
-        val cacheFactory = CacheDataSource.Factory()
-            .setCache(ExoCacheManager.getCache(context))
-            .setUpstreamDataSourceFactory(DefaultDataSource.Factory(context, httpFactory))
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        val cacheFactory = ExoCacheManager.getAnalysisCacheFactory(
+            context,
+            DefaultDataSource.Factory(context, httpFactory),
+        )
 
         val token = stream.licenseAuthToken
         // The same offline/streaming split the beat decoder uses: a pre-provisioned offline
