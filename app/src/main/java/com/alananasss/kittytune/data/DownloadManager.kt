@@ -165,7 +165,7 @@ object DownloadManager {
                     !com.alananasss.kittytune.domain.hasExternalIdentity(null, track.permalinkUrl) &&
                     !track.artworkUrl.startsWith("http") &&
                     (track.localArtworkPath.isEmpty() || !File(track.localArtworkPath).exists() || File(track.localArtworkPath).length() == 0L)
-|||                }
+                }
 
                 if (brokenTracks.isNotEmpty()) {
                     val chunks = brokenTracks.chunked(50)
@@ -521,7 +521,7 @@ object DownloadManager {
         scope.launch {
             val trackToSave = if (track.isSoundCloudCatalogTrack &&
                 (track.title.isNullOrBlank() || track.user == null || ((track.isGoPlus || track.isSnipped || (track.durationMs != null && track.durationMs in 1..45000L)) && track.fullDuration == null))) {
-|||                try {
+                try {
                     val fetched = api.getTracksByIds(track.id.toString())
                     if (fetched.isNotEmpty()) fetched[0] else track
                 } catch (_: Exception) { track }
@@ -1364,7 +1364,7 @@ object DownloadManager {
             (it.title.isNullOrBlank() || it.user == null || it.media == null ||
              (it.durationMs != null && it.durationMs in 1..45000L && it.fullDuration == null) ||
              ((it.isGoPlus || it.isSnipped) && it.fullDuration == null))
-|||        }.map { it.id }.distinct()
+        }.map { it.id }.distinct()
 
         if (incompleteIds.isEmpty()) return tracks
 
