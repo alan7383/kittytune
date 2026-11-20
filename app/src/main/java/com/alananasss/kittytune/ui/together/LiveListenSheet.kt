@@ -29,7 +29,6 @@ import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Headphones
-import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Podcasts
 import androidx.compose.material.icons.rounded.Refresh
@@ -278,15 +277,19 @@ fun LiveListenSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Surface(shape = CircleShape, color = cs.primaryContainer) {
+                        Surface(
+                            onClick = hapticAction(HapticKind.UI) { copyCode(context, code) },
+                            shape = CircleShape,
+                            color = cs.primaryContainer,
+                        ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.Link,
-                                    contentDescription = null,
+                                    imageVector = Icons.Rounded.ContentCopy,
+                                    contentDescription = stringResource(R.string.together_copy_code),
                                     tint = cs.onPrimaryContainer,
                                     modifier = Modifier.size(16.dp),
                                 )
@@ -298,6 +301,7 @@ fun LiveListenSheet(
                                 )
                             }
                         }
+                        TogetherInviteQrButton(code)
                     }
                     Text(
                         text = inviteUrl,

@@ -4,14 +4,15 @@ import java.text.Normalizer
 import java.util.Locale
 import kotlin.math.abs
 
-/** Matches a recording's identity before using its duration to break ties (issue #76). */
-internal object YoutubeFallbackMatcher {
+/** Checks recording identity before ranking cross-catalog playback matches by duration. */
+object YoutubeFallbackMatcher {
     data class Recording(
         val title: String,
         val artist: String,
         val durationSec: Long,
         val restricted: Boolean = false,
         val snippetDuration: Boolean = false,
+        val artists: List<String> = emptyList(),
     )
 
     data class Candidate(
@@ -27,7 +28,14 @@ internal object YoutubeFallbackMatcher {
     )
     private val brackets = Regex("\\[([^]]*)]|\\(([^)]*)\\)")
     private val separators = Regex("\\s+[-–—|:]\\s+")
-    private val features = Regex("(?i)\\s*(?:\\(|\\[)(?:feat\\.?|ft\\.?|featuring)\\s+[^)\\]]*(?:\\)|\\])|\\s+(?:feat\\.?|ft\\.?|featuring)\\s+.*$")
+    private val featured = Regex("(?i)^(?:feat\\.?|ft\\.?|featuring|with)\\s+(.+)$")
+    private val trailingFeature = Regex("(?i)\\s+(?:feat\\.?|ft\\.?|featuring)\\s+(.+)$")
+    private val artistSeparators = Regex("(?i)\\s*,\\s*|\\s+[&+]\\s+|\\s+(?:and|x|feat\\.?|ft\\.?|featuring|with)\\s+")
+    private val soundtrack = Regex(
+        "(?i)^from\\s+(?:the\\s+)?(?:series|film|movie|motion picture|original soundtrack|soundtrack)\\b.*$"
+    )
+    private val channelSuffix = Regex("(?i)\\s*[-–—]\\s*topic$|\\s*vevo$")
+    private val trailingLabel = Regex("(?i)\\s+(?:[-–—|:]\\s*)?(?:${noise.pattern})(?:\\s+${noise.pattern})*$")
     private val editions = mapOf(
         "remix" to Regex("\\bremix(?:ed)?\\b"),
         "live" to Regex("\\blive\\b"),
@@ -39,98 +47,139 @@ internal object YoutubeFallbackMatcher {
         "extended" to Regex("\\bextended\\b"),
         "radio edit" to Regex("\\bradio edit\\b"),
         "remaster" to Regex("\\bremaster(?:ed)?\\b"),
+        "opening title" to Regex("\\bopening title\\b"),
         "8d" to Regex("\\b8d\\b"),
         "preview" to Regex("\\bpreview\\b|\\bteaser\\b|\\bsnippet\\b|\\btrailer\\b"),
     )
 
-    /** Remove presentation labels; retain remix, featured artist, and recording information. */
+    /** Remove presentation labels and soundtrack subtitles while preserving recording editions. */
     fun searchTitle(title: String?): String {
-        val raw = title.orEmpty().trim()
-        val cleaned = brackets.replace(raw) { match ->
-            val inside = match.groupValues.drop(1).firstOrNull { it.isNotEmpty() }.orEmpty().trim()
-            if (inside.isBlank() || noise.replace(inside, "").trim().isBlank()) "" else match.value
+        val cleaned = brackets.replace(title.orEmpty().trim()) { match ->
+            val inside = match.innerText()
+            if (inside.isBlank() || noise.replace(inside, "").trim().isBlank() || soundtrack.matches(inside)) {
+                ""
+            } else {
+                match.value
+            }
         }.trim(' ', '-', '_', '/', '|', ':')
-        if (cleaned.isNotBlank()) {
-            return if (brackets.matches(cleaned)) cleaned.substring(1, cleaned.lastIndex).trim() else cleaned
-        }
-        // A bracket-only real title such as [Intro] is still searchable; a noise-only label isn't.
-        return ""
+        val parts = cleaned.split(separators)
+        val subtitle = parts.indexOfFirst { soundtrack.matches(it) }
+        val name = if (subtitle > 0) parts.take(subtitle).joinToString(" - ") else cleaned
+        return if (brackets.matches(name)) name.substring(1, name.lastIndex).trim() else name
     }
 
     fun queries(recording: Recording): List<String> {
         val title = searchTitle(recording.title)
         if (title.isBlank()) return emptyList()
-        val artist = recording.artist.trim()
+        val artist = artistNames(recording).firstOrNull().orEmpty()
         val primary = "$title $artist".trim()
         return listOf(primary, "$primary audio").distinct()
     }
 
-    fun match(recording: Recording, candidates: List<Candidate>): Candidate? {
-        val requested = titleKey(recording.title, recording.artist)
-        if (requested.isBlank()) return null
-        val requestedWords = requested.split(' ').toSet()
-        val requestedEditions = editionKeys(requested)
-        val wantedArtist = artistKey(recording.artist)
+    /** Optional guard for catalog queries also used outside playback. */
+    internal fun matches(
+        recording: Recording?,
+        title: String,
+        artists: List<String>,
+        durationMs: Long?,
+        album: String?,
+        exactIsrc: Boolean = false,
+    ): Boolean {
+        if (recording == null) return true
+        val durationSec = (durationMs ?: 0L) / 1000
+        if (exactIsrc) {
+            return when {
+                durationSec <= 0 -> true
+                recording.snippetDuration -> durationSec > 45
+                recording.durationSec <= 0 -> true
+                else -> abs(recording.durationSec - durationSec) <= if (recording.restricted) 60 else 25
+            }
+        }
+        return match(recording, listOf(Candidate("", title, artists, durationSec, album.orEmpty()))) != null
+    }
+
+    fun match(recording: Recording, candidates: List<Candidate>): Candidate? =
+        rankedMatches(recording, candidates).firstOrNull()
+
+    fun rankedMatches(recording: Recording, candidates: List<Candidate>): List<Candidate> {
+        val artists = artistNames(recording)
+        val leadArtist = artists.firstOrNull()?.let(::artistKey)?.takeIf { it.isNotBlank() } ?: return emptyList()
+        val wanted = describeTitle(recording.title, leadArtist)
+        if (wanted.key.isBlank()) return emptyList()
+
+        val wantedWords = wanted.key.split(' ').toSet()
+        val wantedEditions = editionKeys(wanted.key)
+        val knownArtists = artists.flatMapTo(mutableSetOf(), ::artistKeys) + wanted.guests
+        val durationKnown = recording.durationSec > 0 && !recording.snippetDuration
+
         return candidates.mapNotNull { candidate ->
-            val title = titleKey(candidate.title, recording.artist)
-            if (title.isBlank()) return@mapNotNull null
-            // Album metadata sometimes carries a remix name missing from the song's title.
+            val title = describeTitle(candidate.title, leadArtist)
+            if (title.key.isBlank()) return@mapNotNull null
+            val candidateArtists = candidate.artists.flatMapTo(mutableSetOf(), ::artistKeys) + title.byline
+            if (leadArtist !in candidateArtists) return@mapNotNull null
+            if (!(candidateArtists + title.guests).containsAll(wanted.guests)) return@mapNotNull null
+            if (!knownArtists.containsAll(title.guests)) return@mapNotNull null
+
+            // Some catalogs put the named remix on the album rather than the track title.
             val album = normalize(candidate.album)
-            val albumIdentifiesSong = album.split(' ').toSet().containsAll(requestedWords)
-            val editionText = if (editionKeys(title).isEmpty() && albumIdentifiesSong) "$title $album" else title
-            if (editionKeys(editionText) != requestedEditions) return@mapNotNull null
-            val identityTitle = if (requestedEditions.isNotEmpty() && editionKeys(title) != requestedEditions) editionText else title
+            val albumIdentifiesSong = album.split(' ').toSet().containsAll(wantedWords)
+            val editionText = if (editionKeys(title.key).isEmpty() && albumIdentifiesSong) "${title.key} $album" else title.key
+            if (editionKeys(editionText) != wantedEditions) return@mapNotNull null
+            val identityTitle = if (wantedEditions.isNotEmpty() && editionKeys(title.key) != wantedEditions) editionText else title.key
+
             val titleWords = identityTitle.split(' ').toSet()
-            val matchingWords = requestedWords.intersect(titleWords).size.toDouble()
-            val recall = matchingWords / requestedWords.size
+            val matchingWords = wantedWords.intersect(titleWords).size.toDouble()
+            val recall = matchingWords / wantedWords.size
             val precision = matchingWords / titleWords.size
-            val compactExact = identityTitle.replace(" ", "") == requested.replace(" ", "")
-            if (!compactExact && (recall < 0.85 || precision < 0.70)) return@mapNotNull null
+            val exactTitle = identityTitle.replace(" ", "") == wanted.key.replace(" ", "")
+            if (!exactTitle && (recall < 0.85 || precision < 0.70)) return@mapNotNull null
 
-            val artistMatches = wantedArtist.isBlank() || candidate.artists.any { sameArtist(wantedArtist, artistKey(it)) } ||
-                sameArtist(wantedArtist, artistKey(candidate.artists.joinToString(" "))) ||
-                artistMentioned(candidate.title, wantedArtist)
-            if (!artistMatches) return@mapNotNull null
-
-            val durationKnown = recording.durationSec > 0 && !recording.snippetDuration
             val delta = abs(candidate.durationSec - recording.durationSec)
             if (durationKnown && candidate.durationSec > 0 && delta > if (recording.restricted) 60 else 25) return@mapNotNull null
             if (recording.snippetDuration && candidate.durationSec in 1..45) return@mapNotNull null
-            val identityScore = if (compactExact) 2.0 else recall + precision / 2
-            // An unknown candidate duration is usable only after title, artist, and edition matched.
+            val identityScore = if (exactTitle) 2.0 else recall + precision / 2
             val durationScore = if (candidate.durationSec <= 0) -1.0 else if (!durationKnown) 0.0 else -delta / 1000.0
             Triple(candidate, identityScore, durationScore)
-        }.maxWithOrNull(compareBy<Triple<Candidate, Double, Double>> { it.second }.thenBy { it.third })?.first
+        }.sortedWith(compareByDescending<Triple<Candidate, Double, Double>> { it.second }.thenByDescending { it.third })
+            .map { it.first }
     }
+
+    private data class Title(val key: String, val guests: Set<String>, val byline: Set<String>)
+
+    private fun describeTitle(title: String, leadArtist: String): Title {
+        val guests = mutableSetOf<String>()
+        val cleaned = brackets.replace(searchTitle(title)) { match ->
+            val credit = featured.matchEntire(match.innerText()) ?: return@replace match.value
+            guests.addAll(credit.groupValues[1].split(artistSeparators).map(::artistKey).filter { it.isNotBlank() })
+            ""
+        }.trim()
+        val parts = cleaned.split(separators)
+        val byline = when {
+            parts.size > 1 && leadArtist in artistKeys(parts.first()) -> artistKeys(parts.first()) to parts.drop(1)
+            parts.size > 1 && leadArtist in artistKeys(parts.last()) -> artistKeys(parts.last()) to parts.dropLast(1)
+            else -> emptySet<String>() to parts
+        }
+        val songName = trailingFeature.replace(byline.second.joinToString(" - ")) { match ->
+            guests.addAll(match.groupValues[1].split(artistSeparators).map(::artistKey).filter { it.isNotBlank() })
+            ""
+        }.trim()
+        return Title(normalize(songName.replace(trailingLabel, "")), guests, byline.first)
+    }
+
+    private fun MatchResult.innerText(): String = groupValues.drop(1).firstOrNull { it.isNotEmpty() }.orEmpty().trim()
+
+    private fun artistNames(recording: Recording): List<String> =
+        recording.artists.filter { it.isNotBlank() }.ifEmpty {
+            listOf(recording.artist.trim()).filter { it.isNotBlank() }
+        }.filterNot { it.equals("Unknown Artist", ignoreCase = true) }
 
     private fun editionKeys(text: String): Set<String> = editions.filterValues { it.containsMatchIn(text) }.keys
 
-    private fun titleKey(title: String, artist: String): String {
-        val cleaned = searchTitle(title).replace(features, "")
-        val parts = cleaned.split(separators)
-        val withoutArtist = when {
-            parts.size > 1 && sameArtist(artistKey(artist), artistKey(parts.first())) -> parts.drop(1).joinToString(" - ")
-            parts.size > 1 && sameArtist(artistKey(artist), artistKey(parts.last())) -> parts.dropLast(1).joinToString(" - ")
-            else -> cleaned
-        }
-        // Unbracketed presentation labels occur at the end of video names; keep real titles like Audio.
-        val trailingLabel = Regex("(?i)\\s+(?:[-–—|:]\\s*)?(?:${noise.pattern})(?:\\s+${noise.pattern})*$")
-        return normalize(withoutArtist.replace(trailingLabel, ""))
-    }
+    private fun artistKeys(value: String): Set<String> =
+        (listOf(value) + value.split(artistSeparators)).map(::artistKey).filter { it.isNotBlank() }.toSet()
 
-    private fun artistKey(value: String): String = normalize(value)
-        .replace(Regex("\\b(?:topic|official|vevo|music|records|and)\\b"), "")
+    private fun artistKey(value: String): String = normalize(value.trim().replace(channelSuffix, ""))
         .replace(" ", "")
-
-    private fun sameArtist(expected: String, actual: String): Boolean = expected.isNotBlank() &&
-        (expected == actual || (expected.length >= 4 && actual == expected + "vevo"))
-
-    private fun artistMentioned(title: String, expected: String): Boolean {
-        if (expected.isBlank()) return false
-        // A video uploaded by a label can identify its artist in its title instead of its channel.
-        val parts = title.split(separators)
-        return parts.size > 1 && (sameArtist(expected, artistKey(parts.first())) || sameArtist(expected, artistKey(parts.last())))
-    }
 
     private fun normalize(value: String): String = Normalizer.normalize(value, Normalizer.Form.NFKD)
         .replace(Regex("\\p{M}+"), "").lowercase(Locale.ROOT)

@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.audio.providers.qobuz
 
+import com.alananasss.kittytune.data.YoutubeFallbackMatcher
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -49,6 +50,7 @@ object QobuzAudioProvider {
         val customInstances: String? = null,
         val userAuthToken: String? = null,
         val allowPreview: Boolean = false,
+        val recording: YoutubeFallbackMatcher.Recording? = null,
     )
 
     data class Resolved(
@@ -119,7 +121,9 @@ object QobuzAudioProvider {
         return normalized.takeIf { it.matches(Regex("[A-Z]{2}")) } ?: "US"
     }
 
-    fun resolve(query: Query): Resolved {
+    fun resolve(query: Query): Resolved = resolve(query, CATALOG_API_BASE)
+
+    internal fun resolve(query: Query, catalogBase: String): Resolved {
         val resolverRegion = normalizeResolverRegion(query.countryCode)
         val streamCacheKey = query.cacheKey(resolverRegion)
         val now = System.currentTimeMillis()
@@ -133,7 +137,7 @@ object QobuzAudioProvider {
             query.toDirectMatchedTrack(directTrackId)
         } else {
             trackCache[trackCacheKey]
-                ?: findBestTrack(query)
+                ?: findBestTrack(query, catalogBase)
                     ?.also { trackCache[trackCacheKey] = it }
                 ?: throw QobuzResolutionException("Qobuz match not found for ${query.title}")
         }
@@ -142,6 +146,7 @@ object QobuzAudioProvider {
         for (quality in buildQualityFallbackOrder(query.qualityCode)) {
             if (!query.userAuthToken.isNullOrBlank()) {
                 val officialAttempt = requestOfficialStream(
+                    catalogBase = catalogBase,
                     track = track,
                     qualityCode = quality,
                     userAuthToken = query.userAuthToken,
@@ -197,9 +202,9 @@ object QobuzAudioProvider {
         return results.values.toList()
     }
 
-    private fun findBestTrack(query: Query): MatchedTrack? {
+    private fun findBestTrack(query: Query, catalogBase: String): MatchedTrack? {
         for (term in searchTerms(query)) {
-            raceBestTrack(term, query)?.let { return it }
+            raceBestTrack(term, query, catalogBase)?.let { return it }
         }
         return null
     }
@@ -223,8 +228,9 @@ object QobuzAudioProvider {
     private fun raceBestTrack(
         term: String,
         query: Query,
+        catalogBase: String,
     ): MatchedTrack? {
-        searchOfficialTracks(term, query.countryCode, query.userAuthToken)
+        searchOfficialTracks(term, query.countryCode, query.userAuthToken, catalogBase)
             ?.let { selectBestTrack(it, query) }
             ?.let { return it }
         return raceFirstNotNull(
@@ -241,8 +247,9 @@ object QobuzAudioProvider {
         term: String,
         countryCode: String,
         userAuthToken: String? = null,
+        catalogBase: String = CATALOG_API_BASE,
     ): JSONArray? {
-        val url = "$CATALOG_API_BASE/track/search".toHttpUrlOrNull()
+        val url = "$catalogBase/track/search".toHttpUrlOrNull()
             ?.newBuilder()
             ?.addQueryParameter("query", term)
             ?.addQueryParameter("limit", "20")
@@ -284,6 +291,7 @@ object QobuzAudioProvider {
     }
 
     private fun requestOfficialStream(
+        catalogBase: String,
         track: MatchedTrack,
         qualityCode: Int,
         userAuthToken: String?,
@@ -295,6 +303,7 @@ object QobuzAudioProvider {
         }
 
         val webAttempt = requestOfficialStreamWithApp(
+            catalogBase = catalogBase,
             appId = WEB_APP_ID,
             appSecret = WEB_APP_SECRET,
             track = track,
@@ -307,6 +316,7 @@ object QobuzAudioProvider {
         if (webAttempt.resolved != null) return webAttempt
 
         return requestOfficialStreamWithApp(
+            catalogBase = catalogBase,
             appId = OFFICIAL_APP_ID,
             appSecret = OFFICIAL_APP_SECRET,
             track = track,
@@ -319,6 +329,7 @@ object QobuzAudioProvider {
     }
 
     private fun requestOfficialStreamWithApp(
+        catalogBase: String,
         appId: String,
         appSecret: String,
         track: MatchedTrack,
@@ -332,7 +343,7 @@ object QobuzAudioProvider {
         val payload = "trackgetFileUrlformat_id${qualityCode}intentstreamtrack_id${track.trackId}${ts}${appSecret}"
         val sig = md5(payload)
 
-        val url = "$CATALOG_API_BASE/track/getFileUrl".toHttpUrlOrNull()
+        val url = "$catalogBase/track/getFileUrl".toHttpUrlOrNull()
             ?.newBuilder()
             ?.addQueryParameter("format_id", qualityCode.toString())
             ?.addQueryParameter("intent", "stream")
@@ -527,6 +538,20 @@ object QobuzAudioProvider {
             val candidateIsrc = obj.stringOrNull("isrc")?.trim()?.uppercase(Locale.US).orEmpty()
             val candidateDuration = obj.intOrNull("duration")
             val candidateArtists = collectArtistNames(obj).map { it.normalized() }.filter { it.isNotBlank() }
+            val reportedTitle = obj.stringOrNull("title").orEmpty()
+            val version = obj.stringOrNull("version")
+            val title = if (version.isNullOrBlank() || reportedTitle.contains(version, ignoreCase = true)) {
+                reportedTitle
+            } else {
+                "$reportedTitle ($version)"
+            }
+            if (!YoutubeFallbackMatcher.matches(
+                    query.recording, title, collectArtistNames(obj), candidateDuration?.toLong()?.times(1000L),
+                    obj.optJSONObject("album")?.stringOrNull("title"),
+                    exactIsrc = wantedIsrc.isNotBlank() && candidateIsrc == wantedIsrc,
+                )
+            ) continue
+
             val hires = obj.optBoolean("hires", false)
             val bitDepth = obj.intOrNull("maximum_bit_depth")
             val samplingRate = obj.doubleOrNull("maximum_sampling_rate")

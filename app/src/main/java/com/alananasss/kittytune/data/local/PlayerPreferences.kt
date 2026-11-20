@@ -460,6 +460,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_AUDIO_QUALITY = "audio_quality_pref"
         private const val KEY_PERSISTENT_QUEUE = "persistent_queue_enabled"
         private const val KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP = "queue_preserve_upcoming_on_jump"
+        private const val KEY_KEEP_PLAYED_TRACKS_VISIBLE = "keep_played_tracks_visible"
         private const val KEY_QUEUE_AUTO_ARCHIVE = "queue_auto_archive"
         private const val KEY_START_DESTINATION = "start_destination_pref"
         const val KEY_DYNAMIC_THEME = "dynamic_theme_enabled"
@@ -724,6 +725,7 @@ class PlayerPreferences(context: Context) {
         const val KEY_INSTANT_SKIP_SILENCE = "instant_skip_silence"
         const val KEY_RESUME_ON_BLUETOOTH = "resume_on_bluetooth_connect"
         const val KEY_PAUSE_ON_MUTE = "pause_on_mute"
+        const val KEY_RESUME_ON_UNMUTE = "resume_on_unmute"
         const val KEY_PAUSE_ON_AUDIO_FOCUS_LOSS = "pause_on_audio_focus_loss"
         const val KEY_KEEP_SCREEN_ON = "keep_screen_on_player"
         const val KEY_PAUSE_LISTEN_HISTORY = "pause_listen_history"
@@ -1251,6 +1253,8 @@ class PlayerPreferences(context: Context) {
 
     fun getPauseOnMute(): Boolean = prefs.getBoolean(KEY_PAUSE_ON_MUTE, false)
     fun setPauseOnMute(enabled: Boolean) = prefs.edit { putBoolean(KEY_PAUSE_ON_MUTE, enabled) }
+    fun getResumeOnUnmute(): Boolean = prefs.getBoolean(KEY_RESUME_ON_UNMUTE, true)
+    fun setResumeOnUnmute(enabled: Boolean) = prefs.edit { putBoolean(KEY_RESUME_ON_UNMUTE, enabled) }
 
     fun getPauseOnAudioFocusLoss(): Boolean = prefs.getBoolean(KEY_PAUSE_ON_AUDIO_FOCUS_LOSS, true)
     fun setPauseOnAudioFocusLoss(enabled: Boolean) = prefs.edit { putBoolean(KEY_PAUSE_ON_AUDIO_FOCUS_LOSS, enabled) }
@@ -1888,6 +1892,18 @@ class PlayerPreferences(context: Context) {
     fun setQueueAutoArchiveEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_QUEUE_AUTO_ARCHIVE, enabled) }
     fun getQueuePreserveUpcomingOnJump(): Boolean = prefs.getBoolean(KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP, true)
     fun setQueuePreserveUpcomingOnJump(enabled: Boolean) = prefs.edit { putBoolean(KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP, enabled) }
+
+    fun getKeepPlayedTracksVisible(): Boolean = prefs.getBoolean(KEY_KEEP_PLAYED_TRACKS_VISIBLE, false)
+    fun setKeepPlayedTracksVisible(enabled: Boolean) = prefs.edit { putBoolean(KEY_KEEP_PLAYED_TRACKS_VISIBLE, enabled) }
+
+    fun keepPlayedTracksVisibleFlow(): Flow<Boolean> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_KEEP_PLAYED_TRACKS_VISIBLE || key == null) trySend(getKeepPlayedTracksVisible())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(getKeepPlayedTracksVisible())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     fun getKeyColor(): Int = prefs.getInt(KEY_KEY_COLOR, 0)
     fun setKeyColor(color: Int) = prefs.edit { putInt(KEY_KEY_COLOR, color) }

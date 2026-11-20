@@ -6,13 +6,13 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.ParcelFileDescriptor
+import androidx.activity.ComponentActivity
 import androidx.core.content.edit
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.alananasss.kittytune.MainActivity
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -29,7 +29,8 @@ import kotlin.math.sin
 
 @RunWith(AndroidJUnit4::class)
 class PlaybackAudioFocusDeviceTest {
-    @get:Rule val activityRule = ActivityScenarioRule(MainActivity::class.java)
+    // Stay in the foreground for audio focus without launching the player's saved-queue restoration.
+    @get:Rule val activityRule = ActivityScenarioRule(ComponentActivity::class.java)
 
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
@@ -111,7 +112,10 @@ class PlaybackAudioFocusDeviceTest {
             await("KittyTune pauses when another media client takes focus") { !isPlaying() }
             audio.abandonAudioFocusRequest(competitor)
 
-            instrumentation.runOnMainSync { MusicManager.player.play() }
+            instrumentation.runOnMainSync {
+                MusicManager.playWhenReadyRequested = true
+                MusicManager.player.play()
+            }
             await("KittyTune owns media focus again when playback starts") {
                 isPlaying() && hasAudioFocus(context.packageName)
             }
@@ -151,6 +155,59 @@ class PlaybackAudioFocusDeviceTest {
                 MusicManager.player.clearMediaItems()
             }
             if (originalSetting == null) stored.edit { remove(key) } else prefs.setPauseOnAudioFocusLoss(originalSetting)
+            tone.delete()
+        }
+    }
+
+    @Test fun mutePausesPlaybackAndUnmuteHonorsTheResumeSetting() {
+        val context = instrumentation.targetContext
+        val prefs = PlayerPreferences(context)
+        val audio = context.getSystemService(AudioManager::class.java)
+        val originalVolume = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
+        val audibleVolume = originalVolume.coerceAtLeast(1)
+        val originalPause = prefs.getPauseOnMute()
+        val originalResume = prefs.getResumeOnUnmute()
+        val tone = File(context.cacheDir, "pause-on-mute-test.wav")
+        writeTone(tone)
+        try {
+            prefs.setPauseOnMute(true)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, audibleVolume, 0)
+            instrumentation.runOnMainSync {
+                MusicManager.init(context)
+                context.startService(Intent(context, PlaybackService::class.java))
+                MusicManager.player.apply {
+                    setMediaItem(MediaItem.fromUri(tone.toURI().toString()))
+                    prepare()
+                }
+            }
+
+            for (resumeOnUnmute in listOf(false, true)) {
+                prefs.setResumeOnUnmute(resumeOnUnmute)
+                instrumentation.runOnMainSync { MusicManager.player.play() }
+                await("The fixture is playing before mute") { isPlaying() }
+
+                audio.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
+                await("Muting pauses the fixture in both modes") { !isPlaying() }
+                audio.setStreamVolume(AudioManager.STREAM_MUSIC, audibleVolume, 0)
+
+                if (resumeOnUnmute) {
+                    await("Playback resumes when configured") { isPlaying() }
+                } else {
+                    // Give the system volume broadcast time to reach the playback receiver.
+                    repeat(10) {
+                        Thread.sleep(100)
+                        assertFalse("Playback must stay paused when volume returns", isPlaying())
+                    }
+                }
+            }
+        } finally {
+            instrumentation.runOnMainSync {
+                MusicManager.player.stop()
+                MusicManager.player.clearMediaItems()
+            }
+            prefs.setPauseOnMute(originalPause)
+            prefs.setResumeOnUnmute(originalResume)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0)
             tone.delete()
         }
     }

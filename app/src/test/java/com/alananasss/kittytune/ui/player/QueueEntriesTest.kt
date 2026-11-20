@@ -21,6 +21,18 @@ class QueueEntriesTest {
         assertEquals(QueueListItem.PastHeader(7, true), items.first())
         assertEquals(queue.indices.toList(), items.filterIsInstance<QueueListItem.TrackItem>().map { it.queueIndex })
         assertEquals(1, items.filterIsInstance<QueueListItem.PastHeader>().size)
+        assertTrue(items.filterIsInstance<QueueListItem.TrackItem>().none { it.isCompact })
+    }
+
+    @Test fun `keeping past tracks visible compacts only the played rows until expanded`() {
+        for (current in queue.indices) {
+            val collapsed = queueListItems(queue, current, false, keepPlayedTracksVisible = true)
+            val expanded = queueListItems(queue, current, true, keepPlayedTracksVisible = true)
+            val rows = collapsed.filterIsInstance<QueueListItem.TrackItem>()
+            assertEquals(queue.indices.toList(), rows.map { it.queueIndex })
+            assertEquals((0 until current).toList(), rows.filter { it.isCompact }.map { it.queueIndex })
+            assertEquals(rows.map { it.copy(isCompact = false) }, expanded.filterIsInstance<QueueListItem.TrackItem>())
+        }
     }
 
     @Test fun `short history is visible below its header`() {

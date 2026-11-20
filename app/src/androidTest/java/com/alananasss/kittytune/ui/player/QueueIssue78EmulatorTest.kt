@@ -1,8 +1,10 @@
 package com.alananasss.kittytune.ui.player
 
 import androidx.activity.compose.setContent
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.lifecycle.ViewModelProvider
@@ -18,6 +20,7 @@ import com.alananasss.kittytune.data.local.LocalTrack
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
+import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import com.alananasss.kittytune.ui.profile.AudioPlaybackSettingsScreen
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -30,6 +33,7 @@ import java.nio.ByteOrder
 
 /** Production queue menus, persisted settings and real local-file playback (issue #78). */
 @RunWith(AndroidJUnit4::class)
+@OptIn(ExperimentalMaterial3Api::class)
 class QueueIssue78EmulatorTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -52,7 +56,9 @@ class QueueIssue78EmulatorTest {
 
     private fun menuNext(index: Int) {
         main { vm.showTrackOptions(vm.queue[index], fromPlayer = true, queueIndex = index) }
-        compose.onNodeWithText(context.getString(R.string.menu_play_next)).performClick()
+        compose.onNodeWithText(context.getString(R.string.menu_play_next))
+            .assertIsDisplayed()
+            .performSemanticsAction(SemanticsActions.OnClick)
         compose.waitForIdle()
     }
 
@@ -90,7 +96,11 @@ class QueueIssue78EmulatorTest {
                         if (settings) AudioPlaybackSettingsScreen({}, vm)
                         else {
                             ExpandedQueueScreen(vm, {})
-                            if (vm.showMenuSheet) MenuSheetContent(vm)
+                            if (vm.showMenuSheet) {
+                                KittyModalBottomSheet(onDismissRequest = { vm.showMenuSheet = false }) {
+                                    MenuSheetContent(vm)
+                                }
+                            }
                         }
                     }
                 }
@@ -131,7 +141,9 @@ class QueueIssue78EmulatorTest {
             compose.runOnIdle { assertFalse(LikeRepository.isTrackLiked(tracks[1].id)) }
             main { vm.showMenuSheet = false; settings = true; vm.toggleQueuePreserveUpcoming(true) }
             // The visible setting changes both the live behavior and the persisted preference.
-            compose.onNodeWithText(context.getString(R.string.pref_queue_preserve_upcoming)).performClick()
+            val preserveUpcoming = hasText(context.getString(R.string.pref_queue_preserve_upcoming)) and hasClickAction()
+            compose.onNode(hasScrollAction()).performScrollToNode(preserveUpcoming)
+            compose.onNode(preserveUpcoming).assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick)
             compose.runOnIdle {
                 assertFalse(vm.isQueuePreserveUpcomingEnabled)
                 assertFalse(prefs.getQueuePreserveUpcomingOnJump())

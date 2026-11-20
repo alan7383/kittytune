@@ -98,7 +98,7 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.alananasss.kittytune.data.network.ProxyManager
-import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
+import com.alananasss.kittytune.data.YoutubeAudioResolver
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.common.HapticKind
@@ -287,19 +287,7 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                 val req = chain.request()
                 val url = req.url.toString()
                 val builder = req.newBuilder()
-                if (url.contains("googlevideo.com") || url.contains("youtube.com")) {
-                    val ua = if (YoutubeParsingHelper.isAndroidStreamingUrl(url)) {
-                        YoutubeParsingHelper.getAndroidUserAgent(null)
-                    } else if (YoutubeParsingHelper.isVisionOsStreamingUrl(url)) {
-                        YoutubeParsingHelper.getVisionOsUserAgent(null)
-                    } else {
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                    }
-                    builder.header("User-Agent", ua)
-                    builder.header("Accept", "*/*")
-                    builder.header("Origin", "https://www.youtube.com")
-                    builder.header("Referer", "https://www.youtube.com/")
-                }
+                YoutubeAudioResolver.requestHeaders(url).forEach { (name, value) -> builder.header(name, value) }
                 chain.proceed(builder.build())
             }
             .build()

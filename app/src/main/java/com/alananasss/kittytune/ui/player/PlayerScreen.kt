@@ -99,6 +99,7 @@ import com.alananasss.kittytune.ui.player.slider.SquigglySlider
 import com.alananasss.kittytune.ui.player.slider.rememberMixTransition
 import com.alananasss.kittytune.ui.player.slider.mixGlow
 import com.alananasss.kittytune.domain.Comment
+import com.alananasss.kittytune.data.spotify.spotifyCatalogTrackId
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
 import com.alananasss.kittytune.domain.getHighResAvatarUrl
@@ -1328,7 +1329,8 @@ fun NewPlayerScreen(
                     val progressHeight = if (isWaveform) 176.dp else 44.dp
                     val controlsHeight = 126.dp
                     val fixedSpacersHeight = 8.dp + 14.dp
-                    val minFlexibleSpacers = 4.dp + 8.dp + 16.dp // top + middle + bottom = 28.dp
+                    val minDetailsToProgressGap = 8.dp
+                    val minFlexibleSpacers = 4.dp + minDetailsToProgressGap + 16.dp
 
                     val totalRequiredExceptCover = headerHeight + lyricsAboveTitleHeight +
                         titleArtistHeight + progressHeight + controlsHeight +
@@ -1337,6 +1339,8 @@ fun NewPlayerScreen(
                     val maxArtworkWidth = (totalWidth - 48.dp).coerceAtLeast(0.dp)
                     val maxArtworkHeight = (totalHeight - totalRequiredExceptCover).coerceAtLeast(160.dp)
                     val artworkSize = minOf(maxArtworkWidth, maxArtworkHeight)
+                    val spareHeight = (totalHeight - totalRequiredExceptCover - artworkSize).coerceAtLeast(0.dp)
+                    val detailsToProgressGap = minDetailsToProgressGap + (spareHeight / 4).coerceAtMost(16.dp)
                     val horizontalCoverPadding = ((totalWidth - artworkSize) / 2).coerceAtLeast(24.dp)
 
                     Column(
@@ -1719,7 +1723,7 @@ fun NewPlayerScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.height(detailsToProgressGap))
 
                     // Memoised + observed: a synchronous SharedPreferences read on every
                     // recomposition of this scope is pure overhead for a debug toggle.
@@ -1860,6 +1864,7 @@ fun PlayerHeader(
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.btn_close), tint = contentColor)
             }
+            com.alananasss.kittytune.ui.together.TogetherReactionButton(tint = contentColor)
         }
 
         Column(
@@ -1889,6 +1894,7 @@ fun PlayerHeader(
                     modifier = Modifier.hapticClickable { viewModel.navigateToContext() }
                 )
             }
+            com.alananasss.kittytune.ui.together.TogetherSyncBadge(Modifier.padding(top = 3.dp))
         }
 
         IconButton(onClick = hapticAction(HapticKind.UI) { viewModel.uiCurrentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) } }) {
@@ -2381,9 +2387,12 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
     val isOfflineMode = isLocalFile || isDownloadedContext || isOffline
     val menuPrefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
     val trackRemovalMethod by menuPrefs.getTrackRemovalMethodFlow().collectAsState(initial = menuPrefs.getTrackRemovalMethod())
+    val queueIndex = viewModel.menuContextQueueIndex
+    val selectedDevice by com.alananasss.kittytune.data.sync.ConnectManager.selectedDevice.collectAsState()
+    val isLocalQueueItem = queueIndex != null && selectedDevice == null
 
     val gridItems = mutableListOf<DockOptionItem>().apply {
-        if (!isLocalFile && !viewModel.isMenuContextFromPlayer) {
+        if (!isLocalFile && (!viewModel.isMenuContextFromPlayer || isLocalQueueItem)) {
             add(
                 DockOptionItem(
                     if (isTrackLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
@@ -2408,19 +2417,41 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     id = "repeat"
                 ) { viewModel.toggleRepeatMode() })
         }
-        if (!viewModel.isMenuContextFromPlayer) {
+        if (!viewModel.isMenuContextFromPlayer || isLocalQueueItem) {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.PlaylistPlay,
                     stringResource(R.string.menu_play_next),
                     id = "play_next"
-                ) { viewModel.insertNext(listOf(track)); viewModel.showMenuSheet = false })
+                ) {
+                    if (queueIndex == null) viewModel.insertNext(listOf(track))
+                    else viewModel.playQueueItemNext(queueIndex)
+                    viewModel.showMenuSheet = false
+                })
+        }
+        if (!viewModel.isMenuContextFromPlayer) {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.QueueMusic,
                     stringResource(R.string.menu_add_queue),
                     id = "add_queue"
                 ) { viewModel.addToQueue(listOf(track)); viewModel.showMenuSheet = false })
+        }
+        val togetherCode by com.alananasss.kittytune.data.together.Together.active.collectAsState()
+        togetherCode?.let { code ->
+            val shared = com.alananasss.kittytune.data.together.SharedTrack.of(track)
+            if (!shared.isLocalOnly) {
+                add(
+                    DockOptionItem(
+                        Icons.Rounded.Groups,
+                        stringResource(R.string.together_propose_session),
+                        id = "together_next",
+                    ) {
+                        com.alananasss.kittytune.data.together.Together.playNext(shared, code)
+                        viewModel.showMenuSheet = false
+                    },
+                )
+            }
         }
         if (!isOfflineMode && track.source != "youtube" && !isSpotify) {
             add(
@@ -2677,11 +2708,10 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 viewModel.showConnectSheet = true
             }
         )
-        val activeTogetherCode by com.alananasss.kittytune.data.together.Together.active.collectAsState()
         add(
             DockOptionItem(
-                if (activeTogetherCode != null) Icons.Rounded.Podcasts else Icons.Rounded.Groups,
-                stringResource(if (activeTogetherCode != null) R.string.together_live_title else R.string.together_listen),
+                if (togetherCode != null) Icons.Rounded.Podcasts else Icons.Rounded.Groups,
+                stringResource(if (togetherCode != null) R.string.together_live_title else R.string.together_listen),
                 id = "listen_together"
             ) {
                 viewModel.showMenuSheet = false
@@ -10981,22 +11011,22 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
         }
     }
 
-    val isSpotify = track.source == "spotify" || track.user?.urn?.startsWith("spotify") == true
-    var spotifyCredits by remember { mutableStateOf<com.alananasss.kittytune.data.spotify.SpotifyCredits?>(null) }
-    var isLoadingCredits by remember { mutableStateOf(false) }
+    val spotifyId = track.spotifyCatalogTrackId()
+    val isSpotify = track.source == "spotify" || spotifyId != null
+    var spotifyCredits by remember(spotifyId) {
+        mutableStateOf<com.alananasss.kittytune.data.spotify.SpotifyCredits?>(null)
+    }
+    var isLoadingCredits by remember(spotifyId) { mutableStateOf(false) }
 
     val mainArtistLabel = stringResource(R.string.spotify_credits_main_artist)
     val featArtistLabel = stringResource(R.string.spotify_credits_featured_artist)
     val composerLabel = stringResource(R.string.spotify_credits_composer)
     val lyricistLabel = stringResource(R.string.spotify_credits_lyricist)
 
-    LaunchedEffect(track.id, isSpotify) {
-        if (isSpotify) {
+    LaunchedEffect(spotifyId) {
+        if (spotifyId != null) {
             isLoadingCredits = true
-            val cleanId = track.permalink?.takeIf { it.isNotBlank() }
-                ?: track.permalinkUrl?.substringAfterLast("/")?.takeIf { it.isNotBlank() && !it.contains("http") }
-                ?: track.id.toString()
-            spotifyCredits = com.alananasss.kittytune.data.spotify.SpotifyRepository.getCredits(cleanId)
+            spotifyCredits = com.alananasss.kittytune.data.spotify.SpotifyRepository.getCredits(spotifyId)
             isLoadingCredits = false
         }
     }
@@ -11140,20 +11170,26 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                     )
                     Spacer(Modifier.height(8.dp))
                 }
-                items(performerArtists) { artist ->
+                items(performerArtists, key = { "performer:${it.id.ifBlank { it.name }}" }) { artist ->
+                    var avatar by remember(artist.id, artist.imageUri) { mutableStateOf(artist.imageUri) }
+                    LaunchedEffect(artist.id, artist.imageUri) {
+                        if (artist.imageUri.isNullOrBlank() && artist.id.isNotBlank()) {
+                            avatar = com.alananasss.kittytune.data.spotify.SpotifyRepository.getArtistAvatar(artist.id)
+                        }
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .hapticClickable {
+                            .then(if (artist.id.isNotBlank()) Modifier.hapticClickable {
                                 onClose()
                                 viewModel.navigateToSpotifyArtist(artist.id)
-                            }
+                            } else Modifier)
                             .padding(vertical = 8.dp)
                     ) {
                         AsyncImage(
-                            model = artist.imageUri ?: R.drawable.ic_default_user_artwork_placeholder_round,
+                            model = avatar ?: R.drawable.ic_default_user_artwork_placeholder_round,
                             contentDescription = null,
                             modifier = Modifier
                                 .size(44.dp)

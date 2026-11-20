@@ -434,7 +434,6 @@ object MusicManager {
 
         if (mVolumeChangeReceiver == null) {
             val receiver = object : android.content.BroadcastReceiver() {
-                val prefsLocal = PlayerPreferences(context)
                 override fun onReceive(ctx: Context?, intent: android.content.Intent?) {
                     handleVolumeChanged(ctx ?: context)
                 }
@@ -451,7 +450,10 @@ object MusicManager {
 
     private fun handleVolumeChanged(context: Context) {
         val prefs = PlayerPreferences(context)
-        if (!prefs.getPauseOnMute()) return
+        if (!prefs.getPauseOnMute()) {
+            wasPlayingBeforeMute = false
+            return
+        }
         val am = audioManager ?: return
         try {
             val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
@@ -464,7 +466,7 @@ object MusicManager {
                 }
             } else if (current > 0 && wasPlayingBeforeMute) {
                 wasPlayingBeforeMute = false
-                if (p.playbackState == Player.STATE_READY) {
+                if (prefs.getResumeOnUnmute() && p.playbackState == Player.STATE_READY) {
                     p.play()
                 }
             }
@@ -680,18 +682,9 @@ object MusicManager {
                 val request = chain.request()
                 val urlStr = request.url.toString()
                 val builder = request.newBuilder()
-                if (urlStr.contains("googlevideo.com") || urlStr.contains("youtube.com")) {
-                    val ua = if (org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.isAndroidStreamingUrl(urlStr)) {
-                        org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.getAndroidUserAgent(null)
-                    } else if (org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.isVisionOsStreamingUrl(urlStr)) {
-                        org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.getVisionOsUserAgent(null)
-                    } else {
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                    }
-                    builder.header("User-Agent", ua)
-                    builder.header("Accept", "*/*")
-                    builder.header("Origin", "https://www.youtube.com")
-                    builder.header("Referer", "https://www.youtube.com/")
+                val youtubeHeaders = YoutubeAudioResolver.requestHeaders(urlStr)
+                if (youtubeHeaders.isNotEmpty()) {
+                    youtubeHeaders.forEach { (name, value) -> builder.header(name, value) }
                 } else if (request.header("User-Agent") == null) {
                     builder.header("User-Agent", customUserAgent)
                 }
@@ -764,7 +757,11 @@ object MusicManager {
                             runBlocking(Dispatchers.IO) {
                                 try {
                                     val db = AppDatabase.getDatabase(context).downloadDao()
-                                    val localTrack = db.getTrack(trackId)
+                                    val selected = currentTrack?.takeIf { it.id == trackId }
+                                        ?: preloadedTrack?.takeIf { it.id == trackId }
+                                    val localTrack = selected?.let { track ->
+                                        db.getTrack(trackId)?.takeIf { it.matchesPlayback(track) }
+                                    }
                                     if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
                                         if (localTrack.localAudioPath.startsWith("exo_cache://")) {
                                             val parts = localTrack.localAudioPath.removePrefix("exo_cache://").split("::", limit = 3)
@@ -806,7 +803,7 @@ object MusicManager {
                                         if (needsFullTrack && trackId > 0 && idIsSoundCloud) {
                                             val api = RetrofitClient.create(context)
                                             val tracks = api.getTracksByIds(trackId.toString())
-                                            val fetchedTrack = tracks.firstOrNull()
+                                            val fetchedTrack = tracks.firstOrNull { it.id == trackId }
 
                                             if (fetchedTrack != null) {
                                                 trackToResolve = fetchedTrack
@@ -1159,9 +1156,9 @@ object MusicManager {
         _player2?.repeatMode = mode
     }
 
-    data class PrebufferedTransition(
+    private data class PrebufferedTransition(
         val player: ExoPlayer,
-        val trackId: Long,
+        val trackKey: PlaybackTrackKey,
         val plan: com.alananasss.kittytune.audio.automix.AutomixPlan?,
         val basePlaybackParams: PlaybackParameters
     )
@@ -1169,9 +1166,9 @@ object MusicManager {
     @Volatile
     private var prebuffered: PrebufferedTransition? = null
 
-    fun isPrebuffered(trackId: Long): Boolean {
+    fun isPrebuffered(track: Track): Boolean {
         val pb = prebuffered ?: return false
-        return pb.trackId == trackId && pb.player.playbackState != Player.STATE_IDLE
+        return pb.trackKey == track.playbackKey() && pb.player.playbackState != Player.STATE_IDLE
     }
 
     fun releasePrebuffered() {
@@ -1194,7 +1191,7 @@ object MusicManager {
         automixPlan: com.alananasss.kittytune.audio.automix.AutomixPlan? = null
     ) {
         if (isCrossfadingOut) return
-        if (isPrebuffered(nextTrack.id)) return
+        if (isPrebuffered(nextTrack)) return
         if (bitPerfectBlocksResample) return
 
         val inactivePlayer = if (activePlayerIndex == 1) getOrInitPlayer2() else _player1!!
@@ -1217,7 +1214,7 @@ object MusicManager {
             }
 
             inactivePlayer.prepare()
-            prebuffered = PrebufferedTransition(inactivePlayer, nextTrack.id, automixPlan, baseParams)
+            prebuffered = PrebufferedTransition(inactivePlayer, nextTrack.playbackKey(), automixPlan, baseParams)
         } catch (e: Exception) {
             Log.w("MusicManager", "Failed to prebuffer transition for track ${nextTrack.id}: ${e.message}")
         }
@@ -1303,7 +1300,8 @@ object MusicManager {
         }
         val synchronizedStartMs = (startPositionMs + (djPhaseOffsetMs * effectiveTempoRatio).toLong()).coerceAtLeast(0L)
 
-        if (pb != null && pb.player == newPlayer && targetTrackId != null && pb.trackId == targetTrackId) {
+        val targetTrackKey = currentTrack?.takeIf { it.id == targetTrackId }?.playbackKey()
+        if (pb != null && pb.player == newPlayer && targetTrackId != null && pb.trackKey == targetTrackKey) {
             isAdopted = true
             basePlaybackParams = pb.basePlaybackParams
             prebuffered = null

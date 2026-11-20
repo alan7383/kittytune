@@ -1,6 +1,7 @@
 package com.alananasss.kittytune.data.together
 
 import com.alananasss.kittytune.domain.Track
+import com.alananasss.kittytune.data.LocalMediaRepository
 import com.alananasss.kittytune.domain.User
 import com.google.gson.Gson
 import com.google.gson.JsonObject
@@ -99,6 +100,8 @@ data class SharedTrack(
     val userId: Long,
     val username: String?,
 ) {
+    internal val isLocalOnly: Boolean get() = isLocalOnly(id, source)
+
     fun toTrack(): Track = Track(
         id = id,
         title = title,
@@ -110,17 +113,24 @@ data class SharedTrack(
     )
 
     companion object {
-        fun of(track: Track) = SharedTrack(
-            id = track.id,
-            title = track.title,
-            artist = track.displayArtist.ifBlank { track.user?.username.orEmpty() },
-            artworkUrl = track.fullResArtwork,
-            durationMs = track.durationMs,
-            permalinkUrl = track.permalinkUrl,
-            source = track.source,
-            userId = track.user?.id ?: 0L,
-            username = track.user?.username,
-        )
+        fun of(track: Track): SharedTrack {
+            val local = isLocalOnly(track.id, track.source)
+            return SharedTrack(
+                id = track.id,
+                title = track.title,
+                artist = track.displayArtist.ifBlank { track.user?.username.orEmpty() },
+                artworkUrl = if (local) null else track.fullResArtwork,
+                durationMs = track.durationMs,
+                permalinkUrl = if (local) null else track.permalinkUrl,
+                source = if (local) "local" else track.source,
+                userId = track.user?.id ?: 0L,
+                username = track.user?.username,
+            )
+        }
+
+        private fun isLocalOnly(id: Long, source: String?): Boolean =
+            source == "local" ||
+                ((source == null || source == "soundcloud") && LocalMediaRepository.isLocalTrack(id))
     }
 }
 
@@ -136,13 +146,14 @@ sealed interface TogetherMessage {
     val from: String
     val sentAt: Long
 
-    /** "I am here", every few seconds, with whether this member is listening along. */
+    /** Presence update. [isJoining] marks entry into the room and is absent on older clients. */
     data class Hello(
         override val from: String,
         override val sentAt: Long,
         val name: String,
         val isListening: Boolean,
         val avatarUrl: String? = null,
+        val isJoining: Boolean? = null,
     ) : TogetherMessage
 
     /** Leaving, so the others need not wait for the presence to time out. */
@@ -172,6 +183,13 @@ sealed interface TogetherMessage {
     /** "Play this next": the host puts it after the song playing, after the ones asked for before it. */
     data class PlayNext(override val from: String, override val sentAt: Long, val track: SharedTrack, val byName: String) : TogetherMessage
 
+    data class PlayNextBatch(
+        override val from: String,
+        override val sentAt: Long,
+        val tracks: List<SharedTrack>,
+        val byName: String,
+    ) : TogetherMessage
+
     /** "Add this to the playlist": for the host to accept, listen to, or turn down. */
     data class Suggest(override val from: String, override val sentAt: Long, val track: SharedTrack, val byName: String) : TogetherMessage
 
@@ -180,6 +198,12 @@ sealed interface TogetherMessage {
 
     /** Pause, play or seek, asked for by anyone; the host applies it and everyone follows the host. */
     data class Control(override val from: String, override val sentAt: Long, val action: String, val positionMs: Long) : TogetherMessage
+
+    data class Reaction(
+        override val from: String,
+        override val sentAt: Long,
+        val reactionId: String?,
+    ) : TogetherMessage
 
     /** Taking over as host. The earliest claim wins, ties by member id. */
     data class ClaimHost(override val from: String, override val sentAt: Long) : TogetherMessage
@@ -200,9 +224,11 @@ sealed interface TogetherMessage {
             "Queue" to Queue::class.java,
             "SyncRequest" to SyncRequest::class.java,
             "PlayNext" to PlayNext::class.java,
+            "PlayNextBatch" to PlayNextBatch::class.java,
             "Suggest" to Suggest::class.java,
             "SuggestionDone" to SuggestionDone::class.java,
             "Control" to Control::class.java,
+            "Reaction" to Reaction::class.java,
             "ClaimHost" to ClaimHost::class.java,
         )
 

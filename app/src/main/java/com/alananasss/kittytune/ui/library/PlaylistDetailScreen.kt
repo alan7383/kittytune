@@ -74,6 +74,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -3076,6 +3077,7 @@ fun PlaylistDetailScreen(
                                 }
                                 IconButton(
                                     onClick = hapticAction(HapticKind.UI) { showPlaylistOptionsSheet = true },
+                                    modifier = Modifier.testTag("playlist-options-button"),
                                     shapes = IconButtonDefaults.shapes(),
                                     colors = IconButtonDefaults.iconButtonColors(
                                         containerColor = Color.Black.copy(alpha = 0.3f),
@@ -3395,7 +3397,8 @@ fun PlaylistOptionsSheet(
             )
         }
         val primaryColor = MaterialTheme.colorScheme.primary
-        val items = remember(isLocal, playlistId, isYoutubeRadio, isUserOwned, playlistSharing, onDeleteClick, isAlbum, tracks, canRemoveTracks, trackRemovalMethod, primaryColor) {
+        val togetherCode by com.alananasss.kittytune.data.together.Together.active.collectAsState()
+        val items = remember(isLocal, playlistId, isYoutubeRadio, isUserOwned, playlistSharing, onDeleteClick, isAlbum, tracks, canRemoveTracks, trackRemovalMethod, primaryColor, togetherCode) {
             mutableListOf(
                 DockOptionItem(
                     Icons.Rounded.PlayArrow,
@@ -3425,6 +3428,12 @@ fun PlaylistOptionsSheet(
                 }
 
                 if (tracks.isNotEmpty()) {
+                    togetherCode?.let { code ->
+                        add(DockOptionItem(Icons.Rounded.Groups, context.getString(R.string.together_propose_playlist)) {
+                            com.alananasss.kittytune.data.together.Together.proposePlaylist(code, tracks)
+                            onDismiss()
+                        })
+                    }
                     add(
                         DockOptionItem(
                             Icons.Rounded.SportsEsports,
@@ -3513,7 +3522,7 @@ fun PlaylistOptionsSheet(
             columns = GridCells.Fixed(3),
             verticalArrangement = Arrangement.spacedBy(24.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(bottom = 24.dp)
+            modifier = Modifier.padding(bottom = 24.dp).testTag("playlist-options-grid"),
         ) {
             items(items) { item ->
                 val itemTint = item.tint ?: MaterialTheme.colorScheme.onSurface

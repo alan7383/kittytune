@@ -58,14 +58,24 @@ object QobuzSearchRepository {
         return (customList + DEFAULT_BASE).distinct()
     }
 
-    suspend fun search(context: Context? = null, query: String, limit: Int = 50): QobuzSearchResult = withContext(Dispatchers.IO) {
+    suspend fun search(context: Context? = null, query: String, limit: Int = 50): QobuzSearchResult {
+        val token = context?.let { runCatching { PlayerPreferences(it).getQobuzUserAuthToken() }.getOrNull() }
+        return search(query, limit, CATALOG_API_BASE, getBaseUrls(context), token)
+    }
+
+    internal suspend fun search(
+        query: String,
+        limit: Int,
+        catalogBase: String,
+        resolverBases: List<String>,
+        token: String? = null,
+    ): QobuzSearchResult = withContext(Dispatchers.IO) {
         if (query.isBlank()) return@withContext QobuzSearchResult()
         val encodedQuery = URLEncoder.encode(query.trim(), "UTF-8")
-        val token = if (context != null) runCatching { PlayerPreferences(context).getQobuzUserAuthToken() }.getOrNull() else null
 
         // 1. Official Qobuz catalogue search (direct, fast, no proxy limit/402 issues)
         val catalogUrl = buildString {
-            append("$CATALOG_API_BASE/catalog/search?query=$encodedQuery&limit=$limit&offset=0&app_id=$CATALOG_APP_ID")
+            append("$catalogBase/catalog/search?query=$encodedQuery&limit=$limit&offset=0&app_id=$CATALOG_APP_ID")
             if (!token.isNullOrBlank()) {
                 append("&user_auth_token=${URLEncoder.encode(token, "UTF-8")}")
             }
@@ -89,8 +99,7 @@ object QobuzSearchRepository {
         }
 
         // 2. Fallback to custom/third-party instances if configured
-        val baseUrls = getBaseUrls(context)
-        for (base in baseUrls) {
+        for (base in resolverBases) {
             val url = "$base/api/get-music?q=$encodedQuery&offset=0"
             val root = fetchJson(url) ?: continue
             if (!root.optBoolean("success", false)) continue
