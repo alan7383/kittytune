@@ -2155,6 +2155,9 @@ fun MainScreen(
                         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
                     ) {
                         val miniPlayerStyle by prefs.miniPlayerStyleFlow().collectAsState(initial = prefs.getMiniPlayerStyle())
+                        val miniPlayerShowCover by prefs.miniPlayerClassicShowCoverFlow().collectAsState(initial = prefs.getMiniPlayerClassicShowCover())
+                        val miniPlayerCoverAsBackground by prefs.miniPlayerClassicCoverAsBackgroundFlow().collectAsState(initial = prefs.getMiniPlayerClassicCoverAsBackground())
+                        val miniPlayerProgressFill by prefs.miniPlayerClassicProgressFillFlow().collectAsState(initial = prefs.getMiniPlayerClassicProgressFill())
                         val miniSwipeAction by prefs.miniPlayerSwipeActionFlow().collectAsState(initial = prefs.getMiniPlayerSwipeAction())
                         val miniConfiguration = LocalConfiguration.current
                         val miniHaptics = LocalHapticFeedback.current
@@ -2187,13 +2190,11 @@ fun MainScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             } else {
-                                Surface(
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    tonalElevation = 4.dp,
-                                    shadowElevation = 6.dp,
+                                val miniProgress = com.alananasss.kittytune.ui.navigation.rememberDockProgress(playerViewModel)
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .shadow(6.dp, RoundedCornerShape(16.dp))
                                         .graphicsLayer {
                                             translationX = miniOffset.value
                                             alpha = if (miniSwipeAction == MiniPlayerSwipeAction.DISMISS) {
@@ -2206,55 +2207,17 @@ fun MainScreen(
                                             enabled = true,
                                             handler = miniDismissGestureHandler
                                         )
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .clickable(onClick = openMiniPlayer)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        AsyncImage(
-                                            model = playerViewModel.uiCurrentTrack?.thumbnailUrl,
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier
-                                                .size(44.dp)
-                                                .clip(RoundedCornerShape(10.dp))
-                                        )
-                                        Spacer(Modifier.width(12.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = playerViewModel.uiCurrentTrack?.title ?: "",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Text(
-                                                text = playerViewModel.uiCurrentTrack?.displayArtist ?: "",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                        IconButton(onClick = { playerViewModel.togglePlayPause() }) {
-                                            Icon(
-                                                imageVector = if (playerViewModel.uiIsPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                                contentDescription = "Play/Pause",
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(28.dp)
-                                            )
-                                        }
-                                        IconButton(onClick = { playerViewModel.requestSkipNext() }) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.SkipNext,
-                                                contentDescription = "Next",
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
-                                    }
+                                    com.alananasss.kittytune.ui.player.ClassicMiniPlayerContent(
+                                        viewModel = playerViewModel,
+                                        showCover = miniPlayerShowCover,
+                                        coverAsBackground = miniPlayerCoverAsBackground,
+                                        progressFill = miniPlayerProgressFill,
+                                        onClick = { playerViewModel.isPlayerExpanded = true },
+                                        progress = miniProgress,
+                                        showSkip = true,
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
                                 }
                             }
                         }

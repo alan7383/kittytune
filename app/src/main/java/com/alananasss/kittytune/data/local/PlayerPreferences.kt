@@ -128,6 +128,14 @@ enum class MiniPlayerStyle {
     }
 }
 
+// Classic mini player strip: three INDEPENDENT on/off toggles so the user can combine them freely
+// instead of picking one of three fixed looks.
+
+// The classic mini player look is three INDEPENDENT on/off toggles — the user mixes them freely:
+// SHOW_COVER          - a small artwork sits on the left of the strip (off: title takes the full width).
+// COVER_AS_BACKGROUND - the artwork stretches across the whole strip behind the title.
+// PROGRESS_FILL       - the song time is a fill sweeping across the strip (off: the familiar 2 dp line).
+
 // background painted inside the modern mini player pill. Liquid glass intentionally excluded
 enum class MiniPlayerBackgroundStyle {
     SOLID,
@@ -750,6 +758,15 @@ class PlayerPreferences(context: Context) {
         const val KEY_MINI_PLAYER_SHOW_TRACK_BUTTONS = "mini_player_show_track_buttons"
         const val KEY_MINI_PLAYER_WIDTH = "mini_player_width"
         const val KEY_WAVY_PLAY_PAUSE = "wavy_play_pause_button"
+        const val KEY_MINI_PLAYER_CLASSIC_SHOW_COVER = "mini_player_classic_show_cover"
+        const val KEY_MINI_PLAYER_CLASSIC_COVER_AS_BACKGROUND = "mini_player_classic_cover_as_background"
+        const val KEY_MINI_PLAYER_CLASSIC_PROGRESS_FILL = "mini_player_classic_progress_fill"
+        private const val KEY_MINI_PLAYER_CLASSIC_MIGRATED = "mini_player_classic_look_migrated"
+        // Legacy keys of the older selector builds (one fixed mode, then three three-choice
+        // settings); read once by migrateLegacyClassicLook() and dropped.
+        private const val LEGACY_KEY_MINI_PLAYER_CLASSIC_MODE = "mini_player_classic_mode"
+        private const val LEGACY_KEY_MINI_PLAYER_CLASSIC_COVER = "mini_player_classic_cover"
+        private const val LEGACY_KEY_MINI_PLAYER_CLASSIC_PROGRESS = "mini_player_classic_progress"
         const val KEY_SHOW_CODEC_ON_PLAYER = "show_codec_on_player"
         const val KEY_SKIP_SILENCE = "skip_silence"
         const val KEY_INSTANT_SKIP_SILENCE = "instant_skip_silence"
@@ -1174,6 +1191,94 @@ class PlayerPreferences(context: Context) {
         trySend(getMiniPlayerStyle())
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == KEY_MINI_PLAYER_STYLE) trySend(getMiniPlayerStyle())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /**
+     * The two previous builds stored the classic look as choices instead of toggles: the oldest as
+     * ONE of three fixed modes, the last one as three three-choice settings. The first read after an
+     * upgrade maps whatever is stored onto the three toggles, drops the stale keys and never runs
+     * again: COVER_LEFT -> cover shown, COVER_BACKGROUND -> cover as background, PROGRESS_FILL ->
+     * hidden cover + fill; the intermediate choices map directly (hidden artwork -> off, fill -> on).
+     */
+    private fun migrateLegacyClassicLook() {
+        if (prefs.getBoolean(KEY_MINI_PLAYER_CLASSIC_MIGRATED, false)) return
+        val legacyMode = prefs.getString(LEGACY_KEY_MINI_PLAYER_CLASSIC_MODE, null)
+        val legacyCover = prefs.getString(LEGACY_KEY_MINI_PLAYER_CLASSIC_COVER, null)
+        val legacyProgress = prefs.getString(LEGACY_KEY_MINI_PLAYER_CLASSIC_PROGRESS, null)
+        if (legacyMode != null || legacyCover != null || legacyProgress != null) {
+            val (showCover, coverAsBackground, progressFill) = when (legacyMode) {
+                "COVER_BACKGROUND" -> Triple(true, true, false)
+                "PROGRESS_FILL" -> Triple(false, false, true)
+                "COVER_LEFT" -> Triple(true, false, false)
+                else -> Triple(
+                    legacyCover?.let { it != "HIDDEN" } ?: true,
+                    legacyCover?.let { it == "BACKGROUND" } ?: false,
+                    legacyProgress?.let { it == "FILL" } ?: false
+                )
+            }
+            prefs.edit {
+                putBoolean(KEY_MINI_PLAYER_CLASSIC_SHOW_COVER, showCover)
+                putBoolean(KEY_MINI_PLAYER_CLASSIC_COVER_AS_BACKGROUND, coverAsBackground)
+                putBoolean(KEY_MINI_PLAYER_CLASSIC_PROGRESS_FILL, progressFill)
+            }
+        }
+        prefs.edit {
+            remove(LEGACY_KEY_MINI_PLAYER_CLASSIC_MODE)
+            remove(LEGACY_KEY_MINI_PLAYER_CLASSIC_COVER)
+            remove(LEGACY_KEY_MINI_PLAYER_CLASSIC_PROGRESS)
+            putBoolean(KEY_MINI_PLAYER_CLASSIC_MIGRATED, true)
+        }
+    }
+
+    /** A small artwork sits on the left of the strip; off, the title takes the full width. */
+    fun getMiniPlayerClassicShowCover(): Boolean {
+        migrateLegacyClassicLook()
+        return prefs.getBoolean(KEY_MINI_PLAYER_CLASSIC_SHOW_COVER, true)
+    }
+
+    fun setMiniPlayerClassicShowCover(value: Boolean) = prefs.edit { putBoolean(KEY_MINI_PLAYER_CLASSIC_SHOW_COVER, value) }
+
+    fun miniPlayerClassicShowCoverFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getMiniPlayerClassicShowCover())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_CLASSIC_SHOW_COVER) trySend(getMiniPlayerClassicShowCover())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /** The artwork stretches across the whole strip behind the title, white text over a scrim. */
+    fun getMiniPlayerClassicCoverAsBackground(): Boolean {
+        migrateLegacyClassicLook()
+        return prefs.getBoolean(KEY_MINI_PLAYER_CLASSIC_COVER_AS_BACKGROUND, false)
+    }
+
+    fun setMiniPlayerClassicCoverAsBackground(value: Boolean) = prefs.edit { putBoolean(KEY_MINI_PLAYER_CLASSIC_COVER_AS_BACKGROUND, value) }
+
+    fun miniPlayerClassicCoverAsBackgroundFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getMiniPlayerClassicCoverAsBackground())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_CLASSIC_COVER_AS_BACKGROUND) trySend(getMiniPlayerClassicCoverAsBackground())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /** The song time as a fill sweeping across the strip; off, the familiar 2 dp progress line. */
+    fun getMiniPlayerClassicProgressFill(): Boolean {
+        migrateLegacyClassicLook()
+        return prefs.getBoolean(KEY_MINI_PLAYER_CLASSIC_PROGRESS_FILL, false)
+    }
+
+    fun setMiniPlayerClassicProgressFill(value: Boolean) = prefs.edit { putBoolean(KEY_MINI_PLAYER_CLASSIC_PROGRESS_FILL, value) }
+
+    fun miniPlayerClassicProgressFillFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getMiniPlayerClassicProgressFill())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_CLASSIC_PROGRESS_FILL) trySend(getMiniPlayerClassicProgressFill())
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
         awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }

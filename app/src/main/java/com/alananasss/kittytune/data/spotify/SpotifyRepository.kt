@@ -808,18 +808,24 @@ object SpotifyRepository {
     // @param query the search term, e.g. `"One More Time Radio"`.
     // @param requiredName when set, candidates whose name does not contain this are ignored
     //   (a search for a short track name also finds unrelated radios).
-    private suspend fun findOfficialRadioPlaylist(query: String, requiredName: String? = null): SpotifyPlaylist? {
+private suspend fun findOfficialRadioPlaylist(query: String, requiredName: String? = null): SpotifyPlaylist? {
         val results = runCatching { search(query, limit = 20) }.getOrNull() ?: return null
         val wanted = requiredName?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
-        val nameMatches: (SpotifyPlaylist) -> Boolean = { playlist ->
-            wanted.isNullOrBlank() || playlist.name.lowercase().contains(wanted)
+        val isRadioCandidate: (SpotifyPlaylist) -> Boolean = { playlist ->
+            playlist.id.startsWith("37i9dQZF1E8") ||
+                playlist.id.startsWith("37i9dQZF1E4") ||
+                playlist.name.contains("Radio", ignoreCase = true)
         }
-        val official = results.playlists
-            .filter { it.ownerName == "Spotify" && it.id.startsWith("37i9dQZF") && nameMatches(it) }
-            .ifEmpty { results.playlists.filter { it.ownerName == "Spotify" && it.id.startsWith("37i9dQZF") } }
+        val nameMatches: (SpotifyPlaylist) -> Boolean = { playlist ->
+            wanted == null || playlist.name.lowercase().contains(wanted)
+        }
+        val official = results.playlists.filter {
+            it.ownerName == "Spotify" &&
+                it.id.startsWith("37i9dQZF") &&
+                isRadioCandidate(it) &&
+                nameMatches(it)
+        }
 
-        // Try up to three candidates: the first Spotify-owned "… Radio" occasionally
-        // resolves to a regional variant, and the next row is usually the global one.
         for (candidate in official.take(3)) {
             val full = runCatching { getPlaylist(candidate.id) }.getOrNull() ?: continue
             if (full.tracks.isNotEmpty()) return full
@@ -845,11 +851,11 @@ object SpotifyRepository {
                 val radioFromArtist = artist.discoveredOn.firstOrNull {
                     it.id.startsWith("37i9dQZF1E4")
                 } ?: artist.discoveredOn.firstOrNull {
-                    it.ownerName == "Spotify" && it.name.contains(
-                        "Radio",
-                        ignoreCase = true
-                    ) && !it.name.contains("This Is", ignoreCase = true)
-                } ?: artist.discoveredOn.firstOrNull { it.id.startsWith("37i9dQZF") }
+                    it.ownerName == "Spotify" &&
+                        it.name.contains("Radio", ignoreCase = true) &&
+                        !it.name.contains("This Is", ignoreCase = true) &&
+                        it.name.contains(artist.name, ignoreCase = true)
+                }
 
                 if (radioFromArtist != null) {
                     val fullPlaylist = getPlaylist(radioFromArtist.id)
@@ -859,17 +865,25 @@ object SpotifyRepository {
                 }
 
                 val searchRes = search("${artist.name} Radio")
-                // Spotify-owned first: a user playlist named "<artist> Radio" with two uploads
+                // Spotify-owned artist radios first: a user playlist named "<artist> Radio"
                 // used to be able to win the filter below and starve the mix.
+                // No id-only fallback: a bare 37i9dQZF*/37i9dQZF1E4* match without a name
+                // check resolved track radios to unrelated editorial playlists
+                // ("Today's Top Hits" etc.), so every fallback below requires the artist
+                // name in the playlist title. If nothing matches, the "This Is <artist>"
+                // search further down handles it instead.
                 val searchRadio = searchRes.playlists.firstOrNull {
-                    it.ownerName == "Spotify" && it.id.startsWith("37i9dQZF1E4")
+                    it.ownerName == "Spotify" &&
+                        it.id.startsWith("37i9dQZF1E4") &&
+                        it.name.contains(artist.name, ignoreCase = true)
                 } ?: searchRes.playlists.firstOrNull {
-                    it.id.startsWith("37i9dQZF1E4") || (it.name.contains(
-                        "Radio",
-                        ignoreCase = true
-                    ) && it.name.contains(artist.name, ignoreCase = true))
+                    it.ownerName == "Spotify" &&
+                        it.name.contains("Radio", ignoreCase = true) &&
+                        !it.name.contains("This Is", ignoreCase = true) &&
+                        it.name.contains(artist.name, ignoreCase = true)
                 } ?: searchRes.playlists.firstOrNull {
-                    it.name.contains("Radio", ignoreCase = true) || it.id.startsWith("37i9dQZF")
+                    it.name.contains("Radio", ignoreCase = true) &&
+                        it.name.contains(artist.name, ignoreCase = true)
                 }
 
                 if (searchRadio != null) {
