@@ -7,8 +7,14 @@ import java.io.File
 import java.net.URLDecoder
 import java.text.Normalizer
 import java.util.concurrent.TimeUnit
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.ln
+import kotlin.math.log10
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -22,7 +28,7 @@ import okhttp3.Request
  *
  * AutoEq aggregates measurements from oratory1990, crinacle, Rtings, DHRME, HypetheSonics,
  * Super Review, Regan Cipher, and Squiglink contributors. Each entry points to a folder
- * containing the GraphicEQ file resampled onto KittyTune's 16 fixed bands.
+ * containing the EQ profile resampled onto KittyTune's 16 fixed parametric bands.
  */
 data class AutoEqProfile(
     val id: String,
@@ -36,7 +42,7 @@ data class AutoEqProfile(
         get() = rig?.takeIf { it.isNotBlank() }?.let { "$source · $it" } ?: source
 }
 
-/** A profile downloaded from AutoEq or loaded locally, reduced to KittyTune's 16 bands. */
+/** A profile downloaded from AutoEq or loaded locally, reduced to KittyTune's 16 fixed bands. */
 data class AutoEqProfileData(
     @SerializedName("profile") val profile: AutoEqProfile,
     @SerializedName("gainsDb") val gainsDb: List<Float>,
@@ -141,7 +147,7 @@ object AutoEqRepository {
         AutoEqProfile(
             id = "./oratory1990/over-ear/Sennheiser%20HD%20650",
             name = "Sennheiser HD 650",
-            path = "./oratory1990/over-ear/Sennheiser%20HD%20650",
+            path = "./oratory1990/over-ear/Sennheiser%20HD 650",
             source = "oratory1990",
             rig = null,
             formFactor = "Over-ear"
@@ -228,14 +234,6 @@ object AutoEqRepository {
         return searchIn(profiles(context), query, limit)
     }
 
-    /**
-     * Resilient search supporting:
-     * - Automatic stripping of possessive Bluetooth prefixes ("Alan's Pixel Buds")
-     * - Typo tolerance via Levenshtein distance on words >= 4 letters ("piixel" -> "pixel")
-     * - Common abbreviation expansion ("qc" -> "quietcomfort", "xm5" -> "1000xm5")
-     * - Number matching enforcement (e.g. "650", "2", "3")
-     * - Measurement source quality weighting
-     */
     internal fun searchIn(all: List<AutoEqProfile>, rawQuery: String, limit: Int = 30): List<AutoEqProfile> {
         val cleaned = cleanQuery(rawQuery)
         val normalizedQuery = normalize(cleaned)
@@ -304,7 +302,6 @@ object AutoEqRepository {
                     ?.let { return@withContext it }
             }
 
-            // Check if profile is pre-seeded for offline reliability
             val seed = SEED_DATA[profile.path] ?: SEED_DATA[profile.id]
 
             val text = try {
@@ -330,20 +327,30 @@ object AutoEqRepository {
         }
 
     /**
-     * Parses custom GraphicEQ curves or frequency-gain files from Squiglink, AutoEq web,
-     * or Equalizer APO exports.
+     * Parses custom ParametricEQ (`Filter N: ON PK Fc ... Gain ... Q ...`) or GraphicEQ curves
+     * from Squiglink, AutoEq web, or Equalizer APO exports onto KittyTune's 16 fixed bands.
      */
     fun loadFromText(name: String, text: String): AutoEqProfileData {
-        val (gains, preamp) = parseGraphicEq(text, bands = EQUALIZER_BANDS)
+        val isParametric = isParametricEqText(text)
+        val (gains, preamp) = if (isParametric) {
+            parseParametricEq(text, bands = EQUALIZER_BANDS)
+        } else {
+            parseGraphicEq(text, bands = EQUALIZER_BANDS)
+        }
         val profile = AutoEqProfile(
             id = "custom:${name.hashCode()}",
             name = name,
             path = "custom",
-            source = "Custom GraphicEQ",
+            source = if (isParametric) "Custom ParametricEQ" else "Custom GraphicEQ",
             rig = null,
             formFactor = "Custom"
         )
         return AutoEqProfileData(profile, gains, preamp)
+    }
+
+    internal fun isParametricEqText(text: String): Boolean {
+        return !text.contains("GraphicEQ:", ignoreCase = true) &&
+            PARAMETRIC_FILTER_REGEX.containsMatchIn(text)
     }
 
     internal fun parseIndex(text: String): List<AutoEqProfile> {
@@ -361,7 +368,6 @@ object AutoEqRepository {
             if (close < 0) return@forEach
             val path = after.substring(0, close).trim()
             if (name.isBlank() || path.isBlank() || !seen.add(path)) return@forEach
-            // Fixed offset: length of ") by " is 5 chars
             val by = if (byMarker >= 0) after.substring(byMarker + 5).trim() else ""
             val source = by.substringBefore(" on ", missingDelimiterValue = by).trim()
                 .takeIf { it.isNotBlank() }
@@ -383,10 +389,14 @@ object AutoEqRepository {
 
     /**
      * AutoEq publishes a dense `GraphicEQ: freq gain; ...` curve. The processor has 16 fixed bands,
-     * so each band is sampled at its centre with log-frequency interpolation, which preserves the
-     * shape of the correction instead of taking the nearest measurement point.
+     * so each band is sampled at its centre with log-frequency interpolation.
+     * If [text] is an Equalizer APO ParametricEQ specification, delegates to [parseParametricEq].
      */
     internal fun parseGraphicEq(text: String, bands: FloatArray = EQUALIZER_BANDS): Pair<List<Float>, Float> {
+        if (isParametricEqText(text)) {
+            return parseParametricEq(text, bands)
+        }
+
         val body = if (text.contains("GraphicEQ:")) text.substringAfter("GraphicEQ:") else text
         val points = Regex("""(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)""")
             .findAll(body)
@@ -401,14 +411,102 @@ object AutoEqRepository {
 
         val gains = bands.map { band -> interpolateLog(points, band).coerceIn(-12f, 12f) }
 
-        // Check for explicit preamp line, e.g. "Preamp: -6.0 dB"
-        val preampMatch = Regex("""Preamp:\s*(-?\d+(?:\.\d+)?)\s*dB""", RegexOption.IGNORE_CASE).find(text)
+        val preampMatch = PREAMP_REGEX.find(text)
         val explicitPreamp = preampMatch?.groupValues?.get(1)?.toFloatOrNull()
 
-        // Keep the loudest boosted band under 0 dBFS; AutoEq's cuts already need no headroom.
         val preamp = explicitPreamp?.coerceIn(-12f, 0f)
             ?: (-maxOf(0f, gains.maxOrNull() ?: 0f)).coerceIn(-12f, 0f)
         return gains to preamp
+    }
+
+    private data class ParametricFilterSpec(
+        val type: String,
+        val fcHz: Double,
+        val gainDb: Double,
+        val q: Double
+    )
+
+    /**
+     * Evaluates an Equalizer APO / AutoEq `ParametricEQ.txt` filter cascade (`PK`, `PEQ`, `LSC`, `HSC`)
+     * and maps its composite transfer function onto KittyTune's 16 fixed-frequency, fixed-Q bands.
+     */
+    internal fun parseParametricEq(text: String, bands: FloatArray = EQUALIZER_BANDS): Pair<List<Float>, Float> {
+        val filters = PARAMETRIC_FILTER_REGEX.findAll(text).mapNotNull { match ->
+            val type = match.groupValues[1].uppercase()
+            val fc = match.groupValues[2].toDoubleOrNull() ?: return@mapNotNull null
+            val gain = match.groupValues[3].toDoubleOrNull() ?: return@mapNotNull null
+            val q = match.groupValues[4].toDoubleOrNull()?.coerceIn(0.1, 20.0) ?: 1.414
+            if (fc <= 0.0 || abs(gain) < 0.01) null else ParametricFilterSpec(type, fc, gain, q)
+        }.toList()
+
+        if (filters.isEmpty()) return List(bands.size) { 0f } to 0f
+
+        val sampleRate = 48000.0
+        val gains = bands.map { f0 ->
+            var sumDb = 0.0
+            for (f in filters) {
+                sumDb += evaluateBiquadDb(f, f0.toDouble(), sampleRate)
+            }
+            sumDb.toFloat().coerceIn(-12f, 12f)
+        }
+
+        val explicitPreamp = PREAMP_REGEX.find(text)?.groupValues?.get(1)?.toFloatOrNull()
+        val preamp = explicitPreamp?.coerceIn(-12f, 0f)
+            ?: (-maxOf(0f, gains.maxOrNull() ?: 0f)).coerceIn(-12f, 0f)
+        return gains to preamp
+    }
+
+    private fun evaluateBiquadDb(spec: ParametricFilterSpec, evalFreqHz: Double, fs: Double): Double {
+        val a = 10.0.pow(spec.gainDb / 40.0)
+        val w0 = 2.0 * PI * spec.fcHz.coerceIn(10.0, fs * 0.48) / fs
+        val sinW0 = sin(w0)
+        val cosW0 = cos(w0)
+        val alpha = sinW0 / (2.0 * spec.q)
+
+        val b0: Double
+        val b1: Double
+        val b2: Double
+        val a0: Double
+        val a1: Double
+        val a2: Double
+
+        when {
+            spec.type.startsWith("LS") -> {
+                val twoSqrtAAlpha = 2.0 * sqrt(a) * alpha
+                b0 = a * ((a + 1.0) - (a - 1.0) * cosW0 + twoSqrtAAlpha)
+                b1 = 2.0 * a * ((a - 1.0) - (a + 1.0) * cosW0)
+                b2 = a * ((a + 1.0) - (a - 1.0) * cosW0 - twoSqrtAAlpha)
+                a0 = (a + 1.0) + (a - 1.0) * cosW0 + twoSqrtAAlpha
+                a1 = -2.0 * ((a - 1.0) + (a + 1.0) * cosW0)
+                a2 = (a + 1.0) + (a - 1.0) * cosW0 - twoSqrtAAlpha
+            }
+            spec.type.startsWith("HS") -> {
+                val twoSqrtAAlpha = 2.0 * sqrt(a) * alpha
+                b0 = a * ((a + 1.0) + (a - 1.0) * cosW0 + twoSqrtAAlpha)
+                b1 = -2.0 * a * ((a - 1.0) + (a + 1.0) * cosW0)
+                b2 = a * ((a + 1.0) + (a - 1.0) * cosW0 - twoSqrtAAlpha)
+                a0 = (a + 1.0) - (a - 1.0) * cosW0 + twoSqrtAAlpha
+                a1 = 2.0 * ((a - 1.0) - (a + 1.0) * cosW0)
+                a2 = (a + 1.0) - (a - 1.0) * cosW0 - twoSqrtAAlpha
+            }
+            else -> {
+                // Peaking (PK / PEQ)
+                b0 = 1.0 + alpha * a
+                b1 = -2.0 * cosW0
+                b2 = 1.0 - alpha * a
+                a0 = 1.0 + alpha / a
+                a1 = -2.0 * cosW0
+                a2 = 1.0 - alpha / a
+            }
+        }
+
+        val w = 2.0 * PI * evalFreqHz.coerceIn(10.0, fs * 0.48) / fs
+        val cosW = cos(w)
+        val cos2W = cos(2.0 * w)
+
+        val num = b0 * b0 + b1 * b1 + b2 * b2 + 2.0 * (b0 * b1 + b1 * b2) * cosW + 2.0 * b0 * b2 * cos2W
+        val den = a0 * a0 + a1 * a1 + a2 * a2 + 2.0 * (a0 * a1 + a1 * a2) * cosW + 2.0 * a0 * a2 * cos2W
+        return if (num > 0.0 && den > 0.0) 10.0 * log10(num / den) else 0.0
     }
 
     internal fun profileFileUrl(profile: AutoEqProfile): String {
@@ -500,10 +598,6 @@ object AutoEqRepository {
             .replace(Regex("""[^a-z0-9]+"""), " ")
             .trim()
 
-    /**
-     * Cleans up raw query strings or Bluetooth device names by removing owner prefixes,
-     * BLE suffixes, and trailing connection tags.
-     */
     fun cleanQuery(raw: String): String {
         var s = raw.trim()
         s = s.replace(Regex("""^[a-zA-Z0-9_\-\s]+['’]s\s+""", RegexOption.IGNORE_CASE), "")
@@ -540,9 +634,22 @@ object AutoEqRepository {
         return true
     }
 
-    /** Same centres as [com.alananasss.kittytune.ui.player.audio.EqualizerAudioProcessor]. */
+    private val PREAMP_REGEX = Regex("""Preamp:\s*(-?\d+(?:\.\d+)?)\s*dB""", RegexOption.IGNORE_CASE)
+
+    private val PARAMETRIC_FILTER_REGEX = Regex(
+        """Filter\s+\d+:\s*ON\s+(PK|PEQ|LSC|LS|HSC|HS)\s+Fc\s+(\d+(?:\.\d+)?)\s*Hz\s+Gain\s+(-?\d+(?:\.\d+)?)\s*dB(?:\s+Q\s+(\d+(?:\.\d+)?))?""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /** Same fixed center frequencies as [com.alananasss.kittytune.ui.player.audio.EqualizerAudioProcessor]. */
     internal val EQUALIZER_BANDS = floatArrayOf(
         32f, 64f, 125f, 200f, 315f, 500f, 800f, 1250f,
         2000f, 3150f, 5000f, 8000f, 10000f, 12500f, 16000f, 20000f,
+    )
+
+    /** Fixed Q factors per band matching [com.alananasss.kittytune.ui.player.audio.EqualizerAudioProcessor.BAND_Q_FACTORS]. */
+    internal val FIXED_BAND_Q = floatArrayOf(
+        1.41f, 1.41f, 1.70f, 1.80f, 1.80f, 1.80f, 1.80f, 1.80f,
+        1.80f, 1.80f, 1.80f, 2.00f, 2.40f, 2.40f, 2.40f, 2.40f,
     )
 }

@@ -310,7 +310,7 @@ object AppleMusicCanvasProvider {
         val builder = base.toHttpUrlOrNull()!!.newBuilder()
             .addQueryParameter("art[url]", "f")
             .addQueryParameter("fields[albums]", "name,url,editorialVideo,motionArtwork,editorialArtwork")
-            .addQueryParameter("fields[songs]", "name,url,isrc,editorialVideo,motionArtwork,editorialArtwork,hasLyrics")
+            .addQueryParameter("fields[songs]", "name,url,isrc,artistName,durationInMillis,editorialVideo,motionArtwork,editorialArtwork,hasLyrics")
             .addQueryParameter("fields[artists]", "name,url")
             .addQueryParameter("format[resources]", "map")
             .addQueryParameter("include[songs]", "albums,artists")

@@ -626,7 +626,7 @@ object DeezerAudioProvider {
      * playback resolution, without resolving a playable stream.
      *
      * This is the accurate path for cross-provider identity lookups (e.g.
-     * [com.metrolist.music.providers.IsrcResolver] pulling an ISRC to feed
+     * the shared ISRC resolver pulling an ISRC to feed
      * the Apple Music canvas matcher): unlike [searchCandidates], which
      * just returns raw search hits in API order, this scores every
      * candidate against title + artist + album + duration
