@@ -7,7 +7,6 @@
     <string name="action_next">Sonraki parça</string>
     <string name="action_volume_up">Sesi artır</string>
     <string name="action_volume_down">Sesi azalt</string>
-    <string name="action_select_target">Oynatma cihazını değiştir</string>
     <string name="target_phone">Telefon</string>
     <string name="target_desktop">Bilgisayar</string>
     <string name="target_selector_description">%1$s cihazında oynatılıyor, %2$s</string>

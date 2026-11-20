@@ -7,7 +7,6 @@
     <string name="action_next">Bài tiếp theo</string>
     <string name="action_volume_up">Tăng âm lượng</string>
     <string name="action_volume_down">Giảm âm lượng</string>
-    <string name="action_select_target">Đổi thiết bị phát</string>
     <string name="target_phone">Điện thoại</string>
     <string name="target_desktop">Máy tính</string>
     <string name="target_selector_description">Đang phát trên %1$s, %2$s</string>

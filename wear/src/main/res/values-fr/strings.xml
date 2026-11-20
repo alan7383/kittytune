@@ -7,7 +7,6 @@
     <string name="action_next">Titre suivant</string>
     <string name="action_volume_up">Monter le volume</string>
     <string name="action_volume_down">Baisser le volume</string>
-    <string name="action_select_target">Changer d’appareil de lecture</string>
     <string name="target_phone">Téléphone</string>
     <string name="target_desktop">Ordinateur</string>
     <string name="target_selector_description">Lecture sur %1$s, %2$s</string>

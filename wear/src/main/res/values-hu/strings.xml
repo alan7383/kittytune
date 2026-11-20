@@ -7,7 +7,6 @@
     <string name="action_next">Következő szám</string>
     <string name="action_volume_up">Hangerő növelése</string>
     <string name="action_volume_down">Hangerő csökkentése</string>
-    <string name="action_select_target">Lejátszóeszköz váltása</string>
     <string name="target_phone">Telefon</string>
     <string name="target_desktop">Számítógép</string>
     <string name="target_selector_description">Lejátszás ezen az eszközön: %1$s, %2$s</string>

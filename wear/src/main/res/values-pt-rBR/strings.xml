@@ -7,7 +7,6 @@
     <string name="action_next">Próxima faixa</string>
     <string name="action_volume_up">Aumentar volume</string>
     <string name="action_volume_down">Diminuir volume</string>
-    <string name="action_select_target">Trocar dispositivo de reprodução</string>
     <string name="target_phone">Celular</string>
     <string name="target_desktop">Computador</string>
     <string name="target_selector_description">Reproduzindo em %1$s, %2$s</string>

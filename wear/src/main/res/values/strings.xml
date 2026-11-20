@@ -11,7 +11,6 @@
     <string name="action_next">Next</string>
     <string name="action_volume_up">Volume up</string>
     <string name="action_volume_down">Volume down</string>
-    <string name="action_select_target">Change playback device</string>
 
     <!-- Target selector devices -->
     <string name="target_phone">Phone</string>

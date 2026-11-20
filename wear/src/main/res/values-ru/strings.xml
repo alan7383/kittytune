@@ -7,7 +7,6 @@
     <string name="action_next">Следующий трек</string>
     <string name="action_volume_up">Громче</string>
     <string name="action_volume_down">Тише</string>
-    <string name="action_select_target">Сменить устройство воспроизведения</string>
     <string name="target_phone">Телефон</string>
     <string name="target_desktop">Компьютер</string>
     <string name="target_selector_description">Воспроизведение на устройстве %1$s, %2$s</string>
