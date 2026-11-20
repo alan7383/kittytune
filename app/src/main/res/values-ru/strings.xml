@@ -3867,6 +3867,8 @@
     <!-- kept from upstream 3.0.0 -->
     <string name="pref_queue_preserve_upcoming">Сохранять очередь при выборе</string>
     <string name="pref_queue_preserve_upcoming_sub">Перемещает выбранный трек на следующее место без пропуска промежуточных треков</string>
+    <string name="pref_keep_played_tracks_visible">Показывать уже сыгранные треки</string>
+    <string name="pref_keep_played_tracks_visible_sub">В свёрнутом разделе все сыгранные треки отображаются компактными строками.</string>
     <string name="pref_tablet_interface">Интерфейс планшета</string>
     <string name="pref_tablet_interface_sub">Настройте навигацию, панель плеера и подписи на планшете</string>
     <string name="pref_tablet_nav_classic_dock">Исходная нижняя панель планшета</string>

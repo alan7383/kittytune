@@ -834,6 +834,16 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
+                titleRes = R.string.pref_keep_played_tracks_visible,
+                subtitleRes = R.string.pref_keep_played_tracks_visible_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.History,
+                route = "audio_playback_settings",
+                highlightKey = "pref_keep_played_tracks_visible",
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
                 titleRes = R.string.pref_save_position,
                 subtitleRes = R.string.pref_save_position_sub,
                 categoryName = catAudio,

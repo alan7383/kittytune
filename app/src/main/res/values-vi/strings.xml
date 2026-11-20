@@ -3836,6 +3836,8 @@
     <!-- kept from upstream 3.0.0 -->
     <string name="pref_queue_preserve_upcoming">Bảo toàn hàng đợi tiếp theo khi nhảy bài</string>
     <string name="pref_queue_preserve_upcoming_sub">Di chuyển bài hát được nhấp lên kế tiếp thay vì bỏ qua các bài trung gian</string>
+    <string name="pref_keep_played_tracks_visible">Luôn hiển thị các bài đã phát</string>
+    <string name="pref_keep_played_tracks_visible_sub">Hiển thị tất cả các bài đã phát dưới dạng thu gọn khi mục này được thu lại.</string>
 
     <!-- added translations -->
     <string name="customize_coming_soon">Tính năng tùy chỉnh sắp ra mắt</string>

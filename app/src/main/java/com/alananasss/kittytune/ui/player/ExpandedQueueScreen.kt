@@ -422,16 +422,21 @@ private fun QueueListView(
     modifier: Modifier = Modifier
 ) {
     val view = LocalView.current
+    val context = LocalContext.current
+    val prefs = remember(context) { PlayerPreferences(context) }
+    val keepPlayedTracksVisible by remember(prefs) { prefs.keepPlayedTracksVisibleFlow() }
+        .collectAsState(initial = prefs.getKeepPlayedTracksVisible())
     val queue = viewModel.uiQueueState
     val currentIndex = viewModel.uiCurrentQueueIndex
     val keys = remember(queue) { queueItemKeys(queue) }
 
     val pastCount = currentIndex.coerceIn(0, queue.size)
+    val canTogglePast = keepPlayedTracksVisible || pastCount > RECENT_QUEUE_TRACKS
     var pastExpandedByUser by remember { mutableStateOf(false) }
-    val isPastExpanded = pastExpandedByUser || pastCount <= RECENT_QUEUE_TRACKS
+    val isPastExpanded = pastExpandedByUser || !canTogglePast
 
-    val listItems = remember(queue, currentIndex, isPastExpanded) {
-        queueListItems(queue, currentIndex, isPastExpanded)
+    val listItems = remember(queue, currentIndex, isPastExpanded, keepPlayedTracksVisible) {
+        queueListItems(queue, currentIndex, isPastExpanded, keepPlayedTracksVisible)
     }
 
     val reorderableState = rememberReorderableLazyListState(
@@ -483,7 +488,7 @@ private fun QueueListView(
                     QueueSectionRule(
                         label = stringResource(R.string.queue_played),
                         count = item.count,
-                        isCollapsible = pastCount > RECENT_QUEUE_TRACKS,
+                        isCollapsible = canTogglePast,
                         isExpanded = item.isExpanded,
                         onToggle = { pastExpandedByUser = !item.isExpanded }
                     )
@@ -497,8 +502,6 @@ private fun QueueListView(
                 is QueueListItem.TrackItem -> {
                     val index = item.queueIndex
                     val isCurrent = index == currentIndex
-                    val isPast = index < currentIndex
-
                     ReorderableItem(
                         state = reorderableState,
                         key = keys[index],
@@ -510,7 +513,7 @@ private fun QueueListView(
                             index = index,
                             itemKey = keys[index],
                             isCurrent = isCurrent,
-                            isPast = isPast && index < currentIndex - RECENT_QUEUE_TRACKS,
+                            isCompact = item.isCompact,
                             isDragging = isDragging,
                             scope = this@ReorderableItem,
                         )
@@ -597,7 +600,7 @@ private fun QueueRow(
     index: Int,
     itemKey: String = track.id.toString(),
     isCurrent: Boolean,
-    isPast: Boolean,
+    isCompact: Boolean,
     isDragging: Boolean,
     scope: ReorderableCollectionItemScope,
 ) {
@@ -635,13 +638,13 @@ private fun QueueRow(
                         viewModel.showTrackOptions(track, fromPlayer = true, queueIndex = index)
                     }
                 )
-                .padding(start = 10.dp, end = if (isPast) 10.dp else 4.dp, top = if (isPast) 4.dp else 6.dp, bottom = if (isPast) 4.dp else 6.dp)
-                .then(if (isPast) Modifier.alpha(0.55f) else Modifier),
+                .padding(start = 10.dp, end = if (isCompact) 10.dp else 4.dp, top = if (isCompact) 4.dp else 6.dp, bottom = if (isCompact) 4.dp else 6.dp)
+                .then(if (isCompact) Modifier.alpha(0.55f) else Modifier),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(if (isPast) 32.dp else 44.dp)
+                    .size(if (isCompact) 32.dp else 44.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(scheme.surfaceVariant),
                 contentAlignment = Alignment.Center
@@ -672,7 +675,7 @@ private fun QueueRow(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = track.title ?: stringResource(R.string.generic_title),
-                        style = if (isPast) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                        style = if (isCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                         fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
                         color = if (isCurrent) scheme.onSecondaryContainer else scheme.onSurface,
                         maxLines = 1,
@@ -684,7 +687,7 @@ private fun QueueRow(
                         com.alananasss.kittytune.ui.common.GoPlusBadge(compact = true)
                     }
                 }
-                if (!isPast) {
+                if (!isCompact) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.generic_artist) },
@@ -709,7 +712,7 @@ private fun QueueRow(
             Spacer(Modifier.width(8.dp))
 
             val duration = (viewModel.clipLengthOf(track) ?: track.actualDurationMs).takeIf { it > 0 }
-            if (duration != null && !isPast) {
+            if (duration != null && !isCompact) {
                 Text(
                     text = makeTimeString(duration),
                     style = MaterialTheme.typography.labelMedium,
@@ -743,7 +746,7 @@ private fun QueueRow(
             }
         }
 
-        if (!isPast) {
+        if (!isCompact) {
             with(scope) {
                 Box(
                     modifier = Modifier

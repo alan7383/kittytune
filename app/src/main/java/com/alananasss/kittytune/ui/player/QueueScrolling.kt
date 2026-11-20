@@ -22,7 +22,8 @@ internal fun AnchorCurrentQueueItem(
     currentKey: Any? = null,
     targetIndex: Int = (currentIndex - 1).coerceAtLeast(0),
 ) {
-    LaunchedEffect(currentIndex, currentTrackId, targetIndex) {
+    // Expanding history changes the row indices without selecting a different track.
+    LaunchedEffect(listState, currentKey ?: currentIndex, currentTrackId) {
         if (currentIndex < 0 || targetIndex < 0) return@LaunchedEffect
 
         val visible = listState.layoutInfo.visibleItemsInfo

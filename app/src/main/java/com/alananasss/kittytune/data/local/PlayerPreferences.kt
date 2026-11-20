@@ -460,6 +460,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_AUDIO_QUALITY = "audio_quality_pref"
         private const val KEY_PERSISTENT_QUEUE = "persistent_queue_enabled"
         private const val KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP = "queue_preserve_upcoming_on_jump"
+        private const val KEY_KEEP_PLAYED_TRACKS_VISIBLE = "keep_played_tracks_visible"
         private const val KEY_QUEUE_AUTO_ARCHIVE = "queue_auto_archive"
         private const val KEY_START_DESTINATION = "start_destination_pref"
         const val KEY_DYNAMIC_THEME = "dynamic_theme_enabled"
@@ -1891,6 +1892,18 @@ class PlayerPreferences(context: Context) {
     fun setQueueAutoArchiveEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_QUEUE_AUTO_ARCHIVE, enabled) }
     fun getQueuePreserveUpcomingOnJump(): Boolean = prefs.getBoolean(KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP, true)
     fun setQueuePreserveUpcomingOnJump(enabled: Boolean) = prefs.edit { putBoolean(KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP, enabled) }
+
+    fun getKeepPlayedTracksVisible(): Boolean = prefs.getBoolean(KEY_KEEP_PLAYED_TRACKS_VISIBLE, false)
+    fun setKeepPlayedTracksVisible(enabled: Boolean) = prefs.edit { putBoolean(KEY_KEEP_PLAYED_TRACKS_VISIBLE, enabled) }
+
+    fun keepPlayedTracksVisibleFlow(): Flow<Boolean> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_KEEP_PLAYED_TRACKS_VISIBLE || key == null) trySend(getKeepPlayedTracksVisible())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(getKeepPlayedTracksVisible())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     fun getKeyColor(): Int = prefs.getInt(KEY_KEY_COLOR, 0)
     fun setKeyColor(color: Int) = prefs.edit { putInt(KEY_KEY_COLOR, color) }
