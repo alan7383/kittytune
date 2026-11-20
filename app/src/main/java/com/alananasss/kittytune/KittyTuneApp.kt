@@ -8,6 +8,8 @@ import coil.ImageLoaderFactory
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import coil.map.Mapper
+import coil.size.pxOrElse
+import com.alananasss.kittytune.ui.youtubeArtworkUpgrades
 import com.alananasss.kittytune.utils.Config
 import com.alananasss.kittytune.utils.LocaleUtils
 import com.zionhuang.innertube.YouTube
@@ -143,6 +145,15 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
                                 if (light != null && light != data) {
                                     req = req.newBuilder().data(light).build()
                                 }
+                            }
+                        } else if (urlStr != null) {
+                            val displayPixels = minOf(
+                                chain.size.width.pxOrElse { 0 },
+                                chain.size.height.pxOrElse { 0 }
+                            )
+                            for (url in youtubeArtworkUpgrades(urlStr, displayPixels)) {
+                                val upgraded = chain.proceed(req.newBuilder().data(url).build())
+                                if (upgraded is coil.request.SuccessResult) return upgraded
                             }
                         }
 

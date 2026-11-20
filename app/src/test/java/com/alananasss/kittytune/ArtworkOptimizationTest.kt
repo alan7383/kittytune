@@ -3,6 +3,7 @@ package com.alananasss.kittytune
 import com.alananasss.kittytune.domain.Playlist
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
+import com.alananasss.kittytune.ui.youtubeArtworkUpgrades
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -59,6 +60,47 @@ class ArtworkOptimizationTest {
         assertEquals(
             "https://lh3.googleusercontent.com/abc=w300-h300",
             ytGoogleUserContent.thumbnailUrl
+        )
+    }
+
+    @Test
+    fun youtube_music_large_cover_preserves_aspect_ratio_and_cdn_options() {
+        val url = "https://lh3.googleusercontent.com/cover=w120-h90-l90-rj?example=1"
+        assertEquals(
+            listOf("https://lh3.googleusercontent.com/cover=w1080-h810-l90-rj?example=1"),
+            youtubeArtworkUpgrades(url, 640)
+        )
+        assertEquals(
+            listOf("https://lh3.ggpht.com/cover=s1080-c"),
+            youtubeArtworkUpgrades("https://lh3.ggpht.com/cover=s120-c", 640)
+        )
+        assertEquals(emptyList<String>(), youtubeArtworkUpgrades(url, 144))
+        assertEquals(
+            emptyList<String>(),
+            youtubeArtworkUpgrades("https://lh3.googleusercontent.com/cover=w1600-h1600", 640)
+        )
+        assertEquals(
+            emptyList<String>(),
+            youtubeArtworkUpgrades("https://lh3.googleusercontent.com/cover=s0", 640)
+        )
+    }
+
+    @Test
+    fun youtube_video_large_cover_tries_hd_variants_before_original() {
+        val prefix = "https://i.ytimg.com/vi/dQw4w9WgXcQ/"
+        assertEquals(
+            listOf(prefix + "maxresdefault.jpg", prefix + "hq720.jpg"),
+            youtubeArtworkUpgrades(prefix + "hqdefault.jpg?original=1", 640)
+        )
+        assertEquals(emptyList<String>(), youtubeArtworkUpgrades(prefix + "maxresdefault.jpg", 640))
+        assertEquals(emptyList<String>(), youtubeArtworkUpgrades(prefix + "hqdefault.jpg", 144))
+        assertEquals(
+            emptyList<String>(),
+            youtubeArtworkUpgrades("https://yt3.googleusercontent.com/avatar=s120", 640)
+        )
+        assertEquals(
+            emptyList<String>(),
+            youtubeArtworkUpgrades("https://i.ytimg.com.example/vi/dQw4w9WgXcQ/hqdefault.jpg", 640)
         )
     }
 
