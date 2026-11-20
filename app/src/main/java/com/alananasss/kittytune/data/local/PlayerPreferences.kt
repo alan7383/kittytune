@@ -724,6 +724,7 @@ class PlayerPreferences(context: Context) {
         const val KEY_INSTANT_SKIP_SILENCE = "instant_skip_silence"
         const val KEY_RESUME_ON_BLUETOOTH = "resume_on_bluetooth_connect"
         const val KEY_PAUSE_ON_MUTE = "pause_on_mute"
+        const val KEY_RESUME_ON_UNMUTE = "resume_on_unmute"
         const val KEY_PAUSE_ON_AUDIO_FOCUS_LOSS = "pause_on_audio_focus_loss"
         const val KEY_KEEP_SCREEN_ON = "keep_screen_on_player"
         const val KEY_PAUSE_LISTEN_HISTORY = "pause_listen_history"
@@ -1251,6 +1252,8 @@ class PlayerPreferences(context: Context) {
 
     fun getPauseOnMute(): Boolean = prefs.getBoolean(KEY_PAUSE_ON_MUTE, false)
     fun setPauseOnMute(enabled: Boolean) = prefs.edit { putBoolean(KEY_PAUSE_ON_MUTE, enabled) }
+    fun getResumeOnUnmute(): Boolean = prefs.getBoolean(KEY_RESUME_ON_UNMUTE, true)
+    fun setResumeOnUnmute(enabled: Boolean) = prefs.edit { putBoolean(KEY_RESUME_ON_UNMUTE, enabled) }
 
     fun getPauseOnAudioFocusLoss(): Boolean = prefs.getBoolean(KEY_PAUSE_ON_AUDIO_FOCUS_LOSS, true)
     fun setPauseOnAudioFocusLoss(enabled: Boolean) = prefs.edit { putBoolean(KEY_PAUSE_ON_AUDIO_FOCUS_LOSS, enabled) }

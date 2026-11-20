@@ -434,7 +434,6 @@ object MusicManager {
 
         if (mVolumeChangeReceiver == null) {
             val receiver = object : android.content.BroadcastReceiver() {
-                val prefsLocal = PlayerPreferences(context)
                 override fun onReceive(ctx: Context?, intent: android.content.Intent?) {
                     handleVolumeChanged(ctx ?: context)
                 }
@@ -451,7 +450,10 @@ object MusicManager {
 
     private fun handleVolumeChanged(context: Context) {
         val prefs = PlayerPreferences(context)
-        if (!prefs.getPauseOnMute()) return
+        if (!prefs.getPauseOnMute()) {
+            wasPlayingBeforeMute = false
+            return
+        }
         val am = audioManager ?: return
         try {
             val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
@@ -464,7 +466,7 @@ object MusicManager {
                 }
             } else if (current > 0 && wasPlayingBeforeMute) {
                 wasPlayingBeforeMute = false
-                if (p.playbackState == Player.STATE_READY) {
+                if (prefs.getResumeOnUnmute() && p.playbackState == Player.STATE_READY) {
                     p.play()
                 }
             }
