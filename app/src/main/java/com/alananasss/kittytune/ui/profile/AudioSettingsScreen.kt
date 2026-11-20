@@ -88,6 +88,7 @@ fun AudioPlaybackSettingsScreen(
     val pauseOnAudioFocusLoss by remember(prefs) { prefs.pauseOnAudioFocusLossFlow() }
         .collectAsState(initial = prefs.getPauseOnAudioFocusLoss())
     var pauseOnMute by remember { mutableStateOf(prefs.getPauseOnMute()) }
+    var resumeOnUnmute by remember { mutableStateOf(prefs.getResumeOnUnmute()) }
     var keepScreenOn by remember { mutableStateOf(prefs.getKeepScreenOn()) }
     var pauseListenHistory by remember { mutableStateOf(prefs.getPauseListenHistory()) }
     var pauseSearchHistory by remember { mutableStateOf(prefs.getPauseSearchHistory()) }
@@ -116,6 +117,7 @@ fun AudioPlaybackSettingsScreen(
             "pref_resume_on_bluetooth" to 0,
             "pref_pause_on_audio_focus_loss" to 0,
             "pref_pause_on_mute" to 0,
+            "pref_resume_on_unmute" to 0,
             "pref_keep_screen_on" to 0,
             "pref_sc_sync" to 0
         )
@@ -137,7 +139,8 @@ fun AudioPlaybackSettingsScreen(
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = if (isGuest) 14 else 15
+                        val unmuteRowCount = if (pauseOnMute) 1 else 0
+                        val totalVisibleItems = (if (isGuest) 14 else 15) + unmuteRowCount
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
@@ -277,8 +280,19 @@ fun AudioPlaybackSettingsScreen(
                             highlightKey = "pref_pause_on_mute"
                         )
 
+                        if (pauseOnMute) {
+                            SettingsItem(
+                                shape = getSettingsShape(totalVisibleItems, 13),
+                                title = stringResource(R.string.pref_resume_on_unmute),
+                                hasSwitch = true,
+                                switchState = resumeOnUnmute,
+                                onSwitchChange = { resumeOnUnmute = it; prefs.setResumeOnUnmute(it) },
+                                highlightKey = "pref_resume_on_unmute"
+                            )
+                        }
+
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 13),
+                            shape = getSettingsShape(totalVisibleItems, 13 + unmuteRowCount),
                             title = stringResource(R.string.pref_keep_screen_on),
                             subtitle = stringResource(R.string.pref_keep_screen_on_sub),
                             hasSwitch = true,
@@ -290,7 +304,7 @@ fun AudioPlaybackSettingsScreen(
 
                         if (!isGuest) {
                             SettingsItem(
-                                shape = getSettingsShape(totalVisibleItems, 14),
+                                shape = getSettingsShape(totalVisibleItems, 14 + unmuteRowCount),
                                 title = stringResource(R.string.pref_sc_sync_title),
                                 subtitle = stringResource(R.string.pref_sc_sync_sub),
                                 hasSwitch = true,
