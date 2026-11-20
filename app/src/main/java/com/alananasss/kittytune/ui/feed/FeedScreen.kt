@@ -52,6 +52,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -82,12 +83,17 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.audio.haptics.HapticUtil
+import com.alananasss.kittytune.data.DataSaver
 import com.alananasss.kittytune.data.LikeRepository
+import com.alananasss.kittytune.data.cover.FeedVisual
+import com.alananasss.kittytune.data.cover.FeedVisualResolver
+import com.alananasss.kittytune.data.cover.FeedVisualSource
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.wave.WaveFeedback
 import com.alananasss.kittytune.ui.common.TrackInfoSheet
 import com.alananasss.kittytune.ui.game.TrackHighlights
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.cover.CanvasVideo
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.min
@@ -303,6 +309,41 @@ private fun FeedPager(
         }
     }
 
+    // ── Moving picture for the settled card ──────────────────────────────────────────
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+    val feedVisualConfig by prefs.getFeedVisualConfigFlow()
+        .collectAsState(initial = FeedVisualResolver.readConfig(prefs).let {
+            PlayerPreferences.FeedVisualConfig(it.animatedCovers, it.spotifyCanvas, it.youtubeSamples, it.priorityRaw)
+        })
+    var feedVisual by remember { mutableStateOf<FeedVisual?>(null) }
+    var failedSources by remember(activePost?.track?.id, feedVisualConfig) {
+        mutableStateOf<Set<FeedVisualSource>>(emptySet())
+    }
+
+    LaunchedEffect(activePost?.track?.id, feedVisualConfig, failedSources) {
+        feedVisual = null
+        val track = activePost?.track ?: return@LaunchedEffect
+        if (DataSaver.isActive(context)) return@LaunchedEffect
+        val config = FeedVisualResolver.Config(
+            animatedCovers = feedVisualConfig.animatedCovers,
+            spotifyCanvas = feedVisualConfig.spotifyCanvas,
+            youtubeSamples = feedVisualConfig.youtubeSamples,
+            priorityRaw = feedVisualConfig.priorityRaw,
+        )
+        feedVisual = FeedVisualResolver.resolve(track, config, excludeSources = failedSources)
+        if (failedSources.isEmpty()) {
+            val index = posts.indexOfFirst { it.track.id == track.id }
+            kotlinx.coroutines.coroutineScope {
+                for (next in index + 1..index + 2) {
+                    posts.getOrNull(next)?.let { post ->
+                        launch { FeedVisualResolver.resolve(post.track, config) }
+                    }
+                }
+            }
+        }
+    }
+
     val previewActive = currentTrackId != null && currentTrackId == previewTrackId
     val ringFraction = when {
         previewActive && !fullListen ->
@@ -338,10 +379,17 @@ private fun FeedPager(
             post = post,
             ringFraction = if (isSettled) ringFraction else 0f,
             isPreviewPlaying = previewActive && isPlaying && isSettled,
+            feedVisual = if (isSettled) feedVisual else null,
             playerViewModel = playerViewModel,
             feedViewModel = feedViewModel,
             onOpenPlayer = { openFullPlayer(post, playerViewModel) { fullListen = true } },
             onDislike = onDislike,
+            onVisualError = { src ->
+                FeedVisualResolver.invalidate(post.track.id)
+                if (isSettled) {
+                    failedSources = failedSources + src
+                }
+            },
         )
     }
 }
@@ -367,6 +415,8 @@ private fun FeedCard(
     feedViewModel: FeedViewModel,
     onOpenPlayer: () -> Unit,
     onDislike: () -> Unit,
+    feedVisual: FeedVisual? = null,
+    onVisualError: (FeedVisualSource) -> Unit = {},
 ) {
     val likedIds by LikeRepository.likedTrackIds.collectAsState()
     val isLiked = likedIds.contains(post.track.id)
@@ -398,6 +448,21 @@ private fun FeedCard(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
         )
+
+        // Moving picture over the static artwork
+        feedVisual?.let { visual ->
+            key(visual.url) {
+                CanvasVideo(
+                    canvasUrl = visual.url,
+                    isPlaying = true,
+                    modifier = Modifier.fillMaxSize(),
+                    clipStartMs = visual.clipStartMs,
+                    clipEndMs = visual.clipEndMs,
+                    userAgent = visual.userAgent,
+                    onPlaybackError = { onVisualError(visual.source) },
+                )
+            }
+        }
 
         // Scrims keep the white text readable top and bottom
         Box(

@@ -25,6 +25,7 @@ import java.io.FileWriter
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.map
 import com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider
 import com.alananasss.kittytune.data.lyrics.providers.DefaultDataSaverLyricsProviders
 import com.alananasss.kittytune.data.lyrics.providers.DefaultLyricsProviderOrder
@@ -529,6 +530,10 @@ class PlayerPreferences(context: Context) {
         private const val KEY_ANDROID_AUTO_SYNCED_LYRICS = "android_auto_synced_lyrics"
         const val KEY_ANIMATED_COVERS_ENABLED = "animated_covers_enabled"
         const val KEY_ANIMATED_COVERS_FADE_UI = "animated_covers_fade_ui"
+        const val KEY_FEED_ANIMATED_COVERS_ENABLED = "feed_animated_covers_enabled"
+        const val KEY_FEED_SPOTIFY_CANVAS_ENABLED = "feed_spotify_canvas_enabled"
+        const val KEY_FEED_YOUTUBE_SAMPLES_ENABLED = "feed_youtube_samples_enabled"
+        const val KEY_FEED_VISUAL_PRIORITY = "feed_visual_priority"
         const val KEY_FEED_OFFICIAL_ONLY_ENABLED = "feed_official_only_enabled"
         const val KEY_CLIP_VIDEO_QUALITY = "clip_video_quality"
         const val KEY_GYROSCOPE_COVERS_ENABLED = "gyroscope_covers_enabled"
@@ -1545,15 +1550,68 @@ class PlayerPreferences(context: Context) {
     fun getAnimatedCoversFadeUiEnabled(): Boolean = prefs.getBoolean(KEY_ANIMATED_COVERS_FADE_UI, false)
     fun setAnimatedCoversFadeUiEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_ANIMATED_COVERS_FADE_UI, enabled) }
 
+    // ── Feed visuals (the feed section in appearance settings) ──────────────────────────
+    // Three independent sources for the active card's moving picture, tried in the drag-ordered
+    // priority; the first one that resolves wins, the static cover stays as the fallback.
+
+    fun getFeedAnimatedCoversEnabled(): Boolean = prefs.getBoolean(KEY_FEED_ANIMATED_COVERS_ENABLED, true)
+    fun setFeedAnimatedCoversEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_FEED_ANIMATED_COVERS_ENABLED, enabled) }
+
+    fun getFeedSpotifyCanvasEnabled(): Boolean = prefs.getBoolean(KEY_FEED_SPOTIFY_CANVAS_ENABLED, true)
+    fun setFeedSpotifyCanvasEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_FEED_SPOTIFY_CANVAS_ENABLED, enabled) }
+
+    fun getFeedYouTubeSamplesEnabled(): Boolean = prefs.getBoolean(KEY_FEED_YOUTUBE_SAMPLES_ENABLED, true)
+    fun setFeedYouTubeSamplesEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_FEED_YOUTUBE_SAMPLES_ENABLED, enabled) }
+
     /** When on, the feed shows only tracks from official artists (verified / Pro / ISRC release). */
     fun getFeedOfficialOnlyEnabled(): Boolean = prefs.getBoolean(KEY_FEED_OFFICIAL_ONLY_ENABLED, false)
     fun setFeedOfficialOnlyEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_FEED_OFFICIAL_ONLY_ENABLED, enabled) }
+
+    /** Raw drag order, e.g. "SPOTIFY_CANVAS,ANIMATED_COVERS,YOUTUBE_SAMPLES". */
+    fun getFeedVisualPriorityRaw(): String = prefs.getString(KEY_FEED_VISUAL_PRIORITY, null).orEmpty()
+    fun setFeedVisualPriorityRaw(raw: String) = prefs.edit { putString(KEY_FEED_VISUAL_PRIORITY, raw) }
 
     /** The clips player's resolution cap; "auto" plays the best muxed stream as before. */
     fun getClipVideoQuality(): ClipVideoQuality =
         ClipVideoQuality.fromRaw(prefs.getString(KEY_CLIP_VIDEO_QUALITY, null))
     fun setClipVideoQuality(quality: ClipVideoQuality) =
         prefs.edit { putString(KEY_CLIP_VIDEO_QUALITY, quality.raw) }
+
+    private fun feedVisualFlow(keys: Set<String>, read: () -> String): Flow<String> = callbackFlow {
+        trySend(read())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key != null && key in keys) trySend(read())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    /** One flow for the whole feed-visual configuration, so the feed reacts to every toggle at once. */
+    fun getFeedVisualConfigFlow(): Flow<FeedVisualConfig> =
+        feedVisualFlow(
+            setOf(
+                KEY_FEED_ANIMATED_COVERS_ENABLED,
+                KEY_FEED_SPOTIFY_CANVAS_ENABLED,
+                KEY_FEED_YOUTUBE_SAMPLES_ENABLED,
+                KEY_FEED_VISUAL_PRIORITY,
+            )
+        ) {
+            ""
+        }.map {
+            FeedVisualConfig(
+                animatedCovers = getFeedAnimatedCoversEnabled(),
+                spotifyCanvas = getFeedSpotifyCanvasEnabled(),
+                youtubeSamples = getFeedYouTubeSamplesEnabled(),
+                priorityRaw = getFeedVisualPriorityRaw(),
+            )
+        }
+
+    data class FeedVisualConfig(
+        val animatedCovers: Boolean,
+        val spotifyCanvas: Boolean,
+        val youtubeSamples: Boolean,
+        val priorityRaw: String,
+    )
 
     fun getGyroscopeCoversEnabled(): Boolean = prefs.getBoolean(KEY_GYROSCOPE_COVERS_ENABLED, false)
     fun setGyroscopeCoversEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_GYROSCOPE_COVERS_ENABLED, enabled) }
