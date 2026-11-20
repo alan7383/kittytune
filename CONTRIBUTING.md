@@ -43,9 +43,10 @@ A few simple guidelines:
 - MVVM pattern: keep logic in ViewModels and UI in composables
 - Make sure layouts look good on both phones and tablets with `rememberWindowSizeInfo()`
 - Zero telemetry or analytics, keep it private
-- Follow [conventional commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, etc.) for git-cliff changelogs
+- Keep each PR focused on one feature, fix, or refactor and the changes it needs to work. Open separate PRs for independent changes and link any PRs that need to land first.
+- Use descriptive [Conventional Commit](https://www.conventionalcommits.org/) messages such as `feat(feed): add the Following feed` or `fix(player): pause on audio focus loss`. [git-cliff](cliff.toml) uses these messages to generate the changelog.
 
-When opening a PR, just add a short summary of what you did. If you touched the UI, adding a screenshot or recording in the PR description helps a lot!
+When opening a PR, add a short summary of what you did. If you touched the UI, adding a screenshot or recording in the PR description helps a lot!
 
 ---
 
