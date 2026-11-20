@@ -1207,7 +1207,7 @@ internal fun rememberSettingsSearchCatalog(
                 titleRes = R.string.diag_hero_title,
                 categoryName = catAudio,
                 icon = Icons.Rounded.GraphicEq,
-                route = "audio_playback_settings",
+                route = "audio_quality_settings",
                 highlightKey = "diag_hero_title",
                 keywords = listOf("audio path", "codec", "bitrate", "resampling")
             ),
@@ -1268,7 +1268,7 @@ internal fun rememberSettingsSearchCatalog(
                 subtitleRes = R.string.pref_usb_bit_perfect_sub,
                 categoryName = catSources,
                 icon = Icons.Rounded.Usb,
-                route = "audio_playback_settings",
+                route = "audio_quality_settings",
                 highlightKey = "pref_usb_bit_perfect",
                 keywords = listOf("usb", "dac", "bit", "perfect", "audiophile"),
                 hasSwitch = true,
