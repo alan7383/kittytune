@@ -824,6 +824,16 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
+                titleRes = R.string.pref_queue_preserve_upcoming,
+                subtitleRes = R.string.pref_queue_preserve_upcoming_sub,
+                categoryName = catAudio,
+                icon = Icons.AutoMirrored.Rounded.QueueMusic,
+                route = "audio_playback_settings",
+                highlightKey = "pref_queue_preserve_upcoming",
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
                 titleRes = R.string.pref_save_position,
                 subtitleRes = R.string.pref_save_position_sub,
                 categoryName = catAudio,

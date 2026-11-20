@@ -4938,8 +4938,7 @@ query CommentsWithReactions(
     fun skipToQueueItem(index: Int, autoPlay: Boolean = true) {
         if (routeRemote("queue", index.toLong())) return
         pendingSeekPosition = null
-        val keepsUpcoming = isQueuePreserveUpcomingEnabled || shuffleEnabled
-        if (keepsUpcoming && index > currentQueueIndex && currentQueueIndex >= 0 && index < _queue.size) {
+        if (isQueuePreserveUpcomingEnabled && index > currentQueueIndex && currentQueueIndex >= 0 && index < _queue.size) {
             val targetIndex = currentQueueIndex + 1
             moveQueueItem(index, targetIndex)
             playTrackAtIndex(
@@ -5925,6 +5924,17 @@ query CommentsWithReactions(
         refreshPreloadedNext()
 
         saveStateAsync(saveQueue = true)
+    }
+
+    fun playQueueItemNext(index: Int) {
+        if (ConnectManager.selectedDevice.value != null) return
+        val track = _queue.getOrNull(index) ?: return
+        if (index > currentQueueIndex) {
+            moveQueueItem(index, currentQueueIndex + 1)
+        } else {
+            // Replaying a track from history keeps its original occurrence in the queue.
+            insertNext(listOf(track))
+        }
     }
 
     fun insertNext(tracks: List<Track>) {
