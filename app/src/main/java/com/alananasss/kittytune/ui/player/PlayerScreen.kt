@@ -99,6 +99,7 @@ import com.alananasss.kittytune.ui.player.slider.SquigglySlider
 import com.alananasss.kittytune.ui.player.slider.rememberMixTransition
 import com.alananasss.kittytune.ui.player.slider.mixGlow
 import com.alananasss.kittytune.domain.Comment
+import com.alananasss.kittytune.data.spotify.spotifyCatalogTrackId
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
 import com.alananasss.kittytune.domain.getHighResAvatarUrl
@@ -10981,22 +10982,22 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
         }
     }
 
-    val isSpotify = track.source == "spotify" || track.user?.urn?.startsWith("spotify") == true
-    var spotifyCredits by remember { mutableStateOf<com.alananasss.kittytune.data.spotify.SpotifyCredits?>(null) }
-    var isLoadingCredits by remember { mutableStateOf(false) }
+    val spotifyId = track.spotifyCatalogTrackId()
+    val isSpotify = track.source == "spotify" || spotifyId != null
+    var spotifyCredits by remember(spotifyId) {
+        mutableStateOf<com.alananasss.kittytune.data.spotify.SpotifyCredits?>(null)
+    }
+    var isLoadingCredits by remember(spotifyId) { mutableStateOf(false) }
 
     val mainArtistLabel = stringResource(R.string.spotify_credits_main_artist)
     val featArtistLabel = stringResource(R.string.spotify_credits_featured_artist)
     val composerLabel = stringResource(R.string.spotify_credits_composer)
     val lyricistLabel = stringResource(R.string.spotify_credits_lyricist)
 
-    LaunchedEffect(track.id, isSpotify) {
-        if (isSpotify) {
+    LaunchedEffect(spotifyId) {
+        if (spotifyId != null) {
             isLoadingCredits = true
-            val cleanId = track.permalink?.takeIf { it.isNotBlank() }
-                ?: track.permalinkUrl?.substringAfterLast("/")?.takeIf { it.isNotBlank() && !it.contains("http") }
-                ?: track.id.toString()
-            spotifyCredits = com.alananasss.kittytune.data.spotify.SpotifyRepository.getCredits(cleanId)
+            spotifyCredits = com.alananasss.kittytune.data.spotify.SpotifyRepository.getCredits(spotifyId)
             isLoadingCredits = false
         }
     }
@@ -11140,20 +11141,26 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                     )
                     Spacer(Modifier.height(8.dp))
                 }
-                items(performerArtists) { artist ->
+                items(performerArtists, key = { "performer:${it.id.ifBlank { it.name }}" }) { artist ->
+                    var avatar by remember(artist.id, artist.imageUri) { mutableStateOf(artist.imageUri) }
+                    LaunchedEffect(artist.id, artist.imageUri) {
+                        if (artist.imageUri.isNullOrBlank() && artist.id.isNotBlank()) {
+                            avatar = com.alananasss.kittytune.data.spotify.SpotifyRepository.getArtistAvatar(artist.id)
+                        }
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .hapticClickable {
+                            .then(if (artist.id.isNotBlank()) Modifier.hapticClickable {
                                 onClose()
                                 viewModel.navigateToSpotifyArtist(artist.id)
-                            }
+                            } else Modifier)
                             .padding(vertical = 8.dp)
                     ) {
                         AsyncImage(
-                            model = artist.imageUri ?: R.drawable.ic_default_user_artwork_placeholder_round,
+                            model = avatar ?: R.drawable.ic_default_user_artwork_placeholder_round,
                             contentDescription = null,
                             modifier = Modifier
                                 .size(44.dp)
