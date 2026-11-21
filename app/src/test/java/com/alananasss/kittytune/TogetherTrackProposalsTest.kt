@@ -78,4 +78,46 @@ class TogetherTrackProposalsTest {
             Together.resetForTesting()
         }
     }
+
+    @Test
+    fun startingLiveDoesNotTruncateSavedPlaylistOrShareLocalSeeds() {
+        Together.resetForTesting()
+        val track = SharedTrack(1L, "Track", "Artist", null, 60_000L, null, "soundcloud", 0L, null)
+        val tracks = (1L..40L).map { track.copy(id = it) }
+        val local = track.copy(source = "local", id = -15L)
+        val code = Together.startLiveBroadcast(seedTracks = tracks + local)
+        try {
+            assertEquals(tracks, Together.rooms.value.getValue(code).playlist)
+            assertEquals(code, Together.startLiveBroadcast())
+            assertEquals(tracks, Together.saved.value.first { it.code == code }.tracks)
+        } finally {
+            Together.forget(code)
+            Together.resetForTesting()
+        }
+    }
+
+    @Test
+    fun retainedPlaylistMergesWithLegacyQueueWithoutReplacingTheLiveQueue() = runBlocking {
+        Together.resetForTesting()
+        val code = TogetherWire.newCode()
+        val track = SharedTrack(1L, "Track", "Artist", null, 60_000L, null, "soundcloud", 0L, null)
+        val upcoming = track.copy(id = 2)
+        val added = track.copy(id = 3)
+        val local = track.copy(id = -15, source = "local")
+        val now = System.currentTimeMillis()
+        try {
+            Together.handle(code, TogetherMessage.ClaimHost("host", now))
+            Together.handle(code, TogetherMessage.Queue("host", now, 4, listOf(upcoming), listOf(track), "Shared"))
+            val snapshot = TogetherMessage.Playlist("editor", now, listOf(added, track, local), "Shared")
+            assertEquals(snapshot, TogetherWire.open(code, TogetherWire.seal(code, snapshot)))
+            Together.handle(code, snapshot, isSnapshot = true)
+            Together.handle(code, TogetherMessage.Queue("legacy-editor", now, 0, emptyList(), listOf(track), "Shared"))
+            val room = Together.rooms.value.getValue(code)
+            assertEquals(listOf(track, added), room.playlist)
+            assertEquals(listOf(upcoming), room.upcoming)
+            assertEquals(4, room.queueVersion)
+        } finally {
+            Together.resetForTesting()
+        }
+    }
 }
