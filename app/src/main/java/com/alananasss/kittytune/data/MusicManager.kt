@@ -1055,11 +1055,7 @@ object MusicManager {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
             val isActivePlayer = (activePlayerIndex == 1 && playerIndex == 0) || (activePlayerIndex == 2 && playerIndex == 1)
-            if (isActivePlayer) {
-                com.alananasss.kittytune.audio.automix.AutomixManager.cancelAllBeatAnalyses()
-            } else {
-                return
-            }
+            if (!isActivePlayer) return
             appContext?.let { com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(it).stopAllHaptics() }
             aiDetectionProcessors.forEach { it.resetForNewTrack() }
             if (mediaItem == null) {
@@ -1072,8 +1068,10 @@ object MusicManager {
             }
 
             val rawId = mediaItem.mediaId
-            val cleanIdString = if (rawId.contains(":")) rawId.substringBefore(":") else rawId
+            val cleanIdString = rawId.substringBefore(':').removePrefix("yt_")
             val trackId = cleanIdString.toLongOrNull() ?: rawId.hashCode().toLong()
+            com.alananasss.kittytune.audio.automix.AutomixManager
+                .cancelImmediateBeatAnalyses(keepSongId = trackId.toString())
 
             if (preloadedTrack != null && preloadedTrack?.id == trackId) {
                 currentTrack = preloadedTrack
@@ -1744,9 +1742,10 @@ object MusicManager {
                     }
                 } catch (_: Exception) {}
 
+                val releaseTarget = requestedPlaybackParameters(basePlaybackParams)
                 try {
-                    if (stillOwnsTransition && oldPlayer.playbackParameters != basePlaybackParams) {
-                        oldPlayer.playbackParameters = basePlaybackParams
+                    if (stillOwnsTransition && oldPlayer.playbackParameters != releaseTarget) {
+                        oldPlayer.playbackParameters = releaseTarget
                     }
                 } catch (_: Exception) {}
 
@@ -1778,25 +1777,27 @@ object MusicManager {
                         } catch (_: Exception) {}
                     } else {
                         val currentParams = newPlayer.playbackParameters
-                        if (currentParams != basePlaybackParams) {
+                        if (currentParams != releaseTarget) {
                             scope.launch {
                                 val releaseSchedule =
                                     if (effectivePlan?.tempoSyncEnabled == true) {
                                         com.alananasss.kittytune.audio.automix.MixTransitionPresets.tempoReleaseSchedule(
                                             fromSpeed = currentParams.speed,
-                                            toSpeed = basePlaybackParams.speed,
+                                            toSpeed = releaseTarget.speed,
                                             bpm = presetBpm,
                                         )
                                     } else emptyList()
                                 if (releaseSchedule.isNotEmpty()) {
                                     var previousAtMs = 0L
                                     val startPitch = currentParams.pitch
-                                    val endPitch = basePlaybackParams.pitch
+                                    val endPitch = releaseTarget.pitch
                                     val lastIndex = (releaseSchedule.size - 1).coerceAtLeast(1)
                                     for ((index, step) in releaseSchedule.withIndex()) {
                                         delay((step.atMs - previousAtMs).coerceAtLeast(0L))
                                         previousAtMs = step.atMs
-                                        if (!isActive || transitionSeq != myTransition) break
+                                        if (!isActive || transitionSeq != myTransition || bitPerfectBlocksResample ||
+                                            requestedPlaybackParameters(basePlaybackParams) != releaseTarget
+                                        ) break
                                         // Walk the harmonic pitch correction home together with the
                                         // tempo, otherwise the rest of the track stays transposed.
                                         val frac = if (releaseSchedule.size == 1) 1f else index.toFloat() / lastIndex
@@ -1808,12 +1809,14 @@ object MusicManager {
                                 } else {
                                     val rampSteps = 10
                                     val startSpeed = currentParams.speed
-                                    val endSpeed = basePlaybackParams.speed
+                                    val endSpeed = releaseTarget.speed
                                     val startPitch = currentParams.pitch
-                                    val endPitch = basePlaybackParams.pitch
+                                    val endPitch = releaseTarget.pitch
                                     for (step in 1..rampSteps) {
                                         delay(200)
-                                        if (!isActive || transitionSeq != myTransition) break
+                                        if (!isActive || transitionSeq != myTransition || bitPerfectBlocksResample ||
+                                            requestedPlaybackParameters(basePlaybackParams) != releaseTarget
+                                        ) break
                                         val frac = step.toFloat() / rampSteps
                                         val curSpeed = startSpeed + frac * (endSpeed - startSpeed)
                                         val curPitch = startPitch + frac * (endPitch - startPitch)
@@ -1863,6 +1866,12 @@ object MusicManager {
 
         inactivePlayer.setMediaItem(mediaItem)
         inactivePlayer.prepare()
+    }
+
+    private fun requestedPlaybackParameters(fallback: PlaybackParameters): PlaybackParameters {
+        if (bitPerfectBlocksResample) return PlaybackParameters.DEFAULT
+        val effects = lastEffectsState ?: return fallback
+        return PlaybackParameters(effects.speed, if (effects.isPitchEnabled) effects.speed else 1f)
     }
 
     fun applyEffects(state: AudioEffectsState) {

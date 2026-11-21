@@ -3769,4 +3769,10 @@
     <string name="together_sync_synced">Szinkronizálva</string>
     <string name="together_sync_syncing">Szinkronizálás…</string>
     <string name="together_sync_waiting">Várakozás a házigazdára</string>
+    <string name="pref_mini_player_classic_cover">Borító megjelenítése bal oldalon</string>
+    <string name="pref_mini_player_classic_cover_left_desc">Kis borító a cím bal oldalán</string>
+    <string name="pref_mini_player_classic_background">Borító háttérként</string>
+    <string name="pref_mini_player_classic_cover_bg_desc">A borító a cím mögött, a teljes sávban jelenik meg</string>
+    <string name="pref_mini_player_classic_progress">Haladás kitöltéssel</string>
+    <string name="pref_mini_player_classic_progress_fill_desc">A lejátszás előrehaladtával a borító színe tölti ki a minilejátszót</string>
 </resources>

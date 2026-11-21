@@ -3762,4 +3762,10 @@
     <string name="together_sync_synced">Eşitlendi</string>
     <string name="together_sync_syncing">Eşitleniyor…</string>
     <string name="together_sync_waiting">Oturum sahibi bekleniyor</string>
+    <string name="pref_mini_player_classic_cover">Kapağı solda göster</string>
+    <string name="pref_mini_player_classic_cover_left_desc">Başlığın solunda küçük bir kapak gösterir</string>
+    <string name="pref_mini_player_classic_background">Arka planda kapak</string>
+    <string name="pref_mini_player_classic_cover_bg_desc">Kapağı başlığın arkasında tüm genişlik boyunca gösterir</string>
+    <string name="pref_mini_player_classic_progress">İlerleme dolgusu</string>
+    <string name="pref_mini_player_classic_progress_fill_desc">Parça çaldıkça mini oynatıcı kapak rengiyle dolar</string>
 </resources>

@@ -3765,4 +3765,10 @@
     <string name="together_sync_synced">Đã đồng bộ</string>
     <string name="together_sync_syncing">Đang đồng bộ…</string>
     <string name="together_sync_waiting">Đang chờ chủ phòng</string>
+    <string name="pref_mini_player_classic_cover">Hiện ảnh bìa bên trái</string>
+    <string name="pref_mini_player_classic_cover_left_desc">Hiện ảnh bìa nhỏ bên trái tiêu đề</string>
+    <string name="pref_mini_player_classic_background">Dùng ảnh bìa làm nền</string>
+    <string name="pref_mini_player_classic_cover_bg_desc">Hiện ảnh bìa phía sau tiêu đề trên toàn bộ chiều rộng</string>
+    <string name="pref_mini_player_classic_progress">Tô đầy theo tiến độ</string>
+    <string name="pref_mini_player_classic_progress_fill_desc">Tô đầy trình phát mini bằng màu ảnh bìa theo tiến độ bài hát</string>
 </resources>

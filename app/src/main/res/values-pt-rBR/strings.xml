@@ -3758,4 +3758,10 @@
     <string name="together_sync_syncing">Sincronizando…</string>
     <string name="together_sync_waiting">Aguardando o anfitrião</string>
     <string name="pref_resume_on_unmute">Retomar quando o volume voltar</string>
+    <string name="pref_mini_player_classic_cover">Mostrar capa à esquerda</string>
+    <string name="pref_mini_player_classic_cover_left_desc">Mostra uma miniatura à esquerda do título</string>
+    <string name="pref_mini_player_classic_background">Capa como fundo</string>
+    <string name="pref_mini_player_classic_cover_bg_desc">Mostra a capa atrás do título em toda a largura</string>
+    <string name="pref_mini_player_classic_progress">Preenchimento do progresso</string>
+    <string name="pref_mini_player_classic_progress_fill_desc">Preenche o miniplayer com a cor da capa conforme a faixa avança</string>
 </resources>
