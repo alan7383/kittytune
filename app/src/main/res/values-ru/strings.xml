@@ -3803,5 +3803,7 @@
     <string name="track_info_likes">Отметки «Нравится»</string>
     <string name="track_info_reposts">Репосты</string>
     <string name="track_info_comments">Комментарии</string>
+    <string name="pref_feed_video_samples">Видеофрагменты YouTube</string>
+    <string name="pref_feed_video_samples_desc">Воспроизводить отрывки клипов без звука, если анимированная обложка недоступна</string>
     <string name="artist_clip_resolution">%1$dp</string>
 </resources>

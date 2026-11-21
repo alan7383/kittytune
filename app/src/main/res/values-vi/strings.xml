@@ -3803,5 +3803,7 @@
     <string name="track_info_likes">Lượt thích</string>
     <string name="track_info_reposts">Lượt đăng lại</string>
     <string name="track_info_comments">Bình luận</string>
+    <string name="pref_feed_video_samples">Đoạn video YouTube</string>
+    <string name="pref_feed_video_samples_desc">Phát đoạn video nhạc không tiếng khi không có ảnh bìa động</string>
     <string name="artist_clip_resolution">%1$dp</string>
 </resources>

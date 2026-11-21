@@ -3800,5 +3800,7 @@
     <string name="track_info_likes">Mentions J’aime</string>
     <string name="track_info_reposts">Republications</string>
     <string name="track_info_comments">Commentaires</string>
+    <string name="pref_feed_video_samples">Extraits vidéo YouTube</string>
+    <string name="pref_feed_video_samples_desc">Afficher des extraits de clips sans son quand aucune pochette animée n’est disponible</string>
     <string name="artist_clip_resolution">%1$dp</string>
 </resources>

@@ -404,13 +404,7 @@ private fun FeedCard(
             .fillMaxSize()
             .clickable { onOpenPlayer() },
     ) {
-        // Full-bleed artwork
-        AsyncImage(
-            model = post.track.fullResArtwork,
-            contentDescription = post.track.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-        )
+        FeedVisualArtwork(post.track, isPreviewPlaying && !playerViewModel.isPlayerExpanded)
 
         // Scrims keep the white text readable top and bottom
         Box(
