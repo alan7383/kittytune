@@ -3805,4 +3805,5 @@
     <string name="track_info_comments">Kommentare</string>
     <string name="pref_feed_video_samples">YouTube-Videoausschnitte</string>
     <string name="pref_feed_video_samples_desc">Stumme Musikvideoausschnitte anzeigen, wenn kein animiertes Cover verfügbar ist</string>
+    <string name="artist_clip_resolution">%1$dp</string>
 </resources>

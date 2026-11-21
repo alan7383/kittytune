@@ -1622,6 +1622,9 @@ class PlayerPreferences(context: Context) {
         awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
+    fun getClipMaxHeight(): Int = prefs.getInt("clip_max_height", 720)
+    fun setClipMaxHeight(height: Int) = prefs.edit { putInt("clip_max_height", height) }
+
     fun getAnimatedCoversFadeUiEnabled(): Boolean = prefs.getBoolean(KEY_ANIMATED_COVERS_FADE_UI, false)
     fun setAnimatedCoversFadeUiEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_ANIMATED_COVERS_FADE_UI, enabled) }
 

@@ -3802,4 +3802,5 @@
     <string name="track_info_comments">Yorumlar</string>
     <string name="pref_feed_video_samples">YouTube video kesitleri</string>
     <string name="pref_feed_video_samples_desc">Hareketli kapak yoksa müzik videosundan sessiz kesitler kullan</string>
+    <string name="artist_clip_resolution">%1$dp</string>
 </resources>

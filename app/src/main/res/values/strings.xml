@@ -3812,4 +3812,5 @@
     <string name="track_info_comments">Comments</string>
     <string name="pref_feed_video_samples">YouTube video samples</string>
     <string name="pref_feed_video_samples_desc">Use muted music video excerpts when animated artwork is unavailable</string>
+    <string name="artist_clip_resolution">%1$dp</string>
 </resources>
