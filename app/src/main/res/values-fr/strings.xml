@@ -1737,7 +1737,7 @@
     <string name="pref_bottom_menu_tabs_reorder">Faites glisser pour réorganiser. La barre suit cet ordre.</string>
     <string name="reorder_handle">Réorganiser</string>
     <string name="pref_bottom_menu_tabs">Onglets visibles</string>
-\n    <string name="fab_settings_no_playlists">Aucune playlist trouvée dans votre bibliothèque.</string>
+    <string name="fab_settings_no_playlists">Aucune playlist trouvée dans votre bibliothèque.</string>
     <string name="fab_settings_hint">Astuce : seules les playlists ajoutées à votre bibliothèque apparaissent ici. N\'hésitez pas à liker des playlists pour pouvoir les utiliser comme raccourcis !</string>
     <string name="fab_settings_radio">Radio • YouTube</string>
     <string name="sort_first_added">Ajoutés en premier</string>

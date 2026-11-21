@@ -58,7 +58,7 @@
     <string name="search_verified_unavailable">Vergleich mit anderen Plattformen nicht möglich. Alle Ergebnisse werden angezeigt.</string>
     <string name="search_verified_inconclusive">Die Verifizierung war für einige Ergebnisse nicht eindeutig.</string>
     <string name="home_discovery_title">Entdeckung des Tages</string>
-    <string name="home_discovery_subtitle">Frische Titel, passend zu deinem Geschmack</string>
+    <string name="home_discovery_subtitle">Neue Titel nach deinem Geschmack</string>
     <string name="home_discovery_context_genre">Für Fans von %1$s</string>
     <string name="home_recently_played">Kürzlich Gespielt</string>
     <string name="home_trending">Im Trend</string>
@@ -82,7 +82,7 @@
     <string name="home_liked_by_section_title">Geliked von</string>
     <string name="home_liked_by_section_subtitle">Ausgewählt von Künstlern, die du hörst</string>
     <string name="home_recommended_tracks">Für dich empfohlen</string>
-    <string name="home_recommended_tracks_sub">Frische Titel basierend auf deinem Verlauf</string>
+    <string name="home_recommended_tracks_sub">Neue Titel basierend auf deinem Verlauf</string>
     <string name="home_more_of_what_you_like">Mehr von dem, was dir gefällt</string>
     <string name="home_mixed_for_user">Zusammengestellt für %1$s</string>
     <string name="home_mixed_for_you">Für dich zusammengestellt</string>
@@ -271,7 +271,7 @@
     <string name="player_special_effects">Audio-FX</string>
     <string name="audio_fx_long_press_hint">Drücke lange auf eine Kachel, um ihre Einstellungen anzupassen</string>
     <string name="fx_active_count">%1$d aktiv</string>
-    <string name="fx_reset_speed">Normales Tempo</string>
+    <string name="fx_reset_speed">Zurück zur normalen Geschwindigkeit</string>
     <string name="player_pitch">Tonhöhe</string>
     <string name="player_speed">Geschwindigkeit</string>
     <string name="pref_precise_speed">Präzise Geschwindigkeit</string>

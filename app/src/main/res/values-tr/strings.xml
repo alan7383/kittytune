@@ -1865,7 +1865,7 @@
     <string name="pref_bottom_menu_tabs_reorder">Sıralamak için sürükle. Çubuk bu sırayı takip eder.</string>
     <string name="reorder_handle">Sırala</string>
     <string name="pref_bottom_menu_tabs">Görünür Sekmeler</string>
-\n    <string name="fab_settings_no_playlists">Kitaplığında çalma listesi bulunamadı.</string>
+    <string name="fab_settings_no_playlists">Kitaplığında çalma listesi bulunamadı.</string>
     <string name="fab_settings_hint">İpucu: Burada yalnızca kitaplığına eklenen çalma listeleri görünür. Kısayol olarak kullanmak için çalma listelerini beğenmekten çekinme!</string>
     <string name="fab_settings_radio">Radyo • YouTube</string>
     <string name="sort_first_added">İlk Eklenen</string>
