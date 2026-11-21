@@ -16,7 +16,6 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
@@ -588,10 +587,7 @@ class TransitionPreviewPlayer(
             .setConnectTimeoutMs(15_000)
             .setReadTimeoutMs(15_000)
 
-        val cacheFactory = CacheDataSource.Factory()
-            .setCache(ExoCacheManager.getCache(context))
-            .setUpstreamDataSourceFactory(DefaultDataSource.Factory(context, httpFactory))
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        val cacheFactory = ExoCacheManager.getAnalysisCacheFactory(context, DefaultDataSource.Factory(context, httpFactory))
 
         val token = stream.licenseAuthToken
         // The same offline/streaming split the beat decoder uses: a pre-provisioned offline

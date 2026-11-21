@@ -794,6 +794,20 @@ object SpotifyRepository {
         }
     }
 
+    internal fun officialRadioCandidates(playlists: List<SpotifyPlaylist>, requiredName: String): List<SpotifyPlaylist> {
+        val wanted = requiredName.trim()
+        if (wanted.isEmpty()) return emptyList()
+        return playlists.filter { playlist ->
+            playlist.ownerName == "Spotify" &&
+                playlist.id.startsWith("37i9dQZF") &&
+                playlist.name.contains(wanted, ignoreCase = true) &&
+                !playlist.name.startsWith("This Is ", ignoreCase = true) &&
+                (playlist.id.startsWith("37i9dQZF1E8") ||
+                    playlist.id.startsWith("37i9dQZF1E4") ||
+                    playlist.name.trimEnd().endsWith(" Radio", ignoreCase = true))
+        }
+    }
+
     // Finds Spotify's own radio playlist by name: search "<track/artist> Radio", then fetch
     // the Spotify-owned `37i9dQZF…` playlist that matches.
     //
@@ -806,22 +820,12 @@ object SpotifyRepository {
     // Radio" -> 50 tracks starting with the seed track), so the radio a logged-out client
     // can actually play is located by search.
     //
-    // @param query the search term, e.g. `"One More Time Radio"`.
-    // @param requiredName when set, candidates whose name does not contain this are ignored
-    //   (a search for a short track name also finds unrelated radios).
-    private suspend fun findOfficialRadioPlaylist(query: String, requiredName: String? = null): SpotifyPlaylist? {
+    private suspend fun findOfficialRadioPlaylist(query: String, requiredName: String): SpotifyPlaylist? {
         val results = runCatching { search(query, limit = 20) }.getOrNull() ?: return null
-        val wanted = requiredName?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
-        val nameMatches: (SpotifyPlaylist) -> Boolean = { playlist ->
-            wanted.isNullOrBlank() || playlist.name.lowercase().contains(wanted)
-        }
-        val official = results.playlists
-            .filter { it.ownerName == "Spotify" && it.id.startsWith("37i9dQZF") && nameMatches(it) }
-            .ifEmpty { results.playlists.filter { it.ownerName == "Spotify" && it.id.startsWith("37i9dQZF") } }
 
         // Try up to three candidates: the first Spotify-owned "… Radio" occasionally
         // resolves to a regional variant, and the next row is usually the global one.
-        for (candidate in official.take(3)) {
+        for (candidate in officialRadioCandidates(results.playlists, requiredName).take(3)) {
             val full = runCatching { getPlaylist(candidate.id) }.getOrNull() ?: continue
             if (full.tracks.isNotEmpty()) return full
         }
@@ -840,17 +844,7 @@ object SpotifyRepository {
         if (isArtist) {
             val artist = getArtist(cleanId)
             if (artist != null) {
-                // Official editorial radios only: discoveredOn lists any playlist the artist
-                // appears in, and a user's "… Radio (90's hits)" compilation used to win this
-                // filter and starve the artist's actual radio (which the search below finds).
-                val radioFromArtist = artist.discoveredOn.firstOrNull {
-                    it.id.startsWith("37i9dQZF1E4")
-                } ?: artist.discoveredOn.firstOrNull {
-                    it.ownerName == "Spotify" && it.name.contains(
-                        "Radio",
-                        ignoreCase = true
-                    ) && !it.name.contains("This Is", ignoreCase = true)
-                } ?: artist.discoveredOn.firstOrNull { it.id.startsWith("37i9dQZF") }
+                val radioFromArtist = officialRadioCandidates(artist.discoveredOn, artist.name).firstOrNull()
 
                 if (radioFromArtist != null) {
                     val fullPlaylist = getPlaylist(radioFromArtist.id)
@@ -860,18 +854,7 @@ object SpotifyRepository {
                 }
 
                 val searchRes = search("${artist.name} Radio")
-                // Spotify-owned first: a user playlist named "<artist> Radio" with two uploads
-                // used to be able to win the filter below and starve the mix.
-                val searchRadio = searchRes.playlists.firstOrNull {
-                    it.ownerName == "Spotify" && it.id.startsWith("37i9dQZF1E4")
-                } ?: searchRes.playlists.firstOrNull {
-                    it.id.startsWith("37i9dQZF1E4") || (it.name.contains(
-                        "Radio",
-                        ignoreCase = true
-                    ) && it.name.contains(artist.name, ignoreCase = true))
-                } ?: searchRes.playlists.firstOrNull {
-                    it.name.contains("Radio", ignoreCase = true) || it.id.startsWith("37i9dQZF")
-                }
+                val searchRadio = officialRadioCandidates(searchRes.playlists, artist.name).firstOrNull()
 
                 if (searchRadio != null) {
                     val fullPlaylist = getPlaylist(searchRadio.id)
@@ -881,7 +864,10 @@ object SpotifyRepository {
                 }
 
                 val thisIsSearch = search("This Is ${artist.name}")
-                val thisIsPl = thisIsSearch.playlists.firstOrNull { it.name.contains("This Is", ignoreCase = true) }
+                val thisIsPl = thisIsSearch.playlists.firstOrNull {
+                    it.ownerName == "Spotify" && it.id.startsWith("37i9dQZF") &&
+                        it.name.equals("This Is ${artist.name}", ignoreCase = true)
+                }
                 if (thisIsPl != null) {
                     val fullPlaylist = getPlaylist(thisIsPl.id)
                     if (fullPlaylist != null && fullPlaylist.tracks.isNotEmpty()) {
