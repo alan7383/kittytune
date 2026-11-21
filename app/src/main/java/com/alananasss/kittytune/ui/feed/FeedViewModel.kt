@@ -12,8 +12,11 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.mix.MixRanking
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.data.wave.DiscoverFeed
+import com.alananasss.kittytune.data.wave.soundCloudFeedCursor
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /** One post of the vertical feed: a track, who shared it and why it is here. */
@@ -35,6 +38,9 @@ class FeedViewModel(application: Application) : AndroidViewModel(application) {
 
     private val api = RetrofitClient.create(application)
     private val tokenManager = TokenManager(application)
+    private var discoverSource = DiscoverFeed()
+    private var discoverJob: Job? = null
+    private var followingJob: Job? = null
     private val prefs = PlayerPreferences(application)
 
     val isLoggedIn: Boolean
@@ -62,12 +68,14 @@ class FeedViewModel(application: Application) : AndroidViewModel(application) {
         // Rebuild the stream the filter applies to, so nothing hidden stays visible. The
         // source starts from scratch too: its taste tier is re-primed and the chart walk
         // restarts, so tracks the old setting filtered out can finally surface.
-        DiscoverFeed.reset()
+        discoverJob?.cancel()
+        discoverLoading = false
+        discoverSource = DiscoverFeed()
         discover.clear()
         discoverExhausted = false
         seenDiscoverIds.clear()
         loadDiscoverMore()
-        if (following.isNotEmpty() || followingNextHref != null) loadFollowingPage(reset = true)
+        if (isLoggedIn && followingJob != null) loadFollowingPage(reset = true)
     }
 
     /** Whether a track survives the "official artists only" feed filter. */
@@ -88,11 +96,14 @@ class FeedViewModel(application: Application) : AndroidViewModel(application) {
 
     private var discoverExhausted = false
     private var followingNextHref: String? = null
+    private val followingCursors = mutableSetOf<String>()
+    private val seenFollowing = mutableSetOf<Triple<Long, Long?, String>>()
     private val seenDiscoverIds = mutableSetOf<Long>()
 
     /** Per-author follow state; absent = not checked yet. */
     var followState by mutableStateOf<Map<Long, Boolean>>(emptyMap())
         private set
+    private val followChangesInFlight = mutableSetOf<Long>()
     private val followChecksInFlight = mutableSetOf<Long>()
 
     init {
@@ -109,39 +120,49 @@ class FeedViewModel(application: Application) : AndroidViewModel(application) {
     fun loadDiscoverMore() {
         if (discoverLoading || discoverExhausted) return
         discoverLoading = true
-        viewModelScope.launch {
+        val source = discoverSource
+        discoverJob = viewModelScope.launch {
             try {
                 repeat(MAX_FILTERED_BATCHES) {
-                    if (discoverExhausted) return@repeat
-                    val fresh = DiscoverFeed.nextBatch(exclude = seenDiscoverIds)
+                    if (discoverExhausted) return@launch
+                    val fresh = source.nextBatch(exclude = seenDiscoverIds.toSet())
                     if (fresh.isEmpty()) {
                         // Transient "nothing right now" waits for the next scroll; only the
                         // source's own verdict ends the feed for good.
-                        if (DiscoverFeed.exhausted) discoverExhausted = true
+                        if (source.exhausted) {
+                            discoverExhausted = true
+                            return@launch
+                        }
                         return@repeat
                     }
                     fresh.forEach { seenDiscoverIds += it.id }
                     val posts = fresh.filter { it.isOfficialForFeed() }
                         .map { FeedPost(track = it, author = it.user) }
                     discover.addAll(posts)
-                    if (posts.isNotEmpty()) return@repeat
+                    if (posts.isNotEmpty()) return@launch
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
-                discoverLoading = false
+                if (source === discoverSource) discoverLoading = false
             }
         }
     }
 
     private fun loadFollowingPage(reset: Boolean) {
-        if (followingLoading) return
+        if (followingLoading && !reset) return
+        followingJob?.cancel()
         followingLoading = true
         followingError = false
-        viewModelScope.launch {
+        followingJob = viewModelScope.launch {
+            var cancelled = false
             try {
                 if (reset) {
                     following.clear()
+                    followingCursors.clear()
+                    seenFollowing.clear()
                     followingNextHref = null
                 }
                 // With the official filter on, a page can surface nothing visible; pull the next
@@ -152,24 +173,31 @@ class FeedViewModel(application: Application) : AndroidViewModel(application) {
                     } else {
                         api.getActivitiesNextPage(followingNextHref!!)
                     }
-                    followingNextHref = response.next_href
+                    followingNextHref = response.next_href?.let(::soundCloudFeedCursor)
+                        ?.takeIf { followingCursors.add(it) }
                     val posts = response.collection.mapNotNull { item ->
                         val track = item.track ?: return@mapNotNull null
+                        if (!track.isOfficialForFeed() || !seenFollowing.add(Triple(track.id, item.user?.id, item.createdAt))) {
+                            return@mapNotNull null
+                        }
                         FeedPost(
                             track = track,
                             author = item.user ?: track.user,
                             caption = item.caption?.takeIf { it.isNotBlank() },
                             isRepost = item.type == "track-repost",
                         )
-                    }.filter { it.track.isOfficialForFeed() }
+                    }
                     following.addAll(posts)
-                    if (posts.isNotEmpty() || followingNextHref == null || !officialOnly) return@repeat
+                    if (posts.isNotEmpty() || followingNextHref == null || !officialOnly) return@launch
                 }
+            } catch (e: CancellationException) {
+                cancelled = true
+                throw e
             } catch (e: Exception) {
                 e.printStackTrace()
                 followingError = true
             } finally {
-                followingLoading = false
+                if (!cancelled) followingLoading = false
             }
         }
     }
@@ -197,12 +225,20 @@ class FeedViewModel(application: Application) : AndroidViewModel(application) {
         followChecksInFlight += userId
         viewModelScope.launch {
             val isFollowing = try {
-                api.checkFollowState(userId).isSuccessful
+                val response = api.checkFollowState(userId)
+                when {
+                    response.isSuccessful -> true
+                    response.code() == 404 -> false
+                    else -> return@launch
+                }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 e.printStackTrace()
-                false
+                return@launch
+            } finally {
+                followChecksInFlight -= userId
             }
-            followChecksInFlight -= userId
             followState = followState + (userId to isFollowing)
         }
     }
@@ -210,6 +246,7 @@ class FeedViewModel(application: Application) : AndroidViewModel(application) {
     /** Optimistic toggle; rolls back if the server rejects it. */
     fun toggleFollow(userId: Long) {
         val isFollowing = followState[userId] ?: return
+        if (!followChangesInFlight.add(userId)) return
         followState = followState + (userId to !isFollowing)
         viewModelScope.launch {
             val ok = try {
@@ -219,6 +256,7 @@ class FeedViewModel(application: Application) : AndroidViewModel(application) {
                 e.printStackTrace()
                 false
             }
+            followChangesInFlight -= userId
             if (!ok) followState = followState + (userId to isFollowing)
         }
     }
