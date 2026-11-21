@@ -334,12 +334,13 @@ object AutoEqRepository {
      * or Equalizer APO exports.
      */
     fun loadFromText(name: String, text: String): AutoEqProfileData {
-        val (gains, preamp) = parseGraphicEq(text, bands = EQUALIZER_BANDS)
+        val parametric = ParametricEqImport.recognizes(text)
+        val (gains, preamp) = if (parametric) ParametricEqImport.fit(text) else parseGraphicEq(text)
         val profile = AutoEqProfile(
             id = "custom:${name.hashCode()}",
             name = name,
             path = "custom",
-            source = "Custom GraphicEQ",
+            source = if (parametric) "Custom ParametricEQ" else "Custom GraphicEQ",
             rig = null,
             formFactor = "Custom"
         )

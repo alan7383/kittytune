@@ -1,229 +1,77 @@
 package com.alananasss.kittytune.data.cover
 
-import com.alananasss.kittytune.data.local.PlayerPreferences
+import android.os.SystemClock
+import com.alananasss.kittytune.data.PlaybackTrackKey
+import com.alananasss.kittytune.data.playbackKey
 import com.alananasss.kittytune.domain.Track
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
 
-enum class FeedVisualSource {
-    ANIMATED_COVERS,
-    SPOTIFY_CANVAS,
-    YOUTUBE_SAMPLES,
-}
-
-data class FeedVisual(
+internal enum class FeedVisualSource { ANIMATED_COVER, YOUTUBE }
+internal data class FeedVisual(
     val url: String,
     val source: FeedVisualSource,
-    val clipStartMs: Long = 0L,
-    val clipEndMs: Long = 0L,
-    val userAgent: String? = null,
+    val startMs: Long = 0,
+    val endMs: Long? = null,
 )
 
-object FeedVisualResolver {
-
-    data class Config(
-        val animatedCovers: Boolean,
-        val spotifyCanvas: Boolean,
-        val youtubeSamples: Boolean,
-        val priorityRaw: String,
-    ) {
-        fun mask(): String = "$animatedCovers|$spotifyCanvas|$youtubeSamples|$priorityRaw"
+internal class FeedVisualResolver(
+    private val resolveSource: suspend (Track, FeedVisualSource) -> FeedVisual? = ::loadFeedVisual,
+    private val now: () -> Long = SystemClock::elapsedRealtime,
+) {
+    private data class Key(val track: PlaybackTrackKey, val order: List<FeedVisualSource>)
+    private data class Entry(val visual: FeedVisual, val time: Long)
+    private val cache = object : LinkedHashMap<Key, Entry>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Key, Entry>) = size > 48
     }
-
-    fun readConfig(prefs: PlayerPreferences): Config = Config(
-        animatedCovers = prefs.getFeedAnimatedCoversEnabled(),
-        spotifyCanvas = prefs.getFeedSpotifyCanvasEnabled(),
-        youtubeSamples = prefs.getFeedYouTubeSamplesEnabled(),
-        priorityRaw = prefs.getFeedVisualPriorityRaw(),
-    )
-
-    private data class CacheEntry(
-        val visual: FeedVisual?,
-        val mask: String,
-        val atMs: Long,
-    )
-
-    private const val CACHE_TTL_MS = 15 * 60 * 1000L
-    private const val NEGATIVE_CACHE_TTL_MS = 60 * 1000L
-    private val cache = object : LinkedHashMap<Long, CacheEntry>(16, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, CacheEntry>): Boolean = size > 48
-    }
-
-    private const val HEDGE_DELAY_MS = 1_500L
-    private const val VISUAL_DEADLINE_MS = 18_000L
-
-    private class Answer(val visual: FeedVisual?)
 
     suspend fun resolve(
         track: Track,
-        config: Config,
-        excludeSources: Set<FeedVisualSource> = emptySet(),
-    ): FeedVisual? = withContext(Dispatchers.IO) {
-        if (track.title.isNullOrBlank()) return@withContext null
-        val mask = config.mask()
-        if (excludeSources.isEmpty()) {
-            synchronized(cache) {
-                cache[track.id]?.let { entry ->
-                    val ttl = if (entry.visual != null) CACHE_TTL_MS else NEGATIVE_CACHE_TTL_MS
-                    if (entry.mask == mask && System.currentTimeMillis() - entry.atMs < ttl) {
-                        return@withContext entry.visual
-                    }
-                    cache.remove(track.id)
-                }
-            }
-        }
-
-        var finished = false
-        val visual = withTimeoutOrNull(VISUAL_DEADLINE_MS) {
-            resolveInternal(track, config, excludeSources).also { finished = true }
-        }
-        if (finished && (excludeSources.isEmpty() || visual != null)) {
-            synchronized(cache) { cache[track.id] = CacheEntry(visual, mask, System.currentTimeMillis()) }
-        }
-        visual
-    }
-
-    private suspend fun resolveInternal(
-        track: Track,
-        config: Config,
-        excludeSources: Set<FeedVisualSource>,
+        order: List<FeedVisualSource>,
+        excluded: Set<FeedVisualSource> = emptySet(),
     ): FeedVisual? {
-        val title = track.title?.trim().orEmpty()
-        val artist = track.displayArtist.ifBlank { track.user?.username.orEmpty() }.trim()
-        if (title.isBlank() || artist.isBlank()) return null
-        val album = track.publisherMetadata?.albumTitle
-        val durationSec = (track.actualDurationMs / 1000L).toInt().takeIf { it > 0 }
-        val isrc = track.publisherMetadata?.isrc
-
-        val candidates = priorityOrder(config.priorityRaw)
-            .filter { sourceEnabled(it, config) && it !in excludeSources }
-        if (candidates.isEmpty()) return null
-
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        return try {
-            val answers = Channel<Answer>(capacity = Channel.UNLIMITED)
-            var launched = 0
-            val launchNext: () -> Unit = {
-                if (launched < candidates.size) {
-                    val source = candidates[launched++]
-                    scope.launch {
-                        val visual = runCatching {
-                            resolveSource(source, title, artist, album, durationSec, isrc)
-                        }.getOrNull()
-                        try {
-                            answers.send(Answer(visual))
-                        } catch (_: Exception) {
-                        }
-                    }
-                }
+        val sources = order.distinct()
+        val key = Key(track.playbackKey(), sources)
+        if (excluded.isEmpty()) {
+            synchronized(cache) {
+                cache[key]?.takeIf { now() - it.time < CACHE_TTL_MS }?.let { return it.visual }
             }
-
-            launchNext()
-            var found: FeedVisual? = null
-            var settled = 0
-            while (found == null) {
-                if (launched - settled == 0 && launched >= candidates.size) break
-                val answer: Answer? = if (launched < candidates.size) {
-                    withTimeoutOrNull(HEDGE_DELAY_MS) { answers.receive() }
-                } else {
-                    answers.receive()
-                }
-                if (answer == null) {
-                    launchNext()
-                } else {
-                    settled++
-                    if (answer.visual != null) {
-                        found = answer.visual
-                    } else {
-                        launchNext()
-                    }
-                }
-            }
-            found
-        } finally {
-            scope.cancel()
         }
+        for (source in sources) {
+            if (source in excluded) continue
+            val visual = withTimeoutOrNull(SOURCE_TIMEOUT_MS) {
+                try {
+                    resolveSource(track, source)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    null
+                }
+            } ?: continue
+            if (excluded.isEmpty()) synchronized(cache) { cache[key] = Entry(visual, now()) }
+            return visual
+        }
+        return null
     }
 
-    private fun sourceEnabled(source: FeedVisualSource, config: Config): Boolean = when (source) {
-        FeedVisualSource.ANIMATED_COVERS -> config.animatedCovers
-        FeedVisualSource.SPOTIFY_CANVAS -> config.spotifyCanvas
-        FeedVisualSource.YOUTUBE_SAMPLES -> config.youtubeSamples
+    private companion object {
+        const val CACHE_TTL_MS = 5 * 60 * 1000L
+        const val SOURCE_TIMEOUT_MS = 8_000L
     }
+}
 
-    private suspend fun resolveSource(
-        source: FeedVisualSource,
-        title: String,
-        artist: String,
-        album: String?,
-        durationSec: Int?,
-        isrc: String?,
-    ): FeedVisual? = when (source) {
-        FeedVisualSource.SPOTIFY_CANVAS -> {
-            val url = SpotifyCanvasProvider.resolveCanvas(title, artist, album, durationSec, isrc)
-            if (!url.isNullOrBlank()) FeedVisual(url, FeedVisualSource.SPOTIFY_CANVAS) else null
-        }
-
-        FeedVisualSource.ANIMATED_COVERS -> {
-            val resolved = AnimatedCoverResolver.resolve(
-                title = title,
-                artist = artist,
-                album = album,
-                durationSeconds = durationSec,
-                isrc = isrc,
+private suspend fun loadFeedVisual(track: Track, source: FeedVisualSource): FeedVisual? {
+    val title = track.title?.trim()?.takeIf(String::isNotEmpty) ?: return null
+    val artist = track.displayArtist.trim().takeIf(String::isNotEmpty) ?: return null
+    val duration = (track.actualDurationMs / 1000L).toInt().takeIf { it > 0 }
+    return when (source) {
+        FeedVisualSource.ANIMATED_COVER -> {
+            val cover = AnimatedCoverResolver.resolve(
+                title, artist, track.publisherMetadata?.albumTitle, duration, track.publisherMetadata?.isrc
             )
-            val url = resolved?.tallUrl ?: resolved?.squareUrl
-            if (!url.isNullOrBlank()) FeedVisual(url, FeedVisualSource.ANIMATED_COVERS) else null
+            val url = cover.tallUrl ?: cover.squareUrl ?: return null
+            FeedVisual(url, source)
         }
-
-        FeedVisualSource.YOUTUBE_SAMPLES -> {
-            val sample = YouTubeSampleProvider.resolveSample(title, artist, album, durationSec)
-            if (sample != null) {
-                FeedVisual(
-                    url = sample.videoUrl,
-                    source = FeedVisualSource.YOUTUBE_SAMPLES,
-                    clipStartMs = sample.startMs,
-                    clipEndMs = sample.endMs,
-                    userAgent = sample.userAgent,
-                )
-            } else null
-        }
-    }
-
-    fun priorityOrder(raw: String): List<FeedVisualSource> {
-        val defaults = listOf(
-            FeedVisualSource.SPOTIFY_CANVAS,
-            FeedVisualSource.ANIMATED_COVERS,
-            FeedVisualSource.YOUTUBE_SAMPLES,
-        )
-        if (raw.isBlank()) return defaults
-        val parsed = raw.split(',')
-            .mapNotNull { part ->
-                runCatching { FeedVisualSource.valueOf(part.trim()) }.getOrNull()
-            }
-            .filter { it in defaults }
-        return parsed + defaults.filterNot { it in parsed }
-    }
-
-    fun priorityRaw(order: List<FeedVisualSource>): String = order.joinToString(",") { it.name }
-
-    fun clearCache() {
-        synchronized(cache) { cache.clear() }
-    }
-
-    fun invalidate(trackId: Long) {
-        val entry = synchronized(cache) { cache.remove(trackId) } ?: return
-        val visual = entry.visual ?: return
-        when (visual.source) {
-            FeedVisualSource.YOUTUBE_SAMPLES -> YouTubeSampleProvider.dropByUrl(visual.url)
-            FeedVisualSource.SPOTIFY_CANVAS -> SpotifyCanvasProvider.dropByUrl(visual.url)
-            FeedVisualSource.ANIMATED_COVERS -> Unit
-        }
+        FeedVisualSource.YOUTUBE -> YouTubeSampleProvider.resolve(title, artist, duration)
     }
 }

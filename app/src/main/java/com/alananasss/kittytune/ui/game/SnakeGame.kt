@@ -17,6 +17,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -87,11 +88,14 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.audio.haptics.HapticUtil
+import com.alananasss.kittytune.data.BlockManager
 import com.alananasss.kittytune.data.wave.MyWave
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.player.PlaybackContext
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.widget.pet.PetConfig
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.min
@@ -166,11 +170,13 @@ private class SnakeEngine(
     var direction by mutableStateOf(SnakeDirection.RIGHT)
     var foods by mutableStateOf(listOf<SnakeFood>())
     var score by mutableStateOf(0)
-    var speedMs by mutableStateOf(230f)
+    var speedMs by mutableStateOf(START_SPEED_MS)
     var lastEaten by mutableStateOf<Track?>(null)
 
     private val turns = ArrayDeque<SnakeDirection>()
-    private var pool: List<Track> = tracks.distinctBy { it.id }.shuffled()
+    // The menu is eaten in list order: the track that is already playing is not on the board,
+    // so the first bite is the NEXT track of the list, then the one after it, and so on.
+    private val pool = tracks
     private var poolIndex = 0
 
     init {
@@ -195,14 +201,13 @@ private class SnakeEngine(
         repeat(min(FOODS_ON_BOARD, pool.size)) { spawnFood()?.let { foods = foods + it } }
     }
 
-    /** A fresh run on the same menu: the tracks are shuffled again, the snake goes home. */
+    /** A fresh run on the same menu: the board is restocked in list order, the snake goes home. */
     fun reset() {
         turns.clear()
-        pool = pool.shuffled()
         poolIndex = 0
         direction = SnakeDirection.RIGHT
         score = 0
-        speedMs = 230f
+        speedMs = START_SPEED_MS
         lastEaten = null
         placeSnake()
         spawnInitialFoods()
@@ -258,7 +263,7 @@ private class SnakeEngine(
             snake = listOf(newHead) + snake
             foods = foods - food
             score++
-            speedMs = (speedMs - 7f).coerceAtLeast(115f)
+            speedMs = (speedMs - SPEED_STEP_MS).coerceAtLeast(MIN_SPEED_MS)
             lastEaten = food.track
             onEat(food.track)
             spawnFood()?.let { foods = foods + it }
@@ -287,7 +292,11 @@ private class SnakeEngine(
     }
 
     private companion object {
-        const val FOODS_ON_BOARD = 3
+        const val FOODS_ON_BOARD = 1
+        /** Very slow at first, ramps up with every swallowed track. */
+        const val START_SPEED_MS = 460f
+        const val SPEED_STEP_MS = 8f
+        const val MIN_SPEED_MS = 110f
     }
 }
 
@@ -341,9 +350,12 @@ fun SnakeGameScreen(
         }
     }
 
-    val sourceTracks: List<Track>? = when (request.mode) {
+    val menu = when (request.mode) {
         SnakeGameMode.PLAYLIST -> request.tracks
         SnakeGameMode.WAVE -> waveTracks
+    }
+    val sourceTracks = remember(menu) {
+        menu?.let { BlockManager.filterBlocked(it).distinctBy(Track::id) }
     }
 
     var best by remember { mutableStateOf(SnakeGameLauncher.bestScore(context)) }
@@ -440,27 +452,33 @@ private fun SnakeGameBoardArea(
 ) {
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
-
-    // Eating a cover plays it. The first bite starts the whole list as the queue (in the wave
-    // context, so the wave keeps topping itself up); the rest are jumps inside that queue.
-    var queueStarted by remember(sourceTracks) { mutableStateOf(false) }
-    val waveContext = PlaybackContext(
-        displayText = request.title,
-        navigationId = MY_WAVE_NAV_ID,
-    )
-    val onEat: (Track) -> Unit = remember(sourceTracks) { { track ->
-        HapticUtil.performUIHaptic(context)
-        if (!queueStarted) {
-            val index = sourceTracks.indexOfFirst { it.id == track.id }.coerceAtLeast(0)
-            playerViewModel.playPlaylist(sourceTracks, index, if (isWave) waveContext else null)
-            queueStarted = true
-        } else if (!playerViewModel.playTrackInQueue(track.id)) {
-            playerViewModel.playPlaylist(listOf(track), 0, if (isWave) waveContext else null)
-        }
-    } }
+    // The snake wears the pet cat's coat: fur for the body, its eyes and markings for the face.
+    val pet = remember { PetConfig.load(context) }
 
     val engine = remember(sourceTracks) {
-        SnakeEngine(COLS, ROWS, sourceTracks, onEat)
+        SnakeEngine(COLS, ROWS, sourceTracks.drop(1).ifEmpty { sourceTracks }) {
+            HapticUtil.performUIHaptic(context)
+        }
+    }
+
+    // Start and steering share the same entry point. Pausing the game keeps the selected song.
+    val bannerTrack = if (engine.phase == SnakePhase.IDLE) null else engine.lastEaten ?: sourceTracks.first()
+    var queueStarted by remember(engine) { mutableStateOf(false) }
+    LaunchedEffect(engine, bannerTrack) {
+        val track = bannerTrack ?: return@LaunchedEffect
+        val startMs = TrackHighlights.startMs(context, track)
+        ensureActive()
+        if (!queueStarted || !playerViewModel.playTrackInQueue(track.id, startAtPositionMs = startMs)) {
+            playerViewModel.playPlaylist(
+                tracks = sourceTracks,
+                startIndex = sourceTracks.indexOfFirst { it.id == track.id },
+                context = if (isWave) PlaybackContext(request.title, navigationId = MY_WAVE_NAV_ID) else null,
+                maintainPlayerState = true,
+                respectShuffle = false,
+                startAtPositionMs = startMs,
+            )
+            queueStarted = true
+        }
     }
 
     val restart: () -> Unit = {
@@ -560,24 +578,29 @@ private fun SnakeGameBoardArea(
 
         Spacer(Modifier.height(6.dp))
 
-        // Now playing banner
+        // Show the first song as soon as the run starts, then follow each swallowed cover.
         AnimatedVisibility(
-            visible = engine.lastEaten != null,
+            visible = bannerTrack != null,
             enter = fadeIn() + scaleIn(initialScale = 0.9f),
             exit = fadeOut() + scaleOut(targetScale = 0.9f),
         ) {
-            val eaten = engine.lastEaten
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = scheme.primary.copy(alpha = 0.16f),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        HapticUtil.performUIHaptic(context)
+                        onClose()
+                        playerViewModel.isPlayerExpanded = true
+                    },
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 ) {
                     AsyncImage(
-                        model = trackImageModel(eaten),
+                        model = trackImageModel(bannerTrack),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -594,7 +617,7 @@ private fun SnakeGameBoardArea(
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            text = eaten?.let { "${it.title.orEmpty()} • ${it.displayArtist}" }.orEmpty(),
+                            text = bannerTrack?.let { "${it.title.orEmpty()} • ${it.displayArtist}" }.orEmpty(),
                             color = Color.White,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium,
@@ -652,7 +675,13 @@ private fun SnakeGameBoardArea(
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     drawGrid(cell)
                     drawFoodsGlow(engine.foods, cell)
-                    drawSnake(engine.snake, cell, scheme.primary)
+                    drawSnake(
+                        engine.snake, cell,
+                        fur = Color(pet.palette.fur),
+                        shade = Color(pet.palette.shade),
+                        mark = Color(pet.palette.mark),
+                        eyeColor = Color(pet.eyeColor),
+                    )
                 }
 
                 // Food covers as real images over the canvas
@@ -698,10 +727,10 @@ private fun SnakeGameBoardArea(
                     ) {
                         when (engine.phase) {
                             SnakePhase.IDLE -> OverlayIdle(
-                                onStart = { engine.ensureRunning() },
+                                onStart = engine::ensureRunning,
                                 isWave = isWave,
                             )
-                            SnakePhase.PAUSED -> OverlayPaused(onResume = { engine.ensureRunning() })
+                            SnakePhase.PAUSED -> OverlayPaused(onResume = engine::ensureRunning)
                             SnakePhase.OVER -> OverlayOver(
                                 score = engine.score,
                                 best = best,
@@ -949,15 +978,23 @@ private fun DrawScope.drawFoodsGlow(foods: List<SnakeFood>, cell: Float) {
     }
 }
 
-private fun DrawScope.drawSnake(snake: List<SnakeCell>, cell: Float, bodyColor: Color) {
+private fun DrawScope.drawSnake(
+    snake: List<SnakeCell>,
+    cell: Float,
+    fur: Color,
+    shade: Color,
+    mark: Color,
+    eyeColor: Color,
+) {
+    val ink = Color(0xFF101015)
     val inset = cell * 0.06f
     val size = cell - inset * 2
     val radius = CornerRadius(cell * 0.22f, cell * 0.22f)
     snake.forEachIndexed { index, segment ->
         val color = if (index == 0) {
-            bodyColor
+            fur
         } else {
-            bodyColor.copy(alpha = (0.92f - index * 0.02f).coerceAtLeast(0.45f))
+            fur.copy(alpha = (0.92f - index * 0.02f).coerceAtLeast(0.45f))
         }
         drawRoundRect(
             color = color,
@@ -967,29 +1004,49 @@ private fun DrawScope.drawSnake(snake: List<SnakeCell>, cell: Float, bodyColor: 
         )
     }
 
-    // The head is a little cat face: ears, eyes, nose — KittyTune runs on cats.
+    // The head is the pet cat's face: its fur, its eye colour, its markings for the nose.
     val head = snake.firstOrNull() ?: return
     val cx = head.x * cell + cell / 2f
     val cy = head.y * cell + cell / 2f
     val earSize = cell * 0.2f
-    drawTriangle(
-        a = Offset(cx - cell * 0.26f, cy - cell * 0.12f),
-        b = Offset(cx - cell * 0.3f, cy - cell * 0.12f - earSize),
-        c = Offset(cx - cell * 0.06f, cy - cell * 0.26f),
-        color = bodyColor,
+    val leftEar = listOf(
+        Offset(cx - cell * 0.26f, cy - cell * 0.12f),
+        Offset(cx - cell * 0.3f, cy - cell * 0.12f - earSize),
+        Offset(cx - cell * 0.06f, cy - cell * 0.26f),
     )
-    drawTriangle(
-        a = Offset(cx + cell * 0.26f, cy - cell * 0.12f),
-        b = Offset(cx + cell * 0.3f, cy - cell * 0.12f - earSize),
-        c = Offset(cx + cell * 0.06f, cy - cell * 0.26f),
-        color = bodyColor,
+    val rightEar = listOf(
+        Offset(cx + cell * 0.26f, cy - cell * 0.12f),
+        Offset(cx + cell * 0.3f, cy - cell * 0.12f - earSize),
+        Offset(cx + cell * 0.06f, cy - cell * 0.26f),
     )
+    listOf(leftEar, rightEar).forEach { ear ->
+        drawTriangle(ear[0], ear[1], ear[2], fur)
+        // Inner ear tinted with the coat's shade colour.
+        val c = centroid(ear)
+        val inner = ear.map { p -> Offset(p.x * 0.45f + c.x * 0.55f, p.y * 0.45f + c.y * 0.55f) }
+        drawTriangle(inner[0], inner[1], inner[2], shade)
+    }
+    // Eyes in the pet's eye colour, with a dark socket and a catchlight.
     val eyeRadius = cell * 0.07f
-    val eyeColor = Color(0xFF101015)
-    drawCircle(eyeColor, eyeRadius, Offset(cx - cell * 0.16f, cy + cell * 0.02f))
-    drawCircle(eyeColor, eyeRadius, Offset(cx + cell * 0.16f, cy + cell * 0.02f))
-    drawCircle(eyeColor, eyeRadius * 0.6f, Offset(cx, cy + cell * 0.18f))
+    listOf(
+        Offset(cx - cell * 0.16f, cy + cell * 0.02f),
+        Offset(cx + cell * 0.16f, cy + cell * 0.02f),
+    ).forEach { center ->
+        drawCircle(ink, eyeRadius * 1.45f, center)
+        drawCircle(eyeColor, eyeRadius, center)
+        drawCircle(
+            Color.White.copy(alpha = 0.85f), eyeRadius * 0.32f,
+            Offset(center.x - eyeRadius * 0.3f, center.y - eyeRadius * 0.35f),
+        )
+    }
+    // Nose in the coat's marking colour.
+    drawCircle(mark, eyeRadius * 0.62f, Offset(cx, cy + cell * 0.18f))
 }
+
+private fun centroid(points: List<Offset>): Offset = Offset(
+    points.sumOf { it.x.toDouble() }.toFloat() / points.size,
+    points.sumOf { it.y.toDouble() }.toFloat() / points.size,
+)
 
 private fun DrawScope.drawTriangle(a: Offset, b: Offset, c: Offset, color: Color) {
     val path = Path().apply {

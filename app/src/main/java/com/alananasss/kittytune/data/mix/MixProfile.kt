@@ -258,6 +258,16 @@ object MixRanking {
         return !restricted || youtubeFallback
     }
 
+    /**
+     * Whether the track comes from an official artist, in the sense the Official mix station means it:
+     * a verified or pro account, or a release that carries publisher metadata with an ISRC — the stamp
+     * of a real distributed release rather than a bedroom upload.
+     */
+    fun isOfficialArtist(track: Track): Boolean =
+        track.user?.verified == true ||
+            track.user?.isPro == true ||
+            track.publisherMetadata?.isrc != null
+
     private const val AFFINITY_WEIGHT = 1.0f
     private const val POPULARITY_WEIGHT = 0.25f
     const val FOLLOWERS_WEIGHT = 0.20f

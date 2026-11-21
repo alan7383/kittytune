@@ -4739,12 +4739,13 @@ query CommentsWithReactions(
         maintainPlayerState: Boolean = false,
         autoPlay: Boolean = true,
         respectShuffle: Boolean = true,
+        startAtPositionMs: Long? = null,
     ) {
         if (!applyingConnectCommand && autoPlay && ConnectManager.selectedDevice.value != null && tracks.isNotEmpty()) {
             val index = startIndex.coerceIn(0, tracks.lastIndex)
             val start = if (tracks.size > 500) (index - 250).coerceIn(0, tracks.size - 500) else 0
             val state = PlaybackSnapshot(SyncLog.deviceId, System.currentTimeMillis(), tracks.drop(start).take(500),
-                index - start, pendingSeekPosition ?: 0L, true, false, uiRepeatMode.name)
+                index - start, startAtPositionMs ?: pendingSeekPosition ?: 0L, true, false, uiRepeatMode.name)
             ConnectManager.command(ConnectManager.selectedDevice.value!!, "transfer", state = state)
             pendingSeekPosition = null
             return
@@ -4784,10 +4785,20 @@ query CommentsWithReactions(
                 cleanTracks.filterIndexed { index, _ -> index != effectiveStartIndex }.shuffled()
             _queue.add(clickedTrack)
             _queue.addAll(rest)
-            playTrackAtIndex(0, addToHistory = (context == null || isHistoryContext), autoPlay = autoPlay)
+            playTrackAtIndex(
+                0,
+                addToHistory = context == null || isHistoryContext,
+                autoPlay = autoPlay,
+                startAtPositionMs = startAtPositionMs,
+            )
         } else {
             _queue.addAll(cleanTracks)
-            playTrackAtIndex(effectiveStartIndex, addToHistory = (context == null || isHistoryContext), autoPlay = autoPlay)
+            playTrackAtIndex(
+                effectiveStartIndex,
+                addToHistory = context == null || isHistoryContext,
+                autoPlay = autoPlay,
+                startAtPositionMs = startAtPositionMs,
+            )
         }
 
         updateQueueState(); saveStateAsync(saveQueue = true)
@@ -4843,11 +4854,12 @@ query CommentsWithReactions(
      * the snake game replays a cover it just swallowed. Returns false when the track is not in
      * the queue (blocked, or another context took over), so the caller can start a fresh one.
      */
-    fun playTrackInQueue(trackId: Long): Boolean {
+    fun playTrackInQueue(trackId: Long, startAtPositionMs: Long? = null): Boolean {
+        if (!applyingConnectCommand && ConnectManager.selectedDevice.value != null) return false
         val index = _queue.indexOfFirst { it.id == trackId }
-        if (index < 0) return false
+        if (index < 0 || BlockManager.isBlocked(_queue[index])) return false
         com.alananasss.kittytune.audio.haptics.HapticUtil.performUIHaptic(context)
-        playTrackAtIndex(index, addToHistory = false, autoPlay = true)
+        playTrackAtIndex(index, addToHistory = false, autoPlay = true, startAtPositionMs = startAtPositionMs)
         return true
     }
 
@@ -4972,7 +4984,8 @@ query CommentsWithReactions(
         index: Int,
         addToHistory: Boolean = true,
         isCrossfade: Boolean = false,
-        autoPlay: Boolean = true
+        autoPlay: Boolean = true,
+        startAtPositionMs: Long? = null,
     ) {
         if (index < 0 || index >= _queue.size) {
             MusicManager.cancelCrossfade()
@@ -4987,6 +5000,7 @@ query CommentsWithReactions(
             playTrackAtIndex(index, addToHistory, isCrossfade, autoPlay)
             return
         }
+        if (startAtPositionMs != null) pendingSeekPosition = null
         currentQueueIndex = index
         val trackToPlay = _queue[index]
         playbackRecoveryBudget.reset()
@@ -5004,7 +5018,7 @@ query CommentsWithReactions(
         preloadJob = null
         isLoading = true
         duration = trackToPlay.actualDurationMs
-        currentPosition = 0L
+        currentPosition = startAtPositionMs ?: 0L
 
         MusicManager.pendingSeekPositionMs = null
         MusicManager.playWhenReadyRequested = autoPlay
@@ -5140,7 +5154,7 @@ query CommentsWithReactions(
                 } else if (automixPlan != null) {
                     automixPlan.incomingStartMs
                 } else 0L
-            } else 0L
+            } else startAtPositionMs ?: 0L
 
             SoundCloudTelemetryTracker.onTrackStarted(
                 track = finalTrack,
@@ -6418,6 +6432,13 @@ query CommentsWithReactions(
     }
 
     /** A thumbs-down inside the wave: the track is blocked, the artist silenced, the next one plays. */
+    fun dislikeFeedTrack(track: com.alananasss.kittytune.domain.Track) {
+        com.alananasss.kittytune.data.wave.WaveFeedback.onDisliked(track)
+        com.alananasss.kittytune.data.wave.WaveFeedback.dislikeArtist(
+            track.displayArtist.ifBlank { track.user?.username.orEmpty() }
+        )
+    }
+
     fun dislikeCurrentTrackInWave() {
         val track = currentTrack ?: return
         com.alananasss.kittytune.data.wave.WaveFeedback.onDisliked(track)
@@ -8193,10 +8214,7 @@ query CommentsWithReactions(
             val bitmap = loadBitmap(track.fullResArtwork)
             if (bitmap != null) {
                 try {
-                    val artFile = File(context.filesDir, "art_${track.id}.jpg")
-                    if (!artFile.exists()) {
-                        artFile.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out) }
-                    }
+                    com.alananasss.kittytune.utils.PlayerArtworkCache.store(context, track.id, bitmap)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
