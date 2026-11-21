@@ -3114,7 +3114,7 @@
     <string name="settings_cat_misc_sub">General, content filter, Discord and about</string>
     <string name="settings_audio_playback_sub">Autoplay, queue, resumption and speed</string>
     <string name="settings_audio_quality_title">Sound &amp; Output</string>
-    <string name="settings_audio_quality_sub">Equalizer, volume normalization and mono audio</string>
+    <string name="settings_audio_quality_sub">Equalizer, USB DAC, bit-perfect audio and mono audio</string>
     <string name="settings_audio_transitions_title">Transitions &amp; Mix</string>
     <string name="settings_audio_transitions_sub">Crossfade and DJ automix</string>
     <string name="settings_audio_sleep_sub">Fade out duration and sleep options</string>
