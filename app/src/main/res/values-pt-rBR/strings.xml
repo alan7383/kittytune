@@ -3796,5 +3796,7 @@
     <string name="track_info_likes">Curtidas</string>
     <string name="track_info_reposts">Republicações</string>
     <string name="track_info_comments">Comentários</string>
+    <string name="pref_feed_video_samples">Trechos de clipes do YouTube</string>
+    <string name="pref_feed_video_samples_desc">Exibir trechos de clipes sem áudio quando não houver capa animada</string>
     <string name="artist_clip_resolution">%1$dp</string>
 </resources>

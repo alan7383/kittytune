@@ -8,6 +8,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.rememberUpdatedState
+import com.alananasss.kittytune.data.YoutubeAudioResolver
+import com.alananasss.kittytune.data.network.ProxyManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -30,6 +33,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
@@ -175,27 +179,38 @@ fun CanvasVideo(
     canvasUrl: String,
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
+    clipStartMs: Long = 0,
+    clipEndMs: Long? = null,
+    useYouTubeHeaders: Boolean = false,
+    onError: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var isVideoReady by remember(canvasUrl) { mutableStateOf(false) }
+    val shouldPlay by rememberUpdatedState(isPlaying)
+    val handleError by rememberUpdatedState(onError)
+    var isVideoReady by remember(canvasUrl, clipStartMs, clipEndMs) { mutableStateOf(false) }
 
-    val player = remember(canvasUrl) {
+    val player = remember(canvasUrl, clipStartMs, clipEndMs, useYouTubeHeaders) {
         val isAppleStream = canvasUrl.contains("apple.com") || canvasUrl.contains("itunes.apple.com")
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setConnectTimeoutMs(8000)
-            .setReadTimeoutMs(8000)
-            .apply {
-                if (isAppleStream) {
-                    setDefaultRequestProperties(
-                        mapOf(
-                            "Origin" to "https://music.apple.com",
-                            "Referer" to "https://music.apple.com/",
-                            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        val httpDataSourceFactory = if (useYouTubeHeaders) {
+            OkHttpDataSource.Factory(ProxyManager.getOkHttpClient())
+                .setDefaultRequestProperties(YoutubeAudioResolver.requestHeaders(canvasUrl))
+        } else {
+            DefaultHttpDataSource.Factory()
+                .setConnectTimeoutMs(8000)
+                .setReadTimeoutMs(8000)
+                .apply {
+                    if (isAppleStream) {
+                        setDefaultRequestProperties(
+                            mapOf(
+                                "Origin" to "https://music.apple.com",
+                                "Referer" to "https://music.apple.com/",
+                                "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                            )
                         )
-                    )
+                    }
                 }
-            }
+        }
 
         val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
         val mediaSourceFactory = DefaultMediaSourceFactory(context)
@@ -204,6 +219,14 @@ fun CanvasVideo(
         val mediaItem = MediaItem.Builder()
             .setUri(canvasUrl)
             .apply {
+                if (clipEndMs != null) {
+                    setClippingConfiguration(
+                        MediaItem.ClippingConfiguration.Builder()
+                            .setStartPositionMs(clipStartMs)
+                            .setEndPositionMs(clipEndMs)
+                            .build()
+                    )
+                }
                 if (canvasUrl.contains(".m3u8")) {
                     setMimeType(MimeTypes.APPLICATION_M3U8)
                 }
@@ -249,26 +272,26 @@ fun CanvasVideo(
     DisposableEffect(player, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_RESUME -> if (isPlaying) player.play()
+                Lifecycle.Event.ON_RESUME -> if (shouldPlay) player.play()
                 Lifecycle.Event.ON_PAUSE -> player.pause()
                 else -> Unit
             }
         }
         val playerListener = object : Player.Listener {
             override fun onRenderedFirstFrame() {
-                android.util.Log.d("AnimatedArtwork", "onRenderedFirstFrame fired for $canvasUrl")
                 isVideoReady = true
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                android.util.Log.d("AnimatedArtwork", "onPlaybackStateChanged: state=$playbackState, isPlaying=${player.isPlaying}")
                 if (playbackState == Player.STATE_READY && player.videoSize.width > 0) {
                     isVideoReady = true
                 }
             }
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                android.util.Log.e("AnimatedArtwork", "Player error for $canvasUrl", error)
+                isVideoReady = false
+                handleError?.invoke()
+                android.util.Log.w("AnimatedArtwork", "Unable to play animated artwork (code ${error.errorCode})")
             }
         }
         player.addListener(playerListener)

@@ -46,6 +46,7 @@ internal fun rememberSettingsSearchCatalog(
         var animatedCovers = prefs.getAnimatedCoversEnabled()
         var animatedCoversFadeUi = prefs.getAnimatedCoversFadeUiEnabled()
         var feedOfficialOnly = prefs.getFeedOfficialOnlyEnabled()
+        var feedVideoSamples = prefs.getFeedVideoSamplesEnabled()
         var animatedArtistProfiles = prefs.getAnimatedArtistProfilesEnabled()
         var lyricsUnderCover = prefs.getLyricsUnderCoverEnabled()
         var showRemainingTime = prefs.getShowRemainingTime()
@@ -560,6 +561,24 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     feedOfficialOnly = it
                     prefs.setFeedOfficialOnlyEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_feed_video_samples,
+                subtitleRes = R.string.pref_feed_video_samples_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.PlayArrow,
+                route = "appearance_settings",
+                highlightKey = "pref_feed_video_samples",
+                keywords = listOf("feed", "youtube", "video", "samples"),
+                hasSwitch = true,
+                switchState = feedVideoSamples,
+                onSwitchChange = {
+                    feedVideoSamples = it
+                    prefs.setFeedVideoSamplesEnabled(it)
                     onPreferenceChange()
                 }
             ),

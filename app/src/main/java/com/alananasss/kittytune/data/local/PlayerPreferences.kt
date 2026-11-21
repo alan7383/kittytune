@@ -1629,6 +1629,10 @@ class PlayerPreferences(context: Context) {
     fun setAnimatedCoversFadeUiEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_ANIMATED_COVERS_FADE_UI, enabled) }
 
     /** When on, the feed shows only tracks from official artists (verified / Pro / ISRC release). */
+    fun getFeedVideoSamplesEnabled(): Boolean = prefs.getBoolean("feed_video_samples_enabled", false)
+    fun setFeedVideoSamplesEnabled(enabled: Boolean) =
+        prefs.edit { putBoolean("feed_video_samples_enabled", enabled) }
+
     fun getFeedOfficialOnlyEnabled(): Boolean = prefs.getBoolean(KEY_FEED_OFFICIAL_ONLY_ENABLED, false)
     fun setFeedOfficialOnlyEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_FEED_OFFICIAL_ONLY_ENABLED, enabled) }
 
