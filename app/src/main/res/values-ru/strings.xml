@@ -404,7 +404,7 @@
     <string name="share_via">Поделиться через</string>
     <string name="generic_title">Название</string>
     <string name="generic_artist">Исполнитель</string>
-    <string name="detail_file_info">Информация о файле</string>
+    <string name="detail_file_info">Исходный файл</string>
     <string name="format_default">Аудио</string>
     <string name="format_fallback">MP3/Аудио</string>
     <string name="prefix_local_file_marker">Локальный файл: </string>
@@ -679,7 +679,7 @@
     <string name="pref_lyrics_inline_sub">Отображать текст песни в плеере вместо обложки</string>
     <string name="pref_lyrics_provider_title">Источники текстов</string>
     <string name="pref_lyrics_provider_max_quality">Максимальное качество (Musixmatch)</string>
-    <string name="pref_lyrics_provider_open_source">Открытый исходный код (LrcLib)</string>
+    <string name="pref_lyrics_provider_open_source">Бесплатно (LrcLib)</string>
     <string name="pref_lyrics_translation_title">Перевод текста</string>
     <string name="pref_lyrics_translation_sub">Отображать построчный перевод под каждой строкой (если доступно)</string>
     <string name="pref_lyrics_translation_lang">Язык перевода</string>
@@ -1303,7 +1303,7 @@
     <string name="empty_downloads_title">Здесь пока ничего нет…</string>
     <string name="empty_downloads_subtitle">Загрузите треки, чтобы слушать офлайн!</string>
     <string name="empty_downloads_kaomoji">(¬_¬ )</string>
-    <string name="empty_playlist_generic">Вы ещё не добавили треки в плейлист</string>
+    <string name="empty_playlist_generic">Этот плейлист пуст</string>
     <string name="empty_playlist_generic_kaomoji">( . •́ _ʖ •̀ .)</string>
     <string name="empty_playlist_search_kaomoji">( o _ о)</string>
     <string name="empty_playlist_search_title">Нет треков</string>
@@ -1520,7 +1520,7 @@
     <string name="about_downloads_title">Другие платформы</string>
     <string name="about_downloads_desc">Windows, Linux, macOS</string>
     <string name="pref_norm_info_title">Нормализация звука</string>
-    <string name="pref_norm_info_body_1">KittyTune использует стандарт EBU R128 (ITU-R BS.1770) для измерения воспринимаемой громкости в LUFS. Ваши треки будут звучать с одинаковой комфортной громкостью.</string>
+    <string name="pref_norm_info_body_1">Треки часто записывают с разной громкостью. Нормализация автоматически выравнивает громкость, чтобы музыка звучала на комфортном уровне без постоянной ручной регулировки.</string>
     <string name="pref_norm_info_body_2">Как это работает:\n• KittyTune измеряет истинную громкость каждой песни (в LUFS).\n• При воспроизведении громкость динамически корректируется в соответствии с выбранным целевым уровнем.\n• Встроенный лимитер предотвращает любые искажения и клиппинг.\n\nУровни:\n• Тихий (-19 LUFS): Идеально подходит для ночного прослушивания или наушников.\n• Нормальный (-14 LUFS): Стандарт, используемый Spotify и YouTube.\n• Громкий (-11 LUFS): Лучше всего для шумной обстановки или внешних колонок.</string>
     <string name="comment_reply">Ответить</string>
     <string name="comment_creator_liked_this">%1$s оценил(а) этот комментарий</string>
@@ -2920,7 +2920,7 @@
     <string name="settings_cat_misc_sub">Общие, фильтр контента, Discord и о приложении</string>
     <string name="settings_audio_playback_sub">Автовоспроизведение, очередь, возобновление и скорость</string>
     <string name="settings_audio_quality_title">Звук и вывод</string>
-    <string name="settings_audio_quality_sub">Эквалайзер, нормализация громкости и моно-звук</string>
+    <string name="settings_audio_quality_sub">Эквалайзер, USB-ЦАП, побитовое воспроизведение и моно</string>
     <string name="settings_audio_transitions_title">Переходы и микс</string>
     <string name="settings_audio_transitions_sub">Кроссфейд и DJ-автомикс</string>
     <string name="settings_audio_sleep_sub">Длительность затухания и параметры сна</string>

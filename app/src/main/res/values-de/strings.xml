@@ -25,7 +25,7 @@
     <string name="btn_options">Optionen</string>
     <string name="btn_play">Abspielen</string>
     <string name="btn_pause">Pause</string>
-    <string name="btn_shuffle">Zufällig</string>
+    <string name="btn_shuffle">Mischen</string>
     <string name="btn_download">Herunterladen</string>
     <string name="btn_downloaded">Heruntergeladen</string>
     <string name="cover_copy_link">Link kopieren</string>
@@ -192,7 +192,7 @@
     <string name="lib_guest_mode">Gastmodus • Zum Synchronisieren anmelden</string>
     <string name="lib_sort_recently_added">Kürzlich hinzugefügt</string>
     <string name="lib_sort_manual">Eigene Reihenfolge</string>
-    <string name="lib_reorder_mode">Neu anordnen</string>
+    <string name="lib_reorder_mode">Umsortieren</string>
     <string name="lib_playlists">Wiedergabelisten</string>
     <string name="lib_artists">Künstler</string>
     <string name="lib_albums">Alben</string>
@@ -210,8 +210,8 @@
     <string name="playlist_by_user">Von %1$s</string>
     <string name="playlist_downloading_progress">Wird heruntergeladen… %1$d%%</string>
     <string name="add_to_playlist_new">Neue Playlist</string>
-    <string name="add_to_playlist_title_single">Hinzufügen zu…</string>
-    <string name="add_to_playlist_title_multi">%1$d Titel hinzufügen zu…</string>
+    <string name="add_to_playlist_title_single">Zu … hinzufügen</string>
+    <string name="add_to_playlist_title_multi">%1$d Titel zu … hinzufügen</string>
     <string name="select_tracks_title">Titel auswählen</string>
     <string name="select_all">Alle auswählen</string>
     <string name="deselect_all">Alle abwählen</string>
@@ -316,7 +316,7 @@
     <string name="effect_vinyl_lofi">Vinyl-Lo-Fi</string>
     <string name="fx_vinyl_lofi_desc">Warmes Plattenspieler-Vinyl mit Nadelknistern, Bandschwankungen und analoger Wärme</string>
     <string name="label_vinyl_crackles">Knistern &amp; Staub: %1$d%%</string>
-    <string name="label_vinyl_flutter">Bandschwankung: %1$d%%</string>
+    <string name="label_vinyl_flutter">Bandflattern: %1$d %%</string>
     <string name="preset_vinyl_chill">Chillhop</string>
     <string name="preset_vinyl_vintage">70er-Vinyl</string>
     <string name="preset_vinyl_cassette">80er-Kassette</string>
@@ -2917,7 +2917,7 @@
     <string name="settings_cat_misc_sub">Allgemein, Inhaltsfilter, Discord und Über</string>
     <string name="settings_audio_playback_sub">Autoplay, Warteschlange, Fortsetzen und Geschwindigkeit</string>
     <string name="settings_audio_quality_title">Klang &amp; Ausgabe</string>
-    <string name="settings_audio_quality_sub">Equalizer, Lautstärkenormalisierung und Mono-Audio</string>
+    <string name="settings_audio_quality_sub">Equalizer, USB-DAC, Bit-Perfect-Audio und Mono-Audio</string>
     <string name="settings_audio_transitions_title">Übergänge &amp; Mix</string>
     <string name="settings_audio_transitions_sub">Überblenden und DJ-Automix</string>
     <string name="settings_audio_sleep_sub">Ausblenddauer und Sleep-Timer-Optionen</string>

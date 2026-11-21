@@ -3031,7 +3031,7 @@
     <string name="settings_cat_misc_sub">Général, filtre de contenu, Discord et à propos</string>
     <string name="settings_audio_playback_sub">Lecture auto, file d\'attente, reprise et vitesse</string>
     <string name="settings_audio_quality_title">Son &amp; Sortie</string>
-    <string name="settings_audio_quality_sub">Égaliseur, normalisation du volume et audio mono</string>
+    <string name="settings_audio_quality_sub">Égaliseur, DAC USB, audio bit-perfect et audio mono</string>
     <string name="settings_audio_transitions_title">Transitions &amp; Mixage</string>
     <string name="settings_audio_transitions_sub">Fondu enchaîné et mixage DJ automix</string>
     <string name="settings_audio_sleep_sub">Durée du fondu et options de veille</string>

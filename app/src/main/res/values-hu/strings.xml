@@ -2921,7 +2921,7 @@
     <string name="settings_cat_misc_sub">Általános, tartalomszűrő, Discord és névjegy</string>
     <string name="settings_audio_playback_sub">Automatikus lejátszás, sor, folytatás és sebesség</string>
     <string name="settings_audio_quality_title">Hang és kimenet</string>
-    <string name="settings_audio_quality_sub">Hangszínszabályzó, hangerő-normalizálás és mono hang</string>
+    <string name="settings_audio_quality_sub">Hangszínszabályzó, USB DAC, bitpontos és mono hang</string>
     <string name="settings_audio_transitions_title">Átmenetek és mix</string>
     <string name="settings_audio_transitions_sub">Áttűnés és DJ automix</string>
     <string name="settings_audio_sleep_sub">Elhalkulás időtartama és alvás beállításai</string>

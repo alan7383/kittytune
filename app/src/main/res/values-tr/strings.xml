@@ -3031,7 +3031,7 @@
     <string name="settings_cat_misc_sub">Genel, içerik filtresi, Discord ve hakkında</string>
     <string name="settings_audio_playback_sub">Otomatik oynatma, sıra, devam ettirme ve hız</string>
     <string name="settings_audio_quality_title">Ses ve Çıkış</string>
-    <string name="settings_audio_quality_sub">Ekolayzer, ses normalizasyonu ve mono ses</string>
+    <string name="settings_audio_quality_sub">Ekolayzer, USB DAC, bit düzeyinde kayıpsız ses ve mono ses</string>
     <string name="settings_audio_transitions_title">Geçişler ve Miks</string>
     <string name="settings_audio_transitions_sub">Crossfade ve DJ automix</string>
     <string name="settings_audio_sleep_sub">Yavaşça kısılma süresi ve uyku seçenekleri</string>

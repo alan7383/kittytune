@@ -2917,7 +2917,7 @@
     <string name="settings_cat_misc_sub">Chung, bộ lọc nội dung, Discord và giới thiệu</string>
     <string name="settings_audio_playback_sub">Tự động phát, hàng đợi, tiếp tục và tốc độ</string>
     <string name="settings_audio_quality_title">Âm thanh &amp; Đầu ra</string>
-    <string name="settings_audio_quality_sub">Bộ cân bằng, chuẩn hóa âm lượng và âm thanh mono</string>
+    <string name="settings_audio_quality_sub">Bộ cân bằng, DAC USB, âm thanh bit-perfect và âm thanh mono</string>
     <string name="settings_audio_transitions_title">Chuyển tiếp &amp; Trộn</string>
     <string name="settings_audio_transitions_sub">Chuyển bài mượt mà và DJ automix</string>
     <string name="settings_audio_sleep_sub">Thời gian mờ dần và tùy chọn hẹn giờ ngủ</string>
