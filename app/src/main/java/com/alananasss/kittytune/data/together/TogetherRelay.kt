@@ -89,7 +89,7 @@ internal class TogetherRelay(private val clientId: String) {
                 val missingTopics = missingCodes.flatMap {
                     listOf(TogetherWire.topicFor(it), TogetherWire.snapshotWildcardTopicFor(it))
                 }.toTypedArray()
-                val missingQos = IntArray(missingTopics.size) { 0 }
+                val missingQos = IntArray(missingTopics.size) { 1 }
                 runCatching {
                     client?.subscribe(missingTopics, missingQos)?.waitForCompletion(SUBSCRIBE_TIMEOUT_MS)
                     subscribedOnCurrentSession.addAll(missingCodes)
@@ -99,14 +99,14 @@ internal class TogetherRelay(private val clientId: String) {
                 is Pending.Publish -> runCatching {
                     client?.publish(
                         TogetherWire.topicFor(work.code),
-                        MqttMessage(TogetherWire.seal(work.code, work.message)).apply { qos = 0 }
+                        MqttMessage(TogetherWire.seal(work.code, work.message)).apply { qos = work.message.deliveryQos }
                     )
                 }.onFailure { logWarn("Send failed: ${it.message}") }
                 is Pending.PublishSnapshot -> runCatching {
                     client?.publish(
                         work.topic,
                         MqttMessage(TogetherWire.seal(work.code, work.message)).apply {
-                            qos = 0
+                            qos = work.message.deliveryQos
                             isRetained = true
                         }
                     )
@@ -115,18 +115,18 @@ internal class TogetherRelay(private val clientId: String) {
                     runCatching {
                         client?.publish(
                             TogetherWire.stateSnapshotTopicFor(work.code),
-                            MqttMessage(ByteArray(0)).apply { qos = 0; isRetained = true }
+                            MqttMessage(ByteArray(0)).apply { qos = 1; isRetained = true }
                         )
                     }.onFailure { logWarn("Clear state snapshot failed: ${it.message}") }
                     runCatching {
                         client?.publish(
                             TogetherWire.queueSnapshotTopicFor(work.code),
-                            MqttMessage(ByteArray(0)).apply { qos = 0; isRetained = true }
+                            MqttMessage(ByteArray(0)).apply { qos = 1; isRetained = true }
                         )
                     }.onFailure { logWarn("Clear queue snapshot failed: ${it.message}") }
                 }
                 is Pending.Subscribe -> runCatching {
-                    val qos = IntArray(work.topics.size) { 0 }
+                    val qos = IntArray(work.topics.size) { 1 }
                     client?.subscribe(work.topics, qos)?.waitForCompletion(SUBSCRIBE_TIMEOUT_MS)
                     subscribedOnCurrentSession.add(work.code)
                 }.onFailure { logWarn("Subscribe failed: ${it.message}") }
@@ -158,7 +158,8 @@ internal class TogetherRelay(private val clientId: String) {
         val now = System.currentTimeMillis()
         if (now - lastConnectAttemptAt < RETRY_COOLDOWN_MS) return false
         lastConnectAttemptAt = now
-        for (broker in BROKERS) {
+        val brokers = System.getProperty("kittytune.together.testBroker")?.let(::listOf) ?: BROKERS
+        for (broker in brokers) {
             val attempt = runCatching { connect(broker) }
             if (attempt.isSuccess && client?.isConnected == true) return true
             logWarn("Could not reach $broker: ${attempt.exceptionOrNull()?.message}")
@@ -177,7 +178,7 @@ internal class TogetherRelay(private val clientId: String) {
                     followedCodes.forEach { code ->
                         val topics = arrayOf(TogetherWire.topicFor(code), TogetherWire.snapshotWildcardTopicFor(code))
                         runCatching {
-                            mqtt.subscribe(topics, intArrayOf(0, 0))
+                            mqtt.subscribe(topics, intArrayOf(1, 1))
                             subscribedOnCurrentSession.add(code)
                         }
                     }

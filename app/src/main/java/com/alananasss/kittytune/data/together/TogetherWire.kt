@@ -44,6 +44,9 @@ internal object TogetherWire {
 
     fun queueSnapshotTopicFor(code: String): String = snapshotPrefixFor(code) + "/queue"
 
+    fun playlistSnapshotTopicFor(code: String): String =
+        "kittytune/together/snap/" + sha256Hex("snap:" + normalizeCode(code)).take(32) + "/playlist"
+
     fun snapshotWildcardTopicFor(code: String): String = snapshotPrefixFor(code) + "/#"
 
     fun seal(code: String, message: TogetherMessage): ByteArray {
@@ -180,6 +183,14 @@ sealed interface TogetherMessage {
     /** A newcomer asking the host for everything. */
     data class SyncRequest(override val from: String, override val sentAt: Long) : TogetherMessage
 
+    /** Persistent shared playlist, independent of the current host's live queue. */
+    data class Playlist(
+        override val from: String,
+        override val sentAt: Long,
+        val tracks: List<SharedTrack>,
+        val name: String,
+    ) : TogetherMessage
+
     /** "Play this next": the host puts it after the song playing, after the ones asked for before it. */
     data class PlayNext(override val from: String, override val sentAt: Long, val track: SharedTrack, val byName: String) : TogetherMessage
 
@@ -194,7 +205,12 @@ sealed interface TogetherMessage {
     data class Suggest(override val from: String, override val sentAt: Long, val track: SharedTrack, val byName: String) : TogetherMessage
 
     /** The host's answer to a suggestion, so everyone's list of suggestions agrees. */
-    data class SuggestionDone(override val from: String, override val sentAt: Long, val trackId: Long) : TogetherMessage
+    data class SuggestionDone(
+        override val from: String,
+        override val sentAt: Long,
+        val trackId: Long,
+        val forQueue: Boolean? = null,
+    ) : TogetherMessage
 
     /** Pause, play or seek, asked for by anyone; the host applies it and everyone follows the host. */
     data class Control(override val from: String, override val sentAt: Long, val action: String, val positionMs: Long) : TogetherMessage
@@ -222,6 +238,7 @@ sealed interface TogetherMessage {
             "Bye" to Bye::class.java,
             "State" to State::class.java,
             "Queue" to Queue::class.java,
+            "Playlist" to Playlist::class.java,
             "SyncRequest" to SyncRequest::class.java,
             "PlayNext" to PlayNext::class.java,
             "PlayNextBatch" to PlayNextBatch::class.java,
@@ -244,3 +261,10 @@ sealed interface TogetherMessage {
         const val CONTROL_PREVIOUS = "previous"
     }
 }
+
+/** These changes can be processed again safely if MQTT retries their delivery. */
+internal val TogetherMessage.deliveryQos: Int
+    get() = when (this) {
+        is TogetherMessage.Bye, is TogetherMessage.Playlist -> 1
+        else -> 0
+    }
