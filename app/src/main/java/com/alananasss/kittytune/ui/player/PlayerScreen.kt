@@ -190,6 +190,22 @@ fun PremiumMarqueeText(
     delayMillis: Int = 2000,
     velocity: Dp = 30.dp,
     spacing: Dp = 48.dp
+) = PremiumMarqueeText(
+    AnnotatedString(text), modifier, style, color, textAlign, edgeGradientWidth,
+    delayMillis, velocity, spacing
+)
+
+@Composable
+internal fun PremiumMarqueeText(
+    text: AnnotatedString,
+    modifier: Modifier = Modifier,
+    style: TextStyle = LocalTextStyle.current,
+    color: Color = Color.Unspecified,
+    textAlign: TextAlign? = null,
+    edgeGradientWidth: Dp = 16.dp,
+    delayMillis: Int = 2000,
+    velocity: Dp = 30.dp,
+    spacing: Dp = 48.dp
 ) {
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
@@ -200,7 +216,7 @@ fun PremiumMarqueeText(
         val infiniteConstraints = constraints.copy(maxWidth = Constraints.Infinity)
         val placeable = subcompose("text_measure") {
             Text(
-                text = text,
+                text = text.text,
                 style = style,
                 color = color,
                 maxLines = 1,
@@ -236,7 +252,7 @@ fun PremiumMarqueeText(
                 val cycleDistance = textWidth + spacingPx
                 val duration = ((cycleDistance / velocity.toPx()) * 1000).toInt()
 
-                LaunchedEffect(text, containerWidth, textWidth, isRtl) {
+                LaunchedEffect(text.text, containerWidth, textWidth, isRtl) {
                     offsetX.snapTo(0f)
                     startGradientAlpha.snapTo(0f)
 
@@ -1573,17 +1589,13 @@ fun NewPlayerScreen(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     modifier = Modifier
                                                         .weight(1f, fill = false)
-                                                        .hapticClickable {
-                                                            viewModel.navigateToTrackArtist(track)
-                                                        }
                                                 ) {
-                                                    PremiumMarqueeText(
-                                                        text = track.displayArtist.ifBlank {
-                                                            stringResource(R.string.unknown_artist)
-                                                        },
+                                                    TrackArtistText(
+                                                        track = track,
+                                                        viewModel = viewModel,
+                                                        marquee = true,
                                                         style = MaterialTheme.typography.titleMedium,
                                                         color = subContentColor,
-                                                        edgeGradientWidth = 16.dp,
                                                         modifier = Modifier.weight(1f, fill = false)
                                                     )
 
@@ -11053,12 +11065,11 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.hapticClickable {
-                        onClose()
-                        viewModel.navigateToTrackArtist(track)
-                    }) {
-                        Text(
-                            text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TrackArtistText(
+                            track = track,
+                            viewModel = viewModel,
+                            onNavigate = onClose,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -12219,17 +12230,13 @@ fun OldPlayerScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier
                                                 .weight(1f, fill = false)
-                                                .hapticClickable {
-                                                    viewModel.navigateToTrackArtist(track)
-                                                }
                                         ) {
-                                            PremiumMarqueeText(
-                                                text = track.displayArtist.ifBlank {
-                                                    stringResource(R.string.unknown_artist)
-                                                },
+                                            TrackArtistText(
+                                                track = track,
+                                                viewModel = viewModel,
+                                                marquee = true,
                                                 style = MaterialTheme.typography.titleMedium,
                                                 color = subContentColor,
-                                                edgeGradientWidth = 16.dp,
                                                 modifier = Modifier.weight(1f, fill = false)
                                             )
 
@@ -12826,17 +12833,13 @@ fun OldPlayerScreen(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 modifier = Modifier
                                                     .weight(1f, fill = false)
-                                                    .hapticClickable {
-                                                        viewModel.navigateToTrackArtist(track)
-                                                    }
                                             ) {
-                                                PremiumMarqueeText(
-                                                    text = track.displayArtist.ifBlank {
-                                                        stringResource(R.string.unknown_artist)
-                                                    },
+                                                TrackArtistText(
+                                                    track = track,
+                                                    viewModel = viewModel,
+                                                    marquee = true,
                                                     style = MaterialTheme.typography.titleMedium,
                                                     color = subContentColor,
-                                                    edgeGradientWidth = 16.dp,
                                                     modifier = Modifier.weight(1f, fill = false)
                                                 )
 
@@ -14199,15 +14202,15 @@ fun PhoneLandscapePlayerView(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Text(
-                            text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.unknown_artist) },
+                        TrackArtistText(
+                            track = track,
+                            viewModel = viewModel,
                             style = MaterialTheme.typography.titleMedium,
                             color = subContentColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .weight(1f, fill = false)
-                                .hapticClickable { viewModel.navigateToTrackArtist(track) }
                         )
                         val aiResult by com.alananasss.kittytune.audio.ai.AiDetectionManager.result.collectAsState()
                         com.alananasss.kittytune.ui.player.ai.AiDetectionBadge(
@@ -14748,17 +14751,15 @@ fun SoundCloudPlayerView(
                     }
                     Surface(
                         shape = RoundedCornerShape(3.dp),
-                        color = Color(0xCC000000),
-                        modifier = Modifier.hapticClickable {
-                            viewModel.navigateToTrackArtist(pageTrack)
-                        }
+                        color = Color(0xCC000000)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
-                            Text(
-                                text = pageTrack.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+                            TrackArtistText(
+                                track = pageTrack,
+                                viewModel = viewModel,
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 13.sp

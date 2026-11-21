@@ -109,6 +109,7 @@ import com.alananasss.kittytune.data.network.LrcLibResponse
 import com.alananasss.kittytune.ui.player.FluidArtworkBackground
 import com.alananasss.kittytune.ui.player.LyricsMode
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.TrackArtistText
 import com.alananasss.kittytune.ui.player.UnifiedLyricResult
 import com.alananasss.kittytune.utils.makeTimeString
 import com.alananasss.kittytune.ui.utils.fadingEdge
@@ -332,10 +333,11 @@ fun LyricsScreen(
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                             Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.hapticClickable { viewModel.navigateToTrackArtist(currentTrack) }
+                                                verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text(
+                                                TrackArtistText(
+                                                    track = currentTrack,
+                                                    viewModel = viewModel,
                                                     text = currentTrack.displayArtist.ifBlank { currentTrack.user?.username.orEmpty() },
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = topDimColor,

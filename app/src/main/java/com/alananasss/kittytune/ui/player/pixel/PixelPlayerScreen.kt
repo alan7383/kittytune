@@ -137,6 +137,7 @@ import com.alananasss.kittytune.ui.player.InlineLyricsContent
 import com.alananasss.kittytune.ui.player.rememberInlineLyricsSide
 import com.alananasss.kittytune.data.local.InlineLyricsSide
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.TrackArtistText
 import com.alananasss.kittytune.ui.player.QueueContent
 import com.alananasss.kittytune.ui.player.SleepTimerDialog
 import com.alananasss.kittytune.ui.player.TrackTrimDialog
@@ -1020,10 +1021,11 @@ fun PixelPlayerScreen(
                         modifier = Modifier
                             .weight(1f, fill = false)
                             .clip(RoundedCornerShape(8.dp))
-                            .hapticClickable { viewModel.navigateToTrackArtist(track) }
                             .padding(horizontal = 4.dp, vertical = 2.dp)
                     ) {
-                        Text(
+                        TrackArtistText(
+                            track = track,
+                            viewModel = viewModel,
                             text = track.displayArtist.ifBlank {
                                 track.user?.username ?: stringResource(R.string.unknown_artist)
                             },
