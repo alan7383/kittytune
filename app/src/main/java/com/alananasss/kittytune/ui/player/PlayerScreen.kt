@@ -2390,13 +2390,25 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         )
     }
 
-    val isDownloadedContext = viewModel.currentContext?.navigationId == "downloads"
-            || viewModel.currentContext?.navigationId?.startsWith("downloaded_section:") == true
-            || viewModel.currentContext?.navigationId == "local_files"
-            || viewModel.menuContextPlaylistId == -2L
-
-    val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)
-    val isOfflineMode = isLocalFile || isDownloadedContext || isOffline
+    var showOfflineDialog by remember(track.id) { mutableStateOf(false) }
+    fun withInternet(action: () -> Unit) {
+        if (com.alananasss.kittytune.utils.NetworkUtils.hasValidatedInternet(context)) {
+            action()
+        } else {
+            showOfflineDialog = true
+        }
+    }
+    if (showOfflineDialog) {
+        AlertDialog(
+            onDismissRequest = { showOfflineDialog = false },
+            title = { Text(stringResource(R.string.home_offline_title)) },
+            confirmButton = {
+                TextButton(onClick = { showOfflineDialog = false }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            }
+        )
+    }
     val menuPrefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
     val trackRemovalMethod by menuPrefs.getTrackRemovalMethodFlow().collectAsState(initial = menuPrefs.getTrackRemovalMethod())
     val queueIndex = viewModel.menuContextQueueIndex
@@ -2404,7 +2416,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
     val isLocalQueueItem = queueIndex != null && selectedDevice == null
 
     val gridItems = mutableListOf<DockOptionItem>().apply {
-        if (!isLocalFile && (!viewModel.isMenuContextFromPlayer || isLocalQueueItem)) {
+        if (!isLocalFile && (!viewModel.isMenuContextFromPlayer || queueIndex != null)) {
             add(
                 DockOptionItem(
                     if (isTrackLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
@@ -2429,16 +2441,16 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     id = "repeat"
                 ) { viewModel.toggleRepeatMode() })
         }
-        if (!viewModel.isMenuContextFromPlayer || isLocalQueueItem) {
+        if (!viewModel.isMenuContextFromPlayer ||
+            (isLocalQueueItem && queueIndex != viewModel.uiCurrentQueueIndex)
+        ) {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.PlaylistPlay,
                     stringResource(R.string.menu_play_next),
                     id = "play_next"
                 ) {
-                    if (queueIndex == null) viewModel.insertNext(listOf(track))
-                    else viewModel.playQueueItemNext(queueIndex)
-                    viewModel.showMenuSheet = false
+                    viewModel.playMenuTrackNext()
                 })
         }
         if (!viewModel.isMenuContextFromPlayer) {
@@ -2465,33 +2477,31 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 )
             }
         }
-        if (!isOfflineMode && track.source != "youtube" && !isSpotify) {
+        if (!isLocalFile && track.source != "youtube" && !isSpotify) {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.Comment,
                     stringResource(R.string.menu_comments),
                     id = "comments"
-                ) { viewModel.openComments(track) })
+                ) { withInternet { viewModel.openComments(track) } })
         }
-        if (!isOfflineMode && track.source != "youtube" && !isSpotify) {
+        if (!isLocalFile && track.source != "youtube" && !isSpotify) {
             if (isReposted) {
                 add(
                     DockOptionItem(
                         Icons.Rounded.Repeat,
                         stringResource(R.string.menu_reposted),
                         id = "repost"
-                    ) { showDeleteRepostConfirm = true })
+                    ) { withInternet { showDeleteRepostConfirm = true } })
             } else {
                 add(DockOptionItem(Icons.Rounded.Repeat, stringResource(R.string.menu_repost), id = "repost") {
-                    showRepostDialog = true
+                    withInternet { showRepostDialog = true }
                 })
             }
         }
-        if (!isOfflineMode && track.source != "youtube") {
+        if (track.source != "youtube") {
             add(DockOptionItem(Icons.Rounded.Info, stringResource(R.string.menu_details), id = "details") {
-                viewModel.openTrackDetails(
-                    track
-                )
+                viewModel.openTrackDetails(track) { showOfflineDialog = true }
             })
         }
         val currentUserId = viewModel.currentUserId
@@ -2499,14 +2509,14 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 track.user?.id == currentUserId ||
                         track.user?.urn?.endsWith(":$currentUserId") == true
                 )
-        if (isOwnTrack && !isOfflineMode) {
+        if (isOwnTrack) {
             add(
                 DockOptionItem(
                     Icons.Rounded.Edit,
                     stringResource(R.string.menu_edit_track),
                     id = "edit_track"
                 ) {
-                    viewModel.navigateToEditTrack(track)
+                    withInternet { viewModel.navigateToEditTrack(track) }
                 }
             )
         }
@@ -2531,41 +2541,44 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         })
 
         val albumId = track.publisherMetadata?.albumId ?: track.publisherMetadata?.releaseTitle
-        if (!isOfflineMode && !albumId.isNullOrBlank() && (isSpotify || albumId.length == 22)) {
+        if (!isLocalFile && !albumId.isNullOrBlank() && (isSpotify || albumId.length == 22)) {
             add(
                 DockOptionItem(
                     Icons.Rounded.Album,
                     stringResource(R.string.menu_go_album),
                     id = "go_album"
                 ) {
-                    viewModel.showMenuSheet = false
-                    viewModel.navigateToAlbum(albumId)
+                    withInternet {
+                        viewModel.showMenuSheet = false
+                        viewModel.navigateToAlbum(albumId)
+                    }
                 }
             )
         }
 
-        if (!isOfflineMode && track.source != "youtube") {
+        if (!isLocalFile && track.source != "youtube") {
             add(
                 DockOptionItem(
                     Icons.Default.Person,
                     stringResource(R.string.menu_go_artist),
                     id = "go_artist"
                 ) {
-                    viewModel.showMenuSheet = false
-                    viewModel.navigateToTrackArtist(track)
+                    withInternet { viewModel.navigateToTrackArtist(track) }
                 }
             )
         }
-        if (!isOfflineMode && RadioEligibility.canStartRadio(track)) {
+        if (!isLocalFile && RadioEligibility.canStartRadio(track)) {
             add(DockOptionItem(Icons.Rounded.Radio, stringResource(R.string.menu_track_radio), id = "track_radio") {
-                if (RadioEligibility.radioKind(track) == RadioEligibility.Kind.YOUTUBE) {
-                    viewModel.startYoutubeRadio(track)
-                } else {
-                    viewModel.startRadioFromTrack(track)
+                withInternet {
+                    if (RadioEligibility.radioKind(track) == RadioEligibility.Kind.YOUTUBE) {
+                        viewModel.startYoutubeRadio(track)
+                    } else {
+                        viewModel.startRadioFromTrack(track)
+                    }
                 }
             })
         }
-        if (!isOfflineMode) {
+        if (!isLocalFile) {
             add(
                 DockOptionItem(
                     Icons.Outlined.Share,
@@ -2704,7 +2717,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     } else if (isDownloading) {
                         DownloadManager.cancelDownload(trackId)
                     } else {
-                        viewModel.downloadTrack(track)
+                        withInternet { viewModel.downloadTrack(track) }
                     }
                 }
             )
@@ -2743,6 +2756,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         verticalArrangement = Arrangement.spacedBy(24.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).padding(bottom = 24.dp)
+            .testTag("track-options-grid")
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column {
@@ -2789,8 +2803,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     SocialProofBanner(
                         likers = viewModel.socialLikers,
                         onUserClick = { u ->
-                            viewModel.showMenuSheet = false
-                            viewModel.navigateToArtist(u.id)
+                            withInternet { viewModel.navigateToArtist(u.id) }
                         },
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
@@ -11035,8 +11048,8 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
     val composerLabel = stringResource(R.string.spotify_credits_composer)
     val lyricistLabel = stringResource(R.string.spotify_credits_lyricist)
 
-    LaunchedEffect(spotifyId) {
-        if (spotifyId != null) {
+    LaunchedEffect(spotifyId, isLocalMode) {
+        if (spotifyId != null && !isLocalMode) {
             isLoadingCredits = true
             spotifyCredits = com.alananasss.kittytune.data.spotify.SpotifyRepository.getCredits(spotifyId)
             isLoadingCredits = false

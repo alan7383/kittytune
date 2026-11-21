@@ -5,6 +5,12 @@
     import android.net.NetworkCapabilities
 
     object NetworkUtils {
+        fun hasValidatedInternet(context: Context): Boolean {
+            val manager = context.getSystemService(ConnectivityManager::class.java) ?: return false
+            return manager.getNetworkCapabilities(manager.activeNetwork)
+                ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+        }
+
         fun isInternetAvailable(context: Context): Boolean {
             val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
             val network = connectivityManager.activeNetwork ?: return false

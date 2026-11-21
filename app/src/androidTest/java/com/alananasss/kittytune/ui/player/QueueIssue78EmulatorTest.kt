@@ -134,6 +134,7 @@ class QueueIssue78EmulatorTest {
             main { vm.syncWithCurrentPlayback(); vm.toggleShuffle(); vm.toggleShuffle() }
             awaitPlaying(3, tracks[0].id)
             compose.onNodeWithText(tracks[1].title!!).performTouchInput { longClick() }
+            compose.onNodeWithText(context.getString(R.string.menu_play_next)).assertIsDisplayed()
             compose.onNodeWithText(context.getString(R.string.player_like_action)).performClick()
             compose.onNodeWithText(context.getString(R.string.action_unlike)).assertExists()
             compose.runOnIdle { assertTrue(LikeRepository.isTrackLiked(tracks[1].id)) }

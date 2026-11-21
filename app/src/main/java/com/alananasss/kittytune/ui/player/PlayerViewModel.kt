@@ -3666,53 +3666,39 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         AchievementManager.increment("social_star")
     }
 
-    fun openTrackDetails(targetTrack: Track? = null) {
-        val target = targetTrack ?: selectedTrackForSheet ?: trackForMenu ?: currentTrack ?: return
-        selectedTrackForSheet = target
-
-        if (target.id < 0 || target.source == "local") {
-            activateLocalDetailsMode(target)
-            return
-        }
-
+    fun openTrackDetails(target: Track, onOffline: () -> Unit) {
         viewModelScope.launch {
-            val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(getApplication())
-            val navId = currentContext?.navigationId
-            val isContextLocal =
-                menuContextPlaylistId == -2L
-                        || (navId == "downloads" || navId?.startsWith("local_playlist:") == true)
-
-            if (isOffline && isContextLocal) {
-                activateLocalDetailsMode(target)
-            } else {
-                isLocalDetailsMode = false
-                localFilePathForDetails = null
-                showMenuSheet = false
-                showDetailsSheet = true
-
-                if (target.isSoundCloudCatalogTrack && (target.user?.id == 0L || target.playbackCount == 0)) {
-                    try {
-                        val fullTracks = api.getTracksByIds(target.id.toString())
-                        val fullTrack = fullTracks.firstOrNull()
-                        if (fullTrack != null) {
-                            selectedTrackForSheet = fullTrack
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
+            val isLocalFile = target.source == "local" || (target.id < 0 && target.source != "youtube")
+            val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.hasValidatedInternet(context)
+            val useLocalDetails = isLocalFile || isOffline
+            val localAudioPath = if (useLocalDetails) {
+                DownloadManager.getLocalTrack(target.id)?.localAudioPath?.takeIf { it.isNotEmpty() }
+            } else null
+            if (isOffline && !isLocalFile && localAudioPath == null) {
+                onOffline()
+                return@launch
             }
-        }
-    }
 
-    private fun activateLocalDetailsMode(target: Track) {
-        isLocalDetailsMode = true
-        viewModelScope.launch {
-            val localTrack = DownloadManager.getLocalTrack(target.id)
-            val prefix = getString(R.string.prefix_local_file_marker)
-            localFilePathForDetails = localTrack?.localAudioPath ?: target.description?.removePrefix(prefix)
+            selectedTrackForSheet = target
+            isLocalDetailsMode = useLocalDetails
+            localFilePathForDetails = if (useLocalDetails) {
+                localAudioPath ?: target.description?.removePrefix(getString(R.string.prefix_local_file_marker))
+            } else null
             showMenuSheet = false
             showDetailsSheet = true
+
+            if (!useLocalDetails && target.isSoundCloudCatalogTrack &&
+                (target.user?.id == 0L || target.playbackCount == 0)
+            ) {
+                try {
+                    val fullTrack = api.getTracksByIds(target.id.toString()).firstOrNull()
+                    if (fullTrack != null && selectedTrackForSheet === target) {
+                        selectedTrackForSheet = fullTrack
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
     }
 
@@ -5950,15 +5936,22 @@ query CommentsWithReactions(
         saveStateAsync(saveQueue = true)
     }
 
-    fun playQueueItemNext(index: Int) {
-        if (ConnectManager.selectedDevice.value != null) return
-        val track = _queue.getOrNull(index) ?: return
-        if (index > currentQueueIndex) {
-            moveQueueItem(index, currentQueueIndex + 1)
-        } else {
-            // Replaying a track from history keeps its original occurrence in the queue.
+    fun playMenuTrackNext() {
+        val track = trackForMenu ?: return
+        val index = menuContextQueueIndex
+        if (index == null) {
             insertNext(listOf(track))
+        } else if (ConnectManager.selectedDevice.value == null) {
+            // Keep targeting the selected occurrence if the queue changed while the menu was open.
+            val selected = if (_queue.getOrNull(index) === track) index else _queue.indexOfFirst { it === track }
+            if (selected > currentQueueIndex) {
+                moveQueueItem(selected, currentQueueIndex + 1)
+            } else if (selected in 0 until currentQueueIndex) {
+                // Replaying history keeps the original occurrence in place.
+                insertNext(listOf(track))
+            }
         }
+        showMenuSheet = false
     }
 
     fun insertNext(tracks: List<Track>) {
