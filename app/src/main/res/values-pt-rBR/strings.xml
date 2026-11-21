@@ -3796,4 +3796,5 @@
     <string name="track_info_likes">Curtidas</string>
     <string name="track_info_reposts">Republicações</string>
     <string name="track_info_comments">Comentários</string>
+    <string name="artist_clip_resolution">%1$dp</string>
 </resources>

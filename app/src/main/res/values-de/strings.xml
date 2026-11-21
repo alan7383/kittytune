@@ -3803,4 +3803,5 @@
     <string name="track_info_likes">Likes</string>
     <string name="track_info_reposts">Reposts</string>
     <string name="track_info_comments">Kommentare</string>
+    <string name="artist_clip_resolution">%1$dp</string>
 </resources>
