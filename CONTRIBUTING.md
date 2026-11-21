@@ -58,6 +58,13 @@ Translations are managed via **Crowdin**, so no code changes needed:
 2. Pick your language (or ask in discussions to add one)
 3. Translate at your own pace, approved strings get synced automatically
 
+For maintainers reviewing a Crowdin PR, run `git fetch origin l10n_main` and preview
+`python scripts/import_crowdin.py origin/l10n_main` from a checkout based on `main`.
+Add `--apply` to write the proposed updates, then review the diff before committing.
+The import preserves existing translations when the export omits a key or supplies
+the English source. It also skips conflicts with local edits, changed source text
+and broken format arguments.
+
 ---
 
 ### ! issues & bugs

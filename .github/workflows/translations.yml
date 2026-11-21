@@ -2,11 +2,7 @@ name: Translations
 
 on:
   pull_request:
-    paths:
-      - 'app/src/main/res/**/strings.xml'
-      - 'crowdin.yml'
-      - 'scripts/check_translations.py'
-      - '.github/workflows/translations.yml'
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,6 +18,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Test the Crowdin import and translation checks
+        run: python -m unittest discover -s scripts/tests
       - name: Check translation formats and regressions
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
