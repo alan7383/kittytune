@@ -81,7 +81,9 @@ import kotlin.math.ln
 import kotlin.math.pow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val FREQUENCY_LABELS = listOf(
     "32", "64", "125", "200", "315", "500", "800", "1.2k",
@@ -412,9 +414,11 @@ private fun AutoEqBody(
         if (uri != null) {
             scope.launch {
                 try {
-                    val rawText = context.contentResolver.openInputStream(uri)?.use { stream ->
-                        stream.bufferedReader().readText()
-                    }.orEmpty()
+                    val rawText = withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.use { stream ->
+                            stream.bufferedReader().readText()
+                        }.orEmpty()
+                    }
                     if (rawText.isNotBlank()) {
                         val fileName = runCatching {
                             context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
@@ -426,7 +430,9 @@ private fun AutoEqBody(
                             .removeSuffix(".txt")
                             .removeSuffix(" GraphicEQ")
                             .removeSuffix(" ParametricEQ")
-                        val data = AutoEqRepository.loadFromText(profileName, rawText)
+                        val data = withContext(Dispatchers.Default) {
+                            AutoEqRepository.loadFromText(profileName, rawText)
+                        }
                         viewModel.applyAutoEqProfile(data, headphones)
                         haptics.perform(HapticKind.CONFIRM)
                     }

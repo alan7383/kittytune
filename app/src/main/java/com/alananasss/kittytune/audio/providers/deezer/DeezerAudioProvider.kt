@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.audio.providers.deezer
 
+import com.alananasss.kittytune.data.YoutubeFallbackMatcher
 import android.net.Uri
 import androidx.media3.common.C
 import androidx.media3.common.MimeTypes
@@ -123,6 +124,7 @@ object DeezerAudioProvider {
         val proxyUrl: String = DEFAULT_PROXY_URL,
         val cookie: String = "",
         val useAccount: Boolean = true,
+        val recording: YoutubeFallbackMatcher.Recording? = null,
     )
 
     data class Resolved(
@@ -626,7 +628,7 @@ object DeezerAudioProvider {
      * playback resolution, without resolving a playable stream.
      *
      * This is the accurate path for cross-provider identity lookups (e.g.
-     * the shared ISRC resolver pulling an ISRC to feed
+     * [com.metrolist.music.providers.IsrcResolver] pulling an ISRC to feed
      * the Apple Music canvas matcher): unlike [searchCandidates], which
      * just returns raw search hits in API order, this scores every
      * candidate against title + artist + album + duration
@@ -655,7 +657,8 @@ object DeezerAudioProvider {
         if (!query.fastMode) {
             resolveSongLinkDeezerTrackId(query)?.let { trackId ->
                 Timber.tag("DeezerAudio").i("Resolved Deezer track $trackId through song.link for ${query.title}")
-                return query.toDirectMatchedTrack(trackId)
+                if (query.recording == null) return query.toDirectMatchedTrack(trackId)
+                fetchTrackMetadata("track/$trackId", query, fastMode = false)?.let { return it }
             }
         }
         return null
@@ -686,35 +689,53 @@ object DeezerAudioProvider {
             ?.uppercase(Locale.US)
             ?.takeIf { it.matches(Regex("[A-Z]{2}[A-Z0-9]{3}[0-9]{7}")) }
             ?: return null
-        val url = "https://api.deezer.com/track/isrc:$isrc".toHttpUrl()
-        val request =
-            Request
-                .Builder()
-                .url(wrapApiUrlForProxy(url, query.proxyUrl))
-                .get()
-                .header("Accept", "application/json")
-                .header("User-Agent", BROWSER_USER_AGENT)
-                .build()
+        return fetchTrackMetadata("track/isrc:$isrc", query, fastMode)
+    }
+
+    private fun fetchTrackMetadata(
+        path: String,
+        query: Query,
+        fastMode: Boolean,
+    ): MatchedTrack? {
+        val url = "https://api.deezer.com/$path".toHttpUrl()
+        val request = Request.Builder()
+            .url(wrapApiUrlForProxy(url, query.proxyUrl))
+            .get()
+            .header("Accept", "application/json")
+            .header("User-Agent", BROWSER_USER_AGENT)
+            .build()
         return runCatching {
             httpClient(fastMode, query.proxyUrl).newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@use null
                 val payload = response.body.string().takeIf { it.isNotBlank() } ?: return@use null
                 val obj = JSONObject(payload)
                 if (obj.has("error")) return@use null
-                val trackId = obj.stringOrNull("id") ?: return@use null
-                MatchedTrack(
-                    trackId = trackId,
+                val track = MatchedTrack(
+                    trackId = obj.stringOrNull("id") ?: return@use null,
                     title = obj.stringOrNull("title").orEmpty(),
                     artistNames = obj.collectArtistNames(),
                     album = obj.optJSONObject("album")?.stringOrNull("title"),
-                    isrc = isrc,
+                    isrc = obj.stringOrNull("isrc"),
                     durationMs = obj.longOrNull("duration")?.times(1000L),
                 )
+                track.takeIf { query.matchesRecording(it.title, it.artistNames, it.album, it.isrc, it.durationMs) }
             }
         }.onFailure { error ->
-            Timber.tag("DeezerAudio").d(error, "Deezer ISRC lookup failed for $isrc")
+            Timber.tag("DeezerAudio").d(error, "Deezer metadata lookup failed for $path")
         }.getOrNull()
     }
+
+    private fun Query.matchesRecording(
+        title: String,
+        artists: List<String>,
+        album: String?,
+        candidateIsrc: String?,
+        durationMs: Long?,
+    ): Boolean =
+        YoutubeFallbackMatcher.matches(
+            recording, title, artists, durationMs, album,
+            exactIsrc = !isrc.isNullOrBlank() && isrc.equals(candidateIsrc, ignoreCase = true),
+        )
 
     private fun searchTracks(
         term: String,
@@ -773,6 +794,11 @@ object DeezerAudioProvider {
             val candidateAlbum = obj.optJSONObject("album")?.stringOrNull("title").normalized()
             val candidateIsrc = obj.stringOrNull("isrc")?.trim()?.uppercase(Locale.US).orEmpty()
             val candidateDurationMs = obj.longOrNull("duration")?.times(1000L)
+            if (!query.matchesRecording(
+                    obj.stringOrNull("title").orEmpty(), obj.collectArtistNames(),
+                    obj.optJSONObject("album")?.stringOrNull("title"), candidateIsrc, candidateDurationMs,
+                )
+            ) continue
             val exactTitleMatch = wantedTitle.isNotBlank() && candidateTitle == wantedTitle
 
             var score = 0

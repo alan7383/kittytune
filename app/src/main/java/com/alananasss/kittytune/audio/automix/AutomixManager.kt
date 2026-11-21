@@ -12,6 +12,7 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.domain.Track
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -161,71 +162,55 @@ object AutomixManager {
     }
 
     fun cancelAllBeatAnalyses() {
-        synchronized(beatAnalysisJobs) {
-            beatAnalysisJobs.values.forEach { it.job.cancel() }
-            beatAnalysisJobs.clear()
+        val cancelled = synchronized(beatAnalysisJobs) {
+            beatAnalysisJobs.values.map { it.job }.also { beatAnalysisJobs.clear() }
         }
+        cancelled.forEach { it.cancel() }
     }
 
-    fun cancelImmediateBeatAnalyses(keepSongId: String? = null) {
-        synchronized(beatAnalysisJobs) {
-            val iterator = beatAnalysisJobs.entries.iterator()
-            while (iterator.hasNext()) {
-                val (id, handle) = iterator.next()
-                if (handle.priority == BeatAnalysisPriority.IMMEDIATE && id != keepSongId) {
-                    handle.job.cancel()
-                    iterator.remove()
-                }
+    fun cancelImmediateBeatAnalyses(keepSongId: String) {
+        val cancelled = synchronized(beatAnalysisJobs) {
+            val stale = beatAnalysisJobs.filter { (id, handle) ->
+                handle.priority == BeatAnalysisPriority.IMMEDIATE && id != keepSongId
             }
+            stale.keys.forEach(beatAnalysisJobs::remove)
+            stale.values.map { it.job }
         }
+        cancelled.forEach { it.cancel() }
     }
 
     fun maybeAnalyzeBeat(track: Track, priority: BeatAnalysisPriority = BeatAnalysisPriority.IMMEDIATE) {
         val context = appContext ?: return
         val songId = track.id.toString()
-
         val lastFailed = synchronized(failedSongIds) { failedSongIds[songId] }
-        if (lastFailed != null && android.os.SystemClock.elapsedRealtime() - lastFailed < 45_000L) {
-            return
-        }
+        if (lastFailed != null && android.os.SystemClock.elapsedRealtime() - lastFailed < 45_000L) return
 
         synchronized(beatAnalysisJobs) {
-            val existing = beatAnalysisJobs[songId]
-            if (existing != null && existing.job.isActive) {
-                if (priority == BeatAnalysisPriority.IMMEDIATE && existing.priority == BeatAnalysisPriority.LOOKAHEAD) {
-                    beatAnalysisJobs[songId] = existing.copy(priority = BeatAnalysisPriority.IMMEDIATE)
-                }
-                return
-            }
-
-            lateinit var handle: BeatAnalysisHandle
-            val job = scope.launch(analysisDispatcher) {
+            // A queued lookahead job continues on its original dispatcher and is retained on skips.
+            if (beatAnalysisJobs[songId]?.job?.isActive == true) return
+            val job = scope.launch(analysisDispatcher, start = CoroutineStart.LAZY) {
                 val mutex = when (priority) {
                     BeatAnalysisPriority.IMMEDIATE -> immediateAnalysisMutex
                     BeatAnalysisPriority.LOOKAHEAD -> lookaheadAnalysisMutex
                 }
-                mutex.withLock {
-                    try {
-                        runBeatAnalysis(context, track, priority)
-                    } catch (e: kotlinx.coroutines.CancellationException) {
-                        Log.d(TAG, "Beat analysis cancelled for $songId ($priority)")
-                        throw e
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Beat analysis failed for $songId: ${e.message}")
-                    } finally {
-                        synchronized(beatAnalysisJobs) {
-                            if (beatAnalysisJobs[songId]?.job === handle.job) {
-                                beatAnalysisJobs.remove(songId)
-                            }
-                        }
-                    }
+                try {
+                    mutex.withLock { runBeatAnalysis(context, track, priority) }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Beat analysis failed for $songId: ${e.message}")
                 }
             }
-            handle = BeatAnalysisHandle(priority, job)
-            beatAnalysisJobs[songId] = handle
+            beatAnalysisJobs[songId] = BeatAnalysisHandle(priority, job)
+            job.invokeOnCompletion {
+                synchronized(beatAnalysisJobs) {
+                    if (beatAnalysisJobs[songId]?.job === job) beatAnalysisJobs.remove(songId)
+                }
+            }
+            job.start()
         }
     }
-    
+
     private suspend fun runBeatAnalysis(context: Context, track: Track, priority: BeatAnalysisPriority) {
         val songId = track.id.toString()
         val db = AppDatabase.getDatabase(context)
