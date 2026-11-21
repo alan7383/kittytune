@@ -3148,6 +3148,9 @@
 <string name="mix_vibe_pop">Pop hits</string>
 <string name="mix_vibe_pop_sub">Catchy melodies &amp; pop energy</string>
 <string name="mix_vibe_artist">In the style of %1$s</string>
+<string name="mix_vibe_official">Official mix</string>
+<string name="mix_vibe_official_sub">Only tracks from official artists</string>
+<string name="mix_official_source">official artists</string>
 <string name="mix_playing">Playing mix</string>
 <string name="mix_resume">Resume mix</string>
 <string name="mix_dislike">I don\'t like this</string>
