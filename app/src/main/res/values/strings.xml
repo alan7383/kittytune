@@ -3772,4 +3772,10 @@
     <string name="together_invite_qr">Together invite QR code</string>
     <string name="together_copy_code">Copy session code</string>
     <string name="together_invite_qr_instructions">Scan with your camera, then tap Join in KittyTune.</string>
+    <string name="pref_mini_player_classic_cover">Show cover on the left</string>
+    <string name="pref_mini_player_classic_cover_left_desc">A small artwork sits on the left of the strip</string>
+    <string name="pref_mini_player_classic_background">Cover as background</string>
+    <string name="pref_mini_player_classic_cover_bg_desc">The artwork stretches across the whole mini player behind the title</string>
+    <string name="pref_mini_player_classic_progress">Progress fill</string>
+    <string name="pref_mini_player_classic_progress_fill_desc">No slider: the song time is a fill sweeping across the strip, tinted with the cover\'s colour</string>
 </resources>

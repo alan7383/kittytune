@@ -3762,4 +3762,10 @@
     <string name="together_invite_qr">QR code d’invitation Together</string>
     <string name="together_copy_code">Copier le code de session</string>
     <string name="together_invite_qr_instructions">Scanne le code avec ton appareil photo, puis touche Rejoindre dans KittyTune.</string>
+    <string name="pref_mini_player_classic_cover">Afficher la pochette à gauche</string>
+    <string name="pref_mini_player_classic_cover_left_desc">Affiche une petite pochette à gauche du titre</string>
+    <string name="pref_mini_player_classic_background">Pochette en arrière-plan</string>
+    <string name="pref_mini_player_classic_cover_bg_desc">Affiche la pochette derrière le titre sur toute la largeur</string>
+    <string name="pref_mini_player_classic_progress">Remplissage de la progression</string>
+    <string name="pref_mini_player_classic_progress_fill_desc">La couleur de la pochette remplit le mini-lecteur au fil du morceau</string>
 </resources>
