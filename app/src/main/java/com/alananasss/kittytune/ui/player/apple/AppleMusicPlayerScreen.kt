@@ -71,6 +71,7 @@ import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material.icons.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -136,6 +137,7 @@ import com.alananasss.kittytune.ui.player.CodecBadge
 import com.alananasss.kittytune.ui.player.InlineLyricsContent
 import com.alananasss.kittytune.ui.player.PlayerControls
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.TrackArtistText
 import com.alananasss.kittytune.ui.player.RepeatMode
 import com.alananasss.kittytune.ui.player.SleepTimerDialog
 import com.alananasss.kittytune.ui.player.playerDismissGesture
@@ -970,10 +972,10 @@ private fun AppleControlsColumn(
         // only with the Apple styling enabled.
         AppleTitleAndGlassActions(
             title = track.title ?: stringResource(R.string.untitled_track),
-            artist = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+            track = track,
+            viewModel = viewModel,
             isLiked = viewModel.uiIsLiked,
             showActions = appleMusicInspired,
-            onArtistClick = { viewModel.navigateToTrackArtist(track) },
             onMoreClick = { viewModel.showTrackOptions(track, fromPlayer = true) },
             onLikeClick = { viewModel.toggleLike() }
         )
@@ -1335,10 +1337,10 @@ private fun AppleCapsuleSlider(
 @Composable
 private fun AppleTitleAndGlassActions(
     title: String,
-    artist: String,
+    track: Track,
+    viewModel: PlayerViewModel,
     isLiked: Boolean,
     showActions: Boolean,
-    onArtistClick: () -> Unit,
     onMoreClick: () -> Unit,
     onLikeClick: () -> Unit
 ) {
@@ -1356,14 +1358,13 @@ private fun AppleTitleAndGlassActions(
                 modifier = Modifier.basicMarquee()
             )
             Spacer(Modifier.height(3.dp))
-            Text(
-                text = artist,
+            TrackArtistText(
+                track = track,
+                viewModel = viewModel,
                 color = Color.White.copy(alpha = 0.78f),
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Normal,
+                style = LocalTextStyle.current.copy(fontSize = 17.sp, fontWeight = FontWeight.Normal),
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.clickable { onArtistClick() }
+                overflow = TextOverflow.Ellipsis
             )
         }
 
@@ -2158,13 +2159,13 @@ private fun AppleTabletLandscapePlayer(
                                 modifier = Modifier.basicMarquee()
                             )
                             Spacer(Modifier.height(3.dp))
-                            Text(
-                                text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+                            TrackArtistText(
+                                track = track,
+                                viewModel = viewModel,
                                 color = Color.White.copy(alpha = 0.74f),
-                                fontSize = 17.sp,
+                                style = LocalTextStyle.current.copy(fontSize = 17.sp),
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.clickable { viewModel.navigateToTrackArtist(track) }
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }

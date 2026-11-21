@@ -51,6 +51,7 @@ import com.alananasss.kittytune.domain.User
 import com.alananasss.kittytune.ui.common.viewableCover
 import com.alananasss.kittytune.ui.library.TrackListItem
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.TrackArtistText
 import com.alananasss.kittytune.ui.profile.ArtistAvatar
 import com.alananasss.kittytune.ui.profile.ReleaseDate
 import kotlinx.coroutines.launch
@@ -197,11 +198,12 @@ private fun TrackDetailHeader(track: Track, playerViewModel: PlayerViewModel) {
                 overflow = TextOverflow.Ellipsis,
             )
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.hapticClickable { playerViewModel.navigateToTrackArtist(track) }
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    track.displayArtist.ifBlank { track.user?.username.orEmpty() },
+                TrackArtistText(
+                    track = track,
+                    viewModel = playerViewModel,
+                    text = track.displayArtist.ifBlank { track.user?.username.orEmpty() },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

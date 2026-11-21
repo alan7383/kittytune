@@ -3822,6 +3822,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     fun onArtistSelected(artist: SpotifyArtistRef) {
         val track = selectedArtistDialogTrack
         dismissSelectArtistDialog()
+        navigateToCreditedArtist(artist, track)
+    }
+
+    private fun navigateToCreditedArtist(artist: SpotifyArtistRef, track: Track?) {
         showDetailsSheet = false
         showMenuSheet = false
         showCommentsSheet = false
@@ -3851,8 +3855,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         }
     }
 
-    fun navigateToTrackArtist(track: Track?) {
+    fun navigateToTrackArtist(track: Track?, artist: SpotifyArtistRef? = null) {
         if (track == null) return
+        if (artist != null) {
+            navigateToCreditedArtist(artist, track)
+            return
+        }
         val navigable = navigableArtists(track.artists)
         if (navigable.size > 1) {
             openSelectArtistDialog(navigable, track)
