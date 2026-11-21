@@ -102,6 +102,7 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import com.alananasss.kittytune.ui.player.cover.videoRenderers
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
@@ -317,7 +318,7 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
     val player = remember(clip, dataSourceFactory) {
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
 
-        ExoPlayer.Builder(context)
+        ExoPlayer.Builder(context, videoRenderers(context))
             .setMediaSourceFactory(mediaSourceFactory)
             .setLoadControl(
                 DefaultLoadControl.Builder()

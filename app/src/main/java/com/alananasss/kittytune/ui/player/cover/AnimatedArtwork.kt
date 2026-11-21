@@ -246,7 +246,7 @@ fun CanvasVideo(
             )
         }
 
-        ExoPlayer.Builder(context)
+        ExoPlayer.Builder(context, videoRenderers(context))
             .setMediaSourceFactory(mediaSourceFactory)
             .setTrackSelector(trackSelector)
             .build()
