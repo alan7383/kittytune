@@ -77,8 +77,6 @@ fun AudioPlaybackSettingsScreen(
     var stopOnTaskClear by remember { mutableStateOf(prefs.getStopOnTaskClear()) }
     var persistentQueueEnabled by remember { mutableStateOf(prefs.getPersistentQueueEnabled()) }
     var queueAutoArchiveEnabled by remember { mutableStateOf(prefs.getQueueAutoArchiveEnabled()) }
-    val keepPlayedTracksVisible by remember(prefs) { prefs.keepPlayedTracksVisibleFlow() }
-        .collectAsState(initial = prefs.getKeepPlayedTracksVisible())
     var savePositionEnabled by remember { mutableStateOf(prefs.getSavePositionEnabled()) }
     var youtubeFallbackEnabled by remember { mutableStateOf(prefs.getYouTubeFallbackEnabled()) }
     var hideVideoSongsEnabled by remember { mutableStateOf(prefs.getHideVideoSongs()) }
@@ -90,17 +88,9 @@ fun AudioPlaybackSettingsScreen(
     val pauseOnAudioFocusLoss by remember(prefs) { prefs.pauseOnAudioFocusLossFlow() }
         .collectAsState(initial = prefs.getPauseOnAudioFocusLoss())
     var pauseOnMute by remember { mutableStateOf(prefs.getPauseOnMute()) }
-    var resumeOnUnmute by remember { mutableStateOf(prefs.getResumeOnUnmute()) }
     var keepScreenOn by remember { mutableStateOf(prefs.getKeepScreenOn()) }
     var pauseListenHistory by remember { mutableStateOf(prefs.getPauseListenHistory()) }
     var pauseSearchHistory by remember { mutableStateOf(prefs.getPauseSearchHistory()) }
-    var usbBitPerfect by remember { mutableStateOf(prefs.getUsbBitPerfect()) }
-    var usbShowStatus by remember { mutableStateOf(prefs.getUsbShowStatus()) }
-    var dapExclusive by remember { mutableStateOf(prefs.getDapAaudioExclusive()) }
-    var showAudioPathSheet by remember { mutableStateOf(false) }
-    val usbStatus by com.alananasss.kittytune.audio.usb.UsbAudioManager.status.collectAsState()
-    val automixConflictsWithBitPerfect by com.alananasss.kittytune.audio.usb.UsbAudioManager
-        .automixConflictsWithBitPerfect.collectAsState()
 
     val listState = rememberLazyListState()
 
@@ -111,8 +101,6 @@ fun AudioPlaybackSettingsScreen(
             "pref_stop_on_task_clear" to 0,
             "pref_persist_queue" to 0,
             "pref_queue_auto_archive" to 0,
-            "pref_queue_preserve_upcoming" to 0,
-            "pref_keep_played_tracks_visible" to 0,
             "pref_save_position" to 0,
             "pref_youtube_fallback" to 0,
             "pref_hide_youtube_videos" to 0,
@@ -120,7 +108,6 @@ fun AudioPlaybackSettingsScreen(
             "pref_resume_on_bluetooth" to 0,
             "pref_pause_on_audio_focus_loss" to 0,
             "pref_pause_on_mute" to 0,
-            "pref_resume_on_unmute" to 0,
             "pref_keep_screen_on" to 0,
             "pref_sc_sync" to 0
         )
@@ -142,8 +129,7 @@ fun AudioPlaybackSettingsScreen(
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val unmuteRowCount = if (pauseOnMute) 1 else 0
-                        val totalVisibleItems = (if (isGuest) 15 else 16) + unmuteRowCount
+                        val totalVisibleItems = if (isGuest) 13 else 14
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
@@ -189,26 +175,6 @@ fun AudioPlaybackSettingsScreen(
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 4),
-                            title = stringResource(R.string.pref_queue_preserve_upcoming),
-                            subtitle = stringResource(R.string.pref_queue_preserve_upcoming_sub),
-                            hasSwitch = true,
-                            switchState = playerViewModel.isQueuePreserveUpcomingEnabled,
-                            onSwitchChange = { playerViewModel.toggleQueuePreserveUpcoming(it) },
-                            highlightKey = "pref_queue_preserve_upcoming"
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 5),
-                            title = stringResource(R.string.pref_keep_played_tracks_visible),
-                            subtitle = stringResource(R.string.pref_keep_played_tracks_visible_sub),
-                            hasSwitch = true,
-                            switchState = keepPlayedTracksVisible,
-                            onSwitchChange = prefs::setKeepPlayedTracksVisible,
-                            highlightKey = "pref_keep_played_tracks_visible"
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 6),
                             title = stringResource(R.string.pref_save_position),
                             subtitle = stringResource(R.string.pref_save_position_sub),
                             hasSwitch = true,
@@ -218,7 +184,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 7),
+                            shape = getSettingsShape(totalVisibleItems, 5),
                             title = stringResource(R.string.pref_youtube_fallback),
                             subtitle = stringResource(R.string.pref_youtube_fallback_sub),
                             hasSwitch = true,
@@ -228,7 +194,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 8),
+                            shape = getSettingsShape(totalVisibleItems, 6),
                             title = stringResource(R.string.pref_hide_video_songs),
                             subtitle = stringResource(R.string.pref_hide_video_songs_sub),
                             hasSwitch = true,
@@ -241,7 +207,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 9),
+                            shape = getSettingsShape(totalVisibleItems, 7),
                             title = stringResource(R.string.pref_hide_youtube_shorts),
                             subtitle = stringResource(R.string.pref_hide_youtube_shorts_sub),
                             hasSwitch = true,
@@ -254,7 +220,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 10),
+                            shape = getSettingsShape(totalVisibleItems, 8),
                             title = stringResource(R.string.pref_precise_speed),
                             subtitle = stringResource(R.string.pref_precise_speed_sub),
                             hasSwitch = true,
@@ -264,7 +230,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 11),
+                            shape = getSettingsShape(totalVisibleItems, 9),
                             title = stringResource(R.string.pref_resume_on_bluetooth),
                             subtitle = stringResource(R.string.pref_resume_on_bluetooth_sub),
                             hasSwitch = true,
@@ -274,7 +240,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 12),
+                            shape = getSettingsShape(totalVisibleItems, 10),
                             title = stringResource(R.string.pref_pause_on_audio_focus_loss),
                             subtitle = stringResource(R.string.pref_pause_on_audio_focus_loss_sub),
                             hasSwitch = true,
@@ -284,7 +250,7 @@ fun AudioPlaybackSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 13),
+                            shape = getSettingsShape(totalVisibleItems, 11),
                             title = stringResource(R.string.pref_pause_on_mute),
                             subtitle = stringResource(R.string.pref_pause_on_mute_sub),
                             hasSwitch = true,
@@ -293,19 +259,8 @@ fun AudioPlaybackSettingsScreen(
                             highlightKey = "pref_pause_on_mute"
                         )
 
-                        if (pauseOnMute) {
-                            SettingsItem(
-                                shape = getSettingsShape(totalVisibleItems, 14),
-                                title = stringResource(R.string.pref_resume_on_unmute),
-                                hasSwitch = true,
-                                switchState = resumeOnUnmute,
-                                onSwitchChange = { resumeOnUnmute = it; prefs.setResumeOnUnmute(it) },
-                                highlightKey = "pref_resume_on_unmute"
-                            )
-                        }
-
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 14 + unmuteRowCount),
+                            shape = getSettingsShape(totalVisibleItems, 12),
                             title = stringResource(R.string.pref_keep_screen_on),
                             subtitle = stringResource(R.string.pref_keep_screen_on_sub),
                             hasSwitch = true,
@@ -317,7 +272,7 @@ fun AudioPlaybackSettingsScreen(
 
                         if (!isGuest) {
                             SettingsItem(
-                                shape = getSettingsShape(totalVisibleItems, 15 + unmuteRowCount),
+                                shape = getSettingsShape(totalVisibleItems, 13),
                                 title = stringResource(R.string.pref_sc_sync_title),
                                 subtitle = stringResource(R.string.pref_sc_sync_sub),
                                 hasSwitch = true,
@@ -385,82 +340,16 @@ fun AudioPlaybackSettingsScreen(
                             highlightKey = "pref_pause_search_history"
                         )
                     }
-
-                    SettingsGroupTitle(stringResource(R.string.usb_section_title))
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val usbStatusText = when {
-                            usbStatus.reason == "android_version" -> stringResource(R.string.usb_status_android_version)
-                            usbStatus.reason == "track_format_mismatch" -> stringResource(R.string.usb_status_track_mismatch)
-                            usbStatus.bitPerfectActive -> stringResource(R.string.usb_status_active) +
-                                    if (usbStatus.activeSampleRate > 0) " · ${usbStatus.activeSampleRate / 1000} kHz" else ""
-                            usbStatus.usbDacConnected -> stringResource(R.string.usb_status_unsupported)
-                            else -> stringResource(R.string.usb_status_no_device)
-                        }
-                        // Bit-perfect and automix cannot coexist (two decks cannot be summed
-                        // bit-exactly): say so instead of silently falling back to hard switches.
-                        val usbSubtitle = if (automixConflictsWithBitPerfect) {
-                            usbStatusText + "\n" + stringResource(R.string.usb_automix_conflict)
-                        } else usbStatusText
-                        SettingsItem(
-                            shape = getSettingsShape(3, 0),
-                            title = stringResource(R.string.pref_usb_bit_perfect),
-                            subtitle = usbSubtitle,
-                            hasSwitch = true,
-                            switchState = usbBitPerfect,
-                            onSwitchChange = { on ->
-                                usbBitPerfect = on
-                                prefs.setUsbBitPerfect(on)
-                                com.alananasss.kittytune.audio.usb.UsbAudioManager.refresh()
-                            },
-                            highlightKey = "pref_usb_bit_perfect"
-                        )
-                        SettingsItem(
-                            shape = getSettingsShape(3, 1),
-                            title = stringResource(R.string.pref_usb_show_status),
-                            subtitle = stringResource(R.string.pref_usb_show_status_sub),
-                            hasSwitch = true,
-                            switchState = usbShowStatus,
-                            onSwitchChange = { usbShowStatus = it; prefs.setUsbShowStatus(it) },
-                            highlightKey = "pref_usb_show_status"
-                        )
-                        SettingsItem(
-                            shape = getSettingsShape(3, 2),
-                            title = stringResource(R.string.pref_dap_exclusive),
-                            subtitle = stringResource(R.string.pref_dap_exclusive_sub),
-                            hasSwitch = true,
-                            switchState = dapExclusive,
-                            onSwitchChange = { on ->
-                                dapExclusive = on
-                                prefs.setDapAaudioExclusive(on)
-                                com.alananasss.kittytune.audio.usb.UsbAudioManager.refresh()
-                            },
-                            highlightKey = "pref_dap_exclusive"
-                        )
-                    }
-
-                    // Audio path diagnostics - under the USB DAC / Bit-Perfect section.
-                    AudioPathHeroCard(
-                        playerViewModel = playerViewModel,
-                        onOpen = hapticAction(HapticKind.UI) { showAudioPathSheet = true },
-                        modifier = Modifier.padding(top = 16.dp).settingHighlight("diag_hero_title", RoundedCornerShape(24.dp))
-                    )
                 }
             }
         }
-    }
-
-    if (showAudioPathSheet) {
-        AudioPathDiagnosticSheet(
-            visible = true,
-            onDismiss = { showAudioPathSheet = false },
-            playerViewModel = playerViewModel
-        )
     }
 }
 
 /**
  * Sound & Output subpage:
- * Equalizer, volume normalization, mono audio, DRM download.
+ * Equalizer, volume normalization, mono audio, DRM download,
+ * USB DAC & bit-perfect audio, audio path diagnostics.
  */
 @Composable
 fun AudioQualitySettingsScreen(
@@ -472,6 +361,13 @@ fun AudioQualitySettingsScreen(
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
     var downloadDrmEnabled by remember { mutableStateOf(prefs.getDownloadDrmStreamsEnabled()) }
+    var usbBitPerfect by remember { mutableStateOf(prefs.getUsbBitPerfect()) }
+    var usbShowStatus by remember { mutableStateOf(prefs.getUsbShowStatus()) }
+    var dapExclusive by remember { mutableStateOf(prefs.getDapAaudioExclusive()) }
+    var showAudioPathSheet by remember { mutableStateOf(false) }
+    val usbStatus by com.alananasss.kittytune.audio.usb.UsbAudioManager.status.collectAsState()
+    val automixConflictsWithBitPerfect by com.alananasss.kittytune.audio.usb.UsbAudioManager
+        .automixConflictsWithBitPerfect.collectAsState()
 
     var showNormalizationDialog by remember { mutableStateOf(false) }
     var showNormalizationInfoDialog by remember { mutableStateOf(false) }
@@ -594,7 +490,11 @@ fun AudioQualitySettingsScreen(
             "equalizer" to 0,
             "pref_audio_mono" to 0,
             "pref_norm" to 0,
-            "pref_download_drm" to 0
+            "pref_download_drm" to 0,
+            "pref_usb_bit_perfect" to 0,
+            "pref_usb_show_status" to 0,
+            "pref_dap_exclusive" to 0,
+            "diag_hero_title" to 0
         )
     )
 
@@ -660,9 +560,76 @@ fun AudioQualitySettingsScreen(
                             highlightKey = "pref_download_drm"
                         )
                     }
+
+                    SettingsGroupTitle(stringResource(R.string.usb_section_title))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val usbStatusText = when {
+                            usbStatus.reason == "android_version" -> stringResource(R.string.usb_status_android_version)
+                            usbStatus.reason == "track_format_mismatch" -> stringResource(R.string.usb_status_track_mismatch)
+                            usbStatus.bitPerfectActive -> stringResource(R.string.usb_status_active) +
+                                    if (usbStatus.activeSampleRate > 0) " · ${usbStatus.activeSampleRate / 1000} kHz" else ""
+                            usbStatus.usbDacConnected -> stringResource(R.string.usb_status_unsupported)
+                            else -> stringResource(R.string.usb_status_no_device)
+                        }
+                        // Bit-perfect and automix cannot coexist (two decks cannot be summed
+                        // bit-exactly): say so instead of silently falling back to hard switches.
+                        val usbSubtitle = if (automixConflictsWithBitPerfect) {
+                            usbStatusText + "\n" + stringResource(R.string.usb_automix_conflict)
+                        } else usbStatusText
+                        SettingsItem(
+                            shape = getSettingsShape(3, 0),
+                            title = stringResource(R.string.pref_usb_bit_perfect),
+                            subtitle = usbSubtitle,
+                            hasSwitch = true,
+                            switchState = usbBitPerfect,
+                            onSwitchChange = { on ->
+                                usbBitPerfect = on
+                                prefs.setUsbBitPerfect(on)
+                                com.alananasss.kittytune.audio.usb.UsbAudioManager.refresh()
+                            },
+                            highlightKey = "pref_usb_bit_perfect"
+                        )
+                        SettingsItem(
+                            shape = getSettingsShape(3, 1),
+                            title = stringResource(R.string.pref_usb_show_status),
+                            subtitle = stringResource(R.string.pref_usb_show_status_sub),
+                            hasSwitch = true,
+                            switchState = usbShowStatus,
+                            onSwitchChange = { usbShowStatus = it; prefs.setUsbShowStatus(it) },
+                            highlightKey = "pref_usb_show_status"
+                        )
+                        SettingsItem(
+                            shape = getSettingsShape(3, 2),
+                            title = stringResource(R.string.pref_dap_exclusive),
+                            subtitle = stringResource(R.string.pref_dap_exclusive_sub),
+                            hasSwitch = true,
+                            switchState = dapExclusive,
+                            onSwitchChange = { on ->
+                                dapExclusive = on
+                                prefs.setDapAaudioExclusive(on)
+                                com.alananasss.kittytune.audio.usb.UsbAudioManager.refresh()
+                            },
+                            highlightKey = "pref_dap_exclusive"
+                        )
+                    }
+
+                    // Audio path diagnostics - under the USB DAC / Bit-Perfect section.
+                    AudioPathHeroCard(
+                        playerViewModel = playerViewModel,
+                        onOpen = hapticAction(HapticKind.UI) { showAudioPathSheet = true },
+                        modifier = Modifier.padding(top = 16.dp).settingHighlight("diag_hero_title", RoundedCornerShape(24.dp))
+                    )
                 }
             }
         }
+    }
+
+    if (showAudioPathSheet) {
+        AudioPathDiagnosticSheet(
+            visible = true,
+            onDismiss = { showAudioPathSheet = false },
+            playerViewModel = playerViewModel
+        )
     }
 }
 
