@@ -454,7 +454,8 @@ object SpotifyRepository {
     private val artistAvatarCache = java.util.concurrent.ConcurrentHashMap<String, String>()
 
     suspend fun getArtistAvatar(artistId: String): String? {
-        val cleanId = spotifyEntityId(artistId, "artist") ?: return null
+        val cleanId = extractId(artistId)
+        if (cleanId.isBlank()) return null
         artistAvatarCache[cleanId]?.let { return it }
         val avatar = getArtist(cleanId)?.avatarUrl?.takeIf { it.isNotBlank() } ?: return null
         artistAvatarCache[cleanId] = avatar
@@ -468,8 +469,6 @@ object SpotifyRepository {
 
         try {
             fetchPathfinderData(url)?.optJSONObject("artistUnion")?.let { artistUnion ->
-                val uri = artistUnion.optString("uri")
-                if (uri.isNotBlank() && spotifyEntityId(uri, "artist") != cleanId) return@withContext null
                 return@withContext parseArtistUnion(cleanId, artistUnion)
             }
             null
@@ -809,18 +808,24 @@ object SpotifyRepository {
     // @param query the search term, e.g. `"One More Time Radio"`.
     // @param requiredName when set, candidates whose name does not contain this are ignored
     //   (a search for a short track name also finds unrelated radios).
-    private suspend fun findOfficialRadioPlaylist(query: String, requiredName: String? = null): SpotifyPlaylist? {
+private suspend fun findOfficialRadioPlaylist(query: String, requiredName: String? = null): SpotifyPlaylist? {
         val results = runCatching { search(query, limit = 20) }.getOrNull() ?: return null
         val wanted = requiredName?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
-        val nameMatches: (SpotifyPlaylist) -> Boolean = { playlist ->
-            wanted.isNullOrBlank() || playlist.name.lowercase().contains(wanted)
+        val isRadioCandidate: (SpotifyPlaylist) -> Boolean = { playlist ->
+            playlist.id.startsWith("37i9dQZF1E8") ||
+                playlist.id.startsWith("37i9dQZF1E4") ||
+                playlist.name.contains("Radio", ignoreCase = true)
         }
-        val official = results.playlists
-            .filter { it.ownerName == "Spotify" && it.id.startsWith("37i9dQZF") && nameMatches(it) }
-            .ifEmpty { results.playlists.filter { it.ownerName == "Spotify" && it.id.startsWith("37i9dQZF") } }
+        val nameMatches: (SpotifyPlaylist) -> Boolean = { playlist ->
+            wanted == null || playlist.name.lowercase().contains(wanted)
+        }
+        val official = results.playlists.filter {
+            it.ownerName == "Spotify" &&
+                it.id.startsWith("37i9dQZF") &&
+                isRadioCandidate(it) &&
+                nameMatches(it)
+        }
 
-        // Try up to three candidates: the first Spotify-owned "… Radio" occasionally
-        // resolves to a regional variant, and the next row is usually the global one.
         for (candidate in official.take(3)) {
             val full = runCatching { getPlaylist(candidate.id) }.getOrNull() ?: continue
             if (full.tracks.isNotEmpty()) return full
@@ -846,11 +851,11 @@ object SpotifyRepository {
                 val radioFromArtist = artist.discoveredOn.firstOrNull {
                     it.id.startsWith("37i9dQZF1E4")
                 } ?: artist.discoveredOn.firstOrNull {
-                    it.ownerName == "Spotify" && it.name.contains(
-                        "Radio",
-                        ignoreCase = true
-                    ) && !it.name.contains("This Is", ignoreCase = true)
-                } ?: artist.discoveredOn.firstOrNull { it.id.startsWith("37i9dQZF") }
+                    it.ownerName == "Spotify" &&
+                        it.name.contains("Radio", ignoreCase = true) &&
+                        !it.name.contains("This Is", ignoreCase = true) &&
+                        it.name.contains(artist.name, ignoreCase = true)
+                }
 
                 if (radioFromArtist != null) {
                     val fullPlaylist = getPlaylist(radioFromArtist.id)
@@ -860,17 +865,25 @@ object SpotifyRepository {
                 }
 
                 val searchRes = search("${artist.name} Radio")
-                // Spotify-owned first: a user playlist named "<artist> Radio" with two uploads
+                // Spotify-owned artist radios first: a user playlist named "<artist> Radio"
                 // used to be able to win the filter below and starve the mix.
+                // No id-only fallback: a bare 37i9dQZF*/37i9dQZF1E4* match without a name
+                // check resolved track radios to unrelated editorial playlists
+                // ("Today's Top Hits" etc.), so every fallback below requires the artist
+                // name in the playlist title. If nothing matches, the "This Is <artist>"
+                // search further down handles it instead.
                 val searchRadio = searchRes.playlists.firstOrNull {
-                    it.ownerName == "Spotify" && it.id.startsWith("37i9dQZF1E4")
+                    it.ownerName == "Spotify" &&
+                        it.id.startsWith("37i9dQZF1E4") &&
+                        it.name.contains(artist.name, ignoreCase = true)
                 } ?: searchRes.playlists.firstOrNull {
-                    it.id.startsWith("37i9dQZF1E4") || (it.name.contains(
-                        "Radio",
-                        ignoreCase = true
-                    ) && it.name.contains(artist.name, ignoreCase = true))
+                    it.ownerName == "Spotify" &&
+                        it.name.contains("Radio", ignoreCase = true) &&
+                        !it.name.contains("This Is", ignoreCase = true) &&
+                        it.name.contains(artist.name, ignoreCase = true)
                 } ?: searchRes.playlists.firstOrNull {
-                    it.name.contains("Radio", ignoreCase = true) || it.id.startsWith("37i9dQZF")
+                    it.name.contains("Radio", ignoreCase = true) &&
+                        it.name.contains(artist.name, ignoreCase = true)
                 }
 
                 if (searchRadio != null) {
@@ -989,17 +1002,77 @@ object SpotifyRepository {
     }
 
     suspend fun getCredits(trackId: String): SpotifyCredits? = withContext(Dispatchers.IO) {
-        val cleanId = spotifyEntityId(trackId, "track") ?: return@withContext null
+        val cleanId = extractId(trackId)
+        if (cleanId.isBlank()) return@withContext null
         val url = "https://spclient.wg.spotify.com/track-credits-view/v0/experimental/$cleanId/credits"
+
         try {
-            fetchJsonObject(url)?.let { parseSpotifyCredits(cleanId, it) }?.let { return@withContext it }
-        } catch (cancelled: kotlinx.coroutines.CancellationException) {
-            throw cancelled
+            val json = fetchJsonObject(url)
+            if (json != null) {
+                val trackTitle = json.optString("trackTitle")
+                val trackUri = json.optString("trackUri")
+
+                val sourceNames = mutableListOf<String>()
+                val sourcesArr = json.optJSONArray("sourceNames")
+                if (sourcesArr != null) {
+                    for (i in 0 until sourcesArr.length()) {
+                        val s = sourcesArr.optString(i)
+                        if (s.isNotBlank()) sourceNames.add(s)
+                    }
+                }
+
+                val roles = mutableListOf<SpotifyCreditRole>()
+                val roleCreditsArr = json.optJSONArray("roleCredits")
+                if (roleCreditsArr != null) {
+                    for (i in 0 until roleCreditsArr.length()) {
+                        val roleObj = roleCreditsArr.optJSONObject(i) ?: continue
+                        val roleTitle = roleObj.optString("roleTitle")
+                        val artistsList = mutableListOf<SpotifyCreditArtist>()
+                        val artistsArr = roleObj.optJSONArray("artists")
+                        if (artistsArr != null) {
+                            for (j in 0 until artistsArr.length()) {
+                                val artObj = artistsArr.optJSONObject(j) ?: continue
+                                val name = artObj.optString("name")
+                                val uri = artObj.optString("uri")
+                                val id = extractId(uri)
+                                val img = artObj.optString("imageUri").ifBlank { null }
+                                val subroles = mutableListOf<String>()
+                                val subArr = artObj.optJSONArray("subroles")
+                                if (subArr != null) {
+                                    for (k in 0 until subArr.length()) {
+                                        val sub = subArr.optString(k)
+                                        if (sub.isNotBlank()) subroles.add(sub)
+                                    }
+                                }
+                                artistsList.add(
+                                    SpotifyCreditArtist(
+                                        id = id,
+                                        name = name,
+                                        uri = uri,
+                                        imageUri = img,
+                                        subroles = subroles
+                                    )
+                                )
+                            }
+                        }
+                        roles.add(SpotifyCreditRole(roleTitle = roleTitle, artists = artistsList))
+                    }
+                }
+
+                if (trackTitle.isNotBlank() || roles.isNotEmpty()) {
+                    return@withContext SpotifyCredits(
+                        trackTitle = trackTitle,
+                        trackUri = trackUri,
+                        roles = roles,
+                        sourceNames = sourceNames
+                    )
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch Spotify credits for $trackId: ${e.message}")
         }
 
-        val track = getTrack(cleanId)?.takeIf { it.id == cleanId } ?: return@withContext null
+        val track = getTrack(cleanId) ?: return@withContext null
         val fallbackRoles = mutableListOf<SpotifyCreditRole>()
         if (track.artists.isNotEmpty()) {
             val perfArtists = track.artists.mapIndexed { idx, art ->
