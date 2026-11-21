@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.rememberUpdatedState
 import com.alananasss.kittytune.data.YoutubeAudioResolver
+import com.alananasss.kittytune.data.network.ProxyManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +33,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
@@ -190,22 +192,25 @@ fun CanvasVideo(
 
     val player = remember(canvasUrl, clipStartMs, clipEndMs, useYouTubeHeaders) {
         val isAppleStream = canvasUrl.contains("apple.com") || canvasUrl.contains("itunes.apple.com")
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setConnectTimeoutMs(8000)
-            .setReadTimeoutMs(8000)
-            .apply {
-                if (useYouTubeHeaders) {
-                    setDefaultRequestProperties(YoutubeAudioResolver.requestHeaders(canvasUrl))
-                } else if (isAppleStream) {
-                    setDefaultRequestProperties(
-                        mapOf(
-                            "Origin" to "https://music.apple.com",
-                            "Referer" to "https://music.apple.com/",
-                            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        val httpDataSourceFactory = if (useYouTubeHeaders) {
+            OkHttpDataSource.Factory(ProxyManager.getOkHttpClient())
+                .setDefaultRequestProperties(YoutubeAudioResolver.requestHeaders(canvasUrl))
+        } else {
+            DefaultHttpDataSource.Factory()
+                .setConnectTimeoutMs(8000)
+                .setReadTimeoutMs(8000)
+                .apply {
+                    if (isAppleStream) {
+                        setDefaultRequestProperties(
+                            mapOf(
+                                "Origin" to "https://music.apple.com",
+                                "Referer" to "https://music.apple.com/",
+                                "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                            )
                         )
-                    )
+                    }
                 }
-            }
+        }
 
         val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
         val mediaSourceFactory = DefaultMediaSourceFactory(context)
@@ -274,12 +279,10 @@ fun CanvasVideo(
         }
         val playerListener = object : Player.Listener {
             override fun onRenderedFirstFrame() {
-                android.util.Log.d("AnimatedArtwork", "onRenderedFirstFrame fired for $canvasUrl")
                 isVideoReady = true
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                android.util.Log.d("AnimatedArtwork", "onPlaybackStateChanged: state=$playbackState, isPlaying=${player.isPlaying}")
                 if (playbackState == Player.STATE_READY && player.videoSize.width > 0) {
                     isVideoReady = true
                 }
