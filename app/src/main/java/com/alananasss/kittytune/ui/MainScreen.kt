@@ -585,7 +585,7 @@ fun MainScreen(
             },
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { _ ->
-            val allTabKeys = listOf("home", "feed", "search", "genres", "library", "queue")
+            val allTabKeys = listOf("home", "search", "genres", "library", "queue")
             val bottomNavItemsKeys by prefs.bottomMenuItemsFlow().collectAsState(initial = prefs.getBottomMenuItems())
             val bottomNavOrder by prefs.bottomMenuOrderFlow().collectAsState(initial = prefs.getBottomMenuOrder())
 
@@ -597,7 +597,6 @@ fun MainScreen(
             val tabs = orderedTabKeys.mapNotNull { key ->
                 val screen = when (key) {
                     "home" -> Screen.Home
-                    "feed" -> Screen.Feed
                     "search" -> Screen.Search
                     "genres" -> Screen.Explore
                     "library" -> Screen.Library
@@ -617,7 +616,6 @@ fun MainScreen(
                 orderedTabKeys.mapNotNull { key ->
                     when (key) {
                         "home" -> Screen.Home.route
-                        "feed" -> Screen.Feed.route
                         "genres" -> Screen.Explore.route
                         "library" -> Screen.Library.route
                         "queue" -> Screen.Queue.route
@@ -1052,11 +1050,6 @@ fun MainScreen(
                                 },
                                 bottomContentPadding = 220.dp
                             )
-                        }
-
-                        // The feed as a first-class tab: SoundCloud-style vertical previews.
-                        clippedComposable(Screen.Feed.route) {
-                            com.alananasss.kittytune.ui.feed.FeedScreen(playerViewModel = playerViewModel)
                         }
 
                         clippedComposable("genres") {
@@ -2147,10 +2140,8 @@ fun MainScreen(
                     // The classic mini player is now the full width of the content area, with the same
                     // gestures as on the phone: a horizontal swipe dismisses it (with an "Undo"
                     // button) or switches the track — per the "Mini player swipe" setting.
-                    // The mini player is always hidden on the feed tab.
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = showTabletLeftRail && isMiniPlayerVisible && !showTabletSidePlayer && showBottomUi &&
-                                selectedRoute != Screen.Feed.route,
+                        visible = showTabletLeftRail && isMiniPlayerVisible && !showTabletSidePlayer && showBottomUi,
                         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                         exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
                     ) {
@@ -2213,7 +2204,7 @@ fun MainScreen(
                                         showCover = miniPlayerShowCover,
                                         coverAsBackground = miniPlayerCoverAsBackground,
                                         progressFill = miniPlayerProgressFill,
-                                        onClick = { playerViewModel.isPlayerExpanded = true },
+                                        onClick = openMiniPlayer,
                                         progress = miniProgress,
                                         showSkip = true,
                                         shape = RoundedCornerShape(16.dp)
@@ -2609,6 +2600,8 @@ fun MainScreen(
                 AchievementPopup(notification = it)
             }
         }
+
+        com.alananasss.kittytune.ui.together.TogetherReactionOverlay(Modifier.zIndex(1f))
 
         invitePromptCode?.let { promptCode ->
             com.alananasss.kittytune.ui.together.TogetherInviteSheet(

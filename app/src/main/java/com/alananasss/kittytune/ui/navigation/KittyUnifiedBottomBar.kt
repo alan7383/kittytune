@@ -77,9 +77,6 @@ fun KittyUnifiedBottomBar(
     val miniPlayerShowCover by playerPrefs.miniPlayerClassicShowCoverFlow().collectAsState(initial = playerPrefs.getMiniPlayerClassicShowCover())
     val miniPlayerCoverAsBackground by playerPrefs.miniPlayerClassicCoverAsBackgroundFlow().collectAsState(initial = playerPrefs.getMiniPlayerClassicCoverAsBackground())
     val miniPlayerProgressFill by playerPrefs.miniPlayerClassicProgressFillFlow().collectAsState(initial = playerPrefs.getMiniPlayerClassicProgressFill())
-    // Feed tab: the mini player is always hidden there (feed previews fill the screen);
-    // every other tab keeps the normal bar.
-    val miniHiddenOnFeed = selectedRoute == Screen.Feed.route
     val swipeAction by playerPrefs.miniPlayerSwipeActionFlow().collectAsState(initial = playerPrefs.getMiniPlayerSwipeAction())
 
     val screenWidthPx = remember(configuration, density) {
@@ -117,7 +114,7 @@ fun KittyUnifiedBottomBar(
                     detectTapGestures(onTap = {})
                 }
         ) {
-            if (track != null && !miniHiddenOnFeed) {
+            if (track != null) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     FloatingLyricChip(
                         vm = playerViewModel,
@@ -203,7 +200,7 @@ fun KittyUnifiedBottomBar(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (track != null && !miniHiddenOnFeed) {
+            if (track != null) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     FloatingLyricChip(
                         vm = playerViewModel,
