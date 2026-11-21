@@ -3807,4 +3807,5 @@
     <string name="track_info_likes">Kedvelések</string>
     <string name="track_info_reposts">Megosztások</string>
     <string name="track_info_comments">Hozzászólások</string>
+    <string name="artist_clip_resolution">%1$dp</string>
 </resources>

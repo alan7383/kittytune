@@ -3800,4 +3800,5 @@
     <string name="track_info_likes">Mentions J’aime</string>
     <string name="track_info_reposts">Republications</string>
     <string name="track_info_comments">Commentaires</string>
+    <string name="artist_clip_resolution">%1$dp</string>
 </resources>

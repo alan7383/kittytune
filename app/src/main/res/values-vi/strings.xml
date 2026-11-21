@@ -3803,4 +3803,5 @@
     <string name="track_info_likes">Lượt thích</string>
     <string name="track_info_reposts">Lượt đăng lại</string>
     <string name="track_info_comments">Bình luận</string>
+    <string name="artist_clip_resolution">%1$dp</string>
 </resources>

@@ -3800,4 +3800,5 @@
     <string name="track_info_likes">Beğeniler</string>
     <string name="track_info_reposts">Yeniden paylaşımlar</string>
     <string name="track_info_comments">Yorumlar</string>
+    <string name="artist_clip_resolution">%1$dp</string>
 </resources>
