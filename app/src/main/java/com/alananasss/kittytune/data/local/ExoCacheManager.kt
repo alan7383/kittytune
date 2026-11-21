@@ -1,8 +1,12 @@
 package com.alananasss.kittytune.data.local
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.TransferListener
+import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
@@ -12,6 +16,7 @@ object ExoCacheManager {
     private const val TAG = "ExoCacheManager"
     private var downloadCache: SimpleCache? = null
     private var playbackCache: SimpleCache? = null
+    private var analysisCache: SimpleCache? = null
 
     /**
      * Cache for permanent offline downloads.
@@ -57,6 +62,93 @@ object ExoCacheManager {
      */
     @Synchronized
     fun getCache(context: Context): SimpleCache = getDownloadCache(context)
+
+    /**
+     * A bounded factory for the analysis players (waveform / beat decoding, transition previews).
+     *
+     * Analysis used to stream through the download cache, which has no eviction: every analyzed
+     * online track left a full permanent copy in the app's files directory, with no way to shrink
+     * it afterwards. The analysis cache lives in the cache directory under an LRU cap instead, so
+     * it is bounded and clearable. Reads still go to the download cache for tracks that are
+     * downloaded (they are not re-fetched); anything else never touches it.
+     */
+    @Synchronized
+    fun getAnalysisCacheFactory(context: Context, upstream: DataSource.Factory): DataSource.Factory {
+        val analysis = getAnalysisCache(context)
+        val download = getDownloadCache(context)
+        val downloadFactory = CacheDataSource.Factory()
+            .setCache(download)
+            .setUpstreamDataSourceFactory(upstream)
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        val analysisFactory = CacheDataSource.Factory()
+            .setCache(analysis)
+            .setUpstreamDataSourceFactory(upstream)
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        return DataSource.Factory {
+            val downloadSource = downloadFactory.createDataSource()
+            val analysisSource = analysisFactory.createDataSource()
+            object : DataSource {
+                private var current: DataSource = analysisSource
+
+                override fun addTransferListener(transferListener: TransferListener) {
+                    downloadSource.addTransferListener(transferListener)
+                    analysisSource.addTransferListener(transferListener)
+                }
+
+                override fun open(dataSpec: androidx.media3.datasource.DataSpec): Long {
+                    val key = dataSpec.key ?: dataSpec.uri.toString()
+                    val isDownloaded = try {
+                        download.keys.contains(key)
+                    } catch (_: Exception) {
+                        false
+                    }
+                    current = if (isDownloaded) downloadSource else analysisSource
+                    return current.open(dataSpec)
+                }
+
+                override fun read(buffer: ByteArray, offset: Int, length: Int): Int = current.read(buffer, offset, length)
+
+                override fun getUri(): Uri? = current.uri
+
+                override fun close() {
+                    current.close()
+                }
+            }
+        }
+    }
+
+    /**
+     * Cache for analysis players only: cache directory, LRU-evicted, 128MB.
+     */
+    @Synchronized
+    fun getAnalysisCache(context: Context): SimpleCache {
+        val existing = analysisCache
+        if (existing != null) {
+            return try {
+                existing.keys
+                existing
+            } catch (e: IllegalStateException) {
+                analysisCache = null
+                createAnalysisCache(context)
+            }
+        }
+        return createAnalysisCache(context)
+    }
+
+    private fun createAnalysisCache(context: Context): SimpleCache {
+        val cacheDir = File(context.cacheDir, "exo_analysis_cache")
+        if (!cacheDir.exists()) {
+            cacheDir.mkdirs()
+        }
+        val databaseProvider = StandaloneDatabaseProvider(context)
+        val cache = SimpleCache(
+            cacheDir,
+            LeastRecentlyUsedCacheEvictor(128 * 1024 * 1024),
+            databaseProvider
+        )
+        analysisCache = cache
+        return cache
+    }
 
     private fun createDownloadCache(context: Context): SimpleCache {
         val targetDir = File(context.filesDir, "exo_offline_cache")
@@ -123,5 +215,10 @@ object ExoCacheManager {
             playbackCache?.release()
         } catch (_: Exception) {}
         playbackCache = null
+
+        try {
+            analysisCache?.release()
+        } catch (_: Exception) {}
+        analysisCache = null
     }
 }
