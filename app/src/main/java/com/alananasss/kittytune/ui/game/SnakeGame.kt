@@ -6,16 +6,12 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
@@ -66,7 +62,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -93,14 +88,14 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.audio.haptics.HapticUtil
+import com.alananasss.kittytune.data.BlockManager
 import com.alananasss.kittytune.data.wave.MyWave
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.player.PlaybackContext
-import com.alananasss.kittytune.ui.player.PlayerScreen
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.widget.pet.PetConfig
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.ensureActive
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.min
@@ -181,7 +176,7 @@ private class SnakeEngine(
     private val turns = ArrayDeque<SnakeDirection>()
     // The menu is eaten in list order: the track that is already playing is not on the board,
     // so the first bite is the NEXT track of the list, then the one after it, and so on.
-    private var pool: List<Track> = tracks.distinctBy { it.id }
+    private val pool = tracks
     private var poolIndex = 0
 
     init {
@@ -318,33 +313,11 @@ fun SnakeGameHost(playerViewModel: PlayerViewModel) {
             decorFitsSystemWindows = false,
         ),
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            SnakeGameScreen(
-                request = request,
-                playerViewModel = playerViewModel,
-                onClose = { SnakeGameLauncher.dismiss() },
-            )
-            // Tapping the now-playing banner slides the full player over the game. The game
-            // dialog sits on top of the main window, so the player needs its own copy here;
-            // closing the game with the player open leaves the player on screen behind it.
-            AnimatedVisibility(
-                visible = playerViewModel.isPlayerExpanded,
-                enter = slideInVertically(
-                    initialOffsetY = { it },
-                    animationSpec = tween(400, easing = FastOutSlowInEasing)
-                ) + fadeIn(animationSpec = tween(400)),
-                exit = slideOutVertically(
-                    targetOffsetY = { it },
-                    animationSpec = tween(350, easing = FastOutLinearInEasing)
-                ) + fadeOut(animationSpec = tween(350)),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                PlayerScreen(
-                    viewModel = playerViewModel,
-                    onClose = { playerViewModel.isPlayerExpanded = false }
-                )
-            }
-        }
+        SnakeGameScreen(
+            request = request,
+            playerViewModel = playerViewModel,
+            onClose = { SnakeGameLauncher.dismiss() },
+        )
     }
 }
 
@@ -377,9 +350,12 @@ fun SnakeGameScreen(
         }
     }
 
-    val sourceTracks: List<Track>? = when (request.mode) {
+    val menu = when (request.mode) {
         SnakeGameMode.PLAYLIST -> request.tracks
         SnakeGameMode.WAVE -> waveTracks
+    }
+    val sourceTracks = remember(menu) {
+        menu?.let { BlockManager.filterBlocked(it).distinctBy(Track::id) }
     }
 
     var best by remember { mutableStateOf(SnakeGameLauncher.bestScore(context)) }
@@ -479,60 +455,29 @@ private fun SnakeGameBoardArea(
     // The snake wears the pet cat's coat: fur for the body, its eyes and markings for the face.
     val pet = remember { PetConfig.load(context) }
 
-    // Eating a cover plays it. The first bite starts the whole list as the queue (in the wave
-    // context, so the wave keeps topping itself up); the rest are jumps inside that queue.
-    var queueStarted by remember(sourceTracks) { mutableStateOf(false) }
-    // True from the moment the game itself started playback: the first track then has to sit in
-    // the now-playing banner right away, before the snake swallows anything.
-    var playbackStarted by remember(sourceTracks) { mutableStateOf(false) }
-    val waveContext = PlaybackContext(
-        displayText = request.title,
-        navigationId = MY_WAVE_NAV_ID,
-    )
-    val scope = rememberCoroutineScope()
-    val onEat: (Track) -> Unit = remember(sourceTracks) { { track ->
-        HapticUtil.performUIHaptic(context)
-        scope.launch {
-            // Every swallowed track starts from its best moment (like the SoundCloud feed).
-            val startMs = TrackHighlights.startMs(track)
-            if (!queueStarted) {
-                val index = sourceTracks.indexOfFirst { it.id == track.id }.coerceAtLeast(0)
-                playerViewModel.playPlaylist(
-                    sourceTracks, index, if (isWave) waveContext else null, startAtPositionMs = startMs
-                )
-                queueStarted = true
-            } else if (!playerViewModel.playTrackInQueue(track.id, startAtPositionMs = startMs)) {
-                playerViewModel.playPlaylist(
-                    listOf(track), 0, if (isWave) waveContext else null, startAtPositionMs = startMs
-                )
-            }
-        }
-    } }
-
     val engine = remember(sourceTracks) {
-        // The track that is already playing (the first one) is not placed on the board: the
-        // kitty eats its way FORWARD through the list, starting with the second track.
-        SnakeEngine(COLS, ROWS, sourceTracks.drop(1).ifEmpty { sourceTracks }, onEat)
+        SnakeEngine(COLS, ROWS, sourceTracks.drop(1).ifEmpty { sourceTracks }) {
+            HapticUtil.performUIHaptic(context)
+        }
     }
 
-    // Pressing Start (or Resume) starts the music immediately — the FIRST track of the list from
-    // its best moment — and puts it into the now-playing banner at once. The first cover on the
-    // board is the SECOND track: swallowing it plays the next song, then the next, and so on.
-    val startPlaybackNow: () -> Unit = {
-        scope.launch {
-            val track = sourceTracks.firstOrNull() ?: return@launch
-            val startMs = TrackHighlights.startMs(track)
-            if (!queueStarted) {
-                playerViewModel.playPlaylist(
-                    sourceTracks, 0, if (isWave) waveContext else null, startAtPositionMs = startMs
-                )
-                queueStarted = true
-            } else if (!playerViewModel.playTrackInQueue(track.id, startAtPositionMs = startMs)) {
-                playerViewModel.playPlaylist(
-                    listOf(track), 0, if (isWave) waveContext else null, startAtPositionMs = startMs
-                )
-            }
-            playbackStarted = true
+    // Start and steering share the same entry point. Pausing the game keeps the selected song.
+    val bannerTrack = if (engine.phase == SnakePhase.IDLE) null else engine.lastEaten ?: sourceTracks.first()
+    var queueStarted by remember(engine) { mutableStateOf(false) }
+    LaunchedEffect(engine, bannerTrack) {
+        val track = bannerTrack ?: return@LaunchedEffect
+        val startMs = TrackHighlights.startMs(context, track)
+        ensureActive()
+        if (!queueStarted || !playerViewModel.playTrackInQueue(track.id, startAtPositionMs = startMs)) {
+            playerViewModel.playPlaylist(
+                tracks = sourceTracks,
+                startIndex = sourceTracks.indexOfFirst { it.id == track.id },
+                context = if (isWave) PlaybackContext(request.title, navigationId = MY_WAVE_NAV_ID) else null,
+                maintainPlayerState = true,
+                respectShuffle = false,
+                startAtPositionMs = startMs,
+            )
+            queueStarted = true
         }
     }
 
@@ -610,7 +555,7 @@ private fun SnakeGameBoardArea(
             }
             if (engine.trackCount > 0) {
                 Text(
-                    text = stringResource(R.string.game_of_total, sourceTracks.size),
+                    text = stringResource(R.string.game_of_total, engine.trackCount),
                     color = Color.White.copy(alpha = 0.45f),
                     style = MaterialTheme.typography.labelMedium,
                 )
@@ -633,9 +578,7 @@ private fun SnakeGameBoardArea(
 
         Spacer(Modifier.height(6.dp))
 
-        // Now playing banner. It appears the moment the game starts playback (the first track
-        // must be visible at the top right away), then follows every swallowed cover.
-        val bannerTrack = engine.lastEaten ?: sourceTracks.firstOrNull()?.takeIf { playbackStarted }
+        // Show the first song as soon as the run starts, then follow each swallowed cover.
         AnimatedVisibility(
             visible = bannerTrack != null,
             enter = fadeIn() + scaleIn(initialScale = 0.9f),
@@ -648,6 +591,7 @@ private fun SnakeGameBoardArea(
                     .fillMaxWidth()
                     .clickable {
                         HapticUtil.performUIHaptic(context)
+                        onClose()
                         playerViewModel.isPlayerExpanded = true
                     },
             ) {
@@ -783,17 +727,10 @@ private fun SnakeGameBoardArea(
                     ) {
                         when (engine.phase) {
                             SnakePhase.IDLE -> OverlayIdle(
-                                onStart = {
-                                    engine.ensureRunning()
-                                    startPlaybackNow()
-                                },
+                                onStart = engine::ensureRunning,
                                 isWave = isWave,
                             )
-                            SnakePhase.PAUSED -> OverlayPaused(onResume = {
-                                engine.ensureRunning()
-                                // Resuming after a pause keeps the music going if it was silenced.
-                                if (!playerViewModel.uiIsPlaying) startPlaybackNow()
-                            })
+                            SnakePhase.PAUSED -> OverlayPaused(onResume = engine::ensureRunning)
                             SnakePhase.OVER -> OverlayOver(
                                 score = engine.score,
                                 best = best,
