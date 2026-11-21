@@ -6432,6 +6432,13 @@ query CommentsWithReactions(
     }
 
     /** A thumbs-down inside the wave: the track is blocked, the artist silenced, the next one plays. */
+    fun dislikeFeedTrack(track: com.alananasss.kittytune.domain.Track) {
+        com.alananasss.kittytune.data.wave.WaveFeedback.onDisliked(track)
+        com.alananasss.kittytune.data.wave.WaveFeedback.dislikeArtist(
+            track.displayArtist.ifBlank { track.user?.username.orEmpty() }
+        )
+    }
+
     fun dislikeCurrentTrackInWave() {
         val track = currentTrack ?: return
         com.alananasss.kittytune.data.wave.WaveFeedback.onDisliked(track)

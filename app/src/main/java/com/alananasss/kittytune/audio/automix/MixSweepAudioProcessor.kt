@@ -120,8 +120,10 @@ class MixSweepAudioProcessor : BaseAudioProcessor() {
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
-        val requested = target.get()
         val remaining = inputBuffer.remaining()
+        if (remaining == 0) return
+
+        val requested = target.get()
         val output = replaceOutputBuffer(remaining)
         if (requested.mode == FilterMode.BYPASS || sampleRate <= 0 || channelCount <= 0 ||
             inputAudioFormat.encoding != C.ENCODING_PCM_16BIT ||
