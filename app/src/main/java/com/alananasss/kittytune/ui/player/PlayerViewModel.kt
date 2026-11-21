@@ -8207,10 +8207,7 @@ query CommentsWithReactions(
             val bitmap = loadBitmap(track.fullResArtwork)
             if (bitmap != null) {
                 try {
-                    val artFile = File(context.filesDir, "art_${track.id}.jpg")
-                    if (!artFile.exists()) {
-                        artFile.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out) }
-                    }
+                    com.alananasss.kittytune.utils.PlayerArtworkCache.store(context, track.id, bitmap)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
