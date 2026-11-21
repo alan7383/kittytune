@@ -105,6 +105,17 @@ class Pr104AudioTest {
     }
 
     @Test
+    fun mixSweepAcceptsMedia3EmptyBufferBeforeReceivingPcm() {
+        val processor = MixSweepAudioProcessor()
+        processor.configure(format(2))
+        processor.flush()
+        processor.queueInput(AudioProcessor.EMPTY_BUFFER)
+        assertEquals(0, processor.output.remaining())
+        processor.queueInput(pcm(12, -34))
+        assertEquals(12, processor.output.short.toInt())
+    }
+
+    @Test
     fun bandPassReleaseMovesGraduallyToDryAndStaysBitTransparent() {
         val processor = MixSweepAudioProcessor()
         processor.configure(format(2))
