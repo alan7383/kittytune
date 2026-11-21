@@ -14,6 +14,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,19 +32,28 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import kotlin.math.abs
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.audio.haptics.HapticUtil
+import com.alananasss.kittytune.data.cover.FeedVisualResolver
+import com.alananasss.kittytune.data.cover.FeedVisualSource
 import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.AppLanguage
 import com.alananasss.kittytune.data.local.AppThemeMode
+import com.alananasss.kittytune.data.local.ClipVideoQuality
 import com.alananasss.kittytune.data.local.LibraryCategoryLayout
 import com.alananasss.kittytune.data.local.PlayerActionButtonSlot
 import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
@@ -116,6 +126,10 @@ fun AppearanceSettingsScreen(
     var lyricsUnderCover by remember { mutableStateOf(prefs.getLyricsUnderCoverEnabled()) }
     var animatedCovers by remember { mutableStateOf(prefs.getAnimatedCoversEnabled()) }
     var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
+    // 3D gyroscope covers + the "no overlay" (flat cover) mode — restored:
+    // the switches used to live in Appearance → Covers and were removed.
+    var gyroscopeCovers by remember { mutableStateOf(prefs.getGyroscopeCoversEnabled()) }
+    var gyroFlatCover by remember { mutableStateOf(prefs.getGyroscopeFlatCover()) }
     var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
     var libraryCategoryLayout by remember { mutableStateOf(prefs.getLibraryCategoryLayout()) }
     var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
@@ -123,6 +137,19 @@ fun AppearanceSettingsScreen(
     var showHomeYourMix by remember { mutableStateOf(prefs.getShowHomeYourMix()) }
     var showHomeMyWave by remember { mutableStateOf(prefs.getShowHomeMyWave()) }
     var showHomeCharts by remember { mutableStateOf(prefs.getShowHomeCharts()) }
+
+    // The feed section: three sources for the active card's moving picture (canvas, samples,
+    // animated covers) plus a drag-to-reorder priority between them.
+    var feedAnimatedCovers by remember { mutableStateOf(prefs.getFeedAnimatedCoversEnabled()) }
+    var feedSpotifyCanvas by remember { mutableStateOf(prefs.getFeedSpotifyCanvasEnabled()) }
+    var feedYouTubeSamples by remember { mutableStateOf(prefs.getFeedYouTubeSamplesEnabled()) }
+    var feedOfficialOnly by remember { mutableStateOf(prefs.getFeedOfficialOnlyEnabled()) }
+    var feedVisualPriorityRaw by remember { mutableStateOf(prefs.getFeedVisualPriorityRaw()) }
+    var showFeedPriorityDialog by remember { mutableStateOf(false) }
+
+    // The clips video player's resolution cap (auto or 144p…4K).
+    var clipVideoQuality by remember { mutableStateOf(prefs.getClipVideoQuality()) }
+    var showVideoQualityDialog by remember { mutableStateOf(false) }
 
     var showFontConfigDialog by remember { mutableStateOf(false) }
     var showCategoryLayoutDialog by remember { mutableStateOf(false) }
@@ -333,6 +360,64 @@ fun AppearanceSettingsScreen(
         )
     }
 
+    if (showFeedPriorityDialog) {
+        FeedVisualPriorityDialog(
+            initialOrder = FeedVisualResolver.priorityOrder(feedVisualPriorityRaw),
+            onDismiss = { showFeedPriorityDialog = false },
+        ) { newOrder ->
+            feedVisualPriorityRaw = FeedVisualResolver.priorityRaw(newOrder)
+            prefs.setFeedVisualPriorityRaw(feedVisualPriorityRaw)
+            showFeedPriorityDialog = false
+        }
+    }
+
+    if (showVideoQualityDialog) {
+        AlertDialog(
+            onDismissRequest = { showVideoQualityDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.dialog_clip_quality_title),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ClipVideoQuality.entries.forEach { option ->
+                        val isSelected = clipVideoQuality == option
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .hapticClickable {
+                                    clipVideoQuality = option
+                                    prefs.setClipVideoQuality(option)
+                                    showVideoQualityDialog = false
+                                }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = null
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = clipQualityLabel(option),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showVideoQualityDialog = false }) {
+                    Text(stringResource(R.string.btn_close))
+                }
+            }
+        )
+    }
+
     if (showTrackRemovalDialog) {
         TrackRemovalMethodDialog(
             selectedMethod = trackRemovalMethod,
@@ -358,15 +443,22 @@ fun AppearanceSettingsScreen(
             "pref_app_icon" to 2,
             "pref_animated_covers" to 3,
             "pref_animated_covers_fade_ui" to 3,
+            "pref_gyroscope_covers" to 3,
+            "pref_gyro_flat_cover" to 3,
             "pref_animated_artist_profiles" to 3,
             "pref_lyrics_under_cover" to 3,
-            "pref_library_category_layout" to 4,
-            "pref_track_removal" to 4,
-            "pref_achievement_popups" to 4,
-            "pref_home_listening_stats" to 5,
-            "pref_home_your_mix" to 5,
-            "pref_home_my_wave" to 5,
-            "pref_home_charts" to 5
+            "pref_feed_animated_covers" to 4,
+            "pref_feed_spotify_canvas" to 4,
+            "pref_feed_youtube_samples" to 4,
+            "pref_feed_visual_priority" to 4,
+            "pref_clip_video_quality" to 5,
+            "pref_library_category_layout" to 6,
+            "pref_track_removal" to 6,
+            "pref_achievement_popups" to 6,
+            "pref_home_listening_stats" to 7,
+            "pref_home_your_mix" to 7,
+            "pref_home_my_wave" to 7,
+            "pref_home_charts" to 7
         )
     )
 
@@ -605,6 +697,38 @@ fun AppearanceSettingsScreen(
                         add { shape ->
                             SettingsItem(
                                 shape = shape,
+                                title = stringResource(R.string.pref_gyroscope_covers),
+                                subtitle = stringResource(R.string.pref_gyroscope_covers_desc),
+                                icon = Icons.Rounded.Layers,
+                                hasSwitch = true,
+                                switchState = gyroscopeCovers,
+                                onSwitchChange = {
+                                    gyroscopeCovers = it
+                                    prefs.setGyroscopeCoversEnabled(it)
+                                },
+                                highlightKey = "pref_gyroscope_covers"
+                            )
+                        }
+                        if (gyroscopeCovers) {
+                            add { shape ->
+                                SettingsItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.pref_gyro_flat_cover),
+                                    subtitle = stringResource(R.string.pref_gyro_flat_cover_desc),
+                                    icon = Icons.Rounded.CropSquare,
+                                    hasSwitch = true,
+                                    switchState = gyroFlatCover,
+                                    onSwitchChange = {
+                                        gyroFlatCover = it
+                                        prefs.setGyroscopeFlatCover(it)
+                                    },
+                                    highlightKey = "pref_gyro_flat_cover"
+                                )
+                            }
+                        }
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
                                 title = stringResource(R.string.pref_animated_artist_profiles),
                                 subtitle = stringResource(R.string.pref_animated_artist_profiles_desc),
                                 icon = Icons.Rounded.AccountCircle,
@@ -633,6 +757,111 @@ fun AppearanceSettingsScreen(
                             )
                         }
                     }
+                )
+            }
+
+            // Section: Feed visuals — what moves on the active feed card
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_group_feed),
+                    items = buildList {
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_feed_animated_covers),
+                                subtitle = stringResource(R.string.pref_feed_animated_covers_desc),
+                                icon = Icons.Rounded.PlayCircle,
+                                hasSwitch = true,
+                                switchState = feedAnimatedCovers,
+                                onSwitchChange = {
+                                    feedAnimatedCovers = it
+                                    prefs.setFeedAnimatedCoversEnabled(it)
+                                },
+                                highlightKey = "pref_feed_animated_covers"
+                            )
+                        }
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_feed_spotify_canvas),
+                                subtitle = stringResource(R.string.pref_feed_spotify_canvas_desc),
+                                icon = Icons.Rounded.VideoLibrary,
+                                hasSwitch = true,
+                                switchState = feedSpotifyCanvas,
+                                onSwitchChange = {
+                                    feedSpotifyCanvas = it
+                                    prefs.setFeedSpotifyCanvasEnabled(it)
+                                },
+                                highlightKey = "pref_feed_spotify_canvas"
+                            )
+                        }
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_feed_youtube_samples),
+                                subtitle = stringResource(R.string.pref_feed_youtube_samples_desc),
+                                icon = Icons.Rounded.SmartDisplay,
+                                hasSwitch = true,
+                                switchState = feedYouTubeSamples,
+                                onSwitchChange = {
+                                    feedYouTubeSamples = it
+                                    prefs.setFeedYouTubeSamplesEnabled(it)
+                                },
+                                highlightKey = "pref_feed_youtube_samples"
+                            )
+                        }
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_feed_official_only),
+                                subtitle = stringResource(R.string.pref_feed_official_only_desc),
+                                icon = Icons.Rounded.Verified,
+                                hasSwitch = true,
+                                switchState = feedOfficialOnly,
+                                onSwitchChange = {
+                                    feedOfficialOnly = it
+                                    prefs.setFeedOfficialOnlyEnabled(it)
+                                },
+                                highlightKey = "pref_feed_official_only"
+                            )
+                        }
+                        add { shape ->
+                            // stringResource is composable: resolve the labels first, then build the summary.
+                            val orderSummary = FeedVisualResolver
+                                .priorityOrder(feedVisualPriorityRaw)
+                                .map { feedVisualSourceName(it) }
+                                .joinToString(" → ")
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_feed_visual_priority),
+                                subtitle = stringResource(R.string.pref_feed_visual_priority_desc),
+                                trailingText = orderSummary,
+                                icon = Icons.Rounded.LowPriority,
+                                onClick = hapticAction(HapticKind.UI) { showFeedPriorityDialog = true },
+                                highlightKey = "pref_feed_visual_priority"
+                            )
+                        }
+                    }
+                )
+            }
+
+            // Section: Video — the clips player's resolution
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_group_video),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_clip_video_quality),
+                                subtitle = stringResource(R.string.pref_clip_video_quality_desc),
+                                trailingText = clipQualityLabel(clipVideoQuality),
+                                icon = Icons.Rounded.Hd,
+                                onClick = hapticAction(HapticKind.UI) { showVideoQualityDialog = true },
+                                highlightKey = "pref_clip_video_quality"
+                            )
+                        },
+                    )
                 )
             }
 
@@ -901,4 +1130,177 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null
+}
+
+// ─── Feed visual priority (drag to reorder) ────────────────────────────────────────────────
+
+/** Short label of a feed visual source, used in the priority summary and the drag rows. */
+@Composable
+private fun feedVisualSourceName(source: FeedVisualSource): String = stringResource(
+    when (source) {
+        FeedVisualSource.ANIMATED_COVERS -> R.string.feed_source_animated
+        FeedVisualSource.SPOTIFY_CANVAS -> R.string.feed_source_canvas
+        FeedVisualSource.YOUTUBE_SAMPLES -> R.string.feed_source_samples
+    }
+)
+
+/** The label a clip quality option carries in the picker and in the setting's summary. */
+@Composable
+private fun clipQualityLabel(quality: ClipVideoQuality): String =
+    if (quality.height == null) stringResource(R.string.quality_auto) else "${quality.height}p"
+
+/**
+ * The drag-to-reorder window for the feed's moving-picture sources. Long-press a row and drag:
+ * rows slide over each other, the order is saved with "Save". The first source in the list is
+ * tried first on every card; the rest act as fallbacks when the top one has nothing for the
+ * track. Disabling a source's toggle simply skips it, whatever its place here.
+ *
+ * ## Why the first version could not drag
+ *
+ * The gesture modifier was keyed on the current list (`pointerInput(order)`), so the moment a row
+ * swapped with its neighbour the key changed, Compose tore the modifier down and restarted it —
+ * which cancelled the drag in progress. One long-press, one swap, dead gesture: dragging more
+ * than a single position was impossible. Now the modifier is keyed on the row's own source (a
+ * value that never changes while dragging), the dragged row is tracked by identity rather than by
+ * index, and each row is wrapped in `key(source.name)` so Compose keeps the same node — and the
+ * same live gesture — as it moves through the list. There are only ever three rows, so a plain
+ * Column carries them and no scroll gesture competes with the drag.
+ */
+@Composable
+private fun FeedVisualPriorityDialog(
+    initialOrder: List<FeedVisualSource>,
+    onDismiss: () -> Unit,
+    onSave: (List<FeedVisualSource>) -> Unit,
+) {
+    val context = LocalContext.current
+    var order by remember { mutableStateOf(initialOrder) }
+    var draggingItem by remember { mutableStateOf<FeedVisualSource?>(null) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    val rowHeight = 60.dp
+    val rowGap = 6.dp
+    val density = LocalDensity.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(R.string.dialog_feed_priority_title),
+                fontWeight = FontWeight.Bold,
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(rowGap)) {
+                Text(
+                    text = stringResource(R.string.dialog_feed_priority_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                order.forEachIndexed { index, source ->
+                    // key() keeps the row's node — and its in-flight drag gesture — alive while the
+                    // order changes underneath it; a fresh node would cancel the gesture mid-drag.
+                    key(source.name) {
+                        val isDragging = draggingItem == source
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isDragging) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHigh
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(rowHeight)
+                                .zIndex(if (isDragging) 1f else 0f)
+                                .graphicsLayer { translationY = if (isDragging) dragOffset else 0f }
+                                .pointerInput(source) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = {
+                                            draggingItem = source
+                                            dragOffset = 0f
+                                            HapticUtil.performUIHaptic(context)
+                                        },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            if (draggingItem != source) return@detectDragGesturesAfterLongPress
+                                            dragOffset += dragAmount.y
+                                            // One swap per full row pitch, so the row glides under the
+                                            // finger and every crossing lands it one slot further.
+                                            val pitch = with(density) { (rowHeight + rowGap).toPx() }
+                                            while (abs(dragOffset) >= pitch) {
+                                                val currentIndex = order.indexOf(source)
+                                                val target = currentIndex + if (dragOffset > 0f) 1 else -1
+                                                if (target !in order.indices) {
+                                                    dragOffset = dragOffset.coerceIn(-pitch, pitch)
+                                                    break
+                                                }
+                                                order = order.toMutableList().apply {
+                                                    add(target, removeAt(currentIndex))
+                                                }
+                                                dragOffset -= pitch * (if (dragOffset > 0f) 1 else -1)
+                                                HapticUtil.performUIHaptic(context)
+                                            }
+                                        },
+                                        onDragEnd = { draggingItem = null; dragOffset = 0f },
+                                        onDragCancel = { draggingItem = null; dragOffset = 0f },
+                                    )
+                                },
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 12.dp),
+                            ) {
+                                Text(
+                                    text = "${index + 1}",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.width(22.dp),
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = feedVisualSourceName(source),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = stringResource(
+                                            when (source) {
+                                                FeedVisualSource.ANIMATED_COVERS -> R.string.feed_source_animated_sub
+                                                FeedVisualSource.SPOTIFY_CANVAS -> R.string.feed_source_canvas_sub
+                                                FeedVisualSource.YOUTUBE_SAMPLES -> R.string.feed_source_samples_sub
+                                            }
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                Icon(
+                                    Icons.Rounded.DragHandle,
+                                    contentDescription = stringResource(R.string.dialog_feed_priority_drag_hint),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = hapticAction(HapticKind.UI) { onSave(order) }) {
+                Text(stringResource(R.string.btn_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = hapticAction(HapticKind.UI) { onDismiss() }) {
+                Text(stringResource(R.string.btn_cancel))
+            }
+        },
+    )
 }
