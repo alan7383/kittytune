@@ -364,6 +364,8 @@ fun AppearanceSettingsScreen(
             "pref_animated_covers_fade_ui" to 3,
             "pref_animated_artist_profiles" to 3,
             "pref_lyrics_under_cover" to 3,
+            "pref_feed_official_only" to 4,
+            "pref_feed_video_samples" to 4,
             "pref_library_category_layout" to 5,
             "pref_track_removal" to 5,
             "pref_achievement_popups" to 5,
@@ -671,7 +673,8 @@ fun AppearanceSettingsScreen(
                                 onSwitchChange = {
                                     feedVideoSamples = it
                                     prefs.setFeedVideoSamplesEnabled(it)
-                                }
+                                },
+                                highlightKey = "pref_feed_video_samples"
                             )
                         }
                     }
