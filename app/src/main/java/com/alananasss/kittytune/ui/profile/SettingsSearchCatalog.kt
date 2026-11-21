@@ -45,6 +45,7 @@ internal fun rememberSettingsSearchCatalog(
         var pureBlack = prefs.getPureBlack()
         var animatedCovers = prefs.getAnimatedCoversEnabled()
         var animatedCoversFadeUi = prefs.getAnimatedCoversFadeUiEnabled()
+        var feedOfficialOnly = prefs.getFeedOfficialOnlyEnabled()
         var animatedArtistProfiles = prefs.getAnimatedArtistProfilesEnabled()
         var lyricsUnderCover = prefs.getLyricsUnderCoverEnabled()
         var showRemainingTime = prefs.getShowRemainingTime()
@@ -430,6 +431,35 @@ internal fun rememberSettingsSearchCatalog(
                     prefs.setAnimatedCoversEnabled(it)
                     onPreferenceChange()
                 }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_feed_official_only,
+                subtitleRes = R.string.pref_feed_official_only_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Verified,
+                route = "appearance_settings",
+                highlightKey = "pref_feed_official_only",
+                keywords = listOf("feed", "лента", "official", "официальные", "verified", "верифицированные", "pro", "isrc", "артисты", "артисты"),
+                hasSwitch = true,
+                switchState = feedOfficialOnly,
+                onSwitchChange = {
+                    feedOfficialOnly = it
+                    prefs.setFeedOfficialOnlyEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_clip_video_quality,
+                subtitleRes = R.string.pref_clip_video_quality_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Hd,
+                route = "appearance_settings",
+                highlightKey = "pref_clip_video_quality",
+                keywords = listOf("video quality", "качество видео", "клипы", "resolution", "разрешение", "4k", "2160", "1080")
             ),
             createSearchEntry(
                 context = context,
@@ -820,26 +850,6 @@ internal fun rememberSettingsSearchCatalog(
                     prefs.setPersistentQueueEnabled(it)
                     onPreferenceChange()
                 }
-            ),
-            createSearchEntry(
-                context = context,
-                englishContext = englishContext,
-                titleRes = R.string.pref_queue_preserve_upcoming,
-                subtitleRes = R.string.pref_queue_preserve_upcoming_sub,
-                categoryName = catAudio,
-                icon = Icons.AutoMirrored.Rounded.QueueMusic,
-                route = "audio_playback_settings",
-                highlightKey = "pref_queue_preserve_upcoming",
-            ),
-            createSearchEntry(
-                context = context,
-                englishContext = englishContext,
-                titleRes = R.string.pref_keep_played_tracks_visible,
-                subtitleRes = R.string.pref_keep_played_tracks_visible_sub,
-                categoryName = catAudio,
-                icon = Icons.Rounded.History,
-                route = "audio_playback_settings",
-                highlightKey = "pref_keep_played_tracks_visible",
             ),
             createSearchEntry(
                 context = context,
