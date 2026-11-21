@@ -11,7 +11,6 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
@@ -138,7 +137,6 @@ object ExoBeatDecoder {
 
         handler.post {
             try {
-                val cache = ExoCacheManager.getCache(context)
                 val httpFactory = DefaultHttpDataSource.Factory()
                     .setUserAgent(Config.USER_AGENT)
                     .setAllowCrossProtocolRedirects(true)
@@ -147,10 +145,7 @@ object ExoBeatDecoder {
 
                 val defaultDataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(context, httpFactory)
 
-                val cacheFactory = CacheDataSource.Factory()
-                    .setCache(cache)
-                    .setUpstreamDataSourceFactory(defaultDataSourceFactory)
-                    .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+                val cacheFactory = ExoCacheManager.getAnalysisCacheFactory(context, defaultDataSourceFactory)
 
                 val drmProvider = DrmSessionManagerProvider {
                     if (!licenseAuthToken.isNullOrEmpty()) {
