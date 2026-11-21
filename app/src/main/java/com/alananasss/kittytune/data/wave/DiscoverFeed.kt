@@ -4,6 +4,8 @@ import com.alananasss.kittytune.KittyTuneApp
 import com.alananasss.kittytune.data.mix.MixEngine
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.domain.Track
+import kotlinx.coroutines.CancellationException
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 /**
  * The Discover feed's endless source. Before this existed the feed drew one static chart
@@ -26,15 +28,18 @@ import com.alananasss.kittytune.domain.Track
  * [WaveFeedback] still has the last word on every candidate, so artists the listener
  * disliked never sneak back in through a new tier.
  */
-object DiscoverFeed {
+internal class DiscoverFeed {
 
-    private const val BATCH_SIZE = 20
-    private const val CHART_LIMIT = 50
-    private const val RELATED_LIMIT = 20
-    private const val FRONTIER_CAP = 500
+    private companion object {
 
-    /** Runaway guard for the chart walk: 16 genres x 2 kinds is ~32 first pages, the rest is margin. */
-    private const val CHART_WALK_CAP = 64
+        const val BATCH_SIZE = 20
+        const val CHART_LIMIT = 50
+        const val RELATED_LIMIT = 20
+        const val FRONTIER_CAP = 500
+        const val MAX_REQUESTS_PER_BATCH = 4
+    }
+
+
 
     /** Genres walked in order once the current chart runs dry; the broad one leads. */
     private val CHART_GENRES = listOf(
@@ -68,6 +73,8 @@ object DiscoverFeed {
     private var genreIndex = 0
     private var chartCursor: String? = null
     private var chartsDone = false
+    private val chartCursors = mutableSetOf<String>()
+    private val pending = ArrayDeque<Track>()
 
     // Tier 3 — the related frontier: ids of tracks worth expanding, plus everything seeded
     // so far so a track never seeds twice.
@@ -86,22 +93,12 @@ object DiscoverFeed {
      */
     suspend fun nextBatch(exclude: Set<Long>, size: Int = BATCH_SIZE): List<Track> {
         if (exhausted) return emptyList()
+        if (pending.isNotEmpty()) return takePending(size)
         val fresh = tasteBatch(exclude, size)
             ?: chartBatch(exclude)
             ?: relatedBatch(exclude)
-        return fresh?.take(size) ?: emptyList()
-    }
-
-    /** Full reset — a new feed session (filter toggle, manual refresh). Keeps nothing. */
-    fun reset() {
-        mixDry = false
-        kindIndex = 0
-        genreIndex = 0
-        chartCursor = null
-        chartsDone = false
-        frontier.clear()
-        seeded.clear()
-        exhausted = false
+        pending.addAll(fresh.orEmpty().distinctBy { it.id })
+        return takePending(size)
     }
 
     private suspend fun tasteBatch(exclude: Set<Long>, size: Int): List<Track>? {
@@ -124,7 +121,7 @@ object DiscoverFeed {
         // A genre's chart is a handful of pages, and the walk itself is 16 genres x 2 kinds;
         // the cap is purely a runaway guard in case a server loop ever repeats a cursor.
         var pulled = 0
-        while (!chartsDone && pulled < CHART_WALK_CAP) {
+        while (!chartsDone && pulled < MAX_REQUESTS_PER_BATCH) {
             pulled++
             val page = try {
                 if (chartCursor != null) {
@@ -136,13 +133,15 @@ object DiscoverFeed {
                         limit = CHART_LIMIT,
                     )
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 e.printStackTrace()
                 // A network blip is not the end of the charts; let the related tier answer
                 // this call and the chart retry on the next batch.
                 return null
             }
-            chartCursor = page.next_href
+            chartCursor = page.next_href?.let(::soundCloudFeedCursor)?.takeIf { chartCursors.add(it) }
             if (chartCursor == null) advanceChart()
             val fresh = page.collection
                 .mapNotNull { it.track }
@@ -156,26 +155,33 @@ object DiscoverFeed {
     /** Breadth-first over the served tracks: every one of them is a related-tracks seed. */
     private suspend fun relatedBatch(exclude: Set<Long>): List<Track>? {
         val api = RetrofitClient.create(KittyTuneApp.instance)
-        while (frontier.isNotEmpty()) {
-            val seed = frontier.removeFirst()
+        repeat(MAX_REQUESTS_PER_BATCH) {
+            val seed = frontier.firstOrNull() ?: run {
+                exhausted = chartsDone
+                return null
+            }
             val related = try {
                 api.getRelatedTracks(seed, limit = RELATED_LIMIT).collection.filterNotNull()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 e.printStackTrace()
                 // The seed stays first in line: a network blip must not burn it, or a bad
                 // connection could drain the whole frontier and fake a permanent end.
-                frontier.addFirst(seed)
                 return null
             }
+            frontier.removeFirst()
             val fresh = related.filter { it.id !in exclude && WaveFeedback.isWelcome(it) }
             if (fresh.isNotEmpty()) return rememberSeeds(fresh)
             // A seed that led nowhere is simply dropped; the frontier stays breadth-first.
         }
         // The frontier is fed by every served batch, so empty means the whole feed really
         // is over — the one honest "exhausted" among all the "nothing right now" cases.
-        exhausted = true
+        exhausted = chartsDone && frontier.isEmpty()
         return null
     }
+
+    private fun takePending(size: Int): List<Track> = List(minOf(size, pending.size)) { pending.removeFirst() }
 
     private fun rememberSeeds(tracks: List<Track>): List<Track> {
         tracks.forEach {
@@ -196,4 +202,12 @@ object DiscoverFeed {
             }
         }
     }
+}
+
+internal fun soundCloudFeedCursor(raw: String): String? {
+    val url = raw.toHttpUrlOrNull() ?: return null
+    return url.takeIf {
+        it.isHttps && it.port == 443 && it.username.isEmpty() && it.password.isEmpty() &&
+            it.host in setOf("api.soundcloud.com", "api-v2.soundcloud.com", "api-mobile.soundcloud.com")
+    }?.newBuilder()?.fragment(null)?.build()?.toString()
 }

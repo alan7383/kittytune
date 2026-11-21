@@ -1,78 +1,48 @@
 package com.alananasss.kittytune.ui.game
 
-import com.alananasss.kittytune.data.network.ProxyManager
+import android.content.Context
+import com.alananasss.kittytune.data.WaveformRepository
 import com.alananasss.kittytune.domain.Track
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
-import org.json.JSONObject
-import kotlin.math.max
-import kotlin.math.min
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.roundToInt
 
-/**
- * Where a swallowed track should start playing: the loudest ~20 s window of its SoundCloud
- * waveform — the same idea as the official feed playing a track from its best moment — with a
- * "skip the intro" fallback when there is no waveform data (local files, YouTube, etc.).
- */
-object TrackHighlights {
-
-    private const val FETCH_TIMEOUT_MS = 2_500L
-    private const val WINDOW_MS = 20_000L
-    /** Tracks shorter than this have no highlight worth seeking to. */
+/** Picks a start position from the loudest 20-second stretch of a track's waveform. */
+internal object TrackHighlights {
     private const val MIN_DURATION_MS = 90_000L
+    private const val WINDOW_MS = 20_000L
+    private const val LEAD_IN_MS = 1_500L
 
-    private val cache = object : LinkedHashMap<Long, Long>(32, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, Long>?): Boolean = size > 64
-    }
-
-    /** Best-moment start position (ms) for [track]; cheap after the first computation. */
-    suspend fun startMs(track: Track): Long {
-        cache[track.id]?.let { return it }
+    suspend fun startMs(context: Context, track: Track): Long {
         val duration = track.actualDurationMs
-        val value = if (duration < MIN_DURATION_MS) {
-            0L
-        } else {
-            val fromWaveform = track.waveformUrl?.takeIf { it.isNotBlank() }?.let { url ->
-                runCatching { withTimeout(FETCH_TIMEOUT_MS) { fromWaveform(url, duration) } }.getOrNull()
+        if (duration < MIN_DURATION_MS) return 0L
+        val samples = WaveformRepository.getCachedWaveform(track.id)
+            ?: withTimeoutOrNull(2_500L) {
+                // Use the existing metadata waveform cache. Prefetch never decodes the audio.
+                WaveformRepository.prefetchWaveform(context, track)
+                WaveformRepository.getCachedWaveform(track.id)
             }
-            fromWaveform ?: fallback(duration)
-        }
-        cache[track.id] = value
-        return value
+        return startMs(duration, samples)
     }
 
-    /** No waveform: skip the intro — hooks almost never live in the first third. */
-    private fun fallback(durationMs: Long): Long =
-        (durationMs * 0.3).toLong().coerceIn(10_000L, max(10_000L, durationMs - 45_000L))
+    internal fun startMs(durationMs: Long, samples: FloatArray?): Long {
+        if (durationMs < MIN_DURATION_MS) return 0L
 
-    /** Sliding-window peak over the SoundCloud waveform JSON (samples span the whole track). */
-    private suspend fun fromWaveform(url: String, durationMs: Long): Long = withContext(Dispatchers.IO) {
-        val body = ProxyManager.getOkHttpClient()
-            .newCall(okhttp3.Request.Builder().url(url).build())
-            .execute()
-            .use { resp -> resp.body?.string() }
-            ?: return@withContext fallback(durationMs)
-        val samples = JSONObject(body).getJSONArray("samples")
-        val n = samples.length()
-        if (n == 0) return@withContext fallback(durationMs)
-        val energy = FloatArray(n) { i -> samples.optDouble(i, 0.0).toFloat().coerceAtLeast(0f) }
+        if (samples == null || samples.isEmpty() || samples.none { it > 0f }) {
+            return (durationMs * 0.3).toLong().coerceIn(10_000L, durationMs - 45_000L)
+        }
 
-        val window = max(1, min(n, (WINDOW_MS * n / durationMs.toFloat()).roundToInt()))
-        var sum = 0f
-        for (i in 0 until window) sum += energy[i]
+        val window = (WINDOW_MS * samples.size / durationMs.toDouble()).roundToInt().coerceIn(1, samples.size)
+        var sum = 0.0
+        for (index in 0 until window) sum += samples[index]
         var bestSum = sum
-        var bestStart = 0
-        for (i in window until n) {
-            sum += energy[i] - energy[i - window]
+        var bestOffset = 0
+        for (index in window until samples.size) {
+            sum += samples[index] - samples[index - window]
             if (sum > bestSum) {
                 bestSum = sum
-                bestStart = i - window + 1
+                bestOffset = index - window + 1
             }
         }
-        // Start a breath before the peak so the hook does not begin mid-note.
-        val lead = max(0, (1_500L * n / durationMs.toFloat()).roundToInt())
-        val start = max(0, bestStart - lead)
-        start * durationMs / n
+        return (bestOffset * durationMs / samples.size - LEAD_IN_MS).coerceAtLeast(0L)
     }
 }

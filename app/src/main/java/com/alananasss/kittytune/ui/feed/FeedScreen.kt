@@ -77,6 +77,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.currentStateAsState
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -87,6 +88,10 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.wave.WaveFeedback
 import com.alananasss.kittytune.ui.common.TrackInfoSheet
 import com.alananasss.kittytune.ui.game.TrackHighlights
+import com.alananasss.kittytune.data.playbackKey
+import com.alananasss.kittytune.data.together.Together
+import com.alananasss.kittytune.data.sync.ConnectManager
+import androidx.compose.runtime.collectAsState
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -154,6 +159,7 @@ fun FeedScreen(playerViewModel: PlayerViewModel) {
                     posts = feedViewModel.discover,
                     isLoading = feedViewModel.discoverLoading && feedViewModel.discover.isEmpty(),
                     emptyText = stringResource(R.string.feed_empty_discover),
+                    onRetry = feedViewModel::loadDiscoverMore,
                     playerViewModel = playerViewModel,
                     feedViewModel = feedViewModel,
                     onPageSettled = { page ->
@@ -187,6 +193,7 @@ fun FeedScreen(playerViewModel: PlayerViewModel) {
                             posts = feedViewModel.following,
                             isLoading = feedViewModel.followingLoading && feedViewModel.following.isEmpty(),
                             emptyText = stringResource(R.string.feed_empty_following),
+                            onRetry = feedViewModel::resetFollowing,
                             playerViewModel = playerViewModel,
                             feedViewModel = feedViewModel,
                             onPageSettled = { page ->
@@ -240,6 +247,7 @@ private fun FeedPager(
     posts: List<FeedPost>,
     isLoading: Boolean,
     emptyText: String,
+    onRetry: () -> Unit,
     playerViewModel: PlayerViewModel,
     feedViewModel: FeedViewModel,
     onPageSettled: (Int) -> Unit,
@@ -249,25 +257,33 @@ private fun FeedPager(
         return
     }
     if (posts.isEmpty()) {
-        FeedMessage(text = emptyText)
+        FeedMessage(text = emptyText, trailing = {
+            TextButton(onClick = onRetry) { Text(stringResource(R.string.btn_retry)) }
+        })
         return
     }
 
+    val context = LocalContext.current
     val pagerState = rememberPagerState(pageCount = { posts.size })
 
     var previewTrackId by remember { mutableStateOf<Long?>(null) }
     var previewStartMs by remember { mutableLongStateOf(0L) }
     var fullListen by remember { mutableStateOf(false) }
 
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    val togetherSession by Together.active.collectAsState()
+    val remoteDevice by ConnectManager.selectedDevice.collectAsState()
+    val canPreview = lifecycleState.isAtLeast(Lifecycle.State.RESUMED) && togetherSession == null && remoteDevice == null
     val activePost = posts.getOrNull(pagerState.settledPage)
-    LaunchedEffect(pagerState.settledPage, activePost?.track?.id) {
+    LaunchedEffect(pagerState.settledPage, activePost?.track?.playbackKey(), canPreview) {
         val post = activePost ?: return@LaunchedEffect
         onPageSettled(pagerState.settledPage.coerceIn(0, posts.lastIndex))
+        if (!canPreview || fullListen && playerViewModel.isPlayerExpanded) return@LaunchedEffect
         fullListen = false
-        val start = runCatching { TrackHighlights.startMs(post.track) }.getOrDefault(0L)
+        val start = TrackHighlights.startMs(context, post.track)
         previewStartMs = start
         previewTrackId = post.track.id
-        if (playerViewModel.uiCurrentTrack?.id != post.track.id) {
+        if (playerViewModel.uiCurrentTrack?.playbackKey() != post.track.playbackKey()) {
             playerViewModel.playPlaylist(
                 tracks = listOf(post.track),
                 startIndex = 0,
@@ -283,24 +299,19 @@ private fun FeedPager(
     val isPlaying = playerViewModel.uiIsPlaying
     val playerExpanded = playerViewModel.isPlayerExpanded
 
-    LaunchedEffect(previewTrackId, previewStartMs, fullListen, currentTrackId, durationMs) {
-        if (fullListen || currentTrackId == null || currentTrackId != previewTrackId) return@LaunchedEffect
+    LaunchedEffect(previewTrackId, previewStartMs, fullListen, currentTrackId, durationMs, canPreview) {
+        if (!canPreview || fullListen || currentTrackId == null || currentTrackId != previewTrackId) return@LaunchedEffect
         val loopEnd = if (durationMs > 0) min(previewStartMs + PREVIEW_MS, durationMs) else previewStartMs + PREVIEW_MS
         snapshotFlow { playerViewModel.currentPosition }.collect { pos ->
-            if (pos >= loopEnd) {
+            if (pos >= loopEnd && playerViewModel.uiIsPlaying) {
                 playerViewModel.seekTo(previewStartMs)
-                if (!playerViewModel.uiIsPlaying) playerViewModel.togglePlayPause()
+
             }
         }
     }
 
     LaunchedEffect(playerExpanded) {
-        if (!playerExpanded && fullListen) {
-            fullListen = false
-            if (playerViewModel.uiCurrentTrack?.id == previewTrackId && !playerViewModel.uiIsPlaying) {
-                playerViewModel.togglePlayPause()
-            }
-        }
+        if (!playerExpanded) fullListen = false
     }
 
     val previewActive = currentTrackId != null && currentTrackId == previewTrackId
@@ -322,8 +333,8 @@ private fun FeedPager(
         val target = page + 1
         if (target <= posts.lastIndex) {
             scope.launch { pagerState.animateScrollToPage(target) }
-        } else if (playerViewModel.uiIsPlaying) {
-            playerViewModel.togglePlayPause()
+        } else if (previewActive && playerViewModel.uiIsPlaying) {
+            playerViewModel.pause()
         }
     }
 
@@ -332,7 +343,7 @@ private fun FeedPager(
         modifier = Modifier.fillMaxSize(),
         beyondViewportPageCount = 1,
     ) { page ->
-        val post = posts[page]
+        val post = posts.getOrNull(page) ?: return@VerticalPager
         val isSettled = page == pagerState.settledPage
         FeedCard(
             post = post,
@@ -352,7 +363,7 @@ private fun openFullPlayer(
     markFullListen: () -> Unit,
 ) {
     markFullListen()
-    if (playerViewModel.uiCurrentTrack?.id != post.track.id) {
+    if (playerViewModel.uiCurrentTrack?.playbackKey() != post.track.playbackKey()) {
         playerViewModel.playPlaylist(tracks = listOf(post.track), startIndex = 0, respectShuffle = false)
     }
     playerViewModel.isPlayerExpanded = true

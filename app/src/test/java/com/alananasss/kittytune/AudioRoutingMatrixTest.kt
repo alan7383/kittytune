@@ -7,9 +7,17 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Test
 
 class AudioRoutingMatrixTest {
+    private val originalProvider = AudioRoutingMatrix.modeProvider
+
+    @After
+    fun resetModeProvider() {
+        AudioRoutingMatrix.modeProvider = originalProvider
+    }
+
 
     @Test fun `bit perfect routes nothing - the DAC owns the output`() {
         AudioRoutingMatrix.modeProvider = { AudioMode.BIT_PERFECT }
