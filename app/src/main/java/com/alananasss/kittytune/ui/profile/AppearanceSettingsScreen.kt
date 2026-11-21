@@ -44,7 +44,6 @@ import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.AppLanguage
 import com.alananasss.kittytune.data.local.AppThemeMode
-import com.alananasss.kittytune.data.local.ClipVideoQuality
 import com.alananasss.kittytune.data.local.LibraryCategoryLayout
 import com.alananasss.kittytune.data.local.PlayerActionButtonSlot
 import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
@@ -124,12 +123,6 @@ fun AppearanceSettingsScreen(
     var showHomeYourMix by remember { mutableStateOf(prefs.getShowHomeYourMix()) }
     var showHomeMyWave by remember { mutableStateOf(prefs.getShowHomeMyWave()) }
     var showHomeCharts by remember { mutableStateOf(prefs.getShowHomeCharts()) }
-
-    var feedOfficialOnly by remember { mutableStateOf(prefs.getFeedOfficialOnlyEnabled()) }
-
-    // The clips video player's resolution cap (auto or 144p…4K).
-    var clipVideoQuality by remember { mutableStateOf(prefs.getClipVideoQuality()) }
-    var showVideoQualityDialog by remember { mutableStateOf(false) }
 
     var showFontConfigDialog by remember { mutableStateOf(false) }
     var showCategoryLayoutDialog by remember { mutableStateOf(false) }
@@ -367,14 +360,13 @@ fun AppearanceSettingsScreen(
             "pref_animated_covers_fade_ui" to 3,
             "pref_animated_artist_profiles" to 3,
             "pref_lyrics_under_cover" to 3,
-            "pref_clip_video_quality" to 5,
-            "pref_library_category_layout" to 6,
-            "pref_track_removal" to 6,
-            "pref_achievement_popups" to 6,
-            "pref_home_listening_stats" to 7,
-            "pref_home_your_mix" to 7,
-            "pref_home_my_wave" to 7,
-            "pref_home_charts" to 7
+            "pref_library_category_layout" to 4,
+            "pref_track_removal" to 4,
+            "pref_achievement_popups" to 4,
+            "pref_home_listening_stats" to 5,
+            "pref_home_your_mix" to 5,
+            "pref_home_my_wave" to 5,
+            "pref_home_charts" to 5
         )
     )
 
@@ -644,50 +636,6 @@ fun AppearanceSettingsScreen(
                 )
             }
 
-            // Section: Feed visuals — what moves on the active feed card
-            item {
-                SettingsGroup(
-                    title = stringResource(R.string.settings_group_feed),
-                    items = buildList {
-                        add { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_feed_official_only),
-                                subtitle = stringResource(R.string.pref_feed_official_only_desc),
-                                icon = Icons.Rounded.Verified,
-                                hasSwitch = true,
-                                switchState = feedOfficialOnly,
-                                onSwitchChange = {
-                                    feedOfficialOnly = it
-                                    prefs.setFeedOfficialOnlyEnabled(it)
-                                },
-                                highlightKey = "pref_feed_official_only"
-                            )
-                        }
-                    }
-                )
-            }
-
-            // Section: Video — the clips player's resolution
-            item {
-                SettingsGroup(
-                    title = stringResource(R.string.settings_group_video),
-                    items = listOf(
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_clip_video_quality),
-                                subtitle = stringResource(R.string.pref_clip_video_quality_desc),
-                                trailingText = clipQualityLabel(clipVideoQuality),
-                                icon = Icons.Rounded.Hd,
-                                onClick = hapticAction(HapticKind.UI) { showVideoQualityDialog = true },
-                                highlightKey = "pref_clip_video_quality"
-                            )
-                        },
-                    )
-                )
-            }
-
             // Section: Layouts & UI Display
             item {
                 SettingsGroup(
@@ -954,9 +902,3 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     is ContextWrapper -> baseContext.findActivity()
     else -> null
 }
-
-/** The label a clip quality option carries in the picker and in the setting's summary. */
-@Composable
-private fun clipQualityLabel(quality: ClipVideoQuality): String =
-    if (quality.height == null) stringResource(R.string.quality_auto) else "${quality.height}p"
-

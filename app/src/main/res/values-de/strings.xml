@@ -3765,4 +3765,11 @@
     <string name="together_sync_synced">Synchronisiert</string>
     <string name="together_sync_syncing">Wird synchronisiert…</string>
     <string name="together_sync_waiting">Warten auf den Host</string>
+    <string name="pref_mini_player_classic_cover">Cover links anzeigen</string>
+    <string name="pref_mini_player_classic_cover_left_desc">Zeigt ein kleines Cover links neben dem Titel</string>
+    <string name="pref_mini_player_classic_background">Cover als Hintergrund</string>
+    <string name="pref_mini_player_classic_cover_bg_desc">Zeigt das Cover hinter dem Titel über die gesamte Breite</string>
+    <string name="pref_mini_player_classic_progress">Fortschrittsfüllung</string>
+    <string name="pref_mini_player_classic_progress_fill_desc">Füllt den Mini-Player beim Abspielen mit der Farbe des Covers</string>
+    <string name="artist_clip_resolution">%1$dp</string>
 </resources>

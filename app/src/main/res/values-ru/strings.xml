@@ -3765,4 +3765,11 @@
     <string name="together_sync_synced">Синхронизировано</string>
     <string name="together_sync_syncing">Синхронизация…</string>
     <string name="together_sync_waiting">Ожидание ведущего</string>
+    <string name="pref_mini_player_classic_cover">Показывать обложку слева</string>
+    <string name="pref_mini_player_classic_cover_left_desc">Небольшая обложка слева от названия</string>
+    <string name="pref_mini_player_classic_background">Обложка на фоне</string>
+    <string name="pref_mini_player_classic_cover_bg_desc">Обложка на всю ширину за названием трека</string>
+    <string name="pref_mini_player_classic_progress">Заполнение по ходу трека</string>
+    <string name="pref_mini_player_classic_progress_fill_desc">Мини-плеер заполняется цветом обложки по мере воспроизведения</string>
+    <string name="artist_clip_resolution">%1$dp</string>
 </resources>

@@ -408,9 +408,9 @@ object DownloadManager {
 
     suspend fun removeAllContent(includeAudio: Boolean, includeImages: Boolean) {
         withContext(Dispatchers.IO) {
-            val allTracks = database.downloadDao().getAllTracks().first()
+            val allTracks = database.downloadDao().getAllStoredTracksList()
             allTracks.forEach { track ->
-                if (track.id > 0) {
+                if (!track.isUserLocalMedia) {
                     var updatedTrack = track
                     var changed = false
                     if (includeAudio && track.localAudioPath.isNotEmpty()) {
@@ -1028,40 +1028,6 @@ object DownloadManager {
                 }
             }
 
-            if (playlistToDelete != null) {
-                val folderName = sanitizeFilename(playlistToDelete.title)
-                val customUriStr = prefs.getDownloadLocation()
-
-                if (customUriStr != null) {
-                    try {
-                        val treeUri = Uri.parse(customUriStr)
-                        val rootDoc = DocumentFile.fromTreeUri(context, treeUri)
-                        val playlistDir = rootDoc?.findFile(folderName)
-                        if (playlistDir != null && playlistDir.isDirectory) {
-                            playlistDir.delete()
-                        }
-                    } catch (e: Exception) {
-                        Log.e(
-                            "DownloadManager",
-                            "Failed to delete playlist folder from external storage: $folderName",
-                            e
-                        )
-                    }
-                } else {
-                    try {
-                        val playlistDir = File(context.filesDir, folderName)
-                        if (playlistDir.exists() && playlistDir.isDirectory) {
-                            playlistDir.deleteRecursively()
-                        }
-                    } catch (e: Exception) {
-                        Log.e(
-                            "DownloadManager",
-                            "Failed to delete playlist folder from internal storage: $folderName",
-                            e
-                        )
-                    }
-                }
-            }
             val playlistTracks = dao.getTracksForPlaylistSync(playlistId)
 
             dao.deletePlaylist(playlistId)
@@ -1072,6 +1038,7 @@ object DownloadManager {
             }
 
             playlistTracks.forEach { track ->
+                if (track.isUserLocalMedia) return@forEach
                 val remainingRefCount = dao.getPlaylistRefCount(track.id)
                 val remainingDownloadedRefCount = dao.getDownloadedPlaylistRefCount(track.id, excludePlaylistId = playlistId)
                 if (remainingRefCount == 0 && track.id != 0L) {
@@ -1120,38 +1087,6 @@ object DownloadManager {
             val dao = database.downloadDao()
             val playlist = dao.getPlaylist(playlistId)
             if (playlist != null) {
-                val folderName = sanitizeFilename(playlist.title)
-                val customUriStr = prefs.getDownloadLocation()
-
-                if (customUriStr != null) {
-                    try {
-                        val treeUri = Uri.parse(customUriStr)
-                        val rootDoc = DocumentFile.fromTreeUri(context, treeUri)
-                        val playlistDir = rootDoc?.findFile(folderName)
-                        if (playlistDir != null && playlistDir.isDirectory) {
-                            playlistDir.delete()
-                        }
-                    } catch (e: Exception) {
-                        Log.e(
-                            "DownloadManager",
-                            "Failed to delete playlist folder from external storage: $folderName",
-                            e
-                        )
-                    }
-                } else {
-                    try {
-                        val playlistDir = File(context.filesDir, folderName)
-                        if (playlistDir.exists() && playlistDir.isDirectory) {
-                            playlistDir.deleteRecursively()
-                        }
-                    } catch (e: Exception) {
-                        Log.e(
-                            "DownloadManager",
-                            "Failed to delete playlist folder from internal storage: $folderName",
-                            e
-                        )
-                    }
-                }
                 dao.setPlaylistDownloaded(playlistId, false)
             }
 
@@ -1168,7 +1103,7 @@ object DownloadManager {
                     val otherDownloadedRefs = dao.getDownloadedPlaylistRefCount(trackId, excludePlaylistId = playlistId)
                     if (otherDownloadedRefs == 0) {
                         val local = dao.getTrack(trackId)
-                        if (local != null) {
+                        if (local != null && !local.isUserLocalMedia) {
                             deleteFileByPath(local.localAudioPath)
                             val refCount = dao.getPlaylistRefCount(trackId)
                             if (refCount > 0 || isUserOrLiked) {
@@ -1204,7 +1139,7 @@ object DownloadManager {
                     val downloadedRefs = dao.getDownloadedPlaylistRefCount(track.id, excludePlaylistId = -1L)
                     if (downloadedRefs == 0) {
                         val local = dao.getTrack(track.id)
-                        if (local != null) {
+                        if (local != null && !local.isUserLocalMedia) {
                             deleteFileByPath(local.localAudioPath)
                             val refCount = dao.getPlaylistRefCount(track.id)
                             if (refCount > 0) {
@@ -1905,8 +1840,10 @@ object DownloadManager {
             val dao = database.downloadDao()
             val track = dao.getTrack(trackId)
             if (track != null) {
-                deleteFileByPath(track.localAudioPath)
-                deleteFileByPath(track.localArtworkPath)
+                if (!track.isUserLocalMedia) {
+                    deleteFileByPath(track.localAudioPath)
+                    deleteFileByPath(track.localArtworkPath)
+                }
                 val refCount = dao.getPlaylistRefCount(trackId)
                 if (refCount > 0) {
                     dao.updateTrack(track.copy(localAudioPath = "", localArtworkPath = ""))
@@ -2030,4 +1967,3 @@ object DownloadManager {
         _libraryUpdated.tryEmit(Unit)
     }
 }
-
