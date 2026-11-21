@@ -124,6 +124,9 @@ fun AppearanceSettingsScreen(
     var showHomeMyWave by remember { mutableStateOf(prefs.getShowHomeMyWave()) }
     var showHomeCharts by remember { mutableStateOf(prefs.getShowHomeCharts()) }
 
+    var feedOfficialOnly by remember { mutableStateOf(prefs.getFeedOfficialOnlyEnabled()) }
+
+
     var showFontConfigDialog by remember { mutableStateOf(false) }
     var showCategoryLayoutDialog by remember { mutableStateOf(false) }
     val trackRemovalMethodPref by prefs.getTrackRemovalMethodFlow().collectAsState(initial = prefs.getTrackRemovalMethod())
@@ -360,13 +363,13 @@ fun AppearanceSettingsScreen(
             "pref_animated_covers_fade_ui" to 3,
             "pref_animated_artist_profiles" to 3,
             "pref_lyrics_under_cover" to 3,
-            "pref_library_category_layout" to 4,
-            "pref_track_removal" to 4,
-            "pref_achievement_popups" to 4,
-            "pref_home_listening_stats" to 5,
-            "pref_home_your_mix" to 5,
-            "pref_home_my_wave" to 5,
-            "pref_home_charts" to 5
+            "pref_library_category_layout" to 5,
+            "pref_track_removal" to 5,
+            "pref_achievement_popups" to 5,
+            "pref_home_listening_stats" to 6,
+            "pref_home_your_mix" to 6,
+            "pref_home_my_wave" to 6,
+            "pref_home_charts" to 6
         )
     )
 
@@ -630,6 +633,30 @@ fun AppearanceSettingsScreen(
                                     prefs.setLyricsUnderCoverEnabled(it)
                                 },
                                 highlightKey = "pref_lyrics_under_cover"
+                            )
+                        }
+                    }
+                )
+            }
+
+            // Section: Feed visuals — what moves on the active feed card
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_group_feed),
+                    items = buildList {
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_feed_official_only),
+                                subtitle = stringResource(R.string.pref_feed_official_only_desc),
+                                icon = Icons.Rounded.Verified,
+                                hasSwitch = true,
+                                switchState = feedOfficialOnly,
+                                onSwitchChange = {
+                                    feedOfficialOnly = it
+                                    prefs.setFeedOfficialOnlyEnabled(it)
+                                },
+                                highlightKey = "pref_feed_official_only"
                             )
                         }
                     }
