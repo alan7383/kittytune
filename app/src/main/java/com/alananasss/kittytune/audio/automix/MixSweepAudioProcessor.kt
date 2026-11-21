@@ -5,8 +5,10 @@ import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import java.nio.ByteBuffer
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.sin
 
@@ -17,7 +19,7 @@ import kotlin.math.sin
 //    and growing resonance, the build-up before the drop;
 //  - Wave drives mode [FilterMode.BAND_PASS] on both decks with center frequencies swept
 //    in counter-phase, the timbre shuttle;
-//  - hand-drawn Custom plan legs ([planFrameAt] frames) drive [FilterMode.LOW_PASS] - 
+//  - hand-drawn Custom plan legs ([planFrameAt] frames) drive [FilterMode.LOW_PASS] -
 //    the muffle the SVF preview twin ([TransitionSweepAudioProcessor]) already had — or
 //    [FilterMode.HIGH_PASS], at the exact fractions the editor's curve drew;
 //  - every other preset leaves it in [FilterMode.BYPASS], where it is a bit-transparent copy.
@@ -40,16 +42,17 @@ class MixSweepAudioProcessor : BaseAudioProcessor() {
     private var sampleRate = 0
     private var channelCount = 0
 
-    @Volatile private var mode: FilterMode = FilterMode.BYPASS
-    @Volatile private var targetCutoffHz = 1000f
-    @Volatile private var targetQ = 0.7f
+    private data class Target(
+        val mode: FilterMode = FilterMode.BYPASS,
+        val cutoffHz: Float = 1000f,
+        val q: Float = 0.7f,
+        val releasing: Boolean = false,
+    )
 
-    // Current (smoothed) design point the coefficients are computed from
+    private val target = AtomicReference(Target())
     private var currentCutoffHz = 1000f
     private var currentQ = 0.7f
-
-    // A smooth release from the filter into BYPASS is in progress (see [resetSweep])
-    @Volatile private var releasing = false
+    private var currentWet = 0f
 
     // Transposed Direct Form II state, per channel
     private var s1 = FloatArray(2)
@@ -60,47 +63,20 @@ class MixSweepAudioProcessor : BaseAudioProcessor() {
     private var a1 = 0f; private var a2 = 0f
 
     fun setMode(newMode: FilterMode) {
-        mode = newMode
-        releasing = false // the new transition owns the filter - release cancelled
+        if (newMode == FilterMode.BYPASS) resetSweep()
+        else target.updateAndGet { it.copy(mode = newMode, releasing = false) }
     }
 
-    // Publishes a new sweep point. Safe to call every fade step: the values are targets, the
-    // filter glides towards them at its own audio-rate-quiet pace
     fun setSweep(cutoffHz: Float, q: Float) {
-        releasing = false // the new transition owns the filter — release cancelled
-        targetCutoffHz = cutoffHz.coerceIn(20f, 20_000f)
-        targetQ = q.coerceIn(0.3f, 12f)
+        if (!cutoffHz.isFinite() || !q.isFinite()) return
+        target.updateAndGet {
+            it.copy(cutoffHz = cutoffHz.coerceIn(20f, 20_000f), q = q.coerceIn(0.3f, 12f), releasing = false)
+        }
     }
 
-    // Fully bypasses the filter - as a SMOOTH release when audio is flowing through it.
-    //
-    // Audit (hiss/clicks): resetSweep() used to switch the mode to BYPASS instantly and
-    // zero the delay lines - one buffer, one discontinuity. A WAVE transition ended on a deck
-    // that kept playing the rest of the track through a band-pass at ~465 Hz: an instant
-    // "dry" switch = an audible click/pop at the end of every wave transition.
-    // Now the processor first GLIDES the sweep to its transparency point with its own
-    // glissando (HPF -> 20 Hz, BPF -> up + Q to minimum), and only once it reaches that point
-    // does it switch to BYPASS with cleared state. The instant path remains for an already-off
-    // filter (the common case - memcpy fast path and non-Rise/Wave preset transitions).
+    /** A wet-to-dry ramp also works for a band-pass, which cannot glide to a flat response. */
     fun resetSweep() {
-        if (mode == FilterMode.BYPASS) {
-            targetCutoffHz = 1000f
-            targetQ = 0.7f
-            currentCutoffHz = 1000f
-            currentQ = 0.7f
-            s1.fill(0f)
-            s2.fill(0f)
-            return
-        }
-        // Smooth release: the target is the transparency point of the current filter type; once
-        // the glissando arrives (≤ ~1/3 octave away), queueInput switches the mode to BYPASS
-        releasing = true
-        targetQ = 0.3f
-        targetCutoffHz = when (mode) {
-            FilterMode.HIGH_PASS -> 20f // an HPF at 20 Hz is acoustically transparent
-            FilterMode.LOW_PASS -> 20_000f // an LPF at 20 kHz is acoustically transparent
-            else -> 16_000f // BPF: center pushed up, Q to minimum — the coloration melts away
-        }
+        target.updateAndGet { if (it.mode == FilterMode.BYPASS || it.releasing) it else it.copy(releasing = true) }
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
@@ -112,7 +88,7 @@ class MixSweepAudioProcessor : BaseAudioProcessor() {
         channelCount = inputAudioFormat.channelCount.coerceAtLeast(1)
         s1 = FloatArray(channelCount)
         s2 = FloatArray(channelCount)
-        recompute()
+        recompute(target.get().mode)
 
         if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.MIX_SWEEP)) {
             return inputAudioFormat
@@ -130,101 +106,66 @@ class MixSweepAudioProcessor : BaseAudioProcessor() {
         // delay lines while the sweep is ENGAGED is a step discontinuity in a running
         // IIR filter: an audible click. The state is kept while the filter works; a
         // bypassed filter keeps the old always-clean-restart contract
-        if (mode == FilterMode.BYPASS) {
+        if (target.get().mode == FilterMode.BYPASS) {
+            currentWet = 0f
             s1.fill(0f)
             s2.fill(0f)
         }
     }
 
     override fun onReset() {
+        target.set(Target())
         onFlush()
         sampleRate = 0
     }
 
     override fun queueInput(inputBuffer: ByteBuffer) {
         val remaining = inputBuffer.remaining()
+        if (remaining == 0) return
 
-        // Bit-Perfect on a USB DAC: this processor must be a bit-transparent copy —
-        // no filter, no gain, not a single sample touched. Checked per buffer (never per
-        // sample) so the audio thread stays allocation-free
-        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.MIX_SWEEP)) {
-            val passthrough = replaceOutputBuffer(remaining)
-            passthrough.put(inputBuffer)
-            passthrough.flip()
-            return
-        }
-
+        val requested = target.get()
         val output = replaceOutputBuffer(remaining)
-
-        if (remaining == 0) {
-            output.flip()
-            return
-        }
-
-        // BYPASS fast path: bit-identical copy, zero DSP. Every preset except Rise/Wave keeps
-        // the processor here for the whole track (a hand-drawn Custom leg engages LOW/HIGH_PASS
-        // only while its fraction is live), so the common case costs a memcpy
-        if (mode == FilterMode.BYPASS) {
+        if (requested.mode == FilterMode.BYPASS || sampleRate <= 0 || channelCount <= 0 ||
+            inputAudioFormat.encoding != C.ENCODING_PCM_16BIT ||
+            !com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.MIX_SWEEP)
+        ) {
             output.put(inputBuffer)
             output.flip()
             return
         }
 
         val frames = remaining / (2 * channelCount)
-        if (frames <= 0 || sampleRate <= 0) {
+        if (frames == 0) {
             output.put(inputBuffer)
             output.flip()
             return
         }
 
-        // Glide the design point across this buffer: at most MAX_CUTOFF_OCTAVES_PER_SECOND
-        // octaves of travel per second of audio, and Q moves in parallel. Frames/bytesPerFrame
-        // gives the buffer duration; the fraction of the whole glide we can afford in one
-        // buffer is duration × octavesPerSecond ÷ remaining octaves
-        val bufferSeconds = frames.toFloat() / sampleRate
-        val cutoffMove = MAX_CUTOFF_OCTAVES_PER_SECOND * bufferSeconds
-        val cutoffOctaves = kotlin.math.ln(targetCutoffHz / currentCutoffHz) / LN2
-        val stepOctaves = cutoffOctaves.coerceIn(-cutoffMove, cutoffMove)
-        currentCutoffHz = (currentCutoffHz * 2f.pow(stepOctaves)).coerceIn(20f, 20_000f)
-        currentQ += (targetQ - currentQ).coerceIn(-Q_MOVE_PER_BUFFER, Q_MOVE_PER_BUFFER)
-        recompute()
-        val finishRelease = releasing && kotlin.math.abs(cutoffOctaves) < 1f / 3f
+        val seconds = frames.toFloat() / sampleRate
+        val maxCutoffStep = MAX_CUTOFF_OCTAVES_PER_SECOND * seconds
+        val cutoffStep = (ln(requested.cutoffHz / currentCutoffHz) / LN2).coerceIn(-maxCutoffStep, maxCutoffStep)
+        currentCutoffHz = (currentCutoffHz * 2f.pow(cutoffStep)).coerceIn(20f, 20_000f)
+        currentQ += (requested.q - currentQ).coerceIn(-Q_MOVE_PER_BUFFER, Q_MOVE_PER_BUFFER)
+        recompute(requested.mode)
 
-        var ch = 0
-        var s1v = s1[0]
-        var s2v = s2[0]
-        while (inputBuffer.remaining() >= 2) {
-            val x = inputBuffer.short.toFloat()
-            // Transposed Direct Form II: y = b0·x + s1; s1 = b1·x − a1·y + s2; s2 = b2·x − a2·y
-            val y = b0 * x + s1v
-            s1v = b1 * x - a1 * y + s2v
-            s2v = b2 * x - a2 * y
-            output.putShort(y.coerceIn(-32768f, 32767f).toInt().toShort())
-            // Park the register pair of the channel just processed, load the next channel's.
-            // Writing back every sample keeps the mapping between registers and channel slots
-            // trivially correct at any channel count (1, 2, ...)
-            s1[ch] = s1v
-            s2[ch] = s2v
-            ch++
-            if (ch == channelCount) ch = 0
-            s1v = s1[ch]
-            s2v = s2[ch]
+        val wantedWet = if (requested.releasing) 0f else 1f
+        val wetStep = WET_RELEASE_PER_SECOND / sampleRate
+        var wet = currentWet
+        repeat(frames) {
+            for (channel in 0 until channelCount) {
+                val dry = inputBuffer.short.toFloat()
+                val filtered = b0 * dry + s1[channel]
+                s1[channel] = b1 * dry - a1 * filtered + s2[channel]
+                s2[channel] = b2 * dry - a2 * filtered
+                val sample = dry + wet * (filtered - dry)
+                output.putShort(sample.coerceIn(-32768f, 32767f).toInt().toShort())
+            }
+            wet = if (requested.releasing) (wet - wetStep).coerceAtLeast(0f)
+                else (wet + wetStep).coerceAtMost(wantedWet)
         }
-        // A non-frame-aligned remainder cannot exist in PCM16 from ExoPlayer, but a lost byte
-        // here would be a one-sample desync between decks - copy it through instead of
-        // dropping it, whatever it is
-        if (inputBuffer.hasRemaining()) {
-            output.put(inputBuffer)
-        }
-
-        // End of the smooth release - AFTER the buffer has been processed: this buffer went
-        // through an almost transparent filter, the next one takes the BYPASS fast path. The
-        // jump between "less than 1/3 octave from the transparency point" and the dry signal is inaudible
-        if (finishRelease) {
-            releasing = false
-            mode = FilterMode.BYPASS
-            targetCutoffHz = 1000f
-            targetQ = 0.7f
+        currentWet = wet
+        if (inputBuffer.hasRemaining()) output.put(inputBuffer)
+        if (requested.releasing && wet == 0f && target.compareAndSet(requested, Target())) {
             currentCutoffHz = 1000f
             currentQ = 0.7f
             s1.fill(0f)
@@ -233,7 +174,7 @@ class MixSweepAudioProcessor : BaseAudioProcessor() {
         output.flip()
     }
 
-    private fun recompute() {
+    private fun recompute(mode: FilterMode) {
         if (sampleRate <= 0) return
         val coeffs = when (mode) {
             FilterMode.HIGH_PASS -> rbjHighPass(sampleRate, currentCutoffHz, currentQ)
@@ -252,6 +193,8 @@ class MixSweepAudioProcessor : BaseAudioProcessor() {
         private const val MAX_CUTOFF_OCTAVES_PER_SECOND = 6f
 
         // Q changes at most this much per buffer; 0.05 per ~3 ms buffer ≈ 16 Q/s.
+        private const val WET_RELEASE_PER_SECOND = 5f
+
         private const val Q_MOVE_PER_BUFFER = 0.05f
 
         // RBJ Audio EQ Cookbook high-pass, normalized so b0..b2/a1..a2 are Direct-Form ready.

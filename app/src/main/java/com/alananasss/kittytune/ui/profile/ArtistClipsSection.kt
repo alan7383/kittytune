@@ -66,7 +66,13 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.TextButton
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -96,7 +102,11 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import com.alananasss.kittytune.ui.player.cover.videoRenderers
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MergingMediaSource
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.compose.runtime.mutableIntStateOf
 import com.alananasss.kittytune.data.network.ProxyManager
 import com.alananasss.kittytune.data.YoutubeAudioResolver
 import coil.compose.AsyncImage
@@ -104,6 +114,7 @@ import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.artist.ArtistClips
 import com.alananasss.kittytune.data.artist.Clip
 import com.alananasss.kittytune.data.together.Together
@@ -253,8 +264,18 @@ private fun ClipCard(clip: Clip, onClick: () -> Unit) {
 private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
-    val scope = rememberCoroutineScope()
-    var streamUrl by remember(clip) { mutableStateOf<String?>(null) }
+    val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    val prefs = remember(context) { PlayerPreferences(context) }
+    var quality by remember { mutableIntStateOf(prefs.getClipMaxHeight()) }
+    var showQuality by remember { mutableStateOf(false) }
+    var streams by remember(clip) { mutableStateOf(emptyList<ArtistClips.ClipStream>()) }
+    var attempt by remember(clip) { mutableIntStateOf(0) }
+    var reload by remember(clip) { mutableIntStateOf(0) }
+    var resumePosition by remember(clip) { mutableLongStateOf(0L) }
+    var resumePlaying by remember(clip) { mutableStateOf(true) }
+    val choices = remember(streams, quality) { ArtistClips.playbackOrder(streams, quality) }
+    val stream = choices.getOrNull(attempt)
+    val choiceCount by rememberUpdatedState(choices.size)
     var failed by remember(clip) { mutableStateOf(false) }
     var isFullscreen by remember(clip) { mutableStateOf(false) }
     var isPaused by remember(clip) { mutableStateOf(false) }
@@ -264,9 +285,9 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
     var durationMs by remember(clip) { mutableLongStateOf(0L) }
     var videoAspectRatio by remember(clip) { mutableFloatStateOf(16f / 9f) }
 
-    LaunchedEffect(clip) {
-        streamUrl = ArtistClips.streamUrl(clip)
-        if (streamUrl == null) failed = true
+    LaunchedEffect(clip, reload) {
+        streams = ArtistClips.streams(clip)
+        failed = ArtistClips.playbackOrder(streams, quality).isEmpty()
     }
 
     // Pause current music and stop together listening while watching a clip; resume when leaving
@@ -281,7 +302,7 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
     }
 
     // Configure ExoPlayer with OkHttpDataSource (supports HTTP/2 and modern TLS) and proper YouTube client headers to prevent HTTP 403
-    val player = remember(clip) {
+    val dataSourceFactory = remember(context) {
         val okHttpClient = ProxyManager.getOkHttpClient().newBuilder()
             .addInterceptor { chain ->
                 val req = chain.request()
@@ -292,10 +313,12 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
             }
             .build()
         val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
-        val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
+        DefaultDataSource.Factory(context, httpDataSourceFactory)
+    }
+    val player = remember(clip, dataSourceFactory) {
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
 
-        ExoPlayer.Builder(context)
+        ExoPlayer.Builder(context, videoRenderers(context))
             .setMediaSourceFactory(mediaSourceFactory)
             .setLoadControl(
                 DefaultLoadControl.Builder()
@@ -338,7 +361,13 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
             }
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                failed = true
+                resumePosition = player.currentPosition.coerceAtLeast(0L)
+                resumePlaying = player.playWhenReady
+                if (attempt + 1 < choiceCount) {
+                    attempt++
+                } else {
+                    failed = true
+                }
             }
         }
         player.addListener(listener)
@@ -353,12 +382,22 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
         }
     }
 
-    LaunchedEffect(streamUrl) {
-        streamUrl?.let { url ->
-            failed = false
-            player.setMediaItem(MediaItem.Builder().setUri(url).build())
-            player.prepare()
-            player.play()
+    LaunchedEffect(stream, attempt, quality) {
+        val selected = stream ?: return@LaunchedEffect
+        failed = false
+        val factory = ProgressiveMediaSource.Factory(dataSourceFactory)
+        val video = factory.createMediaSource(MediaItem.fromUri(selected.videoUrl))
+        val media = selected.audioUrl?.let { url ->
+            MergingMediaSource(true, true, video, factory.createMediaSource(MediaItem.fromUri(url)))
+        } ?: video
+        player.setMediaSource(media, resumePosition)
+        player.playWhenReady = resumePlaying && lifecycle.isAtLeast(Lifecycle.State.RESUMED)
+        player.prepare()
+    }
+
+    LaunchedEffect(lifecycle) {
+        if (!lifecycle.isAtLeast(Lifecycle.State.RESUMED) && player.playWhenReady) {
+            player.pause()
         }
     }
 
@@ -478,6 +517,31 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                                 )
                             }
                         }
+                        Box {
+                            TextButton(onClick = { showQuality = true }) {
+                                Text(stringResource(R.string.artist_clip_resolution, quality))
+                            }
+                            DropdownMenu(expanded = showQuality, onDismissRequest = { showQuality = false }) {
+                                listOf(360, 720, 1080, 1440, 2160).forEach { height ->
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.artist_clip_resolution, height)) },
+                                        onClick = {
+                                            showQuality = false
+                                            if (quality != height) {
+                                                resumePosition = player.currentPosition.coerceAtLeast(0L)
+                                                resumePlaying = player.playWhenReady || failed
+                                                player.stop()
+                                                quality = height
+                                                prefs.setClipMaxHeight(height)
+                                                attempt = 0
+                                                failed = streams.isNotEmpty() &&
+                                                    ArtistClips.playbackOrder(streams, height).isEmpty()
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+                        }
                         IconButton(
                             onClick = onDismiss,
                             shapes = IconButtonDefaults.shapes()
@@ -527,7 +591,7 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        if (streamUrl == null && !failed) {
+                        if (stream == null && !failed) {
                             AsyncImage(
                                 model = clip.thumbnailUrl,
                                 contentDescription = null,
@@ -555,11 +619,10 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                             FilledTonalButton(
                                 onClick = hapticAction(HapticKind.UI) {
                                     failed = false
-                                    streamUrl = null
-                                    scope.launch {
-                                        streamUrl = ArtistClips.streamUrl(clip)
-                                        if (streamUrl == null) failed = true
-                                    }
+                                    streams = emptyList()
+                                    resumePlaying = true
+                                    attempt = 0
+                                    reload++
                                 },
                                 shapes = ButtonDefaults.shapes()
                             ) {
@@ -606,7 +669,7 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                         durationMs = durationMs,
                         muted = muted,
                         isFullscreen = isFullscreen,
-                        isLoading = streamUrl == null && !failed,
+                        isLoading = stream == null && !failed,
                         onTogglePause = {
                             if (hasEnded) {
                                 player.seekTo(0)

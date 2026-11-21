@@ -734,11 +734,10 @@ private fun TabletPlayerControlsColumn(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .weight(1f, fill = false)
-                                        .hapticClickable {
-                                            viewModel.navigateToTrackArtist(track)
-                                        }
                                 ) {
-                                    Text(
+                                    TrackArtistText(
+                                        track = track,
+                                        viewModel = viewModel,
                                         text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                                         color = subContentColor,

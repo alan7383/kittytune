@@ -45,6 +45,8 @@ internal fun rememberSettingsSearchCatalog(
         var pureBlack = prefs.getPureBlack()
         var animatedCovers = prefs.getAnimatedCoversEnabled()
         var animatedCoversFadeUi = prefs.getAnimatedCoversFadeUiEnabled()
+        var feedOfficialOnly = prefs.getFeedOfficialOnlyEnabled()
+        var feedVideoSamples = prefs.getFeedVideoSamplesEnabled()
         var animatedArtistProfiles = prefs.getAnimatedArtistProfilesEnabled()
         var lyricsUnderCover = prefs.getLyricsUnderCoverEnabled()
         var showRemainingTime = prefs.getShowRemainingTime()
@@ -541,6 +543,42 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     prefs.setTrackRemovalEnabled(it)
                     trackRemovalMethod = prefs.getTrackRemovalMethod()
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_feed_official_only,
+                subtitleRes = R.string.pref_feed_official_only_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Verified,
+                route = "appearance_settings",
+                highlightKey = "pref_feed_official_only",
+                keywords = listOf("feed", "лента", "official", "официальные", "verified", "верифицированные", "pro", "isrc", "артисты", "артисты"),
+                hasSwitch = true,
+                switchState = feedOfficialOnly,
+                onSwitchChange = {
+                    feedOfficialOnly = it
+                    prefs.setFeedOfficialOnlyEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_feed_video_samples,
+                subtitleRes = R.string.pref_feed_video_samples_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.PlayArrow,
+                route = "appearance_settings",
+                highlightKey = "pref_feed_video_samples",
+                keywords = listOf("feed", "youtube", "video", "samples"),
+                hasSwitch = true,
+                switchState = feedVideoSamples,
+                onSwitchChange = {
+                    feedVideoSamples = it
+                    prefs.setFeedVideoSamplesEnabled(it)
                     onPreferenceChange()
                 }
             ),
@@ -1088,7 +1126,7 @@ internal fun rememberSettingsSearchCatalog(
                 titleRes = R.string.diag_hero_title,
                 categoryName = catAudio,
                 icon = Icons.Rounded.GraphicEq,
-                route = "audio_playback_settings",
+                route = "audio_quality_settings",
                 highlightKey = "diag_hero_title",
                 keywords = listOf("audio path", "codec", "bitrate", "resampling")
             ),
@@ -1149,7 +1187,7 @@ internal fun rememberSettingsSearchCatalog(
                 subtitleRes = R.string.pref_usb_bit_perfect_sub,
                 categoryName = catSources,
                 icon = Icons.Rounded.Usb,
-                route = "audio_playback_settings",
+                route = "audio_quality_settings",
                 highlightKey = "pref_usb_bit_perfect",
                 keywords = listOf("usb", "dac", "bit", "perfect", "audiophile"),
                 hasSwitch = true,

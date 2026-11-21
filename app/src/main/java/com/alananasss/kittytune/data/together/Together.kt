@@ -8,6 +8,7 @@ import com.alananasss.kittytune.domain.Track
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -244,6 +245,7 @@ object Together {
 
     private var player: TogetherPlayer? = null
     private var started = false
+    private var savedLoaded = false
     private var tickJob: Job? = null
 
     // queueVersion, lastSentQueueVersion and lastUpcomingIds are touched from the tick job, the
@@ -333,6 +335,7 @@ object Together {
     }
 
     fun regeneratePersonalLiveCode(): String {
+        loadSavedOnce()
         val oldCode = personalLiveCode
         val wasHostingPersonal = _active.value == oldCode && isHostOf(oldCode)
         val oldName = _rooms.value[oldCode]?.name.orEmpty()
@@ -358,10 +361,12 @@ object Together {
         this.player = player
         if (started) return
         started = true
-        scope.launch {
-            _saved.value = _saved.value.ifEmpty { loadSaved() }
-            _saved.value.forEach { follow(it) }
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
             relay.incoming.collect { handle(it.code, it.message, it.isSnapshot) }
+        }
+        scope.launch {
+            loadSavedOnce()
+            _saved.value.forEach { follow(it) }
         }
         tickJob = scope.launch {
             var lastHello = 0L
@@ -387,6 +392,7 @@ object Together {
     }
 
     fun join(code: String): Saved? {
+        loadSavedOnce()
         val normalized = TogetherWire.normalizeCode(code)
         if (normalized.length != TogetherWire.CODE_LENGTH) return null
         _saved.value.firstOrNull { it.code == normalized }?.let { existing ->
@@ -402,6 +408,7 @@ object Together {
     }
 
     fun forget(code: String) {
+        loadSavedOnce()
         val normalized = TogetherWire.normalizeCode(code)
         val wasHost = isHostOf(normalized)
         if (_active.value == normalized) {
@@ -409,16 +416,21 @@ object Together {
         } else if (wasHost) {
             relay.clearSnapshots(normalized)
         }
-        _saved.value = _saved.value.filterNot { it.code == normalized }
-        persistSaved()
-        scope.launch { relay.unfollow(normalized) }
-        _rooms.value = _rooms.value - normalized
+        synchronized(this) {
+            _saved.value = _saved.value.filterNot { it.code == normalized }
+            persistSaved()
+            relay.unfollow(normalized)
+            _rooms.value = _rooms.value - normalized
+        }
     }
 
     private fun addSaved(saved: Saved) {
-        _saved.value = listOf(saved) + _saved.value.filterNot { it.code == saved.code }
-        persistSaved()
-        scope.launch { follow(saved) }
+        synchronized(this) {
+            loadSavedOnce()
+            _saved.value = listOf(saved) + _saved.value.filterNot { it.code == saved.code }
+            persistSaved()
+            follow(saved)
+        }
     }
 
     private fun follow(saved: Saved) {
@@ -434,18 +446,22 @@ object Together {
      * the playlist starts from [startIndex].
      */
     fun startListening(code: String, startIndex: Int = 0) {
-        val isJoining = _active.value != code
-        _active.value = code
-        val room = _rooms.value[code]
+        val isJoining = switchRoom(code)
         val now = System.currentTimeMillis()
-        scope.launch {
-            sendHello(code, now, isJoining)
-            if (room?.hasLiveHost == true && room.hostId != memberId) {
-                send(code, TogetherMessage.SyncRequest(memberId, now))
-            } else {
-                claimHost(code)
-                val tracks = room?.playlist.orEmpty()
-                if (tracks.isNotEmpty()) withContext(Dispatchers.Main) { player?.hostPlay(tracks, startIndex.coerceIn(0, tracks.lastIndex)) }
+        relay.follow(code)
+        sendHello(code, now, isJoining)
+        val room = _rooms.value[code]
+        if (room?.hasLiveHost == true && room.hostId != memberId) {
+            send(code, TogetherMessage.SyncRequest(memberId, now))
+        } else {
+            claimHost(code)
+            val tracks = room?.playlist.orEmpty()
+            if (tracks.isNotEmpty()) scope.launch {
+                withContext(Dispatchers.Main) {
+                    if (_active.value == code && isHostOf(code)) {
+                        player?.hostPlay(tracks, startIndex.coerceIn(0, tracks.lastIndex))
+                    }
+                }
             }
         }
     }
@@ -459,17 +475,19 @@ object Together {
         seedTracks: List<SharedTrack> = emptyList(),
         lockControls: Boolean? = null,
     ): String {
+        loadSavedOnce()
         if (lockControls != null) {
             _isHostLocked.value = lockControls
             prefs()?.edit()?.putBoolean(KEY_HOST_LOCKED, lockControls)?.apply()
         }
         val currentActive = _active.value
         val code = if (currentActive != null && isHostOf(currentActive)) currentActive else personalLiveCode
+        switchRoom(code)
         val resolvedName = sessionName.trim().ifBlank { "$myName · Live" }
-        val cappedSeeds = seedTracks.take(MAX_SHARED_UPCOMING)
+        val shareableSeeds = seedTracks.filterNot { it.isLocalOnly }
         val existingSaved = _saved.value.firstOrNull { it.code == code }
         if (existingSaved == null) {
-            addSaved(Saved(code, resolvedName, System.currentTimeMillis(), cappedSeeds))
+            addSaved(Saved(code, resolvedName, System.currentTimeMillis(), shareableSeeds))
         } else {
             relay.follow(code)
         }
@@ -477,18 +495,15 @@ object Together {
         updateRoom(code) { room ->
             room.copy(
                 name = room.name.ifBlank { resolvedName },
-                playlist = if (room.playlist.isEmpty() && cappedSeeds.isNotEmpty()) cappedSeeds else room.playlist.take(MAX_SHARED_UPCOMING),
+                playlist = room.playlist.ifEmpty { shareableSeeds },
                 hostId = memberId,
                 hostSeenAt = now,
                 hostClaimedAt = now,
                 hostLocked = _isHostLocked.value,
             )
         }
-        _active.value = code
-        scope.launch {
-            sendHello(code, now, isJoining = currentActive != code)
-            claimHost(code)
-        }
+        sendHello(code, now, isJoining = currentActive != code)
+        claimHost(code)
         return code
     }
 
@@ -500,15 +515,14 @@ object Together {
         val extracted = TogetherLinks.extractCode(codeOrLink, allowRawCode = true) ?: return null
         val saved = join(extracted) ?: return null
         val code = saved.code
-        val isJoining = _active.value != code
-        _active.value = code
+        val isJoining = switchRoom(code)
         val now = System.currentTimeMillis()
+        relay.follow(code)
+        sendHello(code, now, isJoining)
+        send(code, TogetherMessage.SyncRequest(memberId, now))
         scope.launch {
-            relay.follow(code)
-            sendHello(code, now, isJoining)
-            send(code, TogetherMessage.SyncRequest(memberId, now))
             delay(FAST_SYNC_RETRY_MS)
-            if (_active.value == code && _rooms.value[code]?.hasLiveHost != true) {
+            if (relay.isFollowing(code) && _rooms.value[code]?.hasLiveHost != true) {
                 send(code, TogetherMessage.SyncRequest(memberId, System.currentTimeMillis()))
             }
         }
@@ -519,9 +533,9 @@ object Together {
     fun previewRoom(codeOrLink: String): String? {
         val code = TogetherLinks.extractCode(codeOrLink, allowRawCode = true) ?: return null
         updateRoom(code) { it }
+        relay.follow(code)
+        send(code, TogetherMessage.SyncRequest(memberId, System.currentTimeMillis()))
         scope.launch {
-            relay.follow(code)
-            send(code, TogetherMessage.SyncRequest(memberId, System.currentTimeMillis()))
             delay(FAST_SYNC_RETRY_MS)
             if (relay.isFollowing(code) && _rooms.value[code]?.hasLiveHost != true) {
                 send(code, TogetherMessage.SyncRequest(memberId, System.currentTimeMillis()))
@@ -533,8 +547,15 @@ object Together {
     fun closePreview(code: String) {
         val normalized = TogetherWire.normalizeCode(code)
         if (_active.value != normalized && _saved.value.none { it.code == normalized }) {
-            scope.launch { relay.unfollow(normalized) }
+            relay.unfollow(normalized)
         }
+    }
+
+    private fun switchRoom(code: String): Boolean {
+        if (_active.value == code) return false
+        stopListening()
+        _active.value = code
+        return true
     }
 
     fun stopListening() {
@@ -542,12 +563,10 @@ object Together {
         val wasHost = isHostOf(code)
         _active.value = null
         if (wasHost) {
-            updateRoom(code) { if (it.hostId == memberId) it.copy(hostId = null) else it }
+            updateRoom(code) { it.copy(hostId = null) }
+            relay.clearSnapshots(code)
         }
-        scope.launch {
-            if (wasHost) relay.clearSnapshots(code)
-            send(code, TogetherMessage.Bye(memberId, System.currentTimeMillis()))
-        }
+        send(code, TogetherMessage.Bye(memberId, System.currentTimeMillis()))
     }
 
     fun claimHost(code: String) {
@@ -555,6 +574,7 @@ object Together {
         updateRoom(code) { it.copy(hostId = memberId, hostSeenAt = now, hostClaimedAt = now) }
         send(code, TogetherMessage.ClaimHost(memberId, now))
         publishQueue(code, force = true)
+        publishPlaylist(code)
         publishState(code)
     }
 
@@ -587,7 +607,7 @@ object Together {
             addToPlaylist(code, track)
         } else {
             send(code, TogetherMessage.Suggest(memberId, System.currentTimeMillis(), track, myName))
-            updateRoom(code) { it.copy(suggestions = it.suggestions + Suggestion(track, myName, memberId)) }
+            addPlaylistSuggestion(code, track, myName, memberId)
         }
     }
 
@@ -609,13 +629,29 @@ object Together {
     }
 
     private fun resolveSuggestion(code: String, suggestion: Suggestion) {
-        updateRoom(code) { r -> r.copy(suggestions = r.suggestions.filterNot { it.track.id == suggestion.track.id }) }
-        send(code, TogetherMessage.SuggestionDone(memberId, System.currentTimeMillis(), suggestion.track.id))
+        val message = TogetherMessage.SuggestionDone(memberId, System.currentTimeMillis(), suggestion.track.id, suggestion.forQueue)
+        removeSuggestion(code, message)
+        send(code, message)
     }
 
     private fun addToPlaylist(code: String, track: SharedTrack) {
+        if (track.isLocalOnly) return
         updateRoom(code) { r -> if (r.playlist.any { it.id == track.id }) r else r.copy(playlist = r.playlist + track) }
-        publishQueue(code, force = true)
+        publishPlaylist(code)
+        if (isHostOf(code)) publishQueue(code, force = true)
+        else if (_rooms.value[code]?.hasLiveHost != true) sendSavedPlaylistForLegacyClients(code)
+    }
+
+    private fun publishPlaylist(code: String) {
+        val room = _rooms.value[code] ?: return
+        if (room.playlist.isEmpty()) return
+        val message = TogetherMessage.Playlist(memberId, System.currentTimeMillis(), room.playlist, room.name)
+        relay.sendSnapshot(TogetherWire.playlistSnapshotTopicFor(code), code, message)
+    }
+
+    private fun sendSavedPlaylistForLegacyClients(code: String) {
+        val room = _rooms.value[code] ?: return
+        send(code, TogetherMessage.Queue(memberId, System.currentTimeMillis(), room.queueVersion, emptyList(), room.playlist, room.name))
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -674,8 +710,10 @@ object Together {
         val code = _active.value ?: return
         if (!isHostOf(code)) return
         scope.launch {
-            publishQueue(code, force = false)
-            publishStateSoon(code)
+            if (_active.value == code && isHostOf(code)) {
+                publishQueue(code, force = false)
+                publishStateSoon(code)
+            }
         }
     }
 
@@ -687,7 +725,7 @@ object Together {
     private fun publishStateSoon(code: String) {
         scope.launch {
             delay(SETTLE_BEFORE_STATE_MS)
-            publishState(code)
+            if (_active.value == code && isHostOf(code)) publishState(code)
         }
     }
 
@@ -883,31 +921,35 @@ object Together {
             }
             is TogetherMessage.Queue -> updateRoom(code) { r ->
                 r.copy(
-                    upcoming = message.upcoming.filterNot { it.isLocalOnly },
-                    playlist = if (message.playlist.isNotEmpty() || r.playlist.isEmpty()) message.playlist else r.playlist,
+                    upcoming = if (!r.hasLiveHost || r.hostId == message.from) {
+                        message.upcoming.filterNot { it.isLocalOnly }
+                    } else r.upcoming,
+                    playlist = mergePlaylist(r.playlist, message.playlist),
                     name = message.name.ifBlank { r.name },
-                    queueVersion = message.version,
+                    queueVersion = if (!r.hasLiveHost || r.hostId == message.from) message.version else r.queueVersion,
                 )
-            }.also { renameSaved(code, message.name) }
+            }
+            is TogetherMessage.Playlist -> updateRoom(code) { r ->
+                r.copy(playlist = mergePlaylist(r.playlist, message.tracks), name = message.name.ifBlank { r.name })
+            }
             is TogetherMessage.SyncRequest -> {
                 val room = _rooms.value[code]
                 if (isHostOf(code)) {
                     publishQueue(code, force = true)
                     publishState(code)
-                } else if (room != null && room.hostId == null && room.playlist.isNotEmpty() && _saved.value.any { it.code == code }) {
+                } else if (room != null && !room.hasLiveHost && room.playlist.isNotEmpty() && _saved.value.any { it.code == code }) {
                     // Nobody hosts: whoever has the playlist shares it, so a newcomer sees the tracks at once.
-                    send(code, TogetherMessage.Queue(memberId, now, room.queueVersion, emptyList(), room.playlist, room.name))
+                    sendSavedPlaylistForLegacyClients(code)
                 }
             }
             is TogetherMessage.PlayNext -> handlePlayNext(code, listOf(message.track), message.byName, message.from)
             is TogetherMessage.PlayNextBatch -> if (!isSnapshot) {
                 handlePlayNext(code, message.tracks.take(PLAY_NEXT_BATCH_SIZE), message.byName, message.from)
             }
-            is TogetherMessage.Suggest -> if (!message.track.isLocalOnly) updateRoom(code) { r ->
-                if (r.suggestions.any { it.track.id == message.track.id }) r
-                else r.copy(suggestions = r.suggestions + Suggestion(message.track, message.byName, message.from))
+            is TogetherMessage.Suggest -> if (!message.track.isLocalOnly) {
+                addPlaylistSuggestion(code, message.track, message.byName, message.from)
             }
-            is TogetherMessage.SuggestionDone -> updateRoom(code) { r -> r.copy(suggestions = r.suggestions.filterNot { it.track.id == message.trackId }) }
+            is TogetherMessage.SuggestionDone -> removeSuggestion(code, message)
             is TogetherMessage.Reaction -> {
                 if (isSnapshot || _active.value != code) return
                 val reaction = TogetherReaction.entries.firstOrNull { it.wireId == message.reactionId } ?: return
@@ -919,19 +961,29 @@ object Together {
         }
     }
 
+    private fun addPlaylistSuggestion(code: String, track: SharedTrack, byName: String, from: String) {
+        updateRoom(code) { room ->
+            if (room.suggestions.any { it.track.id == track.id && !it.forQueue }) room
+            else room.copy(suggestions = room.suggestions + Suggestion(track, byName, from))
+        }
+    }
+
+    private fun removeSuggestion(code: String, message: TogetherMessage.SuggestionDone) {
+        updateRoom(code) { room ->
+            room.copy(suggestions = room.suggestions.filterNot {
+                it.track.id == message.trackId && (message.forQueue == null || message.forQueue == it.forQueue)
+            })
+        }
+    }
+
     private suspend fun handlePlayNext(code: String, tracks: List<SharedTrack>, byName: String, from: String) {
         if (!isHostOf(code)) return
         val shareable = tracks.filterNot { it.isLocalOnly }
         if (shareable.isEmpty()) return
         if (_isHostLocked.value) {
             updateRoom(code) { room ->
-                val suggestions = room.suggestions.associateByTo(linkedMapOf()) { it.track.id }
-                shareable.forEach { track ->
-                    if (suggestions[track.id]?.forQueue != true) {
-                        suggestions[track.id] = Suggestion(track, byName, from, forQueue = true)
-                    }
-                }
-                room.copy(suggestions = suggestions.values.toList())
+                val suggestions = room.suggestions + shareable.map { Suggestion(it, byName, from, forQueue = true) }
+                room.copy(suggestions = suggestions.distinctBy { it.track.id to it.forQueue })
             }
         } else {
             withContext(Dispatchers.Main) { player?.hostPlayNext(shareable) }
@@ -956,13 +1008,8 @@ object Together {
         return (arrivedMinusSent - floor + TYPICAL_TRIP_MS).coerceIn(0L, MAX_FLIGHT_MS)
     }
 
-    private fun renameSaved(code: String, name: String) {
-        if (name.isBlank()) return
-        val list = _saved.value
-        if (list.none { it.code == code && it.name != name }) return
-        _saved.value = list.map { if (it.code == code) it.copy(name = name) else it }
-        persistSaved()
-    }
+    private fun mergePlaylist(existing: List<SharedTrack>, incoming: List<SharedTrack>): List<SharedTrack> =
+        (existing + incoming.filterNot { it.isLocalOnly }).distinctBy { it.id }
 
     private fun send(code: String, message: TogetherMessage) = relay.send(code, message)
 
@@ -976,8 +1023,10 @@ object Together {
             val current = _rooms.value[code] ?: Room(code, saved?.name.orEmpty(), playlist = saved?.tracks.orEmpty())
             val updated = change(current)
             _rooms.value = _rooms.value + (code to updated)
-            if (saved != null && updated.playlist != saved.tracks) {
-                _saved.value = _saved.value.map { if (it.code == code) it.copy(tracks = updated.playlist) else it }
+            if (saved != null && (updated.playlist != saved.tracks || updated.name != saved.name)) {
+                _saved.value = _saved.value.map {
+                    if (it.code == code) it.copy(name = updated.name, tracks = updated.playlist) else it
+                }
                 persistSaved()
             }
         }
@@ -985,6 +1034,13 @@ object Together {
 
     private fun persistSaved() {
         prefs()?.edit()?.putString(KEY_SAVED, gson.toJson(_saved.value))?.apply()
+    }
+
+    @Synchronized
+    private fun loadSavedOnce() {
+        if (savedLoaded || appContext == null) return
+        _saved.value = loadSaved()
+        savedLoaded = true
     }
 
     private fun loadSaved(): List<Saved> = runCatching {
