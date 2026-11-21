@@ -266,7 +266,7 @@ object MixRanking {
     fun isOfficialArtist(track: Track): Boolean =
         track.user?.verified == true ||
             track.user?.isPro == true ||
-            track.publisherMetadata?.isrc != null
+            !track.publisherMetadata?.isrc.isNullOrBlank()
 
     private const val AFFINITY_WEIGHT = 1.0f
     private const val POPULARITY_WEIGHT = 0.25f

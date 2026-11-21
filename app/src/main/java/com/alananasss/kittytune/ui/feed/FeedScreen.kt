@@ -88,6 +88,7 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.wave.WaveFeedback
 import com.alananasss.kittytune.ui.common.TrackInfoSheet
 import com.alananasss.kittytune.ui.game.TrackHighlights
+import com.alananasss.kittytune.data.PlaybackTrackKey
 import com.alananasss.kittytune.data.playbackKey
 import com.alananasss.kittytune.data.together.Together
 import com.alananasss.kittytune.data.sync.ConnectManager
@@ -266,7 +267,7 @@ private fun FeedPager(
     val context = LocalContext.current
     val pagerState = rememberPagerState(pageCount = { posts.size })
 
-    var previewTrackId by remember { mutableStateOf<Long?>(null) }
+    var previewTrack by remember { mutableStateOf<PlaybackTrackKey?>(null) }
     var previewStartMs by remember { mutableLongStateOf(0L) }
     var fullListen by remember { mutableStateOf(false) }
 
@@ -275,14 +276,15 @@ private fun FeedPager(
     val remoteDevice by ConnectManager.selectedDevice.collectAsState()
     val canPreview = lifecycleState.isAtLeast(Lifecycle.State.RESUMED) && togetherSession == null && remoteDevice == null
     val activePost = posts.getOrNull(pagerState.settledPage)
-    LaunchedEffect(pagerState.settledPage, activePost?.track?.playbackKey(), canPreview) {
+    val activeTrack = activePost?.track?.playbackKey()
+    LaunchedEffect(pagerState.settledPage, activeTrack, canPreview) {
         val post = activePost ?: return@LaunchedEffect
         onPageSettled(pagerState.settledPage.coerceIn(0, posts.lastIndex))
         if (!canPreview || fullListen && playerViewModel.isPlayerExpanded) return@LaunchedEffect
         fullListen = false
         val start = TrackHighlights.startMs(context, post.track)
         previewStartMs = start
-        previewTrackId = post.track.id
+        previewTrack = post.track.playbackKey()
         if (playerViewModel.uiCurrentTrack?.playbackKey() != post.track.playbackKey()) {
             playerViewModel.playPlaylist(
                 tracks = listOf(post.track),
@@ -293,14 +295,15 @@ private fun FeedPager(
         }
     }
 
-    val currentTrackId = playerViewModel.uiCurrentTrack?.id
+    val currentTrack = playerViewModel.uiCurrentTrack?.playbackKey()
     val durationMs = playerViewModel.uiCurrentTrack?.actualDurationMs ?: 0L
     val position = playerViewModel.currentPosition
     val isPlaying = playerViewModel.uiIsPlaying
     val playerExpanded = playerViewModel.isPlayerExpanded
 
-    LaunchedEffect(previewTrackId, previewStartMs, fullListen, currentTrackId, durationMs, canPreview) {
-        if (!canPreview || fullListen || currentTrackId == null || currentTrackId != previewTrackId) return@LaunchedEffect
+    val previewActive = canPreview && currentTrack != null && currentTrack == previewTrack && currentTrack == activeTrack
+    LaunchedEffect(previewActive, previewStartMs, fullListen, durationMs) {
+        if (!previewActive || fullListen) return@LaunchedEffect
         val loopEnd = if (durationMs > 0) min(previewStartMs + PREVIEW_MS, durationMs) else previewStartMs + PREVIEW_MS
         snapshotFlow { playerViewModel.currentPosition }.collect { pos ->
             if (pos >= loopEnd && playerViewModel.uiIsPlaying) {
@@ -314,7 +317,6 @@ private fun FeedPager(
         if (!playerExpanded) fullListen = false
     }
 
-    val previewActive = currentTrackId != null && currentTrackId == previewTrackId
     val ringFraction = when {
         previewActive && !fullListen ->
             if (durationMs > 0 && previewStartMs + PREVIEW_MS > durationMs) {
