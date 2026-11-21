@@ -10,12 +10,26 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.abs
 
 class Pr104AudioTest {
+    private val originalProvider = AudioRoutingMatrix.modeProvider
+
+    @Before
+    fun standardOutput() {
+        AudioRoutingMatrix.modeProvider = { AudioMode.STANDARD }
+    }
+
+    @After
+    fun restoreOutput() {
+        AudioRoutingMatrix.modeProvider = originalProvider
+    }
+
     @Test
     fun broadParametricBoostIsFittedWithHeadroom() {
         val profile = AutoEqRepository.loadFromText("Broad EQ", "Filter 1: ON PK Fc 500 Hz Gain +10 dB Q 0.5")
@@ -31,6 +45,9 @@ class Pr104AudioTest {
         }
         assertThrows(IllegalArgumentException::class.java) {
             AutoEqRepository.loadFromText("Narrow notch", "Filter 1: ON PK Fc 670 Hz Gain -18 dB Q 28")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            AutoEqRepository.loadFromText("Channel-specific EQ", "Channel: L\nFilter 1: ON PK Fc 670 Hz Gain -4 dB Q 1")
         }
     }
 

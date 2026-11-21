@@ -51,7 +51,7 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
             preampDb: Float = 0f,
             sampleRate: Float = 48000f
         ): Float {
-            val fs = sampleRate.coerceAtLeast(44100f).toDouble()
+            val fs = sampleRate.coerceAtLeast(1000f).toDouble()
             val nyquist = fs * 0.5
             val f = freqHz.toDouble().coerceIn(20.0, nyquist - 10.0)
             val w = 2.0 * PI * f / fs
@@ -252,7 +252,10 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
-        if (!com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.EQUALIZER)) {
+        val encoding = inputAudioFormat.encoding
+        if ((encoding != C.ENCODING_PCM_16BIT && encoding != C.ENCODING_PCM_FLOAT) ||
+            !com.alananasss.kittytune.audio.AudioRoutingMatrix.isRouted(com.alananasss.kittytune.audio.AudioStage.EQUALIZER)
+        ) {
             val passthrough = replaceOutputBuffer(remaining)
             passthrough.put(inputBuffer)
             passthrough.flip()
@@ -280,7 +283,7 @@ class EqualizerAudioProcessor : BaseAudioProcessor() {
         val isBandActive = config.isBandActive
         val hasActiveBands = config.hasAnyActiveBand
         val preamp = config.preampLinear
-        val isFloat = inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT
+        val isFloat = encoding == C.ENCODING_PCM_FLOAT
 
         var channelIndex = 0
         if (isFloat) {

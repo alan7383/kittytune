@@ -31,9 +31,16 @@ internal object ParametricEqImport {
 
     fun fit(text: String): Pair<List<Float>, Float> {
         val filters = mutableListOf<Filter>()
+        var specifiedPreamp: Double? = null
         for (line in text.lineSequence()) {
             val clean = line.substringBefore('#').trim()
-            if (!filterPrefix.containsMatchIn(clean)) continue
+            if (clean.isEmpty()) continue
+            val preamp = preampLine.matchEntire(clean)
+            if (preamp != null) {
+                require(specifiedPreamp == null) { "Multiple preamps are not supported" }
+                specifiedPreamp = preamp.groupValues[1].toDouble()
+                continue
+            }
             val entry = requireNotNull(filterLine.matchEntire(clean)) { "Invalid ParametricEQ filter" }
             if (entry.groupValues[1].equals("OFF", ignoreCase = true)) continue
             val spec = requireNotNull(filterSpec.matchEntire(entry.groupValues[2])) { "Unsupported ParametricEQ filter" }
@@ -110,7 +117,7 @@ internal object ParametricEqImport {
             "Profile cannot be mapped to the fixed EQ bands accurately"
         }
 
-        val originalPreamp = preampLine.find(text)?.groupValues?.get(1)?.toDoubleOrNull() ?: 0.0
+        val originalPreamp = specifiedPreamp ?: 0.0
         val peakDb = (actual.maxOrNull() ?: 0.0).coerceAtLeast(0.0)
         require(peakDb <= MAX_GAIN_DB) { "The EQ would exceed available preamp headroom" }
         return gains.map(Double::toFloat) to minOf(originalPreamp, -peakDb).coerceIn(-MAX_GAIN_DB, 0.0).toFloat()
