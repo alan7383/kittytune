@@ -20,6 +20,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.DownloadManager
+import com.alananasss.kittytune.data.isUserLocalMedia
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.ExoCacheManager
 import com.alananasss.kittytune.data.local.LocalPlaylist
@@ -28,6 +29,7 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import com.alananasss.kittytune.utils.PlayerArtworkCache
 import java.io.File
 
 class StorageViewModel(application: Application) : AndroidViewModel(application) {
@@ -71,8 +73,8 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch(Dispatchers.IO) {
             launch {
                 dao.getAllTracks().collect { list ->
-                    downloadedTracks = list
-                    downloadedCount = list.size
+                    downloadedTracks = list.filterNot { it.isUserLocalMedia }
+                    downloadedCount = downloadedTracks.size
                     recalculateSizes(list)
                 }
             }
@@ -86,7 +88,7 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
                     playlists.forEach { pl ->
                         try {
                             val tracks = dao.getTracksForPlaylistSync(pl.id)
-                            val downloadedInPl = tracks.filter { it.localAudioPath.isNotEmpty() }
+                            val downloadedInPl = tracks.filter { it.localAudioPath.isNotEmpty() && !it.isUserLocalMedia }
                             counts[pl.id] = downloadedInPl.size
                             sizes[pl.id] = downloadedInPl.sumOf { trackSizes[it.id] ?: audioFileSize(it.localAudioPath) }
                         } catch (_: Exception) {
@@ -113,8 +115,8 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
             val uriStr = prefs.getDownloadLocation()
             try {
                 val all = dao.getAllTracksList()
-                downloadedTracks = all
-                downloadedCount = all.size
+                downloadedTracks = all.filterNot { it.isUserLocalMedia }
+                downloadedCount = downloadedTracks.size
                 recalculateSizes(all)
                 val playlists = try { dao.getDownloadedPlaylists().first() } catch (_: Exception) { emptyList() }
                 downloadedPlaylists = playlists
@@ -123,7 +125,7 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
                 playlists.forEach { pl ->
                     try {
                         val tracks = dao.getTracksForPlaylistSync(pl.id)
-                        val downloadedInPl = tracks.filter { it.localAudioPath.isNotEmpty() }
+                        val downloadedInPl = tracks.filter { it.localAudioPath.isNotEmpty() && !it.isUserLocalMedia }
                         counts[pl.id] = downloadedInPl.size
                         sizes[pl.id] = downloadedInPl.sumOf { trackSizes[it.id] ?: audioFileSize(it.localAudioPath) }
                     } catch (_: Exception) {
@@ -197,7 +199,7 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
      * exo_cache:// rows have no file — their bytes live in exo_offline_cache,
      * attributed to audio when at least one such track exists.
      */
-    private fun recalculateSizes(all: List<LocalTrack>) {
+    private suspend fun recalculateSizes(all: List<LocalTrack>) {
         var aSize = 0L
         var iSize = 0L
         val sizes = mutableMapOf<Long, Long>()
@@ -205,28 +207,26 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
         all.forEach { track ->
             val s = audioFileSize(track.localAudioPath)
             sizes[track.id] = s
-            aSize += s
+            if (!track.isUserLocalMedia) aSize += s
             if (track.localAudioPath.startsWith("exo_cache://")) hasExo = true
-            iSize += imageFileSize(track.localArtworkPath)
         }
+        val stored = dao.getAllStoredTracksList()
+        iSize += stored.map { it.localArtworkPath }.distinct().sumOf(::imageFileSize)
         try {
             context.filesDir.listFiles()?.forEach { f ->
                 if (f.isFile && f.name.startsWith("playlist_cover_")) iSize += f.length()
             }
         } catch (_: Exception) { }
 
-        val exoFilesDir = File(context.filesDir, "exo_offline_cache")
-        val exoSize = getFolderSize(File(context.cacheDir, "exo_offline_cache")) + getFolderSize(exoFilesDir)
+        val exoDir = File(context.cacheDir, "exo_offline_cache")
+        val exoSize = getFolderSize(exoDir) + getFolderSize(File(context.filesDir, "exo_offline_cache"))
         if (hasExo) aSize += exoSize
 
         var cSize = getFolderSize(context.cacheDir) +
                 context.externalCacheDirs.filterNotNull().sumOf { getFolderSize(it) }
-        if (hasExo) cSize = (cSize - exoSize).coerceAtLeast(0L)
-        // Without any cached downloads the files-side offline cache is orphaned analysis junk,
-        // not audio: report it with the cache, where "clear cache" removes it.
-        if (!hasExo) cSize += getFolderSize(exoFilesDir)
-        // Covers no track references and player art no download owns are clearable junk too.
-        cSize += orphanedArtworkSize(all)
+        val orphanPlayerArt = orphanLegacyPlayerArtwork(stored)
+        cSize += orphanPlayerArt.sumOf { it.length() }
+        if (hasExo) cSize = (cSize - getFolderSize(exoDir)).coerceAtLeast(0L)
 
         val dbName = "soundtune_db"
         val dbFile = context.getDatabasePath(dbName)
@@ -247,40 +247,6 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
         if (totalAppSize < calculated) {
             totalAppSize = calculated
         }
-    }
-
-    /**
-     * Bytes of cover art nothing references anymore: extracted local covers no track points at
-     * (files whose tag art changed, tracks removed from the library) and per-track player art no
-     * download owns (leftovers from playing online or local tracks; the player now keeps its
-     * copies in the cache directory). "Clear cache" deletes these, so they are reported as cache.
-     */
-    private fun orphanedArtworkSize(all: List<LocalTrack>): Long {
-        val referenced = all.mapNotNull { it.localArtworkPath.takeIf(String::isNotEmpty) }.toHashSet()
-        val downloadOwnedIds = all
-            .filter { it.localAudioPath.isNotEmpty() && it.source != "local" }
-            .map { it.id }
-            .toHashSet()
-
-        var orphaned = 0L
-        val localArtDir = File(context.filesDir, com.alananasss.kittytune.data.LocalMediaRepository.LOCAL_ART_DIR)
-        localArtDir.listFiles()?.forEach { f ->
-            if (f.isFile && f.name.startsWith("local_art_") && f.absolutePath !in referenced) {
-                orphaned += f.length()
-            }
-        }
-        context.filesDir.listFiles()?.forEach { f ->
-            if (!f.isFile) return@forEach
-            val name = f.name
-            when {
-                name.startsWith("local_art_") && f.absolutePath !in referenced -> orphaned += f.length()
-                name.startsWith("art_") && name.endsWith(".jpg") -> {
-                    val id = name.removePrefix("art_").removeSuffix(".jpg").toLongOrNull()
-                    if (id == null || id !in downloadOwnedIds) orphaned += f.length()
-                }
-            }
-        }
-        return orphaned
     }
 
     private fun querySystemStorageStats() {
@@ -354,72 +320,9 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
         return size
     }
 
-    private fun isAudioFileName(name: String): Boolean {
-        val n = name.lowercase()
-        return n.endsWith(".mp3") || n.endsWith(".m4a") || n.endsWith(".mp4") ||
-                n.endsWith(".flac") || n.endsWith(".ogg") || n.endsWith(".opus") ||
-                n.endsWith(".wav") || n.startsWith("track_") || n.startsWith("temp_") ||
-                n.startsWith("tagged_")
-    }
-
-    private fun isImageFileName(name: String): Boolean {
-        val n = name.lowercase()
-        return n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".png") ||
-                n.endsWith(".webp") || n.startsWith("art_") || n.startsWith("playlist_cover_")
-    }
-
-    private fun deleteRecursiveAudio(dir: File) {
-        try {
-            dir.listFiles()?.forEach { f ->
-                if (f.isDirectory) deleteRecursiveAudio(f)
-                else if (isAudioFileName(f.name)) try { f.delete() } catch (_: Exception) { }
-            }
-        } catch (_: Exception) { }
-    }
-
-    private fun deleteRecursiveImages(dir: File) {
-        try {
-            dir.listFiles()?.forEach { f ->
-                if (f.isDirectory) deleteRecursiveImages(f)
-                else if (isImageFileName(f.name)) try { f.delete() } catch (_: Exception) { }
-            }
-        } catch (_: Exception) { }
-    }
-
-    private fun deleteRecursiveAudioDoc(dir: DocumentFile) {
-        try {
-            dir.listFiles().forEach { f ->
-                if (f.isDirectory) deleteRecursiveAudioDoc(f)
-                else if (isAudioFileName(f.name ?: "")) try { f.delete() } catch (_: Exception) { }
-            }
-        } catch (_: Exception) { }
-    }
-
-    private fun deleteRecursiveImagesDoc(dir: DocumentFile) {
-        try {
-            dir.listFiles().forEach { f ->
-                if (f.isDirectory) deleteRecursiveImagesDoc(f)
-                else if (isImageFileName(f.name ?: "")) try { f.delete() } catch (_: Exception) { }
-            }
-        } catch (_: Exception) { }
-    }
-
     fun cleanAudio() {
         viewModelScope.launch(Dispatchers.IO) {
-            // we wait for the deletion to complete fully before refreshing
             DownloadManager.removeAllContent(includeAudio = true, includeImages = false)
-
-            // Cleanup orphaned audio files (recursive: playlist sub-folders)
-            val uriStr = prefs.getDownloadLocation()
-            if (uriStr == null) {
-                deleteRecursiveAudio(context.filesDir)
-            } else {
-                try {
-                    val uri = Uri.parse(uriStr)
-                    val docFile = DocumentFile.fromTreeUri(context, uri)
-                    if (docFile != null) deleteRecursiveAudioDoc(docFile)
-                } catch (e: Exception) { e.printStackTrace() }
-            }
             refreshStorageInfo()
         }
     }
@@ -427,28 +330,30 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
     fun cleanImages() {
         viewModelScope.launch(Dispatchers.IO) {
             DownloadManager.removeAllContent(includeAudio = false, includeImages = true)
-
-            // Cleanup orphaned image files (like playlist covers)
-            val uriStr = prefs.getDownloadLocation()
-            if (uriStr == null) {
-                deleteRecursiveImages(context.filesDir)
-            } else {
-                try {
-                    val uri = Uri.parse(uriStr)
-                    val docFile = DocumentFile.fromTreeUri(context, uri)
-                    if (docFile != null) deleteRecursiveImagesDoc(docFile)
-                } catch (e: Exception) { e.printStackTrace() }
-            }
-            // Covers always live in filesDir even with a custom download dir.
-            deleteRecursiveImages(context.filesDir)
+            context.filesDir.listFiles()?.filter { it.isFile && it.name.startsWith("playlist_cover_") }
+                ?.forEach { it.delete() }
             refreshStorageInfo()
+        }
+    }
+
+    private fun orphanLegacyPlayerArtwork(tracks: List<LocalTrack>): List<File> {
+        val referenced = tracks.flatMapTo(hashSetOf()) { listOf(it.localArtworkPath, it.artworkUrl) }
+        return context.filesDir.listFiles().orEmpty().filter {
+            if (!it.isFile || !PlayerArtworkCache.isLegacyArtwork(it.name) || it.absolutePath in referenced) {
+                false
+            } else {
+                val id = it.name.removePrefix("art_").removeSuffix(".jpg").toLongOrNull()
+                id != null && !DownloadManager.isTrackDownloading(id)
+            }
         }
     }
 
     fun cleanCache() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                ExoCacheManager.releaseCache()
+                ExoCacheManager.clearTransientCaches(context)
+                val tracks = AppDatabase.getDatabase(context).downloadDao().getAllStoredTracksList()
+                orphanLegacyPlayerArtwork(tracks).forEach { it.delete() }
                 try {
                     coil.Coil.imageLoader(context).diskCache?.clear()
                     coil.Coil.imageLoader(context).memoryCache?.clear()
@@ -456,7 +361,8 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
                 try {
                     android.webkit.WebStorage.getInstance().deleteAllData()
                 } catch (_: Exception) {}
-                context.cacheDir.listFiles()?.forEach { it.deleteRecursively() }
+                context.cacheDir.listFiles()?.filterNot { ExoCacheManager.isMediaCacheDirectory(it.name) }
+                    ?.forEach { it.deleteRecursively() }
                 context.externalCacheDirs.filterNotNull().forEach { dir ->
                     dir.listFiles()?.forEach { it.deleteRecursively() }
                 }
@@ -467,68 +373,9 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-            // The permanent storage has its own junk that no cache sweep can reach: offline-cache
-            // spans no download references and cover art no track references.
-            cleanOrphanOfflineCache()
-            cleanOrphanArtwork()
             // refresh immediately after deletion logic is done
             refreshStorageInfo()
         }
-    }
-
-    /** Removes files-side offline-cache spans that no `exo_cache://` download row references. */
-    private suspend fun cleanOrphanOfflineCache() {
-        try {
-            val wantedPrefixes = dao.getAllTracksList()
-                .asSequence()
-                .mapNotNull { it.localAudioPath.takeIf { p -> p.startsWith("exo_cache://") } }
-                .mapNotNull { p -> p.removePrefix("exo_cache://").split("::", limit = 3).getOrNull(1) }
-                .filter { it.isNotEmpty() }
-                .map { it.substringBeforeLast("/") }
-                .toHashSet()
-            val cache = ExoCacheManager.getDownloadCache(context)
-            val keys = try { cache.keys.toList() } catch (_: Exception) { return }
-            keys.forEach { key ->
-                if (wantedPrefixes.none { key.contains(it) }) {
-                    try { cache.removeResource(key) } catch (_: Exception) { }
-                }
-            }
-        } catch (_: Exception) { }
-    }
-
-    /** Deletes cover files nothing references: extracted local art and download-less player art. */
-    private suspend fun cleanOrphanArtwork() {
-        try {
-            val referenced = dao.getAllTracksList()
-                .mapNotNull { it.localArtworkPath.takeIf(String::isNotEmpty) }
-                .toHashSet()
-            val downloadOwnedIds = dao.getAllTracksList()
-                .filter { it.localAudioPath.isNotEmpty() && it.source != "local" }
-                .map { it.id }
-                .toHashSet()
-
-            File(context.filesDir, com.alananasss.kittytune.data.LocalMediaRepository.LOCAL_ART_DIR)
-                .listFiles()?.forEach { f ->
-                    if (f.isFile && f.name.startsWith("local_art_") && f.absolutePath !in referenced) {
-                        try { f.delete() } catch (_: Exception) { }
-                    }
-                }
-            context.filesDir.listFiles()?.forEach { f ->
-                if (!f.isFile) return@forEach
-                val name = f.name
-                val isOrphan = when {
-                    name.startsWith("local_art_") && f.absolutePath !in referenced -> true
-                    name.startsWith("art_") && name.endsWith(".jpg") -> {
-                        val id = name.removePrefix("art_").removeSuffix(".jpg").toLongOrNull()
-                        id == null || id !in downloadOwnedIds
-                    }
-                    else -> false
-                }
-                if (isOrphan) {
-                    try { f.delete() } catch (_: Exception) { }
-                }
-            }
-        } catch (_: Exception) { }
     }
 
     private fun updatePathText(uriStr: String?) {

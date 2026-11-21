@@ -166,9 +166,8 @@
                 }
             }
 
-            private fun getCachedArtworkPath(context: Context, trackId: Long): String? {
-                return com.alananasss.kittytune.utils.PlayerArtworkCache.pathOrNull(context, trackId)
-            }
+            private fun getCachedArtworkPath(context: Context, trackId: Long): String? =
+                com.alananasss.kittytune.utils.PlayerArtworkCache.pathOrNull(context, trackId)
 
             private fun updateCommonState(
                 context: Context,

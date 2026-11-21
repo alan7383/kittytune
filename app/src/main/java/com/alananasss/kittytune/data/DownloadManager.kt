@@ -3,34 +3,34 @@ package com.alananasss.kittytune.data
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
-import android.util.Base64
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.*
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.data.network.SoundCloudApi
-import com.alananasss.kittytune.data.upload.ArtworkUploadRequest
 import com.alananasss.kittytune.domain.*
 import com.mpatric.mp3agic.ID3v24Tag
 import com.mpatric.mp3agic.Mp3File
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.io.OutputStream
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.*
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import kotlinx.coroutines.asExecutor
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
+import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStream
+import java.io.ByteArrayOutputStream
+import android.util.Base64
+import com.alananasss.kittytune.data.upload.ArtworkUploadRequest
 
 object DownloadManager {
     const val LIKES_BATCH_ID = -1L
@@ -140,11 +140,6 @@ object DownloadManager {
     private val activePlaylistJobs = ConcurrentHashMap<Long, Job>()
     private val batchTrackIds = ConcurrentHashMap<Long, Set<Long>>()
 
-    /** User's own local files (`source == "local"`) must never be deleted from physical storage by the app. */
-    private fun isUserLocalTrack(track: LocalTrack): Boolean {
-        return track.source == "local" || LocalMediaRepository.isLocalTrack(track.id)
-    }
-
     fun init(ctx: Context) {
         context = ctx.applicationContext
         database = AppDatabase.getDatabase(context)
@@ -165,7 +160,7 @@ object DownloadManager {
                     !com.alananasss.kittytune.domain.hasExternalIdentity(null, track.permalinkUrl) &&
                     !track.artworkUrl.startsWith("http") &&
                     (track.localArtworkPath.isEmpty() || !File(track.localArtworkPath).exists() || File(track.localArtworkPath).length() == 0L)
-|||                }
+                }
 
                 if (brokenTracks.isNotEmpty()) {
                     val chunks = brokenTracks.chunked(50)
@@ -189,12 +184,17 @@ object DownloadManager {
 
                 val allPlaylists = dao.getAllPlaylists().first()
                 val currentLiked = LikeRepository.likedPlaylists.value
+                // One-time migration: detail-screen legacy ids (B) -> provider-canonical ids (A).
+                // Without this, one Spotify/Deezer/... playlist lives under two ids and the
+                // like flag depends on where it was liked from.
                 try {
                     allPlaylists.forEach { local ->
                         val canonical = com.alananasss.kittytune.data.local.ExternalPlaylists.canonicalIdForLocal(
                             local.id, local.permalinkUrl, local.isAlbum
                         ) ?: return@forEach
                         if (dao.getPlaylist(canonical) != null) {
+                            // Both ids exist (liked once from home, once from detail):
+                            // keep the canonical row, move refs, drop the legacy row.
                             val legacyRefs = dao.getTracksForPlaylistSync(local.id)
                             legacyRefs.forEach { track ->
                                 try {
@@ -235,6 +235,7 @@ object DownloadManager {
                                 LikeRepository.applyRemotePlaylistLike(canonical, true, local.permalinkUrl, null)
                                 LikeRepository.applyRemotePlaylistLike(local.id, false, local.permalinkUrl, null)
                             } else {
+                                // Preserve downloaded flag visibility even when unliked.
                                 if (local.isDownloaded) {
                                     LikeRepository.applyRemotePlaylistLike(canonical, false, local.permalinkUrl, null)
                                 }
@@ -407,9 +408,9 @@ object DownloadManager {
 
     suspend fun removeAllContent(includeAudio: Boolean, includeImages: Boolean) {
         withContext(Dispatchers.IO) {
-            val allTracks = database.downloadDao().getAllTracks().first()
+            val allTracks = database.downloadDao().getAllStoredTracksList()
             allTracks.forEach { track ->
-                if (track.id > 0 && !isUserLocalTrack(track)) {
+                if (!track.isUserLocalMedia) {
                     var updatedTrack = track
                     var changed = false
                     if (includeAudio && track.localAudioPath.isNotEmpty()) {
@@ -490,8 +491,7 @@ object DownloadManager {
         var needsUpdate = false
         if ((existingTrack.duration <= 0L && track.actualDurationMs > 0L) ||
             (existingTrack.duration in 1..45000L && track.actualDurationMs > existingTrack.duration) ||
-            (existingTrack.duration != track.actualDurationMs && track.actualDurationMs > 45000L)
-        ) {
+            (existingTrack.duration != track.actualDurationMs && track.actualDurationMs > 45000L)) {
             updated = updated.copy(duration = track.actualDurationMs)
             needsUpdate = true
         }
@@ -521,7 +521,7 @@ object DownloadManager {
         scope.launch {
             val trackToSave = if (track.isSoundCloudCatalogTrack &&
                 (track.title.isNullOrBlank() || track.user == null || ((track.isGoPlus || track.isSnipped || (track.durationMs != null && track.durationMs in 1..45000L)) && track.fullDuration == null))) {
-|||                try {
+                try {
                     val fetched = api.getTracksByIds(track.id.toString())
                     if (fetched.isNotEmpty()) fetched[0] else track
                 } catch (_: Exception) { track }
@@ -592,6 +592,8 @@ object DownloadManager {
             }
             _storageTrigger.update { it + 1 }
             _libraryUpdated.tryEmit(Unit)
+            _storageTrigger.update { it + 1 }
+            _libraryUpdated.tryEmit(Unit)
         }
     }
 
@@ -628,11 +630,14 @@ object DownloadManager {
     fun swapTrackOrder(playlistId: Long, trackId1: Long, trackId2: Long) {
         scope.launch {
             val dao = database.downloadDao()
-            val ref1 = dao.getRef(playlistId, trackId1)
+            val ref1 = dao.getRef(playlistId, trackId1);
             val ref2 = dao.getRef(playlistId, trackId2)
             if (ref1 != null && ref2 != null) {
-                dao.updatePlaylistTrackRef(ref1.copy(addedAt = ref2.addedAt))
-                dao.updatePlaylistTrackRef(ref2.copy(addedAt = ref1.addedAt))
+                dao.updatePlaylistTrackRef(ref1.copy(addedAt = ref2.addedAt)); dao.updatePlaylistTrackRef(
+                    ref2.copy(
+                        addedAt = ref1.addedAt
+                    )
+                )
             }
         }
     }
@@ -838,6 +843,13 @@ object DownloadManager {
     fun getUserPlaylistsFlow() = database.downloadDao().getUserPlaylists()
     fun isPlaylistInLibraryFlow(playlistId: Long) = database.downloadDao().getPlaylistFlow(playlistId)
 
+    /**
+     * The name of a playlist in the local library, or null when it is not known.
+     *
+     * The notification's "Add to last playlist" action uses it to name its destination when the
+     * bookmark does not carry a name - the id is what identifies the playlist, the name is only
+     * there to be shown.
+     */
     suspend fun getPlaylistTitle(playlistId: Long): String? =
         database.downloadDao().getPlaylist(playlistId)?.title
 
@@ -860,6 +872,10 @@ object DownloadManager {
         }
     }
 
+    /**
+     * Blocking variant for screens that need to know the playlist is in the
+     * database before navigating to it (the portable TXT/CSV import).
+     */
     suspend fun importPlaylistToLibrarySync(
         playlist: Playlist,
         tracks: List<Track>,
@@ -884,6 +900,9 @@ object DownloadManager {
         likePlaylist: Boolean = false
     ) {
         val hydratedTracks = hydrateTracksIfNeeded(tracks)
+        // Radio cards created by home/history carry their own track id, which is
+        // not the id the radio route resolves to. Normalize every save to the
+        // route id so one radio is one library row and its liked flag survives.
         val libraryId = com.alananasss.kittytune.data.local.ExternalPlaylists.libraryIdFor(
             playlist.permalinkUrl,
             playlist.id
@@ -1009,40 +1028,6 @@ object DownloadManager {
                 }
             }
 
-            if (playlistToDelete != null) {
-                val folderName = sanitizeFilename(playlistToDelete.title)
-                val customUriStr = prefs.getDownloadLocation()
-
-                if (customUriStr != null) {
-                    try {
-                        val treeUri = Uri.parse(customUriStr)
-                        val rootDoc = DocumentFile.fromTreeUri(context, treeUri)
-                        val playlistDir = rootDoc?.findFile(folderName)
-                        if (playlistDir != null && playlistDir.isDirectory) {
-                            playlistDir.delete()
-                        }
-                    } catch (e: Exception) {
-                        Log.e(
-                            "DownloadManager",
-                            "Failed to delete playlist folder from external storage: $folderName",
-                            e
-                        )
-                    }
-                } else {
-                    try {
-                        val playlistDir = File(context.filesDir, folderName)
-                        if (playlistDir.exists() && playlistDir.isDirectory) {
-                            playlistDir.deleteRecursively()
-                        }
-                    } catch (e: Exception) {
-                        Log.e(
-                            "DownloadManager",
-                            "Failed to delete playlist folder from internal storage: $folderName",
-                            e
-                        )
-                    }
-                }
-            }
             val playlistTracks = dao.getTracksForPlaylistSync(playlistId)
 
             dao.deletePlaylist(playlistId)
@@ -1053,9 +1038,7 @@ object DownloadManager {
             }
 
             playlistTracks.forEach { track ->
-                // Never delete the user's own local music files when a playlist is deleted
-                if (isUserLocalTrack(track)) return@forEach
-
+                if (track.isUserLocalMedia) return@forEach
                 val remainingRefCount = dao.getPlaylistRefCount(track.id)
                 val remainingDownloadedRefCount = dao.getDownloadedPlaylistRefCount(track.id, excludePlaylistId = playlistId)
                 if (remainingRefCount == 0 && track.id != 0L) {
@@ -1065,7 +1048,7 @@ object DownloadManager {
                     MusicManager.notifyTrackDeleted(track.id)
                 } else if (remainingDownloadedRefCount == 0 && track.id != 0L) {
                     val local = dao.getTrack(track.id)
-                    if (local != null && !isUserLocalTrack(local)) {
+                    if (local != null) {
                         deleteFileByPath(local.localAudioPath)
                         dao.updateTrack(local.copy(localAudioPath = ""))
                     }
@@ -1076,6 +1059,7 @@ object DownloadManager {
             _storageTrigger.update { it + 1 }
             _libraryUpdated.tryEmit(Unit)
             MusicManager.notifyPlaylistDeleted(playlistId)
+
         }
     }
 
@@ -1103,38 +1087,6 @@ object DownloadManager {
             val dao = database.downloadDao()
             val playlist = dao.getPlaylist(playlistId)
             if (playlist != null) {
-                val folderName = sanitizeFilename(playlist.title)
-                val customUriStr = prefs.getDownloadLocation()
-
-                if (customUriStr != null) {
-                    try {
-                        val treeUri = Uri.parse(customUriStr)
-                        val rootDoc = DocumentFile.fromTreeUri(context, treeUri)
-                        val playlistDir = rootDoc?.findFile(folderName)
-                        if (playlistDir != null && playlistDir.isDirectory) {
-                            playlistDir.delete()
-                        }
-                    } catch (e: Exception) {
-                        Log.e(
-                            "DownloadManager",
-                            "Failed to delete playlist folder from external storage: $folderName",
-                            e
-                        )
-                    }
-                } else {
-                    try {
-                        val playlistDir = File(context.filesDir, folderName)
-                        if (playlistDir.exists() && playlistDir.isDirectory) {
-                            playlistDir.deleteRecursively()
-                        }
-                    } catch (e: Exception) {
-                        Log.e(
-                            "DownloadManager",
-                            "Failed to delete playlist folder from internal storage: $folderName",
-                            e
-                        )
-                    }
-                }
                 dao.setPlaylistDownloaded(playlistId, false)
             }
 
@@ -1151,7 +1103,7 @@ object DownloadManager {
                     val otherDownloadedRefs = dao.getDownloadedPlaylistRefCount(trackId, excludePlaylistId = playlistId)
                     if (otherDownloadedRefs == 0) {
                         val local = dao.getTrack(trackId)
-                        if (local != null && !isUserLocalTrack(local)) {
+                        if (local != null && !local.isUserLocalMedia) {
                             deleteFileByPath(local.localAudioPath)
                             val refCount = dao.getPlaylistRefCount(trackId)
                             if (refCount > 0 || isUserOrLiked) {
@@ -1187,23 +1139,16 @@ object DownloadManager {
                     val downloadedRefs = dao.getDownloadedPlaylistRefCount(track.id, excludePlaylistId = -1L)
                     if (downloadedRefs == 0) {
                         val local = dao.getTrack(track.id)
-                        if (local != null) {
-                            if (isUserLocalTrack(local)) {
-                                // Only remove from the app's library DB; never delete the user's file on disk
+                        if (local != null && !local.isUserLocalMedia) {
+                            deleteFileByPath(local.localAudioPath)
+                            val refCount = dao.getPlaylistRefCount(track.id)
+                            if (refCount > 0) {
+                                dao.updateTrack(local.copy(localAudioPath = ""))
+                            } else {
                                 deleteFileByPath(local.localArtworkPath)
                                 dao.deleteTrack(track.id)
-                                MusicManager.notifyTrackDeleted(track.id)
-                            } else {
-                                deleteFileByPath(local.localAudioPath)
-                                val refCount = dao.getPlaylistRefCount(track.id)
-                                if (refCount > 0) {
-                                    dao.updateTrack(local.copy(localAudioPath = ""))
-                                } else {
-                                    deleteFileByPath(local.localArtworkPath)
-                                    dao.deleteTrack(track.id)
-                                }
-                                MusicManager.notifyTrackDeleted(track.id)
                             }
+                            MusicManager.notifyTrackDeleted(track.id)
                         }
                     }
                 }
@@ -1364,7 +1309,7 @@ object DownloadManager {
             (it.title.isNullOrBlank() || it.user == null || it.media == null ||
              (it.durationMs != null && it.durationMs in 1..45000L && it.fullDuration == null) ||
              ((it.isGoPlus || it.isSnipped) && it.fullDuration == null))
-|||        }.map { it.id }.distinct()
+        }.map { it.id }.distinct()
 
         if (incompleteIds.isEmpty()) return tracks
 
@@ -1434,10 +1379,10 @@ object DownloadManager {
                             val count = trackIdsToDownload.size.coerceAtLeast(1)
                             (totalPercent.toFloat() / (count * 100f)).coerceIn(0f, 1f)
                         }
-                            .debounce(300L)
-                            .collect { overallPercentage ->
-                                _playlistDownloadProgress.update { it + (batchId to overallPercentage) }
-                            }
+                        .debounce(300L)
+                        .collect { overallPercentage ->
+                            _playlistDownloadProgress.update { it + (batchId to overallPercentage) }
+                        }
                     }
 
                     individualJobs.joinAll()
@@ -1451,6 +1396,7 @@ object DownloadManager {
                 _playlistDownloadProgress.update { it + (batchId to 1f) }
                 delay(500)
                 _storageTrigger.update { it + 1 }
+
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -1521,7 +1467,7 @@ object DownloadManager {
                 val isHlsStream = streamUrl.contains(".m3u8") || streamUrl.contains("hls")
 
                 if (isHlsStream) {
-                    val internalArtFile = com.alananasss.kittytune.utils.PlayerArtworkCache.downloadedFile(context, track.id)
+                    val internalArtFile = File(context.filesDir, "art_${track.id}.jpg")
                     tempImageFile = File(context.cacheDir, "temp_art_${track.id}.jpg")
                     val resolvedArtUrl = saveArtworkForTrack(track, tempImageFile, internalArtFile)
 
@@ -1686,7 +1632,7 @@ object DownloadManager {
                 tempAudioFile = File(context.cacheDir, "temp_${track.id}.$ext")
                 tempImageFile = File(context.cacheDir, "temp_art_${track.id}.jpg")
                 taggedAudioFile = File(context.cacheDir, "tagged_${track.id}.$ext")
-                val internalArtFile = com.alananasss.kittytune.utils.PlayerArtworkCache.downloadedFile(context, track.id)
+                val internalArtFile = File(context.filesDir, "art_${track.id}.jpg")
 
                 FileOutputStream(tempAudioFile).use { fos ->
                     if (isDeezerStream) {
@@ -1786,6 +1732,7 @@ object DownloadManager {
                     AchievementManager.increment("download_100")
                     AchievementManager.increment("download_1000")
                 }
+
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -1874,6 +1821,7 @@ object DownloadManager {
                     copied += read
                     if (total > 0) {
                         val progress = ((copied * 100) / total).toInt()
+                        // Only report progress if it changed by at least 1% to reduce emissions
                         if (progress != lastReportedProgress) {
                             onProgress(progress)
                             lastReportedProgress = progress
@@ -1892,23 +1840,18 @@ object DownloadManager {
             val dao = database.downloadDao()
             val track = dao.getTrack(trackId)
             if (track != null) {
-                if (isUserLocalTrack(track)) {
-                    // Only remove the DB entry and extracted cached thumbnail; keep the user's audio file on disk!
-                    deleteFileByPath(track.localArtworkPath)
-                    dao.deleteTrack(trackId)
-                    MusicManager.notifyTrackDeleted(trackId)
-                } else {
+                if (!track.isUserLocalMedia) {
                     deleteFileByPath(track.localAudioPath)
                     deleteFileByPath(track.localArtworkPath)
-                    val refCount = dao.getPlaylistRefCount(trackId)
-                    if (refCount > 0) {
-                        dao.updateTrack(track.copy(localAudioPath = "", localArtworkPath = ""))
-                        dao.cleanEmptyDownloadedPlaylists()
-                    } else {
-                        dao.deleteTrack(trackId)
-                    }
-                    MusicManager.notifyTrackDeleted(trackId)
                 }
+                val refCount = dao.getPlaylistRefCount(trackId)
+                if (refCount > 0) {
+                    dao.updateTrack(track.copy(localAudioPath = "", localArtworkPath = ""))
+                    dao.cleanEmptyDownloadedPlaylists()
+                } else {
+                    dao.deleteTrack(trackId)
+                }
+                MusicManager.notifyTrackDeleted(trackId)
             }
             dao.cleanUnreferencedEmptyTracks()
             _storageTrigger.update { it + 1 }
