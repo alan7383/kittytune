@@ -5,14 +5,12 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
@@ -28,11 +26,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.RestartAlt
@@ -42,7 +39,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -81,6 +77,8 @@ import com.alananasss.kittytune.ui.common.rememberAppHaptics
 import com.alananasss.kittytune.ui.player.EqualizerPresets
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import kotlin.math.abs
+import kotlin.math.ln
+import kotlin.math.pow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -90,10 +88,14 @@ private val FREQUENCY_LABELS = listOf(
     "2k", "3.1k", "5k", "8k", "10k", "12.5k", "16k", "20k"
 )
 
+private val FIXED_Q_LABELS = EqualizerAudioProcessor.BAND_Q_FACTORS.map { q ->
+    String.format("Q%.1f", q)
+}
+
 private enum class EqualizerMode { MANUAL, AUTO }
 
 /**
- * Dedicated full screen for KittyTune's 16-band graphic equalizer and AutoEQ engine.
+ * Dedicated full screen for KittyTune's 16-band fixed-frequency, fixed-Q parametric equalizer and AutoEQ engine.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -207,7 +209,7 @@ private fun ManualEqualizerBody(
     haptics: com.alananasss.kittytune.ui.common.AppHaptics,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        // Frequency Response Card (borderless, modern container)
+        // Parametric Frequency Response Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(22.dp),
@@ -246,6 +248,7 @@ private fun ManualEqualizerBody(
 
                 EqualizerCurveVisualizer(
                     bandGains = eqState.bandGainsDb,
+                    preampDb = eqState.preampDb,
                     isEnabled = eqState.isEnabled,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -326,7 +329,7 @@ private fun ManualEqualizerBody(
             }
         }
 
-        // Frequency Bands (borderless card)
+        // Parametric Frequency Bands (fixed f0 & fixed Q)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -358,11 +361,13 @@ private fun ManualEqualizerBody(
                         .padding(horizontal = 10.dp, vertical = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    for (i in 0 until 16) {
+                    for (i in 0 until EqualizerAudioProcessor.NUM_BANDS) {
                         val gain = eqState.bandGainsDb.getOrElse(i) { 0f }
                         val label = FREQUENCY_LABELS.getOrElse(i) { "" }
+                        val qLabel = FIXED_Q_LABELS.getOrElse(i) { "Q1.8" }
                         EqualizerBandColumn(
                             frequencyLabel = label,
+                            qLabel = qLabel,
                             gainDb = gain,
                             isEnabled = eqState.isEnabled,
                             onGainChange = { newGain -> viewModel.setEqualizerBand(i, newGain) },
@@ -417,7 +422,10 @@ private fun AutoEqBody(
                                 if (cursor.moveToFirst() && nameIndex >= 0) cursor.getString(nameIndex) else null
                             }
                         }.getOrNull() ?: "Custom EQ"
-                        val profileName = fileName.removeSuffix(".txt").removeSuffix(" GraphicEQ")
+                        val profileName = fileName
+                            .removeSuffix(".txt")
+                            .removeSuffix(" GraphicEQ")
+                            .removeSuffix(" ParametricEQ")
                         val data = AutoEqRepository.loadFromText(profileName, rawText)
                         viewModel.applyAutoEqProfile(data, headphones)
                         haptics.perform(HapticKind.CONFIRM)
@@ -486,7 +494,6 @@ private fun AutoEqBody(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        // 1. Device Card (Capsule Oval, Borderless)
         AutoEqDeviceCard(
             headphones = headphones,
             onSearchDevice = { device ->
@@ -496,7 +503,6 @@ private fun AutoEqBody(
             }
         )
 
-        // 2. Active Profile (Animated smoothly, Oval, Borderless)
         AnimatedVisibility(
             visible = eqState.autoProfileName != null,
             enter = fadeIn(tween(250)) + expandVertically(tween(250)),
@@ -513,7 +519,6 @@ private fun AutoEqBody(
             )
         }
 
-        // 3. Search Bar (Pure Oval / Pill, Borderless)
         TextField(
             value = query,
             onValueChange = { query = it },
@@ -565,7 +570,6 @@ private fun AutoEqBody(
             keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
         )
 
-        // 4. Suggestions Chips (when query is empty)
         if (query.isBlank()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -614,7 +618,6 @@ private fun AutoEqBody(
             }
         }
 
-        // 5. Search Error Banner
         if (searchError != null) {
             Surface(
                 shape = CircleShape,
@@ -664,7 +667,6 @@ private fun AutoEqBody(
             )
         }
 
-        // 6. Search Results List (Borderless)
         if (results.isNotEmpty()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -699,7 +701,6 @@ private fun AutoEqBody(
             }
         }
 
-        // 7. "Apply automatically when this device reconnects" (Uses SettingsItem for authentic settings interaction: shared interactionSource, awake toggle, elevates on press)
         SettingsItem(
             shape = CircleShape,
             title = stringResource(R.string.equalizer_auto_restore),
@@ -720,9 +721,6 @@ private fun AutoEqBody(
     }
 }
 
-/**
- * Headphone icon: differentiates between in-ear earbuds and over-ear headphones.
- */
 @Composable
 private fun HeadphoneThumbnail(
     modelName: String,
@@ -765,9 +763,6 @@ private fun HeadphoneThumbnail(
     }
 }
 
-/**
- * Connected / No-headphone device card: rendered as a sleek borderless oval pill.
- */
 @Composable
 private fun AutoEqDeviceCard(
     headphones: ConnectedHeadphone?,
@@ -838,9 +833,6 @@ private fun AutoEqDeviceCard(
     }
 }
 
-/**
- * Applied profile indicator card: pill shape, borderless.
- */
 @Composable
 private fun AutoEqAppliedCard(
     name: String,
@@ -900,9 +892,6 @@ private fun AutoEqAppliedCard(
     }
 }
 
-/**
- * Result row in search: modern rounded surface, borderless.
- */
 @Composable
 private fun AutoEqResultRow(
     profile: AutoEqProfile,
@@ -1017,11 +1006,12 @@ private val POPULAR_HEADPHONES = listOf(
 )
 
 /**
- * An expressive vertical slider for a single frequency band.
+ * An expressive vertical slider for a single parametric band with fixed f0 and fixed Q.
  */
 @Composable
 private fun EqualizerBandColumn(
     frequencyLabel: String,
+    qLabel: String,
     gainDb: Float,
     isEnabled: Boolean,
     onGainChange: (Float) -> Unit,
@@ -1043,7 +1033,7 @@ private fun EqualizerBandColumn(
             .width(46.dp)
             .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         // Gain value badge
         Text(
@@ -1077,7 +1067,6 @@ private fun EqualizerBandColumn(
                         val frac = 1f - (change.position.y / heightPx).coerceIn(0f, 1f)
                         val newGain = (frac * 24f - 12f).coerceIn(-12f, 12f)
 
-                        // Trigger haptic when crossing 0 dB
                         val nearZero = abs(newGain) < 0.5f
                         if (nearZero && !lastHapticCrossZero) {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -1091,7 +1080,6 @@ private fun EqualizerBandColumn(
                 },
             contentAlignment = Alignment.Center
         ) {
-            // Track & Center Line Canvas
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val cW = size.width
                 val cH = size.height
@@ -1100,7 +1088,6 @@ private fun EqualizerBandColumn(
 
                 val tW = trackWidth.toPx()
 
-                // Background track
                 drawRoundRect(
                     color = trackBgColor,
                     topLeft = Offset(midX - tW / 2f, 0f),
@@ -1108,7 +1095,6 @@ private fun EqualizerBandColumn(
                     cornerRadius = CornerRadius(tW / 2f)
                 )
 
-                // Active gain fill from center (0 dB)
                 val gainFrac = (gainDb / 12f).coerceIn(-1f, 1f)
                 val activeH = abs(gainFrac) * (cH / 2f)
 
@@ -1122,7 +1108,6 @@ private fun EqualizerBandColumn(
                     )
                 }
 
-                // Center 0 dB notch tick
                 drawLine(
                     color = centerLineColor,
                     start = Offset(midX - 8.dp.toPx(), midY),
@@ -1131,7 +1116,6 @@ private fun EqualizerBandColumn(
                 )
             }
 
-            // Thumb
             val normalizedPos = 1f - ((gainDb + 12f) / 24f).coerceIn(0f, 1f)
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val density = LocalDensity.current
@@ -1150,7 +1134,7 @@ private fun EqualizerBandColumn(
             }
         }
 
-        // Frequency Label
+        // Fixed Frequency Label (f0)
         Text(
             text = frequencyLabel,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
@@ -1159,15 +1143,26 @@ private fun EqualizerBandColumn(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+
+        // Fixed Q Factor Label
+        Text(
+            text = qLabel,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
     }
 }
 
 /**
- * Visual curve showing the continuous spline frequency response across the 16 bands.
+ * Visual curve showing the true cascaded RBJ parametric biquad frequency response
+ * across the logarithmic 20 Hz .. 20 kHz spectrum for the fixed frequencies and Q factors.
  */
 @Composable
 private fun EqualizerCurveVisualizer(
     bandGains: List<Float>,
+    preampDb: Float = 0f,
     isEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -1206,27 +1201,28 @@ private fun EqualizerCurveVisualizer(
 
         if (numBands < 2) return@Canvas
 
-        // Calculate control points
-        val points = mutableListOf<Offset>()
-        for (i in 0 until numBands) {
-            val gain = bandGains.getOrElse(i) { 0f }
-            val x = (i.toFloat() / (numBands - 1).toFloat()) * cW
-            val y = midY - (gain / 12f) * (midY - 6.dp.toPx())
-            points.add(Offset(x, y.coerceIn(4f, cH - 4f)))
+        val minFreq = 25.0
+        val maxFreq = 20000.0
+        val logRatio = maxFreq / minFreq
+        val maxVisualDb = 15f
+        val verticalMargin = 6.dp.toPx()
+
+        // Evaluate actual parametric biquad cascade response across 128 log-spaced frequencies
+        val sampleCount = 128
+        val strokePath = Path()
+        for (s in 0..sampleCount) {
+            val t = s.toFloat() / sampleCount.toFloat()
+            val freq = (minFreq * logRatio.pow(t.toDouble())).toFloat()
+            val responseDb = EqualizerAudioProcessor.computeResponseDbAt(
+                freqHz = freq,
+                bandGainsDb = bandGains,
+                preampDb = preampDb
+            )
+            val x = t * cW
+            val y = (midY - (responseDb / maxVisualDb) * (midY - verticalMargin)).coerceIn(4f, cH - 4f)
+            if (s == 0) strokePath.moveTo(x, y) else strokePath.lineTo(x, y)
         }
 
-        // Build smooth cubic bezier curve
-        val strokePath = Path().apply {
-            moveTo(points[0].x, points[0].y)
-            for (i in 0 until points.size - 1) {
-                val p0 = points[i]
-                val p1 = points[i + 1]
-                val midX = (p0.x + p1.x) / 2f
-                cubicTo(midX, p0.y, midX, p1.y, p1.x, p1.y)
-            }
-        }
-
-        // Build filled gradient path underneath
         val fillPath = Path().apply {
             addPath(strokePath)
             lineTo(cW, midY)
@@ -1234,7 +1230,6 @@ private fun EqualizerCurveVisualizer(
             close()
         }
 
-        // Draw soft gradient area towards 0 dB
         if (isEnabled) {
             drawPath(
                 path = fillPath,
@@ -1248,19 +1243,28 @@ private fun EqualizerCurveVisualizer(
             )
         }
 
-        // Draw continuous stroke curve
         drawPath(
             path = strokePath,
             color = curveColor,
             style = Stroke(width = 2.5.dp.toPx())
         )
 
-        // Draw small dot on each band node
-        points.forEach { pt ->
+        // Draw node dot at each fixed center frequency f0
+        val lnRatio = ln(logRatio)
+        for (i in 0 until minOf(numBands, EqualizerAudioProcessor.BAND_FREQUENCIES.size)) {
+            val f0 = EqualizerAudioProcessor.BAND_FREQUENCIES[i].toDouble()
+            val t = (ln(f0 / minFreq) / lnRatio).toFloat().coerceIn(0f, 1f)
+            val respDb = EqualizerAudioProcessor.computeResponseDbAt(
+                freqHz = f0.toFloat(),
+                bandGainsDb = bandGains,
+                preampDb = preampDb
+            )
+            val ptX = t * cW
+            val ptY = (midY - (respDb / maxVisualDb) * (midY - verticalMargin)).coerceIn(4f, cH - 4f)
             drawCircle(
                 color = curveColor,
                 radius = 2.5.dp.toPx(),
-                center = pt
+                center = Offset(ptX, ptY)
             )
         }
     }
