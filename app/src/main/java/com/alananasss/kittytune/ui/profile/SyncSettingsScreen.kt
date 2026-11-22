@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +20,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Computer
@@ -67,13 +71,14 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.ui.common.QrCodeGenerator
@@ -157,15 +162,11 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
         }
         busy = true
         scope.launch {
-            val result = SyncClient.exchange(peer)
+            val result = SyncClient.pair(peer)
             busy = false
             devices = SyncPeers.all()
             status = when (result) {
-                is SyncClient.Result.Success -> {
-                    SyncService.isListenerEnabled = true
-                    SyncScheduler.start()
-                    String.format(doneTemplate, result.peerName)
-                }
+                is SyncClient.Result.Success -> String.format(doneTemplate, result.peerName)
                 SyncClient.Result.Unauthorized -> unauthorized
                 is SyncClient.Result.Failed -> String.format(failedTemplate, result.reason)
             }
@@ -182,7 +183,7 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
         )
     }
 
-    if (showingMyCode) {
+    if (showingMyCode && localNetworkGranted) {
         MyCodeSheet(
             onDismiss = {
                 showingMyCode = false
@@ -263,6 +264,7 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
 
                     OutlinedButton(
                         onClick = hapticAction(HapticKind.UI) { showingMyCode = true },
+                        enabled = !busy && localNetworkGranted,
                         shapes = ButtonDefaults.shapes(),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -364,89 +366,80 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
     }
 }
 
-/**
- * This device's own pairing code — the half of pairing the Android side never had.
- *
- * The phone could scan a code but never show one, so two Android installs — a phone and a tablet —
- * had no way to meet at all: every path to a pairing ran through the desktop's screen. The code
- * itself always existed ([SyncService.pairingCode]); only the screen showing it was missing.
- *
- * While the sheet is open this device is reachable and findable, exactly like the desktop's pairing
- * screen: the listener comes up even before the first pairing (an install with no peers keeps it
- * off otherwise, and whoever scans this code will be calling it), and [SyncDiscovery.isAdvertising]
- * answers wildcard queries for as long as the sheet is up. Both revert on dismiss, and the listener
- * stays up afterwards only when something is now paired or it was already running.
- */
 @Composable
 private fun MyCodeSheet(onDismiss: () -> Unit) {
     val clipboard = LocalClipboardManager.current
-    val code = remember { SyncService.pairingCode() }
-    val qr = remember(code) { QrCodeGenerator.generateQrBitmap(code) }
+    var code by remember { mutableStateOf<String?>(null) }
+    var listenerFailed by remember { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
     var pairedWith by remember { mutableStateOf<String?>(null) }
     val knownIds = remember { SyncPeers.all().map { it.deviceId }.toSet() }
     val wasRunning = remember { SyncService.isRunning }
 
     DisposableEffect(Unit) {
-        SyncService.start()
-        SyncDiscovery.isAdvertising = true
         onDispose {
             SyncDiscovery.isAdvertising = false
-            if (wasRunning || !SyncPeers.isEmpty()) SyncService.startIfWanted() else SyncService.stop()
+            SyncService.finishPairing(wasRunning)
         }
     }
 
-    // A pairing completes without this screen doing anything: the other device scans, calls in, and
-    // the exchange runs inside the listener's own coroutine. Watched for here only so it can be said
-    // out loud — by the time it is, the first exchange has already carried both histories.
     LaunchedEffect(Unit) {
+        if (!SyncService.startForPairing()) {
+            listenerFailed = true
+            return@LaunchedEffect
+        }
+        code = SyncService.pairingCode()
+        SyncDiscovery.isAdvertising = true
         while (pairedWith == null) {
             delay(1_000)
             SyncPeers.all().firstOrNull { it.deviceId !in knownIds }?.let { pairedWith = it.label }
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier.fillMaxWidth(),
+    KittyModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
+            Text(
+                stringResource(R.string.sync_my_code_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                SyncLog.deviceName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val pairingCode = code
+            if (listenerFailed) {
                 Text(
-                    stringResource(R.string.sync_my_code_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    stringResource(R.string.sync_my_code_unavailable),
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
                 )
-                Text(
-                    SyncLog.deviceName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                // White whatever the theme: contrast is what a scanner reads, not the app's palette,
-                // and the padding doubles as the quiet zone around the code.
-                Box(
-                    modifier = Modifier
-                        .size(260.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color.White),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    qr?.let { bitmap ->
-                        Image(
-                            bitmap = bitmap.asImageBitmap(),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(8.dp),
-                            contentScale = ContentScale.Fit,
-                        )
-                    }
+            } else if (pairingCode == null) {
+                CircularProgressIndicator()
+            } else {
+                val qr = remember(pairingCode) { QrCodeGenerator.generateQrBitmap(pairingCode) }
+                qr?.let { bitmap ->
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = stringResource(R.string.sync_my_code_title),
+                        modifier = Modifier.size(224.dp).clip(RoundedCornerShape(16.dp))
+                            .background(Color.White).padding(12.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
+                SelectionContainer {
+                    Text(
+                        pairingCode,
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        fontFamily = FontFamily.Monospace,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                    )
                 }
                 val paired = pairedWith
                 Text(
@@ -466,7 +459,7 @@ private fun MyCodeSheet(onDismiss: () -> Unit) {
                 )
                 OutlinedButton(
                     onClick = hapticAction(HapticKind.UI) {
-                        clipboard.setText(AnnotatedString(code))
+                        clipboard.setText(AnnotatedString(pairingCode))
                         copied = true
                     },
                     shapes = ButtonDefaults.shapes(),
@@ -479,8 +472,8 @@ private fun MyCodeSheet(onDismiss: () -> Unit) {
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(if (copied) R.string.sync_my_code_copied else R.string.sync_my_code_copy))
                 }
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_close)) }
             }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_close)) }
         }
     }
 }
@@ -573,15 +566,11 @@ fun SyncAdvancedScreen(onBackClick: () -> Unit) {
         }
         busy = true
         scope.launch {
-            val result = SyncClient.exchange(peer)
+            val result = SyncClient.pair(peer)
             busy = false
             devices = SyncPeers.all()
             status = when (result) {
-                is SyncClient.Result.Success -> {
-                    SyncService.isListenerEnabled = true
-                    SyncScheduler.start()
-                    String.format(doneTemplate, result.peerName)
-                }
+                is SyncClient.Result.Success -> String.format(doneTemplate, result.peerName)
                 SyncClient.Result.Unauthorized -> unauthorized
                 is SyncClient.Result.Failed -> String.format(failedTemplate, result.reason)
             }

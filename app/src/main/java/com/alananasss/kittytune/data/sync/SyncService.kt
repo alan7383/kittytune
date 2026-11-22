@@ -3,6 +3,7 @@ package com.alananasss.kittytune.data.sync
 import com.alananasss.kittytune.KittyTuneApp
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -38,7 +39,7 @@ import java.util.Base64
  * [PAIRING_HEADER] with the value from [pairingSecret] — and one that does not is refused before its body
  * is read. The secret is 160 random bits, generated once per install.
  *
- * Off unless something is paired. An install that never pairs never opens a port.
+ * The listener opens during pairing and can stay on for paired devices.
  *
  * ## Why a hand-written server
  *
@@ -68,6 +69,8 @@ object SyncService {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var acceptor: Job? = null
+    private var startup: CompletableDeferred<Boolean>? = null
+    @Volatile
     private var server: ServerSocket? = null
 
     /** What a device has to know to reach this one. Never logged, never sent anywhere but to a peer. */
@@ -141,23 +144,39 @@ object SyncService {
      * Starts listening. Idempotent, and a port that cannot be bound is not fatal — the phone falls back to
      * being call-only, which is what it always was.
      */
-    @Synchronized
     fun start() {
-        if (server != null) return
+        startListener()
+    }
+
+    suspend fun startForPairing(): Boolean = startListener().await()
+
+    @Synchronized
+    private fun startListener(): CompletableDeferred<Boolean> {
+        startup?.let { return it }
+        val ready = CompletableDeferred<Boolean>()
+        startup = ready
         acceptor = scope.launch {
-            val bound = runCatching {
-                ServerSocket().apply {
-                    reuseAddress = true
-                    bind(InetSocketAddress(port))
+            val bound = synchronized(this@SyncService) {
+                if (startup !== ready) return@launch
+
+                var socket: ServerSocket? = null
+                try {
+                    val listener = ServerSocket()
+                    socket = listener
+                    listener.reuseAddress = true
+                    listener.bind(InetSocketAddress(port))
+                    SyncDiscovery.startResponder()
+                    server = listener
+                    ready.complete(true)
+                    listener
+                } catch (failure: Exception) {
+                    runCatching { socket?.close() }
+                    startup = null
+                    ready.complete(false)
+                    android.util.Log.w("SyncService", "Listener failed to bind port $port", failure)
+                    return@launch
                 }
-            }.getOrElse {
-                android.util.Log.w("SyncService", "Listener failed to bind port $port", it)
-                return@launch
             }
-            server = bound
-            // Findable for exactly as long as it is reachable. Announcing an address that nothing answers
-            // on is the failure mode the beacon exists to remove.
-            SyncDiscovery.startResponder()
 
             while (!bound.isClosed) {
                 val socket = runCatching { bound.accept() }.getOrNull() ?: break
@@ -165,16 +184,27 @@ object SyncService {
                 // this never has more than a couple alive.
                 scope.launch { runCatching { serve(socket) } }
             }
+            synchronized(this@SyncService) {
+                if (server === bound) stop()
+            }
         }
+        return ready
     }
 
     @Synchronized
     fun stop() {
         runCatching { server?.close() }
         server = null
+        startup?.complete(false)
+        startup = null
         acceptor?.cancel()
         acceptor = null
         SyncDiscovery.stopResponder()
+    }
+
+    /** Releases a listener opened for pairing, respecting the normal listener preference. */
+    fun finishPairing(wasRunning: Boolean) {
+        if (!wasRunning && (!isListenerEnabled || SyncPeers.isEmpty())) stop()
     }
 
     /** Brings the listener up if it should be, which is "something is paired and it is not switched off". */

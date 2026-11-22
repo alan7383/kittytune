@@ -2523,7 +2523,7 @@
 <string name="sync_peer_code">Pairing code from the other device</string>
 <string name="sync_now">Sync now</string>
 <string name="sync_bad_code">That is not a pairing code.</string>
-<string name="sync_unauthorized">It refused the code. Generate a new one on your computer and paste it here.</string>
+<string name="sync_unauthorized">The other device refused the code. Open its pairing screen and try again with the current code.</string>
 <string name="sync_failed">Could not reach it: %1$s</string>
 <string name="sync_events_held">%1$d events in the log.</string>
 <string name="sync_scan_aim">Point at the code on the other device</string>
@@ -2532,11 +2532,12 @@
 <string name="sync_scan_allow_camera">Allow the camera</string>
 <string name="sync_show_my_code">Show my code</string>
 <string name="sync_my_code_title">This device\'s pairing code</string>
-<string name="sync_my_code_hint">On the other device, open Settings → Device sync → Paired devices and scan this code — or copy it and paste it under Advanced sync there.</string>
+<string name="sync_my_code_hint">Scan this QR code from Paired devices or paste the code into the other device’s sync settings.</string>
 <string name="sync_my_code_waiting">Waiting for the other device…</string>
+<string name="sync_my_code_unavailable">KittyTune couldn’t start listening for other devices. Close this screen and try again.</string>
 <string name="sync_my_code_copy">Copy code</string>
 <string name="sync_my_code_copied">Copied</string>
-<string name="sync_local_network_needed">Android needs your permission for KittyTune to reach other devices on your Wi-Fi. Without it, pairing times out even though the computer is listening.</string>
+<string name="sync_local_network_needed">Allow KittyTune to access devices on your Wi-Fi to pair them.</string>
 <string name="sync_local_network_allow">Allow local network</string>
 <string name="account_vk_qr_same_device">Confirm on this phone</string>
 <string name="account_vk_qr_same_device_hint">Opens the VK app so you can approve the login without a second device.</string>

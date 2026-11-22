@@ -50,6 +50,22 @@ object SyncClient {
         data class Failed(val reason: String) : Result
     }
 
+    suspend fun pair(peer: PairingPayload): Result {
+        val wasRunning = SyncService.isRunning
+        try {
+            // The first exchange needs our callback to give the other device our pairing details.
+            SyncService.startForPairing()
+            val result = exchange(peer)
+            if (result is Result.Success) {
+                SyncService.isListenerEnabled = true
+                SyncScheduler.start()
+            }
+            return result
+        } finally {
+            SyncService.finishPairing(wasRunning)
+        }
+    }
+
     /**
      * Exchanges with the device described by [peer].
      *
