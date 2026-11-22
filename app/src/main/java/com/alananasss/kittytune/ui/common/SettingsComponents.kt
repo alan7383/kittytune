@@ -295,6 +295,8 @@ fun SettingsSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource? = null,
+    colors: SwitchColors? = null,
+    checkedIconTint: Color = MaterialTheme.colorScheme.primary,
 ) {
     val haptics = rememberAppHaptics()
     Switch(
@@ -314,7 +316,7 @@ fun SettingsSwitch(
                     imageVector = Icons.Rounded.Check,
                     contentDescription = null,
                     modifier = Modifier.size(SwitchDefaults.IconSize),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = checkedIconTint
                 )
             } else {
                 Icon(
@@ -325,7 +327,7 @@ fun SettingsSwitch(
                 )
             }
         },
-        colors = SwitchDefaults.colors(
+        colors = colors ?: SwitchDefaults.colors(
             checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
             checkedTrackColor = MaterialTheme.colorScheme.primary,
             uncheckedThumbColor = MaterialTheme.colorScheme.outline,
