@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">KittyTune</string>
-    <string name="msg_retrying">Tentando novamente…</string>
+    <string name="msg_retrying">Retentando...…</string>
     <string name="success_generic">Sucesso</string>
     <string name="error_generic">Algo deu errado</string>
     <string name="error_security_check">Verificação de segurança necessária</string>
@@ -16,7 +16,7 @@
     <string name="btn_delete">Deletar</string>
     <string name="btn_create">Criar</string>
     <string name="btn_close">Fechar</string>
-    <string name="music_import_transfer_in_progress_toast">Aguarde a conclusão da transferência.</string>
+    <string name="music_import_transfer_in_progress_toast">Por, favor espere a transferência completar</string>
     <string name="music_import_login_required">Para usar essa função, é preciso entrar em uma conta SoundCloud</string>
     <string name="btn_logout">Sair</string>
     <string name="btn_back">Voltar</string>
@@ -37,15 +37,15 @@
     <string name="btn_share">Compartilhar</string>
     <string name="btn_follow">Seguir</string>
     <string name="all_filters">Tudo</string>
-    <string name="nav_home">Início</string>
+    <string name="nav_home">Casa</string>
     <string name="nav_library">Biblioteca</string>
     <string name="nav_welcome">Boas-vindas</string>
-    <string name="nav_login">Entrar</string>
+    <string name="nav_login">Logar</string>
     <string name="nav_search">Pesquisar</string>
-    <string name="nav_upload">Enviar</string>
+    <string name="nav_upload">Carregar</string>
     <string name="welcome_title">Boas-vindas ao\nKittyTune</string>
-    <string name="login_title">Entrar no SoundCloud</string>
-    <string name="login_soundcloud">Conectar ao SoundCloud</string>
+    <string name="login_title">Login SoundCloud</string>
+    <string name="login_soundcloud">Conectar com SoundCloud</string>
     <string name="login_auth_in_progress">Autenticando…</string>
     <string name="login_waiting_browser">Aguardando o navegador…</string>
     <string name="login_no_browser_hint">Se o navegador não abriu, toque abaixo.</string>
