@@ -4,12 +4,18 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.alananasss.kittytune.MainActivity
@@ -18,6 +24,7 @@ import com.alananasss.kittytune.data.MusicManager
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,9 +38,11 @@ class AudioFxPresetEmulatorTest {
         val activity = compose.activity
         val name = "Late night ${System.nanoTime()}"
         val prefs = PlayerPreferences(activity)
+        val previousActivation = prefs.getAudioFxPresetActivation()
         lateinit var player: PlayerViewModel
         lateinit var previous: AudioFxPreset
         lateinit var expected: AudioFxPreset
+        lateinit var beforePreset: AudioFxPreset
         var warningWasSeen = false
 
         compose.runOnUiThread {
@@ -64,7 +73,8 @@ class AudioFxPresetEmulatorTest {
             compose.onNode(hasSetTextAction()).performTextInput("  $name  ")
             save.performClick()
 
-            compose.onNodeWithText(name).assertIsDisplayed()
+            val presetTile = compose.onNode(hasText(name) and hasAnyAncestor(hasTestTag("audio-fx-grid")))
+            presetTile.assertIsDisplayed()
             assertEquals(expected, prefs.getAudioFxPresets()[name])
             compose.runOnUiThread {
                 assertFalse(player.saveAudioFxPreset(name.uppercase(), expected))
@@ -72,16 +82,33 @@ class AudioFxPresetEmulatorTest {
                 player.setCustomSpeed(1f)
                 player.togglePitchEnabled(false)
                 player.toggleEqualizer()
+                beforePreset = player.currentAudioFxPreset
             }
 
-            compose.onNodeWithText(name).performClick()
-            compose.onNodeWithText(name).assertIsSelected()
+            presetTile.performClick()
+            presetTile.assertIsSelected()
             compose.runOnIdle {
                 assertEquals(expected.effects, player.effectsState)
                 assertEquals(expected.equalizer, player.equalizerState)
+                assertEquals(beforePreset, prefs.getAudioFxPresetActivation()?.previous)
                 assertEquals(0.9f, player.player.playbackParameters.speed, 0.001f)
                 assertEquals(0.9f, player.player.playbackParameters.pitch, 0.001f)
             }
+
+            presetTile.performClick()
+            presetTile.assertIsNotSelected()
+            compose.runOnIdle {
+                assertEquals(beforePreset, player.currentAudioFxPreset)
+                assertEquals(1f, player.player.playbackParameters.speed, 0.001f)
+                assertEquals(1f, player.player.playbackParameters.pitch, 0.001f)
+                assertNull(prefs.getAudioFxPresetActivation())
+            }
+
+            presetTile.performTouchInput { longClick() }
+            compose.onNodeWithText(activity.getString(R.string.audio_fx_delete_preset)).assertIsDisplayed()
+            compose.onNodeWithText(activity.getString(R.string.btn_delete)).performClick()
+            presetTile.assertDoesNotExist()
+            assertFalse(prefs.getAudioFxPresets().containsKey(name))
         } finally {
             compose.runOnUiThread {
                 player.deleteAudioFxPreset(name)
@@ -92,6 +119,7 @@ class AudioFxPresetEmulatorTest {
                 MusicManager.applyEqualizer(previous.equalizer)
                 prefs.saveEffects(previous.effects)
                 prefs.saveEqualizerState(previous.equalizer)
+                prefs.saveAudioFxPresetActivation(previousActivation)
             }
         }
     }

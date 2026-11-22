@@ -62,6 +62,8 @@ import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
@@ -5281,7 +5283,8 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
     var showBassBoostDialog by remember { mutableStateOf(false) }
     var showEarrapeDialog by remember { mutableStateOf(false) }
     var showEarrapeWarning by remember { mutableStateOf(false) }
-    var presetAwaitingWarning by remember { mutableStateOf<AudioFxPreset?>(null) }
+    var presetAwaitingWarning by remember { mutableStateOf<String?>(null) }
+    var presetToDelete by remember { mutableStateOf<String?>(null) }
     var showEightDDialog by remember { mutableStateOf(false) }
     var showMuffledDialog by remember { mutableStateOf(false) }
     var showReverbDialog by remember { mutableStateOf(false) }
@@ -5358,10 +5361,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
     val pinnedTiles = remember(viewModel.pinnedAudioFx, allEffects) {
         viewModel.pinnedAudioFx.mapNotNull { id -> allEffects.find { it.id == id } }
     }
-    val pages = remember(pinnedTiles) {
-        if (pinnedTiles.isEmpty()) emptyList() else pinnedTiles.chunked(6)
+    val gridItems: List<AudioFxGridItem> = remember(pinnedTiles, viewModel.audioFxPresets) {
+        viewModel.audioFxPresets.keys.reversed().map { AudioFxGridItem.Preset(it) } +
+            pinnedTiles.map { AudioFxGridItem.BuiltIn(it) }
     }
+    val pages = remember(gridItems) { gridItems.chunked(6) }
     val pagerState = rememberPagerState(pageCount = { max(1, pages.size) })
+    val activePresetName = viewModel.activeAudioFxPresetName
     val activeCount = remember(viewModel.effectsState, allEffects) {
         allEffects.count { it.isActive(viewModel.effectsState) }
     }
@@ -5526,12 +5532,12 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                 }
             }
         }
-        AudioFxPresetControls(viewModel) { preset ->
-            if (!viewModel.applyAudioFxPreset(preset)) {
-                presetAwaitingWarning = preset
-                showEarrapeWarning = true
-            }
-        }
+        AudioFxPresetControls(
+            viewModel = viewModel,
+            presetToDelete = presetToDelete,
+            onDismissDelete = { presetToDelete = null },
+            onSaved = { pagerState.requestScrollToPage(0) },
+        )
         Spacer(Modifier.height(14.dp))
 
         if (pages.isEmpty()) {
@@ -5580,6 +5586,7 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(pagerHeight)
+                    .testTag("audio-fx-grid")
             ) { pageIndex ->
                 val pageItems = pages.getOrElse(pageIndex) { emptyList() }
                 val pageOffset = abs((pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction)
@@ -5601,17 +5608,43 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            rowItems.forEach { fx ->
-                                FxTile(
-                                    label = stringResource(fx.titleRes),
-                                    icon = fx.icon,
-                                    isActive = fx.isActive(viewModel.effectsState),
-                                    onClick = hapticAction(HapticKind.UI) { fx.onToggle(viewModel) { showEarrapeWarning = true } },
-                                    onLongClick = fx.onOpenDialog,
-                                    modifier = if (rowItems.size == 1) Modifier.fillMaxWidth() else Modifier.weight(1f),
-                                    activeColor = fx.activeColor(),
-                                    activeContentColor = fx.activeContentColor()
-                                )
+                            rowItems.forEach { item ->
+                                val tileModifier = if (rowItems.size == 1) Modifier.fillMaxWidth() else Modifier.weight(1f)
+                                when (item) {
+                                    is AudioFxGridItem.BuiltIn -> {
+                                        val fx = item.definition
+                                        key(fx.id) {
+                                            FxTile(
+                                                label = stringResource(fx.titleRes),
+                                                icon = fx.icon,
+                                                isActive = fx.isActive(viewModel.effectsState),
+                                                onClick = hapticAction(HapticKind.UI) {
+                                                    fx.onToggle(viewModel) { showEarrapeWarning = true }
+                                                },
+                                                onLongClick = fx.onOpenDialog,
+                                                modifier = tileModifier,
+                                                activeColor = fx.activeColor(),
+                                                activeContentColor = fx.activeContentColor(),
+                                            )
+                                        }
+                                    }
+                                    is AudioFxGridItem.Preset -> key(item.name) {
+                                        val isActive = item.name == activePresetName
+                                        FxTile(
+                                            label = item.name,
+                                            icon = if (isActive) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                                            isActive = isActive,
+                                            onClick = {
+                                                if (!viewModel.toggleAudioFxPreset(item.name)) {
+                                                    presetAwaitingWarning = item.name
+                                                    showEarrapeWarning = true
+                                                }
+                                            },
+                                            onLongClick = { presetToDelete = item.name },
+                                            modifier = tileModifier,
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -5689,7 +5722,7 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = "${pinnedTiles.size}",
+                            text = "${gridItems.size}",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -5943,8 +5976,8 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                     TextButton(
                         onClick = hapticAction(HapticKind.UI) {
                             viewModel.setHasSeenEarrapeWarning(true)
-                            val preset = presetAwaitingWarning
-                            if (preset == null) viewModel.toggleEarrape() else viewModel.applyAudioFxPreset(preset)
+                            val presetName = presetAwaitingWarning
+                            if (presetName == null) viewModel.toggleEarrape() else viewModel.toggleAudioFxPreset(presetName)
                             dismissWarning()
                         },
                         enabled = countdown == 0
@@ -8699,7 +8732,15 @@ fun FxTile(
             if (!longPressConsumed) onClick()
             longPressConsumed = false
         },
-        modifier = modifier.height(84.dp),
+        modifier = modifier.height(84.dp).semantics {
+            selected = isActive
+            if (onLongClick != null) {
+                this.onLongClick {
+                    onLongClick()
+                    true
+                }
+            }
+        },
         shapes = ButtonDefaults.shapes(),
         interactionSource = interactionSource,
         colors = ButtonDefaults.filledTonalButtonColors(

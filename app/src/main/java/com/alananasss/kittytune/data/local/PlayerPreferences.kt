@@ -12,6 +12,7 @@ import androidx.core.content.edit
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.player.AudioEffectsState
 import com.alananasss.kittytune.ui.player.AudioFxPreset
+import com.alananasss.kittytune.ui.player.AudioFxPresetActivation
 import com.alananasss.kittytune.ui.player.EqualizerState
 import com.alananasss.kittytune.data.audio.SavedEqProfile
 import com.alananasss.kittytune.ui.player.PlaybackContext
@@ -454,6 +455,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_POSITION = "last_position"
         private const val KEY_EFFECTS = "audio_effects"
         private const val KEY_AUDIO_FX_PRESETS = "audio_fx_presets"
+        private const val KEY_AUDIO_FX_PRESET_ACTIVATION = "audio_fx_preset_activation"
         private const val KEY_CONTEXT_JSON = "last_context_json"
         private const val KEY_SHUFFLE_MODE = "shuffle_mode_enabled"
         private const val KEY_REPEAT_MODE = "repeat_mode_state"
@@ -2543,6 +2545,22 @@ class PlayerPreferences(context: Context) {
 
     fun saveAudioFxPresets(presets: Map<String, AudioFxPreset>) {
         prefs.edit { putString(KEY_AUDIO_FX_PRESETS, gson.toJson(presets)) }
+    }
+
+    internal fun getAudioFxPresetActivation(): AudioFxPresetActivation? {
+        val json = prefs.getString(KEY_AUDIO_FX_PRESET_ACTIVATION, null) ?: return null
+        return runCatching { gson.fromJson(json, AudioFxPresetActivation::class.java) }.getOrNull()?.takeIf {
+            val name: String? = it.name
+            val previous: AudioFxPreset? = it.previous
+            val effects: AudioEffectsState? = previous?.effects
+            val equalizer: EqualizerState? = previous?.equalizer
+            !name.isNullOrBlank() && effects != null && equalizer != null &&
+                effects.speed.isFinite() && effects.speed > 0f
+        }
+    }
+
+    internal fun saveAudioFxPresetActivation(activation: AudioFxPresetActivation?) {
+        prefs.edit { putString(KEY_AUDIO_FX_PRESET_ACTIVATION, activation?.let(gson::toJson)) }
     }
 
     fun getEqualizerState(): EqualizerState {

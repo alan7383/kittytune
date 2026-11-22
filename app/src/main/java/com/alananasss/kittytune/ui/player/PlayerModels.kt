@@ -145,6 +145,11 @@
         @SerializedName("equalizer") val equalizer: EqualizerState
     )
 
+    internal data class AudioFxPresetActivation(
+        @SerializedName("name") val name: String,
+        @SerializedName("previous") val previous: AudioFxPreset
+    )
+
     data class EqualizerPreset(
         val name: String,
         val bandGainsDb: List<Float>,
