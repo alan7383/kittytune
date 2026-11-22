@@ -2531,17 +2531,15 @@ class PlayerPreferences(context: Context) {
 
     fun getAudioFxPresets(): Map<String, AudioFxPreset> {
         val json = prefs.getString(KEY_AUDIO_FX_PRESETS, null) ?: return emptyMap()
-        return runCatching {
-            val type = object : TypeToken<Map<String, AudioFxPreset?>>() {}.type
-            gson.fromJson<Map<String, AudioFxPreset?>>(json, type).orEmpty().mapNotNull { (name, preset) ->
-                val effects = preset?.effects ?: return@mapNotNull null
-                val equalizer: EqualizerState? = preset.equalizer
-                if (name.isBlank() || equalizer == null || !effects.speed.isFinite() || effects.speed <= 0f) {
-                    return@mapNotNull null
-                }
-                name to AudioFxPreset(effects.copy(isEqualizerEnabled = equalizer.isEnabled), equalizer)
-            }.toMap()
-        }.getOrDefault(emptyMap())
+        val saved = runCatching { com.google.gson.JsonParser.parseString(json) }.getOrNull()
+            ?.takeIf { it.isJsonObject }?.asJsonObject ?: return emptyMap()
+        val presets = LinkedHashMap<String, AudioFxPreset>()
+        for ((rawName, element) in saved.entrySet()) {
+            val name = rawName.trim().take(AudioFxPreset.MAX_NAME_LENGTH)
+            if (name.isEmpty() || presets.keys.any { it.equals(name, ignoreCase = true) }) continue
+            decodeAudioFxPreset(element)?.let { presets[name] = it }
+        }
+        return presets
     }
 
     fun saveAudioFxPresets(presets: Map<String, AudioFxPreset>) {
@@ -2550,14 +2548,48 @@ class PlayerPreferences(context: Context) {
 
     internal fun getAudioFxPresetActivation(): AudioFxPresetActivation? {
         val json = prefs.getString(KEY_AUDIO_FX_PRESET_ACTIVATION, null) ?: return null
-        return runCatching { gson.fromJson(json, AudioFxPresetActivation::class.java) }.getOrNull()?.takeIf {
-            val name: String? = it.name
-            val previous: AudioFxPreset? = it.previous
-            val effects: AudioEffectsState? = previous?.effects
-            val equalizer: EqualizerState? = previous?.equalizer
-            !name.isNullOrBlank() && effects != null && equalizer != null &&
-                effects.speed.isFinite() && effects.speed > 0f
+        val saved = runCatching { com.google.gson.JsonParser.parseString(json) }.getOrNull()
+            ?.takeIf { it.isJsonObject }?.asJsonObject ?: return null
+        val name = saved.get("name")?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotBlank() } ?: return null
+        val previous = decodeAudioFxPreset(saved.get("previous")) ?: return null
+        return AudioFxPresetActivation(name, previous)
+    }
+
+    /**
+     * Reads a preset whatever version of the app wrote it. Gson fills a missing field with null or zero
+     * rather than its Kotlin default, so a preset saved before an effect existed came back with holes in
+     * it; each part is laid over a default instance instead, and numbers that cannot be right fall back.
+     */
+    private fun decodeAudioFxPreset(element: com.google.gson.JsonElement?): AudioFxPreset? {
+        val saved = element?.takeIf { it.isJsonObject }?.asJsonObject ?: return null
+        val effects = decodeWithDefaults(saved.get("effects"), AudioEffectsState(), AudioEffectsState::class.java) ?: return null
+        val equalizer = decodeWithDefaults(saved.get("equalizer"), EqualizerState(), EqualizerState::class.java) ?: EqualizerState()
+        val gains = List(16) { i ->
+            equalizer.bandGainsDb.getOrNull(i)?.takeIf { it.isFinite() }?.coerceIn(-12f, 12f) ?: 0f
         }
+        val cleanEqualizer = equalizer.copy(
+            bandGainsDb = gains,
+            preampDb = equalizer.preampDb.takeIf { it.isFinite() }?.coerceIn(-12f, 12f) ?: 0f,
+        )
+        val speed = effects.speed.takeIf { it.isFinite() && it > 0f }?.coerceIn(0.5f, 2f) ?: 1f
+        return AudioFxPreset(effects.copy(speed = speed), cleanEqualizer).portable()
+    }
+
+    /** [defaults] with every field [element] holds that still makes a valid object laid on top. */
+    private fun <T : Any> decodeWithDefaults(element: com.google.gson.JsonElement?, defaults: T, type: Class<T>): T? {
+        val saved = element?.takeIf { it.isJsonObject }?.asJsonObject ?: return null
+        fun valid(value: T?): Boolean = value != null && runCatching { value.hashCode() }.isSuccess
+        val merged = gson.toJsonTree(defaults).asJsonObject
+        saved.entrySet().forEach { (key, value) -> if (!value.isJsonNull) merged.add(key, value) }
+        runCatching { gson.fromJson(merged, type) }.getOrNull()?.takeIf(::valid)?.let { return it }
+        // Something in there does not fit (an unknown enum, a string where a number was): keep the rest.
+        val safe = gson.toJsonTree(defaults).asJsonObject
+        for ((key, value) in saved.entrySet()) {
+            if (value.isJsonNull) continue
+            val attempt = safe.deepCopy().apply { add(key, value) }
+            if (valid(runCatching { gson.fromJson(attempt, type) }.getOrNull())) safe.add(key, value)
+        }
+        return runCatching { gson.fromJson(safe, type) }.getOrNull()?.takeIf(::valid)
     }
 
     internal fun saveAudioFxPresetActivation(activation: AudioFxPresetActivation?) {
@@ -2815,11 +2847,8 @@ class PlayerPreferences(context: Context) {
                 gson.fromJson<List<String?>>(raw, type)?.filterNotNull()?.distinct()
             }.getOrNull()
         } ?: DEFAULT_PINNED_AUDIO_FX
-        if (stored == null) {
-            // Previously all saved presets appeared in the grid, ahead of the pinned effects.
-            return getAudioFxPresets().keys.reversed().map { AudioFxPreset.tileId(it) } + pinned
-        }
-        return pinned
+        // Saved presets have a row of their own now; the grid holds effects only.
+        return pinned.filterNot(AudioFxPreset::isTileId)
     }
 
     fun setPinnedAudioFx(fxIds: List<String>) {
