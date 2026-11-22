@@ -3172,6 +3172,11 @@
     <string name="together_invite_prompt_generic">Csatlakozol ehhez a Together munkamenethez?</string>
     <string name="together_invite_prompt_desc">Csatlakozz az élő munkamenethez, hogy valós időben ugyanazt a zenét hallgasd.</string>
     <string name="together_invite_connecting">Csatlakozás az élő munkamenethez…</string>
+    <string name="together_invite_confirm">Csatlakozás a munkamenethez</string>
+    <string name="together_invite_nickname">Becenév</string>
+    <string name="together_invite_nickname_hint">A többi résztvevő ezt a nevet látja.</string>
+    <string name="together_invite_default_nickname">Vendég</string>
+    <string name="together_invite_waiting_track">Várakozás a következő zeneszámra…</string>
     <string name="together_invite_view_only">Szoba megnyitása lejátszás nélkül</string>
     <string name="together_show_all_tracks">Összes megjelenítése (%1$d)</string>
     <string name="discord_listen_along_title">Közös hallgatás gomb</string>

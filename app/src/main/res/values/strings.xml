@@ -3230,6 +3230,11 @@
     <string name="together_invite_prompt_generic">Join this Together session?</string>
     <string name="together_invite_prompt_desc">Join this live session to hear the exact same music in real time.</string>
     <string name="together_invite_connecting">Connecting to live session…</string>
+    <string name="together_invite_confirm">Join session</string>
+    <string name="together_invite_nickname">Nickname</string>
+    <string name="together_invite_nickname_hint">Other participants will see this name.</string>
+    <string name="together_invite_default_nickname">Guest</string>
+    <string name="together_invite_waiting_track">Waiting for the host to play a track…</string>
     <string name="together_invite_view_only">Open room without playing</string>
     <string name="together_show_all_tracks">Show all (%1$d)</string>
 <string name="discord_listen_along_title">Listen Along button</string>

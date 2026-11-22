@@ -3144,6 +3144,11 @@
     <string name="together_invite_prompt_generic">Bu Together oturumuna katılmak ister misin?</string>
     <string name="together_invite_prompt_desc">Aynı müziği gerçek zamanlı olarak birlikte dinlemek için oturuma katıl.</string>
     <string name="together_invite_connecting">Canlı oturuma bağlanılıyor…</string>
+    <string name="together_invite_confirm">Oturuma katıl</string>
+    <string name="together_invite_nickname">Takma ad</string>
+    <string name="together_invite_nickname_hint">Diğer katılımcılar bu adı görecek.</string>
+    <string name="together_invite_default_nickname">Misafir</string>
+    <string name="together_invite_waiting_track">Oturum sahibinin bir parça çalması bekleniyor…</string>
     <string name="together_invite_view_only">Çalmadan odayı görüntüle</string>
     <string name="together_show_all_tracks">Tümünü göster (%1$d)</string>
     <string name="discord_listen_along_title">Birlikte Dinle düğmesi</string>

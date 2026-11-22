@@ -4659,7 +4659,7 @@ query CommentsWithReactions(
                 playerPrefs.setCachedUserId(me.id)
                 playerPrefs.setCachedUsername(me.username)
                 playerPrefs.setCachedAvatarUrl(me.avatarUrl)
-                com.alananasss.kittytune.data.together.Together.defaultName = me.username ?: "Listener"
+                com.alananasss.kittytune.data.together.Together.defaultName = me.username
                 com.alananasss.kittytune.data.together.Together.soundCloudAvatarUrl = me.avatarUrl
                 SoundCloudTelemetryTracker.updateCurrentUserId(me.id)
             } catch (_: Exception) {

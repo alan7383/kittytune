@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,27 +20,40 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.PersonOutline
 import androidx.compose.material.icons.rounded.Podcasts
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -52,14 +65,12 @@ import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import com.alananasss.kittytune.ui.common.hapticAction
 
 /**
- * Material 3 Expressive invite prompt sheet shown when a user opens an invite link/code
- * without an explicit auto-join flag, letting them preview who is hosting & what is playing
- * before joining the live session.
+ * Previews an invitation without joining and asks which name to share with the session.
  */
 @Composable
 fun TogetherInviteSheet(
     code: String,
-    onJoinAndListen: (String) -> Unit,
+    onJoinAndListen: (String, String) -> Unit,
     onOpenRoomOnly: (String) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
@@ -68,6 +79,10 @@ fun TogetherInviteSheet(
     val selfAvatarUrl by Together.myAvatarUrlFlow.collectAsState()
     val room = rooms[normalized] ?: Together.Room(normalized, "")
     val cs = MaterialTheme.colorScheme
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val defaultNickname = stringResource(R.string.together_invite_default_nickname)
+    var nickname by rememberSaveable(normalized) { mutableStateOf(Together.displayName(defaultNickname)) }
 
     DisposableEffect(normalized) {
         Together.previewRoom(normalized)
@@ -77,8 +92,7 @@ fun TogetherInviteSheet(
     }
 
     val hostName = room.hostDisplayName
-        ?: room.name.substringBefore("·").trim().takeIf { it.isNotBlank() }
-    val isLive = room.hasLiveHost || room.listeners.isNotEmpty()
+    val isLive = room.hasLiveHost
 
     KittyModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -87,15 +101,15 @@ fun TogetherInviteSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .padding(bottom = 28.dp)
-                .navigationBarsPadding(),
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             ExpressiveCookieBadge(
                 isActive = isLive,
-                size = 76.dp,
+                size = 68.dp,
                 activeColor = cs.primary,
                 inactiveColor = cs.secondaryContainer,
             ) {
@@ -154,6 +168,8 @@ fun TogetherInviteSheet(
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
                 color = cs.onSurface,
             )
 
@@ -216,7 +232,10 @@ fun TogetherInviteSheet(
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
-                                text = stringResource(R.string.together_invite_connecting),
+                                text = stringResource(
+                                    if (isLive) R.string.together_invite_waiting_track
+                                    else R.string.together_invite_connecting
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = cs.onSurfaceVariant,
                             )
@@ -244,36 +263,65 @@ fun TogetherInviteSheet(
                 }
             }
 
+            OutlinedTextField(
+                value = nickname,
+                onValueChange = { nickname = it },
+                modifier = Modifier.fillMaxWidth().testTag("together-invite-nickname"),
+                label = { Text(stringResource(R.string.together_invite_nickname)) },
+                supportingText = { Text(stringResource(R.string.together_invite_nickname_hint)) },
+                leadingIcon = { Icon(Icons.Rounded.PersonOutline, contentDescription = null) },
+                singleLine = true,
+                shape = RoundedCornerShape(20.dp),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    focusManager.clearFocus()
+                    keyboard?.hide()
+                }),
+            )
+
             Button(
                 onClick = hapticAction(HapticKind.MEDIUM) {
-                    onJoinAndListen(normalized)
+                    onJoinAndListen(normalized, nickname.trim())
                 },
+                enabled = nickname.isNotBlank(),
                 shapes = ButtonDefaults.shapes(),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .heightIn(min = 54.dp),
             ) {
                 Icon(Icons.Rounded.Headphones, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    text = stringResource(R.string.together_listen),
+                    text = stringResource(R.string.together_invite_confirm),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
             }
 
-            FilledTonalButton(
-                onClick = hapticAction(HapticKind.UI) {
-                    onOpenRoomOnly(normalized)
-                },
-                shapes = ButtonDefaults.shapes(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.AutoMirrored.Rounded.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.together_invite_view_only))
+                OutlinedButton(
+                    onClick = hapticAction(HapticKind.UI, onDismissRequest),
+                    shapes = ButtonDefaults.shapes(),
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+                FilledTonalButton(
+                    onClick = hapticAction(HapticKind.UI) { onOpenRoomOnly(normalized) },
+                    shapes = ButtonDefaults.shapes(),
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                ) {
+                    Icon(Icons.AutoMirrored.Rounded.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        stringResource(R.string.together_invite_view_only),
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }

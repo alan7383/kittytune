@@ -47,17 +47,8 @@ object TogetherLinks {
         return "${WEB_BASE_URL}?together=$formatted"
     }
 
-    fun appDeepLink(code: String, autoJoin: Boolean = false): String {
-        val formatted = TogetherWire.displayCode(code)
-        val suffix = if (autoJoin) "?join=1" else ""
-        return "$APP_SCHEME://$APP_HOST_TOGETHER/$formatted$suffix"
-    }
-
-    fun isAutoJoinUri(uri: Uri?): Boolean {
-        if (uri == null) return false
-        val joinParam = uri.getQueryParameter("join") ?: uri.getQueryParameter("autojoin")
-        return joinParam == "1" || joinParam.equals("true", ignoreCase = true)
-    }
+    fun appDeepLink(code: String): String =
+        "$APP_SCHEME://$APP_HOST_TOGETHER/${TogetherWire.displayCode(code)}"
 
     fun extractCodeFromUri(uri: Uri?): String? {
         if (uri == null) return null

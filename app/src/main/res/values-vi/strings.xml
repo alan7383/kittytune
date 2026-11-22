@@ -3176,6 +3176,11 @@
     <string name="together_invite_prompt_generic">Tham gia phiên Together này?</string>
     <string name="together_invite_prompt_desc">Tham gia phiên trực tiếp để nghe cùng bản nhạc theo thời gian thực.</string>
     <string name="together_invite_connecting">Đang kết nối tới phiên trực tiếp…</string>
+    <string name="together_invite_confirm">Tham gia phiên</string>
+    <string name="together_invite_nickname">Biệt danh</string>
+    <string name="together_invite_nickname_hint">Những người tham gia khác sẽ thấy tên này.</string>
+    <string name="together_invite_default_nickname">Khách</string>
+    <string name="together_invite_waiting_track">Đang chờ chủ phòng phát một bài hát…</string>
     <string name="together_invite_view_only">Xem phòng mà không phát nhạc</string>
     <string name="together_show_all_tracks">Hiện tất cả (%1$d)</string>
     <string name="discord_listen_along_title">Nút Nghe cùng</string>

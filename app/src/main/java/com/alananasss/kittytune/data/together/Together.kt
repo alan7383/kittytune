@@ -155,12 +155,17 @@ object Together {
     }
 
     var myName: String
-        get() = prefs()?.getString(KEY_NAME, null)?.takeIf { it.isNotBlank() } ?: defaultName
+        get() = displayName("Listener")
         set(value) = prefs()?.edit()?.putString(KEY_NAME, value.trim())?.apply() ?: Unit
 
     /** Filled in by the app with the signed-in account's name. */
     @Volatile
-    var defaultName: String = "Listener"
+    var defaultName: String? = null
+
+    fun displayName(fallback: String): String =
+        prefs()?.getString(KEY_NAME, null)?.takeIf { it.isNotBlank() }
+            ?: defaultName?.takeIf { it.isNotBlank() }
+            ?: fallback
 
     private val _myAvatarUrlFlow = MutableStateFlow<String?>(null)
     val myAvatarUrlFlow: StateFlow<String?> = _myAvatarUrlFlow.asStateFlow()
@@ -511,9 +516,12 @@ object Together {
      * Joins an invite link or code and immediately begins listening along to the live host
      * without prematurely claiming host before the host's [TogetherMessage.State] arrives.
      */
-    fun joinAndListen(codeOrLink: String): Saved? {
+    fun joinAndListen(codeOrLink: String, nickname: String? = null): Saved? {
         val extracted = TogetherLinks.extractCode(codeOrLink, allowRawCode = true) ?: return null
+        val displayName = nickname?.trim()
+        if (displayName != null && displayName.isEmpty()) return null
         val saved = join(extracted) ?: return null
+        if (displayName != null) myName = displayName
         val code = saved.code
         val isJoining = switchRoom(code)
         val now = System.currentTimeMillis()

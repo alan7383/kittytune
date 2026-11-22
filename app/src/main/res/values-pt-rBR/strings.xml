@@ -3218,6 +3218,11 @@
     <string name="together_invite_prompt_generic">Entrar nesta sessão Together?</string>
     <string name="together_invite_prompt_desc">Entre nesta sessão ao vivo para ouvir exatamente a mesma música em tempo real.</string>
     <string name="together_invite_connecting">Conectando à sessão ao vivo…</string>
+    <string name="together_invite_confirm">Entrar na sessão</string>
+    <string name="together_invite_nickname">Apelido</string>
+    <string name="together_invite_nickname_hint">Os outros participantes verão este nome.</string>
+    <string name="together_invite_default_nickname">Visitante</string>
+    <string name="together_invite_waiting_track">Aguardando o anfitrião tocar uma faixa…</string>
     <string name="together_invite_view_only">Abrir sala sem reproduzir</string>
     <string name="together_show_all_tracks">Mostrar tudo (%1$d)</string>
     <string name="discord_listen_along_title">Botão Ouvir junto</string>

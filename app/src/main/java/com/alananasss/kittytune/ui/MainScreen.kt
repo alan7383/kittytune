@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -159,7 +160,6 @@ fun MainScreen(
     initialSearchQuery: String? = null,
     onSearchHandled: () -> Unit = {},
     pendingTogetherCode: String? = null,
-    pendingTogetherAutoJoin: Boolean = false,
     onTogetherHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -316,20 +316,12 @@ fun MainScreen(
         }
     }
 
-    var invitePromptCode by remember { mutableStateOf<String?>(null) }
+    var invitePromptCode by rememberSaveable { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(pendingTogetherCode, pendingTogetherAutoJoin, currentDestination) {
+    LaunchedEffect(pendingTogetherCode, currentDestination) {
         val code = pendingTogetherCode
         if (!code.isNullOrBlank() && currentDestination != null && currentDestination.route != Screen.Welcome.route) {
-            playerViewModel.isPlayerExpanded = false
-            if (pendingTogetherAutoJoin || com.alananasss.kittytune.data.together.Together.active.value == code) {
-                com.alananasss.kittytune.data.together.Together.joinAndListen(code)
-                navController.navigate("together_room/$code") {
-                    launchSingleTop = true
-                }
-            } else {
-                invitePromptCode = code
-            }
+            invitePromptCode = code
             onTogetherHandled()
         }
     }
@@ -913,6 +905,7 @@ fun MainScreen(
                                     id == "listening_stats" -> navController.navigate("listening_stats")
                                     id == "charts" -> navController.navigate("charts")
                                     id == "together" -> navController.navigate("together")
+                                    id.startsWith("together_invite/") -> invitePromptCode = id.substringAfter('/')
                                     id == "genres" -> navController.navigate("genres")
                                     id == "new_releases" -> navController.navigate("new_releases")
                                     id == "history" || id == Screen.History.route -> navController.navigate(Screen.History.route)
@@ -2643,15 +2636,18 @@ fun MainScreen(
         invitePromptCode?.let { promptCode ->
             com.alananasss.kittytune.ui.together.TogetherInviteSheet(
                 code = promptCode,
-                onJoinAndListen = { joinedCode ->
-                    invitePromptCode = null
-                    com.alananasss.kittytune.data.together.Together.joinAndListen(joinedCode)
-                    navController.navigate("together_room/$joinedCode") {
-                        launchSingleTop = true
+                onJoinAndListen = { code, nickname ->
+                    com.alananasss.kittytune.data.together.Together.joinAndListen(code, nickname)?.let { joined ->
+                        invitePromptCode = null
+                        playerViewModel.isPlayerExpanded = false
+                        navController.navigate("together_room/${joined.code}") {
+                            launchSingleTop = true
+                        }
                     }
                 },
                 onOpenRoomOnly = { viewCode ->
                     invitePromptCode = null
+                    playerViewModel.isPlayerExpanded = false
                     com.alananasss.kittytune.data.together.Together.join(viewCode)
                     navController.navigate("together_room/$viewCode") {
                         launchSingleTop = true

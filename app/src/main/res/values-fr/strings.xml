@@ -3189,6 +3189,11 @@
     <string name="together_invite_prompt_generic">Rejoindre cette session Together ?</string>
     <string name="together_invite_prompt_desc">Rejoins cette session en direct pour écouter exactement la même musique au même instant.</string>
     <string name="together_invite_connecting">Connexion à la session en direct…</string>
+    <string name="together_invite_confirm">Rejoindre la session</string>
+    <string name="together_invite_nickname">Pseudo</string>
+    <string name="together_invite_nickname_hint">Les autres participants verront ce pseudo.</string>
+    <string name="together_invite_default_nickname">Invité</string>
+    <string name="together_invite_waiting_track">En attente d’un morceau…</string>
     <string name="together_invite_view_only">Voir le salon sans lancer la lecture</string>
     <string name="together_show_all_tracks">Tout afficher (%1$d)</string>
     <string name="discord_listen_along_title">Bouton Écouter ensemble</string>

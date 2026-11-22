@@ -3189,6 +3189,11 @@
     <string name="together_invite_prompt_generic">Dieser Together-Sitzung beitreten?</string>
     <string name="together_invite_prompt_desc">Tritt dieser Live-Sitzung bei, um genau dieselbe Musik synchron mitzuhören.</string>
     <string name="together_invite_connecting">Verbinde mit Live-Sitzung…</string>
+    <string name="together_invite_confirm">Sitzung beitreten</string>
+    <string name="together_invite_nickname">Spitzname</string>
+    <string name="together_invite_nickname_hint">Andere Teilnehmende sehen diesen Namen.</string>
+    <string name="together_invite_default_nickname">Gast</string>
+    <string name="together_invite_waiting_track">Warten auf einen Titel vom Host…</string>
     <string name="together_invite_view_only">Raum ohne Wiedergabe öffnen</string>
     <string name="together_show_all_tracks">Alle anzeigen (%1$d)</string>
     <string name="discord_listen_along_title">Mithören-Button</string>

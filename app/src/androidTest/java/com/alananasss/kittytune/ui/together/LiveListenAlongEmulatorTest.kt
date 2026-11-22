@@ -5,10 +5,14 @@ import android.net.Uri
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -20,11 +24,13 @@ import com.alananasss.kittytune.data.together.Together
 import com.alananasss.kittytune.data.together.TogetherLinks
 import com.alananasss.kittytune.data.together.TogetherWire
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.utils.LocaleUtils
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -99,8 +105,10 @@ class LiveListenAlongEmulatorTest {
     }
 
     @Test
-    fun deepLinkIntentShowsInvitePromptThenJoinsTogetherRoomWithoutStealingHost() {
+    fun deepLinksAskForConfirmationAndOnlyUseTheChosenNicknameAfterJoining() {
         val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
+        Together.init(targetContext)
+        val strings = LocaleUtils.updateBaseContextLocale(targetContext)
         val prefs = PlayerPreferences(targetContext)
         val tokenManager = com.alananasss.kittytune.data.TokenManager(targetContext)
         val wasSetupCompleted = prefs.isSetupCompleted()
@@ -108,41 +116,58 @@ class LiveListenAlongEmulatorTest {
         prefs.setSetupCompleted(true)
         tokenManager.setGuestMode(true)
 
-        val remoteCode = "R4S6T8V2"
-        Together.forget(remoteCode)
+        val remoteCode = TogetherWire.newCode()
+        val previousName = Together.myName
+        Together.stopListening()
+        Together.myName = "Original listener"
 
         try {
-            val inviteUri = Uri.parse(TogetherLinks.appDeepLink(remoteCode, autoJoin = false))
-            assertEquals(remoteCode, TogetherLinks.extractCodeFromUri(inviteUri))
-            assertFalse(TogetherLinks.isAutoJoinUri(inviteUri))
-
-            val autoJoinUri = Uri.parse(TogetherLinks.appDeepLink(remoteCode, autoJoin = true))
-            assertTrue(TogetherLinks.isAutoJoinUri(autoJoinUri))
-
-            val launchIntent = Intent(Intent.ACTION_VIEW, inviteUri).apply {
+            val invite = TogetherLinks.appDeepLink(remoteCode)
+            val legacyInvite = Uri.parse("$invite?join=1")
+            val launchIntent = Intent(Intent.ACTION_VIEW, legacyInvite).apply {
                 setClass(targetContext, MainActivity::class.java)
             }
 
-            ActivityScenario.launch<MainActivity>(launchIntent).use { scenario ->
-                val listenLabel = targetContext.getString(R.string.together_listen)
-                compose.waitUntil(10_000) {
-                    compose.onAllNodesWithText(listenLabel).fetchSemanticsNodes().isNotEmpty()
+            val scenario = ActivityScenario.launch<MainActivity>(launchIntent)
+            try {
+                val joinLabel = strings.getString(R.string.together_invite_confirm)
+                fun waitForInvite() {
+                    compose.waitUntil(10_000) {
+                        compose.onAllNodesWithText(joinLabel).fetchSemanticsNodes().isNotEmpty()
+                    }
                 }
-                compose.onNodeWithText(listenLabel).performClick()
+                waitForInvite()
+                assertNull(Together.active.value)
+                assertFalse(Together.saved.value.any { it.code == remoteCode })
+
+                val name = compose.onNodeWithTag("together-invite-nickname")
+                name.performTextReplacement("Discarded nickname")
+                compose.onNodeWithText(strings.getString(R.string.btn_cancel)).performClick()
+                compose.onNodeWithText(joinLabel).assertDoesNotExist()
+                assertNull(Together.active.value)
+                assertEquals("Original listener", Together.myName)
+
+                scenario.recreate()
+                compose.onNodeWithText(joinLabel).assertDoesNotExist()
+                scenario.onActivity { it.onNewIntent(Intent(Intent.ACTION_VIEW, Uri.parse(invite))) }
+                waitForInvite()
+                name.performTextClearance()
+                compose.onNodeWithText(joinLabel).assertIsNotEnabled()
+                name.performTextReplacement("  DJ Nébuleuse  ")
+                compose.onNodeWithText(joinLabel).performClick()
 
                 compose.waitUntil(10_000) { Together.active.value == remoteCode }
-                assertEquals(remoteCode, Together.active.value)
-                // Joining via invite link must wait for the real host's State instead of stealing host!
+                assertEquals("DJ Nébuleuse", Together.myName)
                 assertFalse(Together.isHostOf(remoteCode))
 
                 val formattedCode = TogetherWire.displayCode(remoteCode)
                 compose.waitUntil(10_000) { compose.onAllNodesWithText(formattedCode).fetchSemanticsNodes().isNotEmpty() }
-
-                Together.forget(remoteCode)
-                scenario.onActivity { it.setContent { Box {} } }
+            } finally {
+                scenario.onActivity { it.finishAndRemoveTask() }
             }
         } finally {
             Together.forget(remoteCode)
+            Together.myName = previousName
             prefs.setSetupCompleted(wasSetupCompleted)
             tokenManager.setGuestMode(wasGuest)
         }

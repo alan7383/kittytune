@@ -3216,6 +3216,11 @@
     <string name="together_invite_prompt_generic">Присоединиться к сессии Together?</string>
     <string name="together_invite_prompt_desc">Присоединяйтесь к прямому эфиру, чтобы слушать ту же музыку синхронно.</string>
     <string name="together_invite_connecting">Подключение к эфиру…</string>
+    <string name="together_invite_confirm">Присоединиться к сессии</string>
+    <string name="together_invite_nickname">Псевдоним</string>
+    <string name="together_invite_nickname_hint">Другие участники увидят это имя.</string>
+    <string name="together_invite_default_nickname">Гость</string>
+    <string name="together_invite_waiting_track">Ждём, пока ведущий включит трек…</string>
     <string name="together_invite_view_only">Открыть комнату без воспроизведения</string>
     <string name="together_show_all_tracks">Показать все (%1$d)</string>
     <string name="discord_listen_along_title">Кнопка «Слушать вместе»</string>
