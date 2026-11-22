@@ -644,9 +644,9 @@ class PlayerPreferences(context: Context) {
 
         private const val KEY_BOTTOM_MENU_STYLE = "bottom_menu_style"
         private const val KEY_BOTTOM_MENU_ITEMS = "bottom_menu_items_csv"
-        const val DEFAULT_BOTTOM_MENU_ITEMS = "home,feed,search,genres,library"
+        const val DEFAULT_BOTTOM_MENU_ITEMS = "home,search,genres,library"
         private const val KEY_BOTTOM_MENU_ORDER = "bottom_menu_order_csv"
-        private const val KEY_FEED_TAB_MIGRATED = "feed_tab_migrated"
+        private const val KEY_FEED_DEFAULT_OFF_CLEANUP = "feed_default_off_cleanup"
         private const val KEY_BOTTOM_MENU_FAB = "bottom_menu_fab"
         private const val KEY_BOTTOM_MENU_BLUR = "bottom_menu_blur_enabled"
         const val KEY_MINI_PLAYER_SWIPE_ACTION = "mini_player_swipe_action"
@@ -716,6 +716,7 @@ class PlayerPreferences(context: Context) {
         // ── Ported feature keys ──
         // Use a new key so choices saved before this reset fall back to FADE.
         const val KEY_LYRICS_LINE_ANIMATION = "lyrics_line_animation_v2"
+        private const val KEY_LYRICS_LINE_ANIMATION_FORCE_DISABLED = "lyrics_line_animation_force_disabled"
         const val KEY_INSTRUMENTAL_INDICATOR = "instrumental_indicator_style"
         const val KEY_TABLET_NAV_PLACEMENT = "tablet_nav_placement"
         const val KEY_TABLET_SIDE_PLAYER = "tablet_side_player"
@@ -1085,6 +1086,13 @@ class PlayerPreferences(context: Context) {
     // ── Ported feature accessors ──────────────────────────────────────────────────
 
     fun getLyricsLineAnimation(): LyricsLineAnimation {
+        if (!prefs.getBoolean(KEY_LYRICS_LINE_ANIMATION_FORCE_DISABLED, false)) {
+            prefs.edit {
+                putString(KEY_LYRICS_LINE_ANIMATION, LyricsLineAnimation.FADE.name)
+                putBoolean(KEY_LYRICS_LINE_ANIMATION_FORCE_DISABLED, true)
+            }
+            return LyricsLineAnimation.FADE
+        }
         val name = prefs.getString(KEY_LYRICS_LINE_ANIMATION, LyricsLineAnimation.FADE.name)
         return runCatching { LyricsLineAnimation.valueOf(name!!) }.getOrDefault(LyricsLineAnimation.FADE)
     }
@@ -2078,20 +2086,19 @@ class PlayerPreferences(context: Context) {
     fun getBottomMenuItems(): List<String> {
         val csv = prefs.getString(KEY_BOTTOM_MENU_ITEMS, DEFAULT_BOTTOM_MENU_ITEMS) ?: DEFAULT_BOTTOM_MENU_ITEMS
         var items = csv.split(",").filter { it.isNotBlank() }
-        // The feed tab ships enabled for everyone: a one-time insertion for existing installs, so
-        // users who never touched the bottom-bar settings still get the new tab. The flag keeps
-        // the migration from resurrecting the tab after the user deliberately hides it.
-        if (!prefs.getBoolean(KEY_FEED_TAB_MIGRATED, false)) {
-            if ("feed" !in items) {
-                items = if ("home" in items) {
-                    items.flatMap { listOf(it) + if (it == "home") listOf("feed") else emptyList() }.distinct()
-                } else {
-                    listOf("feed") + items
+        // The feed tab is disabled by default. If any previous installation received "feed"
+        // enabled automatically via the previous migration or default, clean it up once so it
+        // stays off unless explicitly enabled by the user in settings.
+        if (!prefs.getBoolean(KEY_FEED_DEFAULT_OFF_CLEANUP, false)) {
+            if ("feed" in items && (csv == "home,feed,search,genres,library" || prefs.getBoolean("feed_tab_migrated", false))) {
+                items = items.filter { it != "feed" }
+                prefs.edit {
+                    putString(KEY_BOTTOM_MENU_ITEMS, items.joinToString(","))
                 }
             }
             prefs.edit {
-                putString(KEY_BOTTOM_MENU_ITEMS, items.joinToString(","))
-                putBoolean(KEY_FEED_TAB_MIGRATED, true)
+                putBoolean(KEY_FEED_DEFAULT_OFF_CLEANUP, true)
+                remove("feed_tab_migrated")
             }
         }
         return items
