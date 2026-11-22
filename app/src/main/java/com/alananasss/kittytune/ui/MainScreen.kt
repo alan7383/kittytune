@@ -2464,9 +2464,14 @@ fun MainScreen(
         var showWhatsNew by remember {
             mutableStateOf(com.alananasss.kittytune.ui.common.WhatsNew.shouldShow(context, prefs.isSetupCompleted()))
         }
+        // Someone who opened the app from a Together invite (the website's "Open in KittyTune", a shared
+        // link) came to listen: the announcements wait for a later launch instead of covering the room.
+        var openedFromTogetherLink by remember { mutableStateOf(pendingTogetherCode != null) }
+        LaunchedEffect(pendingTogetherCode) { if (pendingTogetherCode != null) openedFromTogetherLink = true }
         val petRoute = navController.currentDestination?.route
         val announcementBlocked = petRoute == Screen.Welcome.route || petRoute == Screen.Login.route ||
-            updateStatus == UpdateStatus.AVAILABLE || updateStatus == UpdateStatus.DOWNLOADING
+            updateStatus == UpdateStatus.AVAILABLE || updateStatus == UpdateStatus.DOWNLOADING ||
+            openedFromTogetherLink || invitePromptCode != null || petRoute?.startsWith("together_room") == true
         if (showWhatsNew && !announcementBlocked) {
             com.alananasss.kittytune.ui.common.WhatsNewSheet(
                 onDone = {
