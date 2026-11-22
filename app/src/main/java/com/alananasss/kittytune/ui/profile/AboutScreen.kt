@@ -197,7 +197,7 @@ fun AboutScreen(
                                     imageVector = if (isUpdateDownloaded) Icons.Outlined.InstallMobile else Icons.Rounded.Refresh,
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = if (isUpdateDownloaded) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
                                 )
                                 Spacer(Modifier.width(12.dp))
                             }

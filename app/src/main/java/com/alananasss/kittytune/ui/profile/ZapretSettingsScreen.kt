@@ -184,7 +184,7 @@ fun ZapretSettingsScreen(
                             .padding(horizontal = 16.dp, vertical = 6.dp),
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
                         )
                     ) {
                         Row(
@@ -195,7 +195,7 @@ fun ZapretSettingsScreen(
                             Icon(
                                 Icons.Rounded.Security,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.tertiary
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer
                             )
                             Text(
                                 stringResource(R.string.zapret_vpn_active_notice),
