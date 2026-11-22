@@ -1070,7 +1070,7 @@
     <string name="about_credits_translation_section">Übersetzungen</string>
     <string name="about_credits_community_section">Community und Qualitätssicherung</string>
     <string name="about_credits_filter_all">Alle</string>
-    <string name="about_credits_filter_dev">Dev</string>
+    <string name="about_credits_filter_dev">Entwicklung</string>
     <string name="about_credits_filter_translation">Übersetzungen</string>
     <string name="about_credits_filter_community">Community</string>
     <string name="about_role_dev">Erfinder &amp; Hauptentwickler</string>
@@ -3794,7 +3794,6 @@
     <string name="feed_empty_discover">Gerade gibt es nichts zu entdecken</string>
     <string name="feed_loading">Feed wird geladen…</string>
     <string name="feed_error">Feed konnte nicht geladen werden</string>
-    <string name="feed_open_player">Player öffnen</string>
     <string name="feed_like">Gefällt mir</string>
     <string name="feed_dislike">Gefällt mir nicht</string>
     <string name="feed_comments">Kommentare</string>
@@ -3818,4 +3817,19 @@
     <string name="pref_feed_video_samples">YouTube-Videoausschnitte</string>
     <string name="pref_feed_video_samples_desc">Stumme Musikvideoausschnitte anzeigen, wenn kein animiertes Cover verfügbar ist</string>
     <string name="artist_clip_resolution">%1$dp</string>
+    <string name="whats_new_badge">Neuigkeiten</string>
+    <string name="whats_new_together_title">Gemeinsam hören</string>
+    <string name="whats_new_together_body">Starte eine Live-Session und teile einen Link oder Code: Deine Freunde hören genau dieselbe Musik wie du, in Echtzeit, auf dem Handy oder am Computer.</string>
+    <string name="whats_new_together_action">Together öffnen</string>
+    <string name="whats_new_reactions_title">Reaktionen &amp; QR-Einladungen</string>
+    <string name="whats_new_reactions_body">Sende Live-Emoji-Reaktionen, lade andere per QR-Code ein und sieh auf einen Blick, ob alle synchron sind.</string>
+    <string name="whats_new_playlists_title">Geteilte Playlists</string>
+    <string name="whats_new_playlists_body">Erstellt gemeinsam eine Playlist: Alle schlagen Titel vor, der Host nimmt sie an, und sie bleibt synchron, auch wenn gerade niemand abspielt.</string>
+    <string name="whats_new_discord_title">Discord-Status</string>
+    <string name="whats_new_discord_body">Zeig auf deinem Discord-Profil, was du gerade hörst. Während einer Live-Session können Freunde über die Schaltfläche „Live mithören“ mit einem Klick dazukommen.</string>
+    <string name="whats_new_discord_action">Discord einrichten</string>
+    <string name="whats_new_next">Weiter</string>
+    <string name="whats_new_back">Zurück</string>
+    <string name="whats_new_skip">Überspringen</string>
+    <string name="whats_new_done">Alles klar</string>
 </resources>

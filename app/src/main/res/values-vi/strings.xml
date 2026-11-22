@@ -3794,7 +3794,6 @@
     <string name="feed_empty_discover">Hiện chưa có gì để khám phá</string>
     <string name="feed_loading">Đang tải bảng tin…</string>
     <string name="feed_error">Không tải được bảng tin</string>
-    <string name="feed_open_player">Mở trình phát</string>
     <string name="feed_like">Thích</string>
     <string name="feed_dislike">Không thích</string>
     <string name="feed_comments">Bình luận</string>
@@ -3818,4 +3817,19 @@
     <string name="pref_feed_video_samples">Đoạn video YouTube</string>
     <string name="pref_feed_video_samples_desc">Phát đoạn video nhạc không tiếng khi không có ảnh bìa động</string>
     <string name="artist_clip_resolution">%1$dp</string>
+    <string name="whats_new_badge">Có gì mới</string>
+    <string name="whats_new_together_title">Nghe cùng nhau</string>
+    <string name="whats_new_together_body">Bắt đầu một phiên trực tiếp và chia sẻ liên kết hoặc mã: bạn bè sẽ nghe đúng bản nhạc bạn đang nghe, theo thời gian thực, trên điện thoại hoặc máy tính.</string>
+    <string name="whats_new_together_action">Mở Together</string>
+    <string name="whats_new_reactions_title">Cảm xúc và lời mời QR</string>
+    <string name="whats_new_reactions_body">Gửi cảm xúc emoji trực tiếp, mời bạn bè bằng mã QR và biết ngay khi mọi người đã đồng bộ.</string>
+    <string name="whats_new_playlists_title">Playlist chung</string>
+    <string name="whats_new_playlists_body">Cùng nhau tạo playlist: ai cũng có thể đề xuất bài hát, chủ phòng chấp nhận, và playlist luôn được đồng bộ kể cả khi không ai đang phát.</string>
+    <string name="whats_new_discord_title">Trạng thái Discord</string>
+    <string name="whats_new_discord_body">Hiển thị bài bạn đang nghe trên hồ sơ Discord. Trong phiên trực tiếp, nút Nghe cùng giúp bạn bè tham gia chỉ với một cú nhấp.</string>
+    <string name="whats_new_discord_action">Thiết lập Discord</string>
+    <string name="whats_new_next">Tiếp</string>
+    <string name="whats_new_back">Quay lại</string>
+    <string name="whats_new_skip">Bỏ qua</string>
+    <string name="whats_new_done">Đã hiểu</string>
 </resources>

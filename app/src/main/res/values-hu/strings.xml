@@ -233,7 +233,7 @@
     <string name="download_comment">Via KittyTune</string>
     <string name="player_audio_settings">Audio beállítások</string>
     <string name="player_effects">Effektek</string>
-    <string name="player_special_effects">Audio FX</string>
+    <string name="player_special_effects">Hangeffektek</string>
     <string name="audio_fx_long_press_hint">Tartsd hosszan lenyomva a gombot a testreszabáshoz</string>
     <string name="audio_fx_save_preset">Hangprofil mentése</string>
     <string name="audio_fx_preset_name">Hangprofil neve</string>
@@ -242,7 +242,7 @@
     <string name="audio_fx_saved_presets">Mentett hangprofilok</string>
     <string name="fx_active_count">%1$d bekapcsolva</string>
     <string name="fx_reset_speed">Normál sebesség</string>
-    <string name="player_pitch">Pitch</string>
+    <string name="player_pitch">Hangmagasság</string>
     <string name="player_speed">Sebesség</string>
     <string name="pref_precise_speed">Precíz sebesség</string>
     <string name="pref_precise_speed_sub">0.05x lépések 0.1x helyett</string>
@@ -373,8 +373,8 @@
     <string name="sort_newest">Legújabb</string>
     <string name="sort_timestamp">Időbélyeg szerint</string>
     <string name="sort_oldest">Legrégebbi</string>
-    <string name="context_playlist">Playlist • %1$s</string>
-    <string name="context_station">Station • %1$s</string>
+    <string name="context_playlist">Lejátszási lista • %1$s</string>
+    <string name="context_station">Rádió • %1$s</string>
     <string name="context_album">Album • %1$s</string>
     <string name="detail_track_title">Infó</string>
     <string name="detail_likers">Kedvelések</string>
@@ -424,10 +424,10 @@
     <string name="profile_tracks">Számok</string>
     <string name="profile_edit">Szerkesztés</string>
     <string name="profile_edit_title">Profil szerkesztése</string>
-    <string name="profile_bio">Bio</string>
+    <string name="profile_bio">Bemutatkozás</string>
     <string name="profile_city">Város / Ország</string>
-    <string name="profile_banner">Banner</string>
-    <string name="profile_avatar">Avatar</string>
+    <string name="profile_banner">Borítókép</string>
+    <string name="profile_avatar">Profilkép</string>
     <string name="profile_avatar_upload_desc">A legjobb eredmény érdekében legalább 1000x1000 pixeles képet tölts fel. 2 MB limit</string>
     <string name="profile_banner_upload_title">Fejléc igazítása</string>
     <string name="profile_banner_upload_desc">A legjobb eredmény érdekében legalább 2480×520 pixeles képet használj. 2 MB limit</string>
@@ -502,7 +502,7 @@
     <string name="settings_cat_general_sub">Nyelv, kezdőképernyő és frissítések</string>
     <string name="settings_cat_appearance">Megjelenés</string>
     <string name="settings_cat_playback">Lejátszás</string>
-    <string name="settings_cat_audio">Audio</string>
+    <string name="settings_cat_audio">Hang</string>
     <string name="settings_cat_source">Könyvtár</string>
     <string name="pref_privacy_title">Adatvédelem és Követés</string>
     <string name="pref_privacy_subtitle">Hallgatási statisztikák és előzmények kezelése</string>
@@ -3798,7 +3798,6 @@
     <string name="feed_empty_discover">Most nincs felfedeznivaló</string>
     <string name="feed_loading">A hírfolyam betöltése…</string>
     <string name="feed_error">A hírfolyam nem tölthető be</string>
-    <string name="feed_open_player">Lejátszó megnyitása</string>
     <string name="feed_like">Tetszik</string>
     <string name="feed_dislike">Nem tetszik</string>
     <string name="feed_comments">Hozzászólások</string>
@@ -3822,4 +3821,19 @@
     <string name="pref_feed_video_samples">YouTube-videórészletek</string>
     <string name="pref_feed_video_samples_desc">Néma videórészletek lejátszása, ha nincs animált borító</string>
     <string name="artist_clip_resolution">%1$dp</string>
+    <string name="whats_new_badge">Újdonságok</string>
+    <string name="whats_new_together_title">Hallgassunk együtt</string>
+    <string name="whats_new_together_body">Indíts élő munkamenetet, és ossz meg egy linket vagy kódot: a barátaid pontosan ugyanazt a zenét hallják, mint te, valós időben, telefonon vagy számítógépen.</string>
+    <string name="whats_new_together_action">Together megnyitása</string>
+    <string name="whats_new_reactions_title">Reakciók és QR-meghívók</string>
+    <string name="whats_new_reactions_body">Küldj élő emoji-reakciókat, hívj meg bárkit QR-kóddal, és lásd egy pillantással, hogy mindenki szinkronban van-e.</string>
+    <string name="whats_new_playlists_title">Közös lejátszási listák</string>
+    <string name="whats_new_playlists_body">Állítsatok össze közösen egy listát: mindenki javasolhat számokat, a házigazda elfogadja őket, és a lista akkor is szinkronban marad, ha épp senki sem hallgatja.</string>
+    <string name="whats_new_discord_title">Discord-állapot</string>
+    <string name="whats_new_discord_body">Mutasd meg a Discord-profilodon, mit hallgatsz. Élő munkamenet közben a „Hallgasd velem” gombbal a barátaid egy kattintással csatlakozhatnak.</string>
+    <string name="whats_new_discord_action">Discord beállítása</string>
+    <string name="whats_new_next">Tovább</string>
+    <string name="whats_new_back">Vissza</string>
+    <string name="whats_new_skip">Kihagyás</string>
+    <string name="whats_new_done">Értem</string>
 </resources>

@@ -3791,7 +3791,6 @@
     <string name="feed_empty_discover">Şu anda keşfedilecek bir şey yok</string>
     <string name="feed_loading">Akış yükleniyor…</string>
     <string name="feed_error">Akış yüklenemedi</string>
-    <string name="feed_open_player">Oynatıcıyı aç</string>
     <string name="feed_like">Beğen</string>
     <string name="feed_dislike">Beğenme</string>
     <string name="feed_comments">Yorumlar</string>
@@ -3815,4 +3814,19 @@
     <string name="pref_feed_video_samples">YouTube video kesitleri</string>
     <string name="pref_feed_video_samples_desc">Hareketli kapak yoksa müzik videosundan sessiz kesitler kullan</string>
     <string name="artist_clip_resolution">%1$dp</string>
+    <string name="whats_new_badge">Yenilikler</string>
+    <string name="whats_new_together_title">Birlikte Dinle</string>
+    <string name="whats_new_together_body">Canlı bir oturum başlat ve bir bağlantı ya da kod paylaş: arkadaşların seninle tam olarak aynı müziği gerçek zamanlı olarak, telefonda veya bilgisayarda dinlesin.</string>
+    <string name="whats_new_together_action">Birlikte Dinle\'yi aç</string>
+    <string name="whats_new_reactions_title">Tepkiler ve QR davetleri</string>
+    <string name="whats_new_reactions_body">Canlı emoji tepkileri gönder, birini QR koduyla davet et ve herkesin senkronize olup olmadığını bir bakışta gör.</string>
+    <string name="whats_new_playlists_title">Paylaşılan çalma listeleri</string>
+    <string name="whats_new_playlists_body">Birlikte bir çalma listesi oluşturun: herkes parça önerir, ev sahibi onaylar ve kimse dinlemiyorken bile liste senkronize kalır.</string>
+    <string name="whats_new_discord_title">Discord durumu</string>
+    <string name="whats_new_discord_body">Ne dinlediğini Discord profilinde göster. Canlı oturum sırasında Birlikte Dinle düğmesi, arkadaşlarının tek tıkla sana katılmasını sağlar.</string>
+    <string name="whats_new_discord_action">Discord\'u ayarla</string>
+    <string name="whats_new_next">İleri</string>
+    <string name="whats_new_back">Geri</string>
+    <string name="whats_new_skip">Atla</string>
+    <string name="whats_new_done">Anladım</string>
 </resources>

@@ -3801,7 +3801,6 @@
     <string name="feed_empty_discover">Nothing to discover yet — check back in a moment</string>
     <string name="feed_loading">Loading the feed…</string>
     <string name="feed_error">Could not load the feed</string>
-    <string name="feed_open_player">Open full player</string>
     <string name="feed_like">Like</string>
     <string name="feed_dislike">Dislike</string>
     <string name="feed_comments">Comments</string>
@@ -3825,4 +3824,19 @@
     <string name="pref_feed_video_samples">YouTube video samples</string>
     <string name="pref_feed_video_samples_desc">Use muted music video excerpts when animated artwork is unavailable</string>
     <string name="artist_clip_resolution">%1$dp</string>
+    <string name="whats_new_badge">What\'s new</string>
+    <string name="whats_new_together_title">Listen Together</string>
+    <string name="whats_new_together_body">Start a live session and share a link or a code: your friends hear exactly the same music as you, in real time, on phone or desktop.</string>
+    <string name="whats_new_together_action">Open Together</string>
+    <string name="whats_new_reactions_title">Reactions &amp; QR invites</string>
+    <string name="whats_new_reactions_body">Send live emoji reactions, invite someone with a QR code, and see at a glance when everyone is in sync.</string>
+    <string name="whats_new_playlists_title">Shared playlists</string>
+    <string name="whats_new_playlists_body">Build a playlist together: everyone suggests tracks, the host accepts them, and it stays in sync even when nobody is playing.</string>
+    <string name="whats_new_discord_title">Discord presence</string>
+    <string name="whats_new_discord_body">Show what you\'re listening to on your Discord profile. During a live session, a Listen Along button lets your friends join you in one click.</string>
+    <string name="whats_new_discord_action">Set up Discord</string>
+    <string name="whats_new_next">Next</string>
+    <string name="whats_new_back">Back</string>
+    <string name="whats_new_skip">Skip</string>
+    <string name="whats_new_done">Got it</string>
 </resources>

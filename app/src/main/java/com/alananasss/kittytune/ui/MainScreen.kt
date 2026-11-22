@@ -2459,13 +2459,36 @@ fun MainScreen(
             UltimateCompletionOverlay(onDismiss = { showCompletionScreen = false })
         }
 
+        // One-time "what's new" carousel for people who updated (not fresh installs). It goes first;
+        // the pet announcement, when someone is due both, waits until it is closed.
+        var showWhatsNew by remember {
+            mutableStateOf(com.alananasss.kittytune.ui.common.WhatsNew.shouldShow(context, prefs.isSetupCompleted()))
+        }
+        val petRoute = navController.currentDestination?.route
+        val announcementBlocked = petRoute == Screen.Welcome.route || petRoute == Screen.Login.route ||
+            updateStatus == UpdateStatus.AVAILABLE || updateStatus == UpdateStatus.DOWNLOADING
+        if (showWhatsNew && !announcementBlocked) {
+            com.alananasss.kittytune.ui.common.WhatsNewSheet(
+                onDone = {
+                    com.alananasss.kittytune.ui.common.WhatsNew.markSeen(context)
+                    showWhatsNew = false
+                },
+                onAction = { action ->
+                    com.alananasss.kittytune.ui.common.WhatsNew.markSeen(context)
+                    showWhatsNew = false
+                    when (action) {
+                        com.alananasss.kittytune.ui.common.WhatsNewAction.TOGETHER -> navController.navigate("together")
+                        com.alananasss.kittytune.ui.common.WhatsNewAction.DISCORD -> navController.navigate("discord_settings")
+                    }
+                }
+            )
+        }
+
         // One-time "new: kitty pet" announcement for people who updated (not fresh installs).
         var showPetAnnouncement by remember {
             mutableStateOf(com.alananasss.kittytune.ui.widget.pet.PetConfig.shouldAnnounce(context, prefs.isSetupCompleted()))
         }
-        val petRoute = navController.currentDestination?.route
-        val petAnnouncementBlocked = petRoute == Screen.Welcome.route || petRoute == Screen.Login.route ||
-            petRoute == "pet_settings" || updateStatus == UpdateStatus.AVAILABLE || updateStatus == UpdateStatus.DOWNLOADING
+        val petAnnouncementBlocked = announcementBlocked || showWhatsNew || petRoute == "pet_settings"
         if (showPetAnnouncement && !petAnnouncementBlocked) {
             com.alananasss.kittytune.ui.profile.pet.PetAnnouncementSheet(
                 onAdopt = {

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Application title -->
-    <string name="app_name">KittyTune</string>
+    <string name="app_name" translatable="false">KittyTune</string>
     <string name="wear_companion_title">KittyTune Companion</string>
 
     <!-- Playback control actions -->

@@ -1574,7 +1574,7 @@
     <string name="dialog_rename_folder_hint">Имя папки</string>
     <string name="select_folder_title">Выбрать папку</string>
     <string name="category_retro_vintage">Ретро и текстуры</string>
-    <string name="effect_chorus">Chorus</string>
+    <string name="effect_chorus">Хорус</string>
     <string name="fx_chorus_desc">Многоголосный хорус в стиле Roland Juno 80-х и Boss CE-2 для объемного звучания</string>
     <string name="label_chorus_rate">Скорость модуляции: %1$d%%</string>
     <string name="label_chorus_depth">Глубина стерео: %1$d%%</string>
@@ -1588,7 +1588,7 @@
     <string name="preset_underwater_submerged">Погружение</string>
     <string name="preset_underwater_abyss">Бездна 3000м</string>
     <string name="preset_underwater_scuba">Пузыри акваланга</string>
-    <string name="effect_trance_gate">Trance Gate</string>
+    <string name="effect_trance_gate">Транс-гейт</string>
     <string name="fx_trance_gate_desc">Ритмическая нарезка звука для EDM дропов и мягкого тремоло</string>
     <string name="label_trance_gate_speed">Ритмический темп: %1$d%%</string>
     <string name="label_trance_gate_pattern">Форма волны: %1$d%%</string>
@@ -1666,7 +1666,7 @@
     <string name="preset_stadium_50k">Стадион 50k</string>
     <string name="preset_stadium_arena">Живая арена</string>
     <string name="preset_stadium_festival">Опен-эйр</string>
-    <string name="effect_cassette_walkman">Walkman</string>
+    <string name="effect_cassette_walkman">Кассетный плеер</string>
     <string name="fx_walkman_desc">Портативный кассетный плеер 80-х с сатурацией и шипением ленты</string>
     <string name="label_walkman_drive">Драйв ленты: %1$d%%</string>
     <string name="label_walkman_hiss">Шипение ленты: %1$d%%</string>
@@ -3795,7 +3795,6 @@
     <string name="feed_empty_discover">Пока нет новых рекомендаций</string>
     <string name="feed_loading">Загрузка ленты…</string>
     <string name="feed_error">Не удалось загрузить ленту</string>
-    <string name="feed_open_player">Открыть плеер</string>
     <string name="feed_like">Нравится</string>
     <string name="feed_dislike">Не нравится</string>
     <string name="feed_comments">Комментарии</string>
@@ -3819,4 +3818,19 @@
     <string name="pref_feed_video_samples">Видеофрагменты YouTube</string>
     <string name="pref_feed_video_samples_desc">Воспроизводить отрывки клипов без звука, если анимированная обложка недоступна</string>
     <string name="artist_clip_resolution">%1$dp</string>
+    <string name="whats_new_badge">Что нового</string>
+    <string name="whats_new_together_title">Слушайте вместе</string>
+    <string name="whats_new_together_body">Запустите сессию и поделитесь ссылкой или кодом: друзья услышат ту же музыку, что и вы, в реальном времени — на телефоне или компьютере.</string>
+    <string name="whats_new_together_action">Открыть Together</string>
+    <string name="whats_new_reactions_title">Реакции и QR-приглашения</string>
+    <string name="whats_new_reactions_body">Отправляйте эмодзи-реакции в реальном времени, приглашайте по QR-коду и сразу видите, синхронизированы ли все.</string>
+    <string name="whats_new_playlists_title">Общие плейлисты</string>
+    <string name="whats_new_playlists_body">Собирайте плейлист вместе: каждый предлагает треки, хост их принимает, а плейлист остаётся синхронизированным, даже когда никто не слушает.</string>
+    <string name="whats_new_discord_title">Статус в Discord</string>
+    <string name="whats_new_discord_body">Показывайте в профиле Discord, что вы слушаете. Во время сессии кнопка «Слушать вместе» позволяет друзьям присоединиться в один клик.</string>
+    <string name="whats_new_discord_action">Настроить Discord</string>
+    <string name="whats_new_next">Далее</string>
+    <string name="whats_new_back">Назад</string>
+    <string name="whats_new_skip">Пропустить</string>
+    <string name="whats_new_done">Понятно</string>
 </resources>

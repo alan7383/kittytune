@@ -3791,7 +3791,6 @@
     <string name="feed_empty_discover">Rien à découvrir pour le moment</string>
     <string name="feed_loading">Chargement du fil…</string>
     <string name="feed_error">Impossible de charger le fil</string>
-    <string name="feed_open_player">Ouvrir le lecteur</string>
     <string name="feed_like">J’aime</string>
     <string name="feed_dislike">Je n’aime pas</string>
     <string name="feed_comments">Commentaires</string>
@@ -3815,4 +3814,19 @@
     <string name="pref_feed_video_samples">Extraits vidéo YouTube</string>
     <string name="pref_feed_video_samples_desc">Afficher des extraits de clips sans son quand aucune pochette animée n’est disponible</string>
     <string name="artist_clip_resolution">%1$dp</string>
+    <string name="whats_new_badge">Nouveautés</string>
+    <string name="whats_new_together_title">Écouter ensemble</string>
+    <string name="whats_new_together_body">Lance une session en direct et partage un lien ou un code : tes amis entendent exactement la même musique que toi, en temps réel, sur téléphone ou sur ordinateur.</string>
+    <string name="whats_new_together_action">Essayer maintenant</string>
+    <string name="whats_new_reactions_title">Réactions et invitations QR</string>
+    <string name="whats_new_reactions_body">Envoie des réactions emoji en direct, invite quelqu\'un avec un QR code et vois d\'un coup d\'œil quand tout le monde est synchronisé.</string>
+    <string name="whats_new_playlists_title">Playlists partagées</string>
+    <string name="whats_new_playlists_body">Construisez une playlist à plusieurs : chacun propose des titres, l\'hôte les accepte, et elle reste synchronisée même quand personne n\'écoute.</string>
+    <string name="whats_new_discord_title">Présence Discord</string>
+    <string name="whats_new_discord_body">Affiche ce que tu écoutes sur ton profil Discord. Pendant une session en direct, un bouton « Écouter ensemble » permet à tes amis de te rejoindre en un clic.</string>
+    <string name="whats_new_discord_action">Configurer Discord</string>
+    <string name="whats_new_next">Suivant</string>
+    <string name="whats_new_back">Retour</string>
+    <string name="whats_new_skip">Passer</string>
+    <string name="whats_new_done">C\'est parti</string>
 </resources>

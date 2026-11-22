@@ -3787,7 +3787,6 @@
     <string name="feed_empty_discover">Nada para descobrir no momento</string>
     <string name="feed_loading">Carregando o feed…</string>
     <string name="feed_error">Não foi possível carregar o feed</string>
-    <string name="feed_open_player">Abrir player</string>
     <string name="feed_like">Curtir</string>
     <string name="feed_dislike">Não curtir</string>
     <string name="feed_comments">Comentários</string>
@@ -3811,4 +3810,19 @@
     <string name="pref_feed_video_samples">Trechos de clipes do YouTube</string>
     <string name="pref_feed_video_samples_desc">Exibir trechos de clipes sem áudio quando não houver capa animada</string>
     <string name="artist_clip_resolution">%1$dp</string>
+    <string name="whats_new_badge">Novidades</string>
+    <string name="whats_new_together_title">Ouvir junto</string>
+    <string name="whats_new_together_body">Inicie uma sessão ao vivo e compartilhe um link ou um código: seus amigos ouvem exatamente a mesma música que você, em tempo real, no celular ou no computador.</string>
+    <string name="whats_new_together_action">Abrir Juntos</string>
+    <string name="whats_new_reactions_title">Reações e convites por QR</string>
+    <string name="whats_new_reactions_body">Envie reações com emoji ao vivo, convide alguém com um QR code e veja num relance quando todo mundo está sincronizado.</string>
+    <string name="whats_new_playlists_title">Playlists compartilhadas</string>
+    <string name="whats_new_playlists_body">Montem uma playlist juntos: todo mundo sugere faixas, o anfitrião aceita, e ela continua sincronizada mesmo quando ninguém está ouvindo.</string>
+    <string name="whats_new_discord_title">Presença no Discord</string>
+    <string name="whats_new_discord_body">Mostre o que você está ouvindo no seu perfil do Discord. Durante uma sessão ao vivo, um botão Ouvir junto permite que seus amigos entrem com um clique.</string>
+    <string name="whats_new_discord_action">Configurar Discord</string>
+    <string name="whats_new_next">Próximo</string>
+    <string name="whats_new_back">Voltar</string>
+    <string name="whats_new_skip">Pular</string>
+    <string name="whats_new_done">Entendi</string>
 </resources>
