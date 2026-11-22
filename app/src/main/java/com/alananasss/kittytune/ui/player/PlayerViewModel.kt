@@ -198,6 +198,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 val remoteSpeed = peer?.snapshot?.speed
                 if (remoteSpeed != null && ConnectManager.selectedDevice.value != null && effectsState.speed != remoteSpeed) {
                     effectsState = effectsState.copy(speed = remoteSpeed)
+                    clearModifiedAudioFxPreset()
                 }
                 remotePosition = peer?.position() ?: 0L
                 remoteTicker?.cancel()
@@ -312,6 +313,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     var equalizerState by mutableStateOf(
         runCatching { playerPrefs.getEqualizerState() }.getOrElse { EqualizerState() }
     )
+
+    var audioFxPresets by mutableStateOf(playerPrefs.getAudioFxPresets())
+        private set
+    private var audioFxPresetActivation by mutableStateOf(playerPrefs.getAudioFxPresetActivation())
+
+    val currentAudioFxPreset: AudioFxPreset
+        get() = AudioFxPreset(effectsState.copy(isEqualizerEnabled = equalizerState.isEnabled), equalizerState)
+
+    val activeAudioFxPresetName: String?
+        get() = audioFxPresetActivation?.name?.takeIf { audioFxPresets[it] == currentAudioFxPreset }
     var isPreciseSpeedEnabled by mutableStateOf(playerPrefs.getPreciseSpeedEnabled())
 
     var isHapticsEnabled by mutableStateOf(playerPrefs.getHapticsEnabled())
@@ -6539,15 +6550,14 @@ query CommentsWithReactions(
     }
 
     fun setRainVolume(volume: Float) {
-        effectsState =
-            effectsState.copy(rainVolume = volume); MusicManager.applyEffects(effectsState); viewModelScope.launch(
-            Dispatchers.IO
-        ) { playerPrefs.saveEffects(effectsState) }
+        effectsState = effectsState.copy(rainVolume = volume)
+        applyEffectsAndSave()
     }
 
     fun setCustomSpeed(speed: Float) {
         if (routeRemote("speed", (speed * 100f).toLong())) {
             effectsState = effectsState.copy(speed = speed)
+            clearModifiedAudioFxPreset()
             return
         }
         val factor = if (isPreciseSpeedEnabled) 20f else 10f;
@@ -6978,9 +6988,6 @@ query CommentsWithReactions(
     var pinnedAudioFx by mutableStateOf(playerPrefs.getPinnedAudioFx())
         private set
 
-    var audioFxPresets by mutableStateOf(playerPrefs.getAudioFxPresets())
-        private set
-
     fun saveAudioFxPreset(name: String, preset: AudioFxPreset): Boolean {
         val trimmedName = name.trim()
         if (trimmedName.isBlank() || audioFxPresets.keys.any { it.equals(trimmedName, ignoreCase = true) }) {
@@ -6989,6 +6996,7 @@ query CommentsWithReactions(
         val updated = audioFxPresets + (trimmedName to preset)
         playerPrefs.saveAudioFxPresets(updated)
         audioFxPresets = updated
+        storePinnedAudioFx(listOf(AudioFxPreset.tileId(trimmedName)) + pinnedAudioFx)
         return true
     }
 
@@ -6996,20 +7004,43 @@ query CommentsWithReactions(
         val updated = audioFxPresets - name
         playerPrefs.saveAudioFxPresets(updated)
         audioFxPresets = updated
+        val tileId = AudioFxPreset.tileId(name)
+        if (tileId in pinnedAudioFx) storePinnedAudioFx(pinnedAudioFx - tileId)
+        clearModifiedAudioFxPreset()
     }
 
-    fun applyAudioFxPreset(preset: AudioFxPreset): Boolean {
-        if (preset.effects.isEarrapeEnabled && !hasSeenEarrapeWarning()) return false
-        if (effectsState.speed != preset.effects.speed) {
-            routeRemote("speed", (preset.effects.speed * 100f).roundToInt().toLong())
+    fun toggleAudioFxPreset(name: String): Boolean {
+        val preset = audioFxPresets[name] ?: return true
+        val current = currentAudioFxPreset
+        val activation = audioFxPresetActivation?.takeIf { audioFxPresets[it.name] == current }
+        val activationToRestore = activation?.takeIf { it.name == name }
+        val target = activationToRestore?.previous ?: preset
+        if (target.effects.isEarrapeEnabled && !hasSeenEarrapeWarning()) return false
+        if (effectsState.speed != target.effects.speed) {
+            routeRemote("speed", (target.effects.speed * 100f).roundToInt().toLong())
         }
 
-        effectsState = preset.effects
-        equalizerState = preset.equalizer
+        effectsState = target.effects
+        equalizerState = target.equalizer
+        // Switching presets keeps the settings from before the first preset in this sequence.
+        updateAudioFxPresetActivation(
+            if (activationToRestore != null) null else AudioFxPresetActivation(name, activation?.previous ?: current)
+        )
         applyEqualizerAndSave()
         applyEffectsAndSave()
         ConnectManager.publish(connectSnapshot())
         return true
+    }
+
+    private fun clearModifiedAudioFxPreset() {
+        if (audioFxPresetActivation != null && activeAudioFxPresetName == null) {
+            updateAudioFxPresetActivation(null)
+        }
+    }
+
+    private fun updateAudioFxPresetActivation(activation: AudioFxPresetActivation?) {
+        audioFxPresetActivation = activation
+        playerPrefs.saveAudioFxPresetActivation(activation)
     }
 
     fun disableEffects(fxIds: Collection<String>) {
@@ -7076,37 +7107,34 @@ query CommentsWithReactions(
     }
 
     fun togglePinAudioFx(fxId: String): Boolean {
-        val current = pinnedAudioFx.toMutableList()
-        val isPinned = current.contains(fxId)
-        if (isPinned) {
-            current.remove(fxId)
-            disableEffect(fxId)
-        } else {
-            current.add(fxId)
-        }
-        pinnedAudioFx = current
-        playerPrefs.setPinnedAudioFx(current)
+        val pinned = pinnedAudioFx
+        updatePinnedAudioFx(if (fxId in pinned) pinned - fxId else pinned + fxId)
         return true
     }
 
     fun updatePinnedAudioFx(fxIds: List<String>) {
         val removed = pinnedAudioFx.filterNot { fxIds.contains(it) }
+        val activePreset = activeAudioFxPresetName
+        if (activePreset != null && AudioFxPreset.tileId(activePreset) in removed) {
+            if (!toggleAudioFxPreset(activePreset)) updateAudioFxPresetActivation(null)
+        }
         disableEffects(removed)
+        storePinnedAudioFx(fxIds)
+    }
+
+    private fun storePinnedAudioFx(fxIds: List<String>) {
         pinnedAudioFx = fxIds
         playerPrefs.setPinnedAudioFx(fxIds)
     }
 
     fun resetPinnedAudioFx() {
-        val defaults = PlayerPreferences.DEFAULT_PINNED_AUDIO_FX
-        val removed = pinnedAudioFx.filterNot { defaults.contains(it) }
-        disableEffects(removed)
-        pinnedAudioFx = defaults
-        playerPrefs.setPinnedAudioFx(defaults)
+        updatePinnedAudioFx(PlayerPreferences.DEFAULT_PINNED_AUDIO_FX)
     }
 
     fun isAudioFxPinned(fxId: String): Boolean = pinnedAudioFx.contains(fxId)
 
     private fun applyEffectsAndSave() {
+        clearModifiedAudioFxPreset()
         MusicManager.applyEffects(effectsState); viewModelScope.launch(Dispatchers.IO) {
             playerPrefs.saveEffects(
                 effectsState
@@ -7115,6 +7143,7 @@ query CommentsWithReactions(
     }
 
     private fun applyEqualizerAndSave() {
+        clearModifiedAudioFxPreset()
         effectsState = effectsState.copy(isEqualizerEnabled = equalizerState.isEnabled)
         MusicManager.applyEqualizer(equalizerState)
         viewModelScope.launch(Dispatchers.IO) {

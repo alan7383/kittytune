@@ -143,6 +143,15 @@
     data class AudioFxPreset(
         @SerializedName("effects") val effects: AudioEffectsState,
         @SerializedName("equalizer") val equalizer: EqualizerState
+    ) {
+        companion object {
+            fun tileId(name: String): String = "preset:$name"
+        }
+    }
+
+    internal data class AudioFxPresetActivation(
+        @SerializedName("name") val name: String,
+        @SerializedName("previous") val previous: AudioFxPreset
     )
 
     data class EqualizerPreset(
