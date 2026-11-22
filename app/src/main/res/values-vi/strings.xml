@@ -394,7 +394,6 @@
     <string name="ambient_cafe">Quán cà phê</string>
     <string name="label_ambient_volume">Âm lượng môi trường: %1$d%%</string>
     <string name="btn_explore_all_effects">Khám phá tất cả hiệu ứng</string>
-    <string name="edit_tiles_title">Chỉnh sửa ô tiện ích</string>
     <string name="edit_tiles_subtitle">Chọn các ô để ghim vào thanh truy cập nhanh</string>
     <string name="category_power_eq">Nguồn &amp; Bộ cân bằng âm (EQ)</string>
     <string name="category_spatial">Không gian &amp; 3D</string>
