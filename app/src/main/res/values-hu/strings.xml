@@ -391,7 +391,6 @@
     <string name="ambient_cafe">Kávézó</string>
     <string name="label_ambient_volume">Környezeti hangerő: %1$d%%</string>
     <string name="btn_explore_all_effects">Összes effekt felfedezése</string>
-    <string name="edit_tiles_title">Csempék szerkesztése</string>
     <string name="edit_tiles_subtitle">Válassz csempéket a gyorspanelhez</string>
     <string name="category_power_eq">Teljesítmény &amp; EQ</string>
     <string name="category_spatial">Térhatás &amp; Immorzió</string>
