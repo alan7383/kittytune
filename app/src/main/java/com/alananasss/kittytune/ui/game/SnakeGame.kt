@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package com.alananasss.kittytune.ui.game
 
 import android.content.Context
@@ -22,6 +24,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -86,6 +89,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.SentimentDissatisfied
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.audio.haptics.HapticUtil
 import com.alananasss.kittytune.data.BlockManager
@@ -360,62 +376,44 @@ fun SnakeGameScreen(
 
     var best by remember { mutableStateOf(SnakeGameLauncher.bestScore(context)) }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = GameColors.Background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = scheme.surfaceContainerLow) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            // Header: title, close
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Icon(
-                    Icons.Rounded.SportsEsports,
-                    contentDescription = null,
-                    tint = scheme.primary,
-                    modifier = Modifier.size(22.dp),
-                )
-                Spacer(Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
+                GameBadge()
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(
-                            if (isWave) R.string.game_wave_title else R.string.game_eat_playlist
-                        ),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelLarge,
+                        stringResource(if (isWave) R.string.game_wave_title else R.string.game_eat_playlist),
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = request.title,
-                        color = Color.White.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.bodySmall,
+                        request.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = scheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Spacer(Modifier.width(8.dp))
-                IconButton(
-                    onClick = { onClose() },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = Color.White.copy(alpha = 0.08f),
-                        contentColor = Color.White,
-                    ),
+                FilledTonalIconButton(
+                    onClick = hapticAction(HapticKind.UI, onClose),
+                    shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.btn_close))
                 }
             }
-
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(14.dp))
 
             when {
-                isWave && waveTracks == null -> GameMessage(
-                    text = stringResource(R.string.game_loading),
-                    icon = { GameSpinner() },
-                )
-                sourceTracks.isNullOrEmpty() -> GameMessage(
-                    text = stringResource(R.string.game_empty),
-                )
+                isWave && waveTracks == null -> GameMessage(stringResource(R.string.game_loading), loading = true)
+                sourceTracks.isNullOrEmpty() -> GameMessage(stringResource(R.string.game_empty))
                 else -> SnakeGameBoardArea(
                     sourceTracks = sourceTracks,
                     request = request,
@@ -451,7 +449,6 @@ private fun SnakeGameBoardArea(
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
-    val scheme = MaterialTheme.colorScheme
     // The snake wears the pet cat's coat: fur for the body, its eyes and markings for the face.
     val pet = remember { PetConfig.load(context) }
 
@@ -485,6 +482,13 @@ private fun SnakeGameBoardArea(
         if (isWave) onRestartWave() // the wave loads a fresh batch; the board re-enters on its own
         engine.reset()
     }
+    val togglePause: () -> Unit = {
+        when (engine.phase) {
+            SnakePhase.RUNNING -> engine.pause()
+            SnakePhase.IDLE, SnakePhase.PAUSED -> engine.ensureRunning()
+            SnakePhase.OVER, SnakePhase.WIN -> restart()
+        }
+    }
 
     // The ticker: slower at first, frantic once the menu is half eaten.
     LaunchedEffect(engine, engine.phase, engine.speedMs) {
@@ -499,45 +503,198 @@ private fun SnakeGameBoardArea(
         if (engine.phase == SnakePhase.OVER || engine.phase == SnakePhase.WIN) onBest(engine.score)
     }
 
-    // Score pop.
-    val scoreScale = remember { Animatable(1f) }
-    LaunchedEffect(engine.score) {
-        if (engine.score > 0) {
-            scoreScale.snapTo(1.3f)
-            scoreScale.animateTo(1f, tween(240))
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        ScoreCards(engine.score, best, engine.trackCount)
+        NowPlayingCard(bannerTrack) {
+            onClose()
+            playerViewModel.isPlayerExpanded = true
+        }
+        SnakeBoard(
+            engine = engine,
+            pet = pet,
+            isWave = isWave,
+            best = best,
+            onStart = engine::ensureRunning,
+            onRestart = restart,
+            onClose = onClose,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        )
+        DirectionPad(
+            phase = engine.phase,
+            onTurn = { direction ->
+                engine.turn(direction)
+                engine.ensureRunning()
+            },
+            onTogglePause = togglePause,
+        )
+    }
+}
+
+/** The board itself: the grid, the covers to eat, the snake, and what to do when it is not running. */
+@Composable
+private fun SnakeBoard(
+    engine: SnakeEngine,
+    pet: com.alananasss.kittytune.ui.widget.pet.PetSettings,
+    isWave: Boolean,
+    best: Int,
+    onStart: () -> Unit,
+    onRestart: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val density = LocalDensity.current
+    var dragAccum by remember { mutableStateOf(Offset.Zero) }
+    val gridColor = scheme.outlineVariant.copy(alpha = 0.45f)
+    val glowColor = scheme.tertiary
+
+    BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        val cell = min(constraints.maxWidth.toFloat() / COLS, constraints.maxHeight.toFloat() / ROWS)
+        val cellDp = with(density) { cell.toDp() }
+        val boardW = with(density) { (cell * COLS).toDp() }
+        val boardH = with(density) { (cell * ROWS).toDp() }
+
+        Box(
+            modifier = Modifier
+                .size(boardW, boardH)
+                .clip(RoundedCornerShape(28.dp))
+                .background(scheme.surfaceContainerLowest)
+                .pointerInput(engine) {
+                    detectDragGestures(
+                        onDragStart = { dragAccum = Offset.Zero },
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            dragAccum += dragAmount
+                            val threshold = cell * 0.85f
+                            if (abs(dragAccum.x) > threshold || abs(dragAccum.y) > threshold) {
+                                val dir = if (abs(dragAccum.x) > abs(dragAccum.y)) {
+                                    if (dragAccum.x > 0) SnakeDirection.RIGHT else SnakeDirection.LEFT
+                                } else {
+                                    if (dragAccum.y > 0) SnakeDirection.DOWN else SnakeDirection.UP
+                                }
+                                engine.turn(dir)
+                                engine.ensureRunning()
+                                dragAccum = Offset.Zero
+                            }
+                        },
+                    )
+                },
+        ) {
+            Canvas(Modifier.fillMaxSize()) {
+                drawGrid(cell, gridColor)
+                drawFoodsGlow(engine.foods, cell, glowColor)
+                drawSnake(
+                    engine.snake, cell,
+                    fur = Color(pet.palette.fur),
+                    shade = Color(pet.palette.shade),
+                    mark = Color(pet.palette.mark),
+                    eyeColor = Color(pet.eyeColor),
+                )
+            }
+
+            engine.foods.forEach { food ->
+                val appeared = remember(food.track.id, food.cell) { Animatable(0.4f) }
+                LaunchedEffect(food.track.id, food.cell) {
+                    appeared.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = 500f))
+                }
+                AsyncImage(
+                    model = trackImageModel(food.track),
+                    contentDescription = food.track.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .offset { IntOffset((food.cell.x * cell).roundToInt(), (food.cell.y * cell).roundToInt()) }
+                        .size(cellDp)
+                        .padding(2.5.dp)
+                        .graphicsLayer {
+                            scaleX = appeared.value
+                            scaleY = appeared.value
+                        }
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(scheme.surfaceContainerHighest),
+                )
+            }
+
+            val overlayAlpha by animateFloatAsState(
+                targetValue = if (engine.phase == SnakePhase.RUNNING) 0f else 1f,
+                label = "overlay",
+            )
+            if (overlayAlpha > 0.01f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = overlayAlpha }
+                        .background(scheme.scrim.copy(alpha = 0.45f))
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    when (engine.phase) {
+                        SnakePhase.IDLE -> GameOverlayCard(
+                            title = stringResource(if (isWave) R.string.game_wave_idle else R.string.game_idle),
+                            body = stringResource(R.string.game_eat_hint),
+                            primary = { BigPlayButton(onStart) },
+                        )
+                        SnakePhase.PAUSED -> GameOverlayCard(
+                            title = stringResource(R.string.game_paused),
+                            primary = { BigPlayButton(onStart) },
+                        )
+                        SnakePhase.OVER -> GameOverlayCard(
+                            title = stringResource(R.string.game_over),
+                            body = stringResource(R.string.game_score, engine.score) + "  ·  " + stringResource(R.string.game_best, best),
+                            icon = Icons.Rounded.SentimentDissatisfied,
+                            primary = { RestartButtons(onRestart, onClose) },
+                        )
+                        SnakePhase.WIN -> GameOverlayCard(
+                            title = stringResource(if (isWave) R.string.game_wave_finished else R.string.game_finished_title),
+                            body = stringResource(R.string.game_finished_text, engine.score),
+                            icon = Icons.Rounded.EmojiEvents,
+                            primary = { RestartButtons(onRestart, onClose) },
+                        )
+                        SnakePhase.RUNNING -> Unit
+                    }
+                }
+            }
         }
     }
+}
 
-    var dragAccum by remember { mutableStateOf(Offset.Zero) }
-    val density = LocalDensity.current
+// ─── Pieces ─────────────────────────────────────────────────────────────────────────────
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Score row
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White.copy(alpha = 0.08f),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                ) {
-                    Icon(
-                        Icons.Rounded.MusicNote,
-                        contentDescription = null,
-                        tint = scheme.primary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
+@Composable
+private fun GameBadge() {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(MaterialShapes.Cookie9Sided.toShape())
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(Icons.Rounded.SportsEsports, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(26.dp))
+    }
+}
+
+/** Songs eaten (the score), the best run, and how far through the menu this run is. */
+@Composable
+private fun ScoreCards(score: Int, best: Int, total: Int) {
+    val scheme = MaterialTheme.colorScheme
+    val scoreScale = remember { Animatable(1f) }
+    LaunchedEffect(score) {
+        if (score > 0) {
+            scoreScale.snapTo(1.25f)
+            scoreScale.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 600f))
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Surface(shape = RoundedCornerShape(22.dp), color = scheme.primaryContainer, modifier = Modifier.weight(1f)) {
+            Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.MusicNote, null, tint = scheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Column {
+                    Text(stringResource(R.string.game_score_label), style = MaterialTheme.typography.labelSmall, color = scheme.onPrimaryContainer)
                     Text(
-                        text = stringResource(R.string.game_score, engine.score),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelLarge,
+                        if (total > 0) "$score / $total" else "$score",
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
+                        color = scheme.onPrimaryContainer,
                         modifier = Modifier.graphicsLayer {
                             scaleX = scoreScale.value
                             scaleY = scoreScale.value
@@ -545,419 +702,181 @@ private fun SnakeGameBoardArea(
                     )
                 }
             }
-            Surface(shape = RoundedCornerShape(12.dp), color = Color.White.copy(alpha = 0.08f)) {
-                Text(
-                    text = stringResource(R.string.game_best, best),
-                    color = Color.White.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                )
-            }
-            if (engine.trackCount > 0) {
-                Text(
-                    text = stringResource(R.string.game_of_total, engine.trackCount),
-                    color = Color.White.copy(alpha = 0.45f),
-                    style = MaterialTheme.typography.labelMedium,
-                )
-            }
-            Spacer(Modifier.weight(1f))
-            FilledTonalIconButton(
-                onClick = { engine.pause() },
-                enabled = engine.phase == SnakePhase.RUNNING,
-                colors = IconButtonDefaults.filledTonalIconButtonColors(
-                    containerColor = Color.White.copy(alpha = 0.08f),
-                    contentColor = Color.White,
-                    disabledContainerColor = Color.White.copy(alpha = 0.04f),
-                    disabledContentColor = Color.White.copy(alpha = 0.3f),
-                ),
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(Icons.Rounded.Pause, contentDescription = stringResource(R.string.game_paused), modifier = Modifier.size(18.dp))
-            }
         }
-
-        Spacer(Modifier.height(6.dp))
-
-        // Show the first song as soon as the run starts, then follow each swallowed cover.
-        AnimatedVisibility(
-            visible = bannerTrack != null,
-            enter = fadeIn() + scaleIn(initialScale = 0.9f),
-            exit = fadeOut() + scaleOut(targetScale = 0.9f),
-        ) {
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = scheme.primary.copy(alpha = 0.16f),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        HapticUtil.performUIHaptic(context)
-                        onClose()
-                        playerViewModel.isPlayerExpanded = true
-                    },
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                ) {
-                    AsyncImage(
-                        model = trackImageModel(bannerTrack),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.1f)),
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = stringResource(R.string.game_now_playing),
-                            color = scheme.primary,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = bannerTrack?.let { "${it.title.orEmpty()} • ${it.displayArtist}" }.orEmpty(),
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+        Surface(shape = RoundedCornerShape(22.dp), color = scheme.surfaceContainerHigh, modifier = Modifier.weight(1f)) {
+            Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.EmojiEvents, null, tint = scheme.tertiary, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Column {
+                    Text(stringResource(R.string.game_best_label), style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+                    Text("$best", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
             }
-        }
-
-        // The board
-        BoxWithConstraints(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(vertical = 10.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            val maxW = constraints.maxWidth.toFloat()
-            val maxH = constraints.maxHeight.toFloat()
-            val cell = min(maxW / COLS, maxH / ROWS)
-            val cellDp = with(density) { cell.toDp() }
-            val boardW = with(density) { (cell * COLS).toDp() }
-            val boardH = with(density) { (cell * ROWS).toDp() }
-
-            Box(
-                modifier = Modifier
-                    .size(boardW, boardH)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(GameColors.Board)
-                    .border(1.dp, Color.White.copy(alpha = 0.07f), RoundedCornerShape(20.dp))
-                    .pointerInput(engine) {
-                        detectDragGestures(
-                            onDragStart = { dragAccum = Offset.Zero },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                dragAccum += dragAmount
-                                val threshold = cell * 0.85f
-                                if (abs(dragAccum.x) > threshold || abs(dragAccum.y) > threshold) {
-                                    val dir = if (abs(dragAccum.x) > abs(dragAccum.y)) {
-                                        if (dragAccum.x > 0) SnakeDirection.RIGHT else SnakeDirection.LEFT
-                                    } else {
-                                        if (dragAccum.y > 0) SnakeDirection.DOWN else SnakeDirection.UP
-                                    }
-                                    engine.turn(dir)
-                                    engine.ensureRunning()
-                                    dragAccum = Offset.Zero
-                                }
-                            },
-                        )
-                    },
-            ) {
-                // Grid, food glow and snake
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawGrid(cell)
-                    drawFoodsGlow(engine.foods, cell)
-                    drawSnake(
-                        engine.snake, cell,
-                        fur = Color(pet.palette.fur),
-                        shade = Color(pet.palette.shade),
-                        mark = Color(pet.palette.mark),
-                        eyeColor = Color(pet.eyeColor),
-                    )
-                }
-
-                // Food covers as real images over the canvas
-                engine.foods.forEach { food ->
-                    val appeared = remember(food.track.id, food.cell) { Animatable(0.4f) }
-                    LaunchedEffect(food.track.id, food.cell) {
-                        appeared.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = 500f))
-                    }
-                    AsyncImage(
-                        model = trackImageModel(food.track),
-                        contentDescription = food.track.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .offset {
-                                IntOffset(
-                                    (food.cell.x * cell).roundToInt(),
-                                    (food.cell.y * cell).roundToInt(),
-                                )
-                            }
-                            .size(cellDp)
-                            .padding(2.5.dp)
-                            .graphicsLayer {
-                                scaleX = appeared.value
-                                scaleY = appeared.value
-                            }
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color.White.copy(alpha = 0.12f)),
-                    )
-                }
-
-                // Overlays
-                val overlayAlpha by animateFloatAsState(
-                    targetValue = if (engine.phase == SnakePhase.RUNNING) 0f else 1f,
-                    label = "overlay",
-                )
-                if (overlayAlpha > 0.01f) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer { alpha = overlayAlpha }
-                            .background(Color.Black.copy(alpha = 0.6f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        when (engine.phase) {
-                            SnakePhase.IDLE -> OverlayIdle(
-                                onStart = engine::ensureRunning,
-                                isWave = isWave,
-                            )
-                            SnakePhase.PAUSED -> OverlayPaused(onResume = engine::ensureRunning)
-                            SnakePhase.OVER -> OverlayOver(
-                                score = engine.score,
-                                best = best,
-                                onRestart = restart,
-                                onClose = onClose,
-                            )
-                            SnakePhase.WIN -> OverlayWin(
-                                score = engine.score,
-                                onRestart = restart,
-                                onClose = onClose,
-                                isWave = isWave,
-                            )
-                            SnakePhase.RUNNING -> Unit
-                        }
-                    }
-                }
-            }
-        }
-
-        // D-pad
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            DpadButton(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.game_up)) {
-                engine.turn(SnakeDirection.UP); engine.ensureRunning()
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                DpadButton(Icons.Rounded.KeyboardArrowLeft, stringResource(R.string.game_left)) {
-                    engine.turn(SnakeDirection.LEFT); engine.ensureRunning()
-                }
-                Spacer(Modifier.width(14.dp))
-                DpadButton(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.game_down)) {
-                    engine.turn(SnakeDirection.DOWN); engine.ensureRunning()
-                }
-                Spacer(Modifier.width(14.dp))
-                DpadButton(Icons.Rounded.KeyboardArrowRight, stringResource(R.string.game_right)) {
-                    engine.turn(SnakeDirection.RIGHT); engine.ensureRunning()
-                }
-            }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = stringResource(R.string.game_hint),
-                color = Color.White.copy(alpha = 0.4f),
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center,
-            )
         }
     }
 }
 
-// ─── Overlays & small pieces ────────────────────────────────────────────────────────────
-
+/** The song the last cover played; a tap opens the player on it. */
 @Composable
-private fun OverlayIdle(onStart: () -> Unit, isWave: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        FilledIconButton(
-            onClick = onStart,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-            modifier = Modifier.size(72.dp),
-        ) {
-            Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(38.dp))
-        }
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = stringResource(if (isWave) R.string.game_wave_idle else R.string.game_idle),
-            color = Color.White,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = stringResource(R.string.game_eat_hint),
-            color = Color.White.copy(alpha = 0.65f),
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
-@Composable
-private fun OverlayPaused(onResume: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        FilledIconButton(
-            onClick = onResume,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-            modifier = Modifier.size(72.dp),
-        ) {
-            Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(38.dp))
-        }
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.game_paused),
-            color = Color.White,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-        )
-    }
-}
-
-@Composable
-private fun OverlayOver(score: Int, best: Int, onRestart: () -> Unit, onClose: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = stringResource(R.string.game_over),
-            color = Color.White,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = stringResource(R.string.game_score, score) + "  •  " + stringResource(R.string.game_best, best),
-            color = Color.White.copy(alpha = 0.7f),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Spacer(Modifier.height(14.dp))
-        FilledTonalButton(onClick = onRestart) {
-            Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text(stringResource(R.string.game_restart))
-        }
-        TextButton(onClick = onClose) {
-            Text(stringResource(R.string.btn_close), color = Color.White.copy(alpha = 0.6f))
-        }
-    }
-}
-
-@Composable
-private fun OverlayWin(score: Int, onRestart: () -> Unit, onClose: () -> Unit, isWave: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = stringResource(if (isWave) R.string.game_wave_finished else R.string.game_finished_title),
-            color = Color.White,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = stringResource(R.string.game_finished_text, score),
-            color = Color.White.copy(alpha = 0.7f),
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(14.dp))
-        FilledTonalButton(onClick = onRestart) {
-            Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text(stringResource(R.string.game_restart))
-        }
-        TextButton(onClick = onClose) {
-            Text(stringResource(R.string.btn_close), color = Color.White.copy(alpha = 0.6f))
-        }
-    }
-}
-
-@Composable
-private fun DpadButton(icon: ImageVector, desc: String, onClick: () -> Unit) {
-    FilledTonalIconButton(
-        onClick = onClick,
-        colors = IconButtonDefaults.filledTonalIconButtonColors(
-            containerColor = Color.White.copy(alpha = 0.08f),
-            contentColor = Color.White,
-        ),
-        modifier = Modifier.size(52.dp),
+private fun NowPlayingCard(track: Track?, onOpenPlayer: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    AnimatedVisibility(
+        visible = track != null,
+        enter = fadeIn() + scaleIn(initialScale = 0.92f),
+        exit = fadeOut() + scaleOut(targetScale = 0.92f),
     ) {
-        Icon(icon, contentDescription = desc)
+        FilledTonalButton(
+            onClick = hapticAction(HapticKind.UI, onOpenPlayer),
+            shapes = ButtonDefaults.shapes(),
+            contentPadding = PaddingValues(10.dp),
+            colors = ButtonDefaults.filledTonalButtonColors(containerColor = scheme.secondaryContainer),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            AsyncImage(
+                model = trackImageModel(track),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(scheme.surfaceContainerHighest),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.game_now_playing), style = MaterialTheme.typography.labelSmall, color = scheme.primary, fontWeight = FontWeight.Bold)
+                Text(
+                    listOfNotNull(track?.title, track?.displayArtist?.takeIf { it.isNotBlank() }).joinToString(" · "),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null)
+        }
+    }
+}
+
+/** A cross of arrows around pause / play, under the thumb. Swiping on the board steers too. */
+@Composable
+private fun DirectionPad(phase: SnakePhase, onTurn: (SnakeDirection) -> Unit, onTogglePause: () -> Unit) {
+    val running = phase == SnakePhase.RUNNING
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        PadButton(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.game_up)) { onTurn(SnakeDirection.UP) }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PadButton(Icons.Rounded.KeyboardArrowLeft, stringResource(R.string.game_left)) { onTurn(SnakeDirection.LEFT) }
+            FilledIconButton(
+                onClick = hapticAction(HapticKind.MEDIUM, onTogglePause),
+                shapes = IconButtonDefaults.shapes(),
+                modifier = Modifier.size(PAD_BUTTON_SIZE),
+            ) {
+                Icon(
+                    if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = stringResource(if (running) R.string.action_pause else R.string.btn_play),
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+            PadButton(Icons.Rounded.KeyboardArrowRight, stringResource(R.string.game_right)) { onTurn(SnakeDirection.RIGHT) }
+        }
+        PadButton(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.game_down)) { onTurn(SnakeDirection.DOWN) }
     }
 }
 
 @Composable
-private fun GameMessage(text: String, icon: (@Composable () -> Unit)? = null) {
+private fun PadButton(icon: ImageVector, desc: String, onClick: () -> Unit) {
+    FilledTonalIconButton(
+        onClick = hapticAction(HapticKind.LIGHT, onClick),
+        shapes = IconButtonDefaults.shapes(),
+        modifier = Modifier.size(PAD_BUTTON_SIZE),
+    ) {
+        Icon(icon, contentDescription = desc, modifier = Modifier.size(30.dp))
+    }
+}
+
+private val PAD_BUTTON_SIZE = 60.dp
+
+@Composable
+private fun GameOverlayCard(
+    title: String,
+    body: String? = null,
+    icon: ImageVector? = null,
+    primary: @Composable () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(shape = RoundedCornerShape(32.dp), color = scheme.surfaceContainerHigh, modifier = Modifier.widthIn(max = 320.dp)) {
+        Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            if (icon != null) {
+                Box(
+                    modifier = Modifier.size(64.dp).clip(MaterialShapes.SoftBurst.toShape()).background(scheme.tertiaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, null, tint = scheme.onTertiaryContainer, modifier = Modifier.size(32.dp))
+                }
+                Spacer(Modifier.height(14.dp))
+            }
+            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            if (body != null) {
+                Spacer(Modifier.height(6.dp))
+                Text(body, style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            }
+            Spacer(Modifier.height(18.dp))
+            primary()
+        }
+    }
+}
+
+@Composable
+private fun BigPlayButton(onClick: () -> Unit) {
+    FilledIconButton(
+        onClick = hapticAction(HapticKind.STRONG, onClick),
+        shapes = IconButtonDefaults.shapes(),
+        modifier = Modifier.size(80.dp),
+    ) {
+        Icon(Icons.Rounded.PlayArrow, contentDescription = stringResource(R.string.btn_play), modifier = Modifier.size(40.dp))
+    }
+}
+
+@Composable
+private fun RestartButtons(onRestart: () -> Unit, onClose: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Button(onClick = hapticAction(HapticKind.MEDIUM, onRestart), shapes = ButtonDefaults.shapes(), modifier = Modifier.height(52.dp)) {
+            Icon(Icons.Rounded.Refresh, null, Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.game_restart))
+        }
+        TextButton(onClick = hapticAction(HapticKind.UI, onClose), shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(R.string.btn_close))
+        }
+    }
+}
+
+@Composable
+private fun GameMessage(text: String, loading: Boolean = false) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
+        modifier = Modifier.fillMaxSize().padding(32.dp),
     ) {
-        icon?.invoke()
-        if (icon != null) Spacer(Modifier.height(14.dp))
-        Text(
-            text = text,
-            color = Color.White.copy(alpha = 0.7f),
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-        )
+        if (loading) {
+            ContainedLoadingIndicator(Modifier.size(64.dp))
+        } else {
+            Box(
+                modifier = Modifier.size(72.dp).clip(MaterialShapes.Cookie12Sided.toShape()).background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Rounded.SportsEsports, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(32.dp))
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }
-}
-
-@Composable
-private fun GameSpinner() {
-    val transition = rememberInfiniteTransition(label = "spinner")
-    val angle by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Restart),
-        label = "angle",
-    )
-    Icon(
-        Icons.Rounded.SportsEsports,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .size(42.dp)
-            .graphicsLayer { rotationZ = angle },
-    )
 }
 
 // ─── Canvas drawing ─────────────────────────────────────────────────────────────────────
 
-private object GameColors {
-    val Background = Color(0xFF0D0D12)
-    val Board = Color(0xFF15151C)
-    val Grid = Color(0xFF23232D)
-    val FoodGlow = Color(0xFFFFC96B)
-}
 
-private fun DrawScope.drawGrid(cell: Float) {
+private fun DrawScope.drawGrid(cell: Float, color: Color) {
     for (x in 1 until COLS) {
         for (y in 1 until ROWS) {
             drawCircle(
-                color = GameColors.Grid,
+                color = color,
                 radius = cell * 0.045f,
                 center = Offset(x * cell, y * cell),
             )
@@ -965,10 +884,10 @@ private fun DrawScope.drawGrid(cell: Float) {
     }
 }
 
-private fun DrawScope.drawFoodsGlow(foods: List<SnakeFood>, cell: Float) {
+private fun DrawScope.drawFoodsGlow(foods: List<SnakeFood>, cell: Float, color: Color) {
     foods.forEach { food ->
         drawCircle(
-            color = GameColors.FoodGlow.copy(alpha = 0.26f),
+            color = color.copy(alpha = 0.26f),
             radius = cell * 0.72f,
             center = Offset(
                 food.cell.x * cell + cell / 2f,
