@@ -11,6 +11,7 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.player.AudioEffectsState
+import com.alananasss.kittytune.ui.player.AudioFxPreset
 import com.alananasss.kittytune.ui.player.EqualizerState
 import com.alananasss.kittytune.data.audio.SavedEqProfile
 import com.alananasss.kittytune.ui.player.PlaybackContext
@@ -452,6 +453,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_TRACK_JSON = "last_track_json"
         private const val KEY_POSITION = "last_position"
         private const val KEY_EFFECTS = "audio_effects"
+        private const val KEY_AUDIO_FX_PRESETS = "audio_fx_presets"
         private const val KEY_CONTEXT_JSON = "last_context_json"
         private const val KEY_SHUFFLE_MODE = "shuffle_mode_enabled"
         private const val KEY_REPEAT_MODE = "repeat_mode_state"
@@ -2522,6 +2524,25 @@ class PlayerPreferences(context: Context) {
 
     fun saveEffects(state: AudioEffectsState) {
         prefs.edit { putString(KEY_EFFECTS, gson.toJson(state)) }
+    }
+
+    fun getAudioFxPresets(): Map<String, AudioFxPreset> {
+        val json = prefs.getString(KEY_AUDIO_FX_PRESETS, null) ?: return emptyMap()
+        return runCatching {
+            val type = object : TypeToken<Map<String, AudioFxPreset?>>() {}.type
+            gson.fromJson<Map<String, AudioFxPreset?>>(json, type).orEmpty().mapNotNull { (name, preset) ->
+                val effects = preset?.effects ?: return@mapNotNull null
+                val equalizer: EqualizerState? = preset.equalizer
+                if (name.isBlank() || equalizer == null || !effects.speed.isFinite() || effects.speed <= 0f) {
+                    return@mapNotNull null
+                }
+                name to AudioFxPreset(effects.copy(isEqualizerEnabled = equalizer.isEnabled), equalizer)
+            }.toMap()
+        }.getOrDefault(emptyMap())
+    }
+
+    fun saveAudioFxPresets(presets: Map<String, AudioFxPreset>) {
+        prefs.edit { putString(KEY_AUDIO_FX_PRESETS, gson.toJson(presets)) }
     }
 
     fun getEqualizerState(): EqualizerState {

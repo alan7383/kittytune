@@ -6978,6 +6978,40 @@ query CommentsWithReactions(
     var pinnedAudioFx by mutableStateOf(playerPrefs.getPinnedAudioFx())
         private set
 
+    var audioFxPresets by mutableStateOf(playerPrefs.getAudioFxPresets())
+        private set
+
+    fun saveAudioFxPreset(name: String, preset: AudioFxPreset): Boolean {
+        val trimmedName = name.trim()
+        if (trimmedName.isBlank() || audioFxPresets.keys.any { it.equals(trimmedName, ignoreCase = true) }) {
+            return false
+        }
+        val updated = audioFxPresets + (trimmedName to preset)
+        playerPrefs.saveAudioFxPresets(updated)
+        audioFxPresets = updated
+        return true
+    }
+
+    fun deleteAudioFxPreset(name: String) {
+        val updated = audioFxPresets - name
+        playerPrefs.saveAudioFxPresets(updated)
+        audioFxPresets = updated
+    }
+
+    fun applyAudioFxPreset(preset: AudioFxPreset): Boolean {
+        if (preset.effects.isEarrapeEnabled && !hasSeenEarrapeWarning()) return false
+        if (effectsState.speed != preset.effects.speed) {
+            routeRemote("speed", (preset.effects.speed * 100f).roundToInt().toLong())
+        }
+
+        effectsState = preset.effects
+        equalizerState = preset.equalizer
+        applyEqualizerAndSave()
+        applyEffectsAndSave()
+        ConnectManager.publish(connectSnapshot())
+        return true
+    }
+
     fun disableEffects(fxIds: Collection<String>) {
         if (fxIds.isEmpty()) return
         var state = effectsState

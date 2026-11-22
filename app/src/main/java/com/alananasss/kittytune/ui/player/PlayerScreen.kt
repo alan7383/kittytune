@@ -5281,6 +5281,7 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
     var showBassBoostDialog by remember { mutableStateOf(false) }
     var showEarrapeDialog by remember { mutableStateOf(false) }
     var showEarrapeWarning by remember { mutableStateOf(false) }
+    var presetAwaitingWarning by remember { mutableStateOf<AudioFxPreset?>(null) }
     var showEightDDialog by remember { mutableStateOf(false) }
     var showMuffledDialog by remember { mutableStateOf(false) }
     var showReverbDialog by remember { mutableStateOf(false) }
@@ -5525,6 +5526,14 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                 }
             }
         }
+        AudioFxPresetControls(viewModel) { preset ->
+            if (!viewModel.applyAudioFxPreset(preset)) {
+                presetAwaitingWarning = preset
+                showEarrapeWarning = true
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+
         if (pages.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -5915,6 +5924,10 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
             )
         }
         if (showEarrapeWarning) {
+            val dismissWarning = {
+                showEarrapeWarning = false
+                presetAwaitingWarning = null
+            }
             var countdown by remember { mutableStateOf(5) }
             LaunchedEffect(Unit) {
                 while (countdown > 0) {
@@ -5923,15 +5936,16 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                 }
             }
             AlertDialog(
-                onDismissRequest = { showEarrapeWarning = false },
+                onDismissRequest = dismissWarning,
                 title = { Text(stringResource(R.string.warning_title)) },
                 text = { Text(stringResource(R.string.earrape_warning)) },
                 confirmButton = {
                     TextButton(
                         onClick = hapticAction(HapticKind.UI) {
                             viewModel.setHasSeenEarrapeWarning(true)
-                            viewModel.toggleEarrape()
-                            showEarrapeWarning = false
+                            val preset = presetAwaitingWarning
+                            if (preset == null) viewModel.toggleEarrape() else viewModel.applyAudioFxPreset(preset)
+                            dismissWarning()
                         },
                         enabled = countdown == 0
                     ) {
@@ -5943,9 +5957,9 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = hapticAction(HapticKind.UI) {
-                        showEarrapeWarning = false
-                    }) { Text(stringResource(R.string.btn_cancel)) }
+                    TextButton(onClick = hapticAction(HapticKind.UI, dismissWarning)) {
+                        Text(stringResource(R.string.btn_cancel))
+                    }
                 }
             )
         }

@@ -270,6 +270,10 @@
     <string name="player_effects">Hiệu ứng</string>
     <string name="player_special_effects">Hiệu ứng âm thanh (FX)</string>
     <string name="audio_fx_long_press_hint">Nhấn giữ một ô để tùy chỉnh cài đặt</string>
+    <string name="audio_fx_save_preset">Lưu cấu hình</string>
+    <string name="audio_fx_preset_name">Tên cấu hình</string>
+    <string name="audio_fx_preset_name_used">Đã có cấu hình mang tên này.</string>
+    <string name="audio_fx_delete_preset">Xóa cấu hình?</string>
     <string name="fx_active_count">%1$d đang bật</string>
     <string name="fx_reset_speed">Tốc độ bình thường</string>
     <string name="player_pitch">Cao độ</string>

@@ -140,6 +140,11 @@
         @SerializedName("autoProfileDeviceName") val autoProfileDeviceName: String? = null,
     )
 
+    data class AudioFxPreset(
+        @SerializedName("effects") val effects: AudioEffectsState,
+        @SerializedName("equalizer") val equalizer: EqualizerState
+    )
+
     data class EqualizerPreset(
         val name: String,
         val bandGainsDb: List<Float>,

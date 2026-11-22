@@ -271,6 +271,10 @@
     <string name="player_effects">Efeitos</string>
     <string name="player_special_effects">Efeitos de áudio</string>
     <string name="audio_fx_long_press_hint">Toque e segure um bloco para ajustar suas configurações</string>
+    <string name="audio_fx_save_preset">Salvar predefinição</string>
+    <string name="audio_fx_preset_name">Nome da predefinição</string>
+    <string name="audio_fx_preset_name_used">Já existe uma predefinição com esse nome.</string>
+    <string name="audio_fx_delete_preset">Excluir predefinição?</string>
     <string name="fx_active_count">%1$d ativos</string>
     <string name="fx_reset_speed">Voltar à velocidade normal</string>
     <string name="player_pitch">Tom</string>
