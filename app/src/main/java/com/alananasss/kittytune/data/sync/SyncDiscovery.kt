@@ -86,18 +86,21 @@ object SyncDiscovery {
      * simply will not be findable, and a saved address may still reach it.
      */
     @Synchronized
-    fun startResponder() {
+    internal fun startResponder() {
         if (responder != null) return
+        // SyncService calls this from its listener startup coroutine on Dispatchers.IO.
+        val bound = runCatching { DatagramSocket(null) }.getOrNull() ?: return
+        val configured = runCatching {
+            bound.reuseAddress = true
+            bound.broadcast = true
+            bound.bind(InetSocketAddress(DISCOVERY_PORT))
+        }
+        if (configured.isFailure) {
+            bound.close()
+            return
+        }
+        socket = bound
         responder = scope.launch {
-            val bound = runCatching {
-                DatagramSocket(null).apply {
-                    reuseAddress = true
-                    broadcast = true
-                    bind(InetSocketAddress(DISCOVERY_PORT))
-                }
-            }.getOrNull() ?: return@launch
-            socket = bound
-
             val buffer = ByteArray(2048)
             while (!bound.isClosed) {
                 val packet = DatagramPacket(buffer, buffer.size)
