@@ -397,7 +397,6 @@
     <string name="ambient_cafe">Cafeteria</string>
     <string name="label_ambient_volume">Volume do som ambiente: %1$d%%</string>
     <string name="btn_explore_all_effects">Explorar todos os efeitos</string>
-    <string name="edit_tiles_title">Editar atalhos</string>
     <string name="edit_tiles_subtitle">Selecione os atalhos para fixar na barra de acesso rápido</string>
     <string name="category_power_eq">Potência e equalização</string>
     <string name="category_spatial">Espacial e 3D</string>
