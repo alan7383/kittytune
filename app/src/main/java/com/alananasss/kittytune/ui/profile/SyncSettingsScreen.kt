@@ -3,8 +3,10 @@ package com.alananasss.kittytune.ui.profile
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,14 +20,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Computer
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.PhoneAndroid
+import androidx.compose.material.icons.rounded.QrCode
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.AlertDialog
@@ -38,11 +46,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,19 +63,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.ui.common.QrCodeGenerator
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.sync.KnownDevice
 import com.alananasss.kittytune.data.sync.SyncClient
+import com.alananasss.kittytune.data.sync.SyncDiscovery
 import com.alananasss.kittytune.data.sync.SyncLikes
 import com.alananasss.kittytune.data.sync.SyncLog
 import com.alananasss.kittytune.data.sync.SyncPeers
@@ -77,6 +97,7 @@ import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.ui.common.getSettingsShape
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -111,6 +132,7 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
     var scanning by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var showDisclaimerDialog by remember { mutableStateOf(!playerPrefs.isSyncDisclaimerDismissed()) }
+    var showingMyCode by remember { mutableStateOf(false) }
 
     val isSyncing by SyncScheduler.isSyncing.collectAsState()
     val lastSyncAtMs by SyncScheduler.lastSyncAtMs.collectAsState()
@@ -140,15 +162,11 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
         }
         busy = true
         scope.launch {
-            val result = SyncClient.exchange(peer)
+            val result = SyncClient.pair(peer)
             busy = false
             devices = SyncPeers.all()
             status = when (result) {
-                is SyncClient.Result.Success -> {
-                    SyncService.isListenerEnabled = true
-                    SyncScheduler.start()
-                    String.format(doneTemplate, result.peerName)
-                }
+                is SyncClient.Result.Success -> String.format(doneTemplate, result.peerName)
                 SyncClient.Result.Unauthorized -> unauthorized
                 is SyncClient.Result.Failed -> String.format(failedTemplate, result.reason)
             }
@@ -162,6 +180,15 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
                 pair(text)
             },
             onDismiss = { scanning = false },
+        )
+    }
+
+    if (showingMyCode && localNetworkGranted) {
+        MyCodeSheet(
+            onDismiss = {
+                showingMyCode = false
+                devices = SyncPeers.all()
+            },
         )
     }
 
@@ -233,6 +260,17 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
                         Icon(Icons.Rounded.QrCodeScanner, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.sync_pair_device))
+                    }
+
+                    OutlinedButton(
+                        onClick = hapticAction(HapticKind.UI) { showingMyCode = true },
+                        enabled = !busy && localNetworkGranted,
+                        shapes = ButtonDefaults.shapes(),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Rounded.QrCode, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.sync_show_my_code))
                     }
 
                     if (busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -328,6 +366,118 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
     }
 }
 
+@Composable
+private fun MyCodeSheet(onDismiss: () -> Unit) {
+    val clipboard = LocalClipboardManager.current
+    var code by remember { mutableStateOf<String?>(null) }
+    var listenerFailed by remember { mutableStateOf(false) }
+    var copied by remember { mutableStateOf(false) }
+    var pairedWith by remember { mutableStateOf<String?>(null) }
+    val knownIds = remember { SyncPeers.all().map { it.deviceId }.toSet() }
+    val wasRunning = remember { SyncService.isRunning }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            SyncDiscovery.isAdvertising = false
+            SyncService.finishPairing(wasRunning)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (!SyncService.startForPairing()) {
+            listenerFailed = true
+            return@LaunchedEffect
+        }
+        code = SyncService.pairingCode()
+        SyncDiscovery.isAdvertising = true
+        while (pairedWith == null) {
+            delay(1_000)
+            SyncPeers.all().firstOrNull { it.deviceId !in knownIds }?.let { pairedWith = it.label }
+        }
+    }
+
+    KittyModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                stringResource(R.string.sync_my_code_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                SyncLog.deviceName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            val pairingCode = code
+            if (listenerFailed) {
+                Text(
+                    stringResource(R.string.sync_my_code_unavailable),
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                )
+            } else if (pairingCode == null) {
+                CircularProgressIndicator()
+            } else {
+                val qr = remember(pairingCode) { QrCodeGenerator.generateQrBitmap(pairingCode) }
+                qr?.let { bitmap ->
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = stringResource(R.string.sync_my_code_title),
+                        modifier = Modifier.size(224.dp).clip(RoundedCornerShape(16.dp))
+                            .background(Color.White).padding(12.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
+                SelectionContainer {
+                    Text(
+                        pairingCode,
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        fontFamily = FontFamily.Monospace,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                    )
+                }
+                val paired = pairedWith
+                Text(
+                    if (paired != null) stringResource(R.string.sync_paired_with, paired)
+                    else stringResource(R.string.sync_my_code_waiting),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = if (paired != null) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    stringResource(R.string.sync_my_code_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                OutlinedButton(
+                    onClick = hapticAction(HapticKind.UI) {
+                        clipboard.setText(AnnotatedString(pairingCode))
+                        copied = true
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Icon(
+                        if (copied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
+                        null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(if (copied) R.string.sync_my_code_copied else R.string.sync_my_code_copy))
+                }
+            }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_close)) }
+        }
+    }
+}
+
 /**
  * Sync Options subpage:
  * Choose what to sync (Liked tracks and playlists).
@@ -416,15 +566,11 @@ fun SyncAdvancedScreen(onBackClick: () -> Unit) {
         }
         busy = true
         scope.launch {
-            val result = SyncClient.exchange(peer)
+            val result = SyncClient.pair(peer)
             busy = false
             devices = SyncPeers.all()
             status = when (result) {
-                is SyncClient.Result.Success -> {
-                    SyncService.isListenerEnabled = true
-                    SyncScheduler.start()
-                    String.format(doneTemplate, result.peerName)
-                }
+                is SyncClient.Result.Success -> String.format(doneTemplate, result.peerName)
                 SyncClient.Result.Unauthorized -> unauthorized
                 is SyncClient.Result.Failed -> String.format(failedTemplate, result.reason)
             }
