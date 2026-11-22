@@ -62,6 +62,8 @@ import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
@@ -2390,13 +2392,25 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         )
     }
 
-    val isDownloadedContext = viewModel.currentContext?.navigationId == "downloads"
-            || viewModel.currentContext?.navigationId?.startsWith("downloaded_section:") == true
-            || viewModel.currentContext?.navigationId == "local_files"
-            || viewModel.menuContextPlaylistId == -2L
-
-    val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)
-    val isOfflineMode = isLocalFile || isDownloadedContext || isOffline
+    var showOfflineDialog by remember(track.id) { mutableStateOf(false) }
+    fun withInternet(action: () -> Unit) {
+        if (com.alananasss.kittytune.utils.NetworkUtils.hasValidatedInternet(context)) {
+            action()
+        } else {
+            showOfflineDialog = true
+        }
+    }
+    if (showOfflineDialog) {
+        AlertDialog(
+            onDismissRequest = { showOfflineDialog = false },
+            title = { Text(stringResource(R.string.home_offline_title)) },
+            confirmButton = {
+                TextButton(onClick = { showOfflineDialog = false }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            }
+        )
+    }
     val menuPrefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
     val trackRemovalMethod by menuPrefs.getTrackRemovalMethodFlow().collectAsState(initial = menuPrefs.getTrackRemovalMethod())
     val queueIndex = viewModel.menuContextQueueIndex
@@ -2404,7 +2418,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
     val isLocalQueueItem = queueIndex != null && selectedDevice == null
 
     val gridItems = mutableListOf<DockOptionItem>().apply {
-        if (!isLocalFile && (!viewModel.isMenuContextFromPlayer || isLocalQueueItem)) {
+        if (!isLocalFile && (!viewModel.isMenuContextFromPlayer || queueIndex != null)) {
             add(
                 DockOptionItem(
                     if (isTrackLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
@@ -2429,16 +2443,16 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     id = "repeat"
                 ) { viewModel.toggleRepeatMode() })
         }
-        if (!viewModel.isMenuContextFromPlayer || isLocalQueueItem) {
+        if (!viewModel.isMenuContextFromPlayer ||
+            (isLocalQueueItem && queueIndex != viewModel.uiCurrentQueueIndex)
+        ) {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.PlaylistPlay,
                     stringResource(R.string.menu_play_next),
                     id = "play_next"
                 ) {
-                    if (queueIndex == null) viewModel.insertNext(listOf(track))
-                    else viewModel.playQueueItemNext(queueIndex)
-                    viewModel.showMenuSheet = false
+                    viewModel.playMenuTrackNext()
                 })
         }
         if (!viewModel.isMenuContextFromPlayer) {
@@ -2465,33 +2479,31 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 )
             }
         }
-        if (!isOfflineMode && track.source != "youtube" && !isSpotify) {
+        if (!isLocalFile && track.source != "youtube" && !isSpotify) {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.Comment,
                     stringResource(R.string.menu_comments),
                     id = "comments"
-                ) { viewModel.openComments(track) })
+                ) { withInternet { viewModel.openComments(track) } })
         }
-        if (!isOfflineMode && track.source != "youtube" && !isSpotify) {
+        if (!isLocalFile && track.source != "youtube" && !isSpotify) {
             if (isReposted) {
                 add(
                     DockOptionItem(
                         Icons.Rounded.Repeat,
                         stringResource(R.string.menu_reposted),
                         id = "repost"
-                    ) { showDeleteRepostConfirm = true })
+                    ) { withInternet { showDeleteRepostConfirm = true } })
             } else {
                 add(DockOptionItem(Icons.Rounded.Repeat, stringResource(R.string.menu_repost), id = "repost") {
-                    showRepostDialog = true
+                    withInternet { showRepostDialog = true }
                 })
             }
         }
-        if (!isOfflineMode && track.source != "youtube") {
+        if (track.source != "youtube") {
             add(DockOptionItem(Icons.Rounded.Info, stringResource(R.string.menu_details), id = "details") {
-                viewModel.openTrackDetails(
-                    track
-                )
+                viewModel.openTrackDetails(track) { showOfflineDialog = true }
             })
         }
         val currentUserId = viewModel.currentUserId
@@ -2499,14 +2511,14 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 track.user?.id == currentUserId ||
                         track.user?.urn?.endsWith(":$currentUserId") == true
                 )
-        if (isOwnTrack && !isOfflineMode) {
+        if (isOwnTrack) {
             add(
                 DockOptionItem(
                     Icons.Rounded.Edit,
                     stringResource(R.string.menu_edit_track),
                     id = "edit_track"
                 ) {
-                    viewModel.navigateToEditTrack(track)
+                    withInternet { viewModel.navigateToEditTrack(track) }
                 }
             )
         }
@@ -2531,41 +2543,44 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         })
 
         val albumId = track.publisherMetadata?.albumId ?: track.publisherMetadata?.releaseTitle
-        if (!isOfflineMode && !albumId.isNullOrBlank() && (isSpotify || albumId.length == 22)) {
+        if (!isLocalFile && !albumId.isNullOrBlank() && (isSpotify || albumId.length == 22)) {
             add(
                 DockOptionItem(
                     Icons.Rounded.Album,
                     stringResource(R.string.menu_go_album),
                     id = "go_album"
                 ) {
-                    viewModel.showMenuSheet = false
-                    viewModel.navigateToAlbum(albumId)
+                    withInternet {
+                        viewModel.showMenuSheet = false
+                        viewModel.navigateToAlbum(albumId)
+                    }
                 }
             )
         }
 
-        if (!isOfflineMode && track.source != "youtube") {
+        if (!isLocalFile && track.source != "youtube") {
             add(
                 DockOptionItem(
                     Icons.Default.Person,
                     stringResource(R.string.menu_go_artist),
                     id = "go_artist"
                 ) {
-                    viewModel.showMenuSheet = false
-                    viewModel.navigateToTrackArtist(track)
+                    withInternet { viewModel.navigateToTrackArtist(track) }
                 }
             )
         }
-        if (!isOfflineMode && RadioEligibility.canStartRadio(track)) {
+        if (!isLocalFile && RadioEligibility.canStartRadio(track)) {
             add(DockOptionItem(Icons.Rounded.Radio, stringResource(R.string.menu_track_radio), id = "track_radio") {
-                if (RadioEligibility.radioKind(track) == RadioEligibility.Kind.YOUTUBE) {
-                    viewModel.startYoutubeRadio(track)
-                } else {
-                    viewModel.startRadioFromTrack(track)
+                withInternet {
+                    if (RadioEligibility.radioKind(track) == RadioEligibility.Kind.YOUTUBE) {
+                        viewModel.startYoutubeRadio(track)
+                    } else {
+                        viewModel.startRadioFromTrack(track)
+                    }
                 }
             })
         }
-        if (!isOfflineMode) {
+        if (!isLocalFile) {
             add(
                 DockOptionItem(
                     Icons.Outlined.Share,
@@ -2704,7 +2719,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     } else if (isDownloading) {
                         DownloadManager.cancelDownload(trackId)
                     } else {
-                        viewModel.downloadTrack(track)
+                        withInternet { viewModel.downloadTrack(track) }
                     }
                 }
             )
@@ -2743,6 +2758,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         verticalArrangement = Arrangement.spacedBy(24.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).padding(bottom = 24.dp)
+            .testTag("track-options-grid")
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column {
@@ -2789,8 +2805,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     SocialProofBanner(
                         likers = viewModel.socialLikers,
                         onUserClick = { u ->
-                            viewModel.showMenuSheet = false
-                            viewModel.navigateToArtist(u.id)
+                            withInternet { viewModel.navigateToArtist(u.id) }
                         },
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
@@ -5268,6 +5283,8 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
     var showBassBoostDialog by remember { mutableStateOf(false) }
     var showEarrapeDialog by remember { mutableStateOf(false) }
     var showEarrapeWarning by remember { mutableStateOf(false) }
+    var presetAwaitingWarning by remember { mutableStateOf<String?>(null) }
+    var presetToDelete by remember { mutableStateOf<String?>(null) }
     var showEightDDialog by remember { mutableStateOf(false) }
     var showMuffledDialog by remember { mutableStateOf(false) }
     var showReverbDialog by remember { mutableStateOf(false) }
@@ -5341,12 +5358,30 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
         onShowEarrapeWarning = { showEarrapeWarning = true }
     )
 
-    val pinnedTiles = remember(viewModel.pinnedAudioFx, allEffects) {
-        viewModel.pinnedAudioFx.mapNotNull { id -> allEffects.find { it.id == id } }
+    val presetEffects = remember(viewModel, viewModel.audioFxPresets.keys) {
+        viewModel.audioFxPresets.keys.reversed().map { name ->
+            AudioFxDefinition(
+                id = AudioFxPreset.tileId(name),
+                titleRes = R.string.audio_fx_preset_name,
+                icon = Icons.Rounded.BookmarkBorder,
+                categoryRes = R.string.audio_fx_saved_presets,
+                isActive = { viewModel.activeAudioFxPresetName == name },
+                onToggle = { player, showWarning ->
+                    if (!player.toggleAudioFxPreset(name)) {
+                        presetAwaitingWarning = name
+                        showWarning()
+                    }
+                },
+                onOpenDialog = { presetToDelete = name },
+                presetName = name,
+            )
+        }
     }
-    val pages = remember(pinnedTiles) {
-        if (pinnedTiles.isEmpty()) emptyList() else pinnedTiles.chunked(6)
+    val availableEffects = presetEffects + allEffects
+    val pinnedTiles = remember(viewModel.pinnedAudioFx, availableEffects) {
+        viewModel.pinnedAudioFx.mapNotNull { id -> availableEffects.find { it.id == id } }
     }
+    val pages = remember(pinnedTiles) { pinnedTiles.chunked(6) }
     val pagerState = rememberPagerState(pageCount = { max(1, pages.size) })
     val activeCount = remember(viewModel.effectsState, allEffects) {
         allEffects.count { it.isActive(viewModel.effectsState) }
@@ -5512,6 +5547,14 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                 }
             }
         }
+        AudioFxPresetControls(
+            viewModel = viewModel,
+            presetToDelete = presetToDelete,
+            onDismissDelete = { presetToDelete = null },
+            onSaved = { pagerState.requestScrollToPage(0) },
+        )
+        Spacer(Modifier.height(14.dp))
+
         if (pages.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -5558,6 +5601,7 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(pagerHeight)
+                    .testTag("audio-fx-grid")
             ) { pageIndex ->
                 val pageItems = pages.getOrElse(pageIndex) { emptyList() }
                 val pageOffset = abs((pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction)
@@ -5580,16 +5624,19 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             rowItems.forEach { fx ->
-                                FxTile(
-                                    label = stringResource(fx.titleRes),
-                                    icon = fx.icon,
-                                    isActive = fx.isActive(viewModel.effectsState),
-                                    onClick = hapticAction(HapticKind.UI) { fx.onToggle(viewModel) { showEarrapeWarning = true } },
-                                    onLongClick = fx.onOpenDialog,
-                                    modifier = if (rowItems.size == 1) Modifier.fillMaxWidth() else Modifier.weight(1f),
-                                    activeColor = fx.activeColor(),
-                                    activeContentColor = fx.activeContentColor()
-                                )
+                                key(fx.id) {
+                                    val isActive = fx.isActive(viewModel.effectsState)
+                                    FxTile(
+                                        label = fx.title(),
+                                        icon = if (isActive && fx.presetName != null) Icons.Rounded.Bookmark else fx.icon,
+                                        isActive = isActive,
+                                        onClick = { fx.onToggle(viewModel) { showEarrapeWarning = true } },
+                                        onLongClick = fx.onOpenDialog,
+                                        modifier = if (rowItems.size == 1) Modifier.fillMaxWidth() else Modifier.weight(1f),
+                                        activeColor = fx.activeColor(),
+                                        activeContentColor = fx.activeContentColor(),
+                                    )
+                                }
                             }
                         }
                     }
@@ -5902,6 +5949,10 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
             )
         }
         if (showEarrapeWarning) {
+            val dismissWarning = {
+                showEarrapeWarning = false
+                presetAwaitingWarning = null
+            }
             var countdown by remember { mutableStateOf(5) }
             LaunchedEffect(Unit) {
                 while (countdown > 0) {
@@ -5910,15 +5961,16 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                 }
             }
             AlertDialog(
-                onDismissRequest = { showEarrapeWarning = false },
+                onDismissRequest = dismissWarning,
                 title = { Text(stringResource(R.string.warning_title)) },
                 text = { Text(stringResource(R.string.earrape_warning)) },
                 confirmButton = {
                     TextButton(
                         onClick = hapticAction(HapticKind.UI) {
                             viewModel.setHasSeenEarrapeWarning(true)
-                            viewModel.toggleEarrape()
-                            showEarrapeWarning = false
+                            val presetName = presetAwaitingWarning
+                            if (presetName == null) viewModel.toggleEarrape() else viewModel.toggleAudioFxPreset(presetName)
+                            dismissWarning()
                         },
                         enabled = countdown == 0
                     ) {
@@ -5930,9 +5982,9 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = hapticAction(HapticKind.UI) {
-                        showEarrapeWarning = false
-                    }) { Text(stringResource(R.string.btn_cancel)) }
+                    TextButton(onClick = hapticAction(HapticKind.UI, dismissWarning)) {
+                        Text(stringResource(R.string.btn_cancel))
+                    }
                 }
             )
         }
@@ -8567,7 +8619,7 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
             ) {
                 AudioFxStudioSheet(
                     viewModel = viewModel,
-                    allEffects = allEffects,
+                    allEffects = availableEffects,
                     onOpenEqualizerSheet = {
                         showStudioEditSheet = false
                         viewModel.showEqualizerScreen = true
@@ -8672,7 +8724,15 @@ fun FxTile(
             if (!longPressConsumed) onClick()
             longPressConsumed = false
         },
-        modifier = modifier.height(84.dp),
+        modifier = modifier.height(84.dp).semantics {
+            selected = isActive
+            if (onLongClick != null) {
+                this.onLongClick {
+                    onLongClick()
+                    true
+                }
+            }
+        },
         shapes = ButtonDefaults.shapes(),
         interactionSource = interactionSource,
         colors = ButtonDefaults.filledTonalButtonColors(
@@ -8717,8 +8777,12 @@ data class AudioFxDefinition(
     val onToggle: (PlayerViewModel, onEarrapeWarning: () -> Unit) -> Unit,
     val onOpenDialog: (() -> Unit)? = null,
     val activeColor: @Composable () -> Color = { MaterialTheme.colorScheme.primary },
-    val activeContentColor: @Composable () -> Color = { MaterialTheme.colorScheme.onPrimary }
+    val activeContentColor: @Composable () -> Color = { MaterialTheme.colorScheme.onPrimary },
+    val presetName: String? = null,
 )
+
+@Composable
+private fun AudioFxDefinition.title(): String = presetName ?: stringResource(titleRes)
 
 @Composable
 fun getAudioFxDefinitions(
@@ -9196,10 +9260,15 @@ fun AudioFxStudioSheet(
     val view = LocalView.current
 
     var isDraggingTile by remember { mutableStateOf(false) }
+    var presetToDelete by remember { mutableStateOf<String?>(null) }
     val scrollState = rememberScrollState()
 
     val categories = remember(allEffects) {
         listOf(
+            Triple(
+                R.string.audio_fx_saved_presets,
+                Icons.Rounded.Bookmark,
+                allEffects.filter { it.categoryRes == R.string.audio_fx_saved_presets }),
             Triple(
                 R.string.category_power_eq,
                 Icons.Rounded.Bolt,
@@ -9234,7 +9303,7 @@ fun AudioFxStudioSheet(
             IconButton(onClick = onDismiss) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.btn_back),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
@@ -9328,11 +9397,14 @@ fun AudioFxStudioSheet(
                     onToggleFx = { fxId ->
                         view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
                         viewModel.togglePinAudioFx(fxId)
-                    }
+                    },
+                    onDeletePreset = { presetToDelete = it },
                 )
             }
         }
     }
+
+    presetToDelete?.let { AudioFxPresetDeleteDialog(it, viewModel) { presetToDelete = null } }
 }
 
 @Composable
@@ -9564,7 +9636,7 @@ fun ActiveQSTile(
                 }
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    text = stringResource(fx.titleRes),
+                    text = fx.title(),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -9574,7 +9646,7 @@ fun ActiveQSTile(
 
             IconButton(
                 onClick = onRemove,
-                modifier = Modifier.size(30.dp)
+                modifier = Modifier.size(30.dp).testTag("audio-fx-remove-${fx.id}")
             ) {
                 Surface(
                     shape = CircleShape,
@@ -9585,7 +9657,7 @@ fun ActiveQSTile(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Rounded.Remove,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.menu_remove),
                             modifier = Modifier.size(14.dp)
                         )
                     }
@@ -9601,7 +9673,8 @@ fun AvailableCategorySection(
     categoryIcon: ImageVector,
     effects: List<AudioFxDefinition>,
     viewModel: PlayerViewModel,
-    onToggleFx: (String) -> Unit
+    onToggleFx: (String) -> Unit,
+    onDeletePreset: (String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp)) {
         Row(
@@ -9627,7 +9700,8 @@ fun AvailableCategorySection(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            effects.chunked(2).forEach { rowItems ->
+            val columns = if (categoryTitleRes == R.string.audio_fx_saved_presets) 1 else 2
+            effects.chunked(columns).forEach { rowItems ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -9638,10 +9712,11 @@ fun AvailableCategorySection(
                             fx = fx,
                             isPinned = isPinned,
                             onClick = hapticAction(HapticKind.UI) { onToggleFx(fx.id) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            onDelete = fx.presetName?.let { name -> { onDeletePreset(name) } },
                         )
                     }
-                    if (rowItems.size == 1) {
+                    if (columns == 2 && rowItems.size == 1) {
                         Spacer(Modifier.weight(1f))
                     }
                 }
@@ -9655,7 +9730,8 @@ fun AvailableTile(
     fx: AudioFxDefinition,
     isPinned: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDelete: (() -> Unit)? = null,
 ) {
     val containerColor by animateColorAsState(
         targetValue = if (isPinned) MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -9677,7 +9753,7 @@ fun AvailableTile(
             1.dp,
             MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isPinned) 0.2f else 0.4f)
         ),
-        modifier = modifier.height(72.dp)
+        modifier = modifier.height(72.dp).testTag("audio-fx-available-${fx.id}")
     ) {
         Row(
             modifier = Modifier
@@ -9706,7 +9782,7 @@ fun AvailableTile(
                 }
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    text = stringResource(fx.titleRes),
+                    text = fx.title(),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -9725,6 +9801,18 @@ fun AvailableTile(
                         imageVector = if (isPinned) Icons.Rounded.Check else Icons.Rounded.Add,
                         contentDescription = null,
                         modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+            if (onDelete != null) {
+                IconButton(
+                    onClick = hapticAction(action = onDelete),
+                    modifier = Modifier.size(44.dp).testTag("audio-fx-delete-${fx.id}"),
+                ) {
+                    Icon(
+                        Icons.Rounded.DeleteOutline,
+                        contentDescription = stringResource(R.string.btn_delete),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -11035,8 +11123,8 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
     val composerLabel = stringResource(R.string.spotify_credits_composer)
     val lyricistLabel = stringResource(R.string.spotify_credits_lyricist)
 
-    LaunchedEffect(spotifyId) {
-        if (spotifyId != null) {
+    LaunchedEffect(spotifyId, isLocalMode) {
+        if (spotifyId != null && !isLocalMode) {
             isLoadingCredits = true
             spotifyCredits = com.alananasss.kittytune.data.spotify.SpotifyRepository.getCredits(spotifyId)
             isLoadingCredits = false

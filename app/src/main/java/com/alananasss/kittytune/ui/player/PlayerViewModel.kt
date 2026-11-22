@@ -198,6 +198,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 val remoteSpeed = peer?.snapshot?.speed
                 if (remoteSpeed != null && ConnectManager.selectedDevice.value != null && effectsState.speed != remoteSpeed) {
                     effectsState = effectsState.copy(speed = remoteSpeed)
+                    clearModifiedAudioFxPreset()
                 }
                 remotePosition = peer?.position() ?: 0L
                 remoteTicker?.cancel()
@@ -312,6 +313,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     var equalizerState by mutableStateOf(
         runCatching { playerPrefs.getEqualizerState() }.getOrElse { EqualizerState() }
     )
+
+    var audioFxPresets by mutableStateOf(playerPrefs.getAudioFxPresets())
+        private set
+    private var audioFxPresetActivation by mutableStateOf(playerPrefs.getAudioFxPresetActivation())
+
+    val currentAudioFxPreset: AudioFxPreset
+        get() = AudioFxPreset(effectsState.copy(isEqualizerEnabled = equalizerState.isEnabled), equalizerState)
+
+    val activeAudioFxPresetName: String?
+        get() = audioFxPresetActivation?.name?.takeIf { audioFxPresets[it] == currentAudioFxPreset }
     var isPreciseSpeedEnabled by mutableStateOf(playerPrefs.getPreciseSpeedEnabled())
 
     var isHapticsEnabled by mutableStateOf(playerPrefs.getHapticsEnabled())
@@ -3666,53 +3677,39 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         AchievementManager.increment("social_star")
     }
 
-    fun openTrackDetails(targetTrack: Track? = null) {
-        val target = targetTrack ?: selectedTrackForSheet ?: trackForMenu ?: currentTrack ?: return
-        selectedTrackForSheet = target
-
-        if (target.id < 0 || target.source == "local") {
-            activateLocalDetailsMode(target)
-            return
-        }
-
+    fun openTrackDetails(target: Track, onOffline: () -> Unit) {
         viewModelScope.launch {
-            val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(getApplication())
-            val navId = currentContext?.navigationId
-            val isContextLocal =
-                menuContextPlaylistId == -2L
-                        || (navId == "downloads" || navId?.startsWith("local_playlist:") == true)
-
-            if (isOffline && isContextLocal) {
-                activateLocalDetailsMode(target)
-            } else {
-                isLocalDetailsMode = false
-                localFilePathForDetails = null
-                showMenuSheet = false
-                showDetailsSheet = true
-
-                if (target.isSoundCloudCatalogTrack && (target.user?.id == 0L || target.playbackCount == 0)) {
-                    try {
-                        val fullTracks = api.getTracksByIds(target.id.toString())
-                        val fullTrack = fullTracks.firstOrNull()
-                        if (fullTrack != null) {
-                            selectedTrackForSheet = fullTrack
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
+            val isLocalFile = target.source == "local" || (target.id < 0 && target.source != "youtube")
+            val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.hasValidatedInternet(context)
+            val useLocalDetails = isLocalFile || isOffline
+            val localAudioPath = if (useLocalDetails) {
+                DownloadManager.getLocalTrack(target.id)?.localAudioPath?.takeIf { it.isNotEmpty() }
+            } else null
+            if (isOffline && !isLocalFile && localAudioPath == null) {
+                onOffline()
+                return@launch
             }
-        }
-    }
 
-    private fun activateLocalDetailsMode(target: Track) {
-        isLocalDetailsMode = true
-        viewModelScope.launch {
-            val localTrack = DownloadManager.getLocalTrack(target.id)
-            val prefix = getString(R.string.prefix_local_file_marker)
-            localFilePathForDetails = localTrack?.localAudioPath ?: target.description?.removePrefix(prefix)
+            selectedTrackForSheet = target
+            isLocalDetailsMode = useLocalDetails
+            localFilePathForDetails = if (useLocalDetails) {
+                localAudioPath ?: target.description?.removePrefix(getString(R.string.prefix_local_file_marker))
+            } else null
             showMenuSheet = false
             showDetailsSheet = true
+
+            if (!useLocalDetails && target.isSoundCloudCatalogTrack &&
+                (target.user?.id == 0L || target.playbackCount == 0)
+            ) {
+                try {
+                    val fullTrack = api.getTracksByIds(target.id.toString()).firstOrNull()
+                    if (fullTrack != null && selectedTrackForSheet === target) {
+                        selectedTrackForSheet = fullTrack
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
     }
 
@@ -5950,15 +5947,22 @@ query CommentsWithReactions(
         saveStateAsync(saveQueue = true)
     }
 
-    fun playQueueItemNext(index: Int) {
-        if (ConnectManager.selectedDevice.value != null) return
-        val track = _queue.getOrNull(index) ?: return
-        if (index > currentQueueIndex) {
-            moveQueueItem(index, currentQueueIndex + 1)
-        } else {
-            // Replaying a track from history keeps its original occurrence in the queue.
+    fun playMenuTrackNext() {
+        val track = trackForMenu ?: return
+        val index = menuContextQueueIndex
+        if (index == null) {
             insertNext(listOf(track))
+        } else if (ConnectManager.selectedDevice.value == null) {
+            // Keep targeting the selected occurrence if the queue changed while the menu was open.
+            val selected = if (_queue.getOrNull(index) === track) index else _queue.indexOfFirst { it === track }
+            if (selected > currentQueueIndex) {
+                moveQueueItem(selected, currentQueueIndex + 1)
+            } else if (selected in 0 until currentQueueIndex) {
+                // Replaying history keeps the original occurrence in place.
+                insertNext(listOf(track))
+            }
         }
+        showMenuSheet = false
     }
 
     fun insertNext(tracks: List<Track>) {
@@ -6546,15 +6550,14 @@ query CommentsWithReactions(
     }
 
     fun setRainVolume(volume: Float) {
-        effectsState =
-            effectsState.copy(rainVolume = volume); MusicManager.applyEffects(effectsState); viewModelScope.launch(
-            Dispatchers.IO
-        ) { playerPrefs.saveEffects(effectsState) }
+        effectsState = effectsState.copy(rainVolume = volume)
+        applyEffectsAndSave()
     }
 
     fun setCustomSpeed(speed: Float) {
         if (routeRemote("speed", (speed * 100f).toLong())) {
             effectsState = effectsState.copy(speed = speed)
+            clearModifiedAudioFxPreset()
             return
         }
         val factor = if (isPreciseSpeedEnabled) 20f else 10f;
@@ -6985,6 +6988,61 @@ query CommentsWithReactions(
     var pinnedAudioFx by mutableStateOf(playerPrefs.getPinnedAudioFx())
         private set
 
+    fun saveAudioFxPreset(name: String, preset: AudioFxPreset): Boolean {
+        val trimmedName = name.trim()
+        if (trimmedName.isBlank() || audioFxPresets.keys.any { it.equals(trimmedName, ignoreCase = true) }) {
+            return false
+        }
+        val updated = audioFxPresets + (trimmedName to preset)
+        playerPrefs.saveAudioFxPresets(updated)
+        audioFxPresets = updated
+        storePinnedAudioFx(listOf(AudioFxPreset.tileId(trimmedName)) + pinnedAudioFx)
+        return true
+    }
+
+    fun deleteAudioFxPreset(name: String) {
+        val updated = audioFxPresets - name
+        playerPrefs.saveAudioFxPresets(updated)
+        audioFxPresets = updated
+        val tileId = AudioFxPreset.tileId(name)
+        if (tileId in pinnedAudioFx) storePinnedAudioFx(pinnedAudioFx - tileId)
+        clearModifiedAudioFxPreset()
+    }
+
+    fun toggleAudioFxPreset(name: String): Boolean {
+        val preset = audioFxPresets[name] ?: return true
+        val current = currentAudioFxPreset
+        val activation = audioFxPresetActivation?.takeIf { audioFxPresets[it.name] == current }
+        val activationToRestore = activation?.takeIf { it.name == name }
+        val target = activationToRestore?.previous ?: preset
+        if (target.effects.isEarrapeEnabled && !hasSeenEarrapeWarning()) return false
+        if (effectsState.speed != target.effects.speed) {
+            routeRemote("speed", (target.effects.speed * 100f).roundToInt().toLong())
+        }
+
+        effectsState = target.effects
+        equalizerState = target.equalizer
+        // Switching presets keeps the settings from before the first preset in this sequence.
+        updateAudioFxPresetActivation(
+            if (activationToRestore != null) null else AudioFxPresetActivation(name, activation?.previous ?: current)
+        )
+        applyEqualizerAndSave()
+        applyEffectsAndSave()
+        ConnectManager.publish(connectSnapshot())
+        return true
+    }
+
+    private fun clearModifiedAudioFxPreset() {
+        if (audioFxPresetActivation != null && activeAudioFxPresetName == null) {
+            updateAudioFxPresetActivation(null)
+        }
+    }
+
+    private fun updateAudioFxPresetActivation(activation: AudioFxPresetActivation?) {
+        audioFxPresetActivation = activation
+        playerPrefs.saveAudioFxPresetActivation(activation)
+    }
+
     fun disableEffects(fxIds: Collection<String>) {
         if (fxIds.isEmpty()) return
         var state = effectsState
@@ -7049,37 +7107,34 @@ query CommentsWithReactions(
     }
 
     fun togglePinAudioFx(fxId: String): Boolean {
-        val current = pinnedAudioFx.toMutableList()
-        val isPinned = current.contains(fxId)
-        if (isPinned) {
-            current.remove(fxId)
-            disableEffect(fxId)
-        } else {
-            current.add(fxId)
-        }
-        pinnedAudioFx = current
-        playerPrefs.setPinnedAudioFx(current)
+        val pinned = pinnedAudioFx
+        updatePinnedAudioFx(if (fxId in pinned) pinned - fxId else pinned + fxId)
         return true
     }
 
     fun updatePinnedAudioFx(fxIds: List<String>) {
         val removed = pinnedAudioFx.filterNot { fxIds.contains(it) }
+        val activePreset = activeAudioFxPresetName
+        if (activePreset != null && AudioFxPreset.tileId(activePreset) in removed) {
+            if (!toggleAudioFxPreset(activePreset)) updateAudioFxPresetActivation(null)
+        }
         disableEffects(removed)
+        storePinnedAudioFx(fxIds)
+    }
+
+    private fun storePinnedAudioFx(fxIds: List<String>) {
         pinnedAudioFx = fxIds
         playerPrefs.setPinnedAudioFx(fxIds)
     }
 
     fun resetPinnedAudioFx() {
-        val defaults = PlayerPreferences.DEFAULT_PINNED_AUDIO_FX
-        val removed = pinnedAudioFx.filterNot { defaults.contains(it) }
-        disableEffects(removed)
-        pinnedAudioFx = defaults
-        playerPrefs.setPinnedAudioFx(defaults)
+        updatePinnedAudioFx(PlayerPreferences.DEFAULT_PINNED_AUDIO_FX)
     }
 
     fun isAudioFxPinned(fxId: String): Boolean = pinnedAudioFx.contains(fxId)
 
     private fun applyEffectsAndSave() {
+        clearModifiedAudioFxPreset()
         MusicManager.applyEffects(effectsState); viewModelScope.launch(Dispatchers.IO) {
             playerPrefs.saveEffects(
                 effectsState
@@ -7088,6 +7143,7 @@ query CommentsWithReactions(
     }
 
     private fun applyEqualizerAndSave() {
+        clearModifiedAudioFxPreset()
         effectsState = effectsState.copy(isEqualizerEnabled = equalizerState.isEnabled)
         MusicManager.applyEqualizer(equalizerState)
         viewModelScope.launch(Dispatchers.IO) {
