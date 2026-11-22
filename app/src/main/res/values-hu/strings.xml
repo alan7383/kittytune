@@ -239,6 +239,7 @@
     <string name="audio_fx_preset_name">Hangprofil neve</string>
     <string name="audio_fx_preset_name_used">Már létezik ilyen nevű hangprofil.</string>
     <string name="audio_fx_delete_preset">Törlöd a hangprofilt?</string>
+    <string name="audio_fx_saved_presets">Mentett hangprofilok</string>
     <string name="fx_active_count">%1$d bekapcsolva</string>
     <string name="fx_reset_speed">Normál sebesség</string>
     <string name="player_pitch">Pitch</string>

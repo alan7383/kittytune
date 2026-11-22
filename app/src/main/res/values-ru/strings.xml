@@ -246,6 +246,7 @@
     <string name="audio_fx_preset_name">Название пресета</string>
     <string name="audio_fx_preset_name_used">Пресет с таким названием уже есть.</string>
     <string name="audio_fx_delete_preset">Удалить пресет?</string>
+    <string name="audio_fx_saved_presets">Сохранённые пресеты</string>
     <string name="fx_active_count">Включено: %1$d</string>
     <string name="fx_reset_speed">Обычная скорость</string>
     <string name="player_pitch">Питч</string>

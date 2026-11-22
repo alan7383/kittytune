@@ -270,6 +270,7 @@
     <string name="audio_fx_preset_name">Nom du preset</string>
     <string name="audio_fx_preset_name_used">Un preset porte déjà ce nom.</string>
     <string name="audio_fx_delete_preset">Supprimer le preset ?</string>
+    <string name="audio_fx_saved_presets">Presets enregistrés</string>
     <string name="fx_active_count">%1$d actifs</string>
     <string name="fx_reset_speed">Vitesse normale</string>
     <string name="player_pitch">Pitch</string>

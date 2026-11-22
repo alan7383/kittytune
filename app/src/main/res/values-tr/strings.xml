@@ -275,6 +275,7 @@
     <string name="audio_fx_preset_name">Ön ayar adı</string>
     <string name="audio_fx_preset_name_used">Bu ada sahip bir ön ayar zaten var.</string>
     <string name="audio_fx_delete_preset">Ön ayar silinsin mi?</string>
+    <string name="audio_fx_saved_presets">Kayıtlı ön ayarlar</string>
     <string name="fx_active_count">%1$d açık</string>
     <string name="fx_reset_speed">Normal hıza dön</string>
     <string name="player_pitch">Perde</string>

@@ -274,6 +274,7 @@
     <string name="audio_fx_preset_name">Name der Voreinstellung</string>
     <string name="audio_fx_preset_name_used">Dieser Name wird bereits verwendet.</string>
     <string name="audio_fx_delete_preset">Voreinstellung löschen?</string>
+    <string name="audio_fx_saved_presets">Gespeicherte Voreinstellungen</string>
     <string name="fx_active_count">%1$d aktiv</string>
     <string name="fx_reset_speed">Zurück zur normalen Geschwindigkeit</string>
     <string name="player_pitch">Tonhöhe</string>

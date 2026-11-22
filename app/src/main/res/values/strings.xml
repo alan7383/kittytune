@@ -275,6 +275,7 @@
 <string name="audio_fx_preset_name">Preset name</string>
 <string name="audio_fx_preset_name_used">A preset with this name already exists.</string>
 <string name="audio_fx_delete_preset">Delete preset?</string>
+<string name="audio_fx_saved_presets">Saved presets</string>
 <string name="fx_active_count">%1$d on</string>
 <string name="fx_reset_speed">Back to normal speed</string>
 <string name="player_pitch">Pitch</string>

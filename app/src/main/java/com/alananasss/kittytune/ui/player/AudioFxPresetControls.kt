@@ -35,11 +35,6 @@ import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.common.hapticAction
 
-internal sealed interface AudioFxGridItem {
-    data class BuiltIn(val definition: AudioFxDefinition) : AudioFxGridItem
-    data class Preset(val name: String) : AudioFxGridItem
-}
-
 @Composable
 internal fun AudioFxPresetControls(
     viewModel: PlayerViewModel,
@@ -114,26 +109,31 @@ internal fun AudioFxPresetControls(
     }
 
     presetToDelete?.let { name ->
-        AlertDialog(
-            onDismissRequest = onDismissDelete,
-            title = { Text(stringResource(R.string.audio_fx_delete_preset)) },
-            text = { Text(name) },
-            confirmButton = {
-                TextButton(
-                    onClick = hapticAction {
-                        viewModel.deleteAudioFxPreset(name)
-                        onDismissDelete()
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.btn_delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = hapticAction(action = onDismissDelete), shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.btn_cancel))
-                }
-            },
-        )
+        AudioFxPresetDeleteDialog(name, viewModel, onDismissDelete)
     }
+}
+
+@Composable
+internal fun AudioFxPresetDeleteDialog(name: String, viewModel: PlayerViewModel, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.audio_fx_delete_preset)) },
+        text = { Text(name) },
+        confirmButton = {
+            TextButton(
+                onClick = hapticAction {
+                    viewModel.deleteAudioFxPreset(name)
+                    onDismiss()
+                },
+                shapes = ButtonDefaults.shapes(),
+            ) {
+                Text(stringResource(R.string.btn_delete))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = hapticAction(action = onDismiss), shapes = ButtonDefaults.shapes()) {
+                Text(stringResource(R.string.btn_cancel))
+            }
+        },
+    )
 }

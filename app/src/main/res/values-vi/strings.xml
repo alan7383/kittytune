@@ -274,6 +274,7 @@
     <string name="audio_fx_preset_name">Tên cấu hình</string>
     <string name="audio_fx_preset_name_used">Đã có cấu hình mang tên này.</string>
     <string name="audio_fx_delete_preset">Xóa cấu hình?</string>
+    <string name="audio_fx_saved_presets">Cấu hình đã lưu</string>
     <string name="fx_active_count">%1$d đang bật</string>
     <string name="fx_reset_speed">Tốc độ bình thường</string>
     <string name="player_pitch">Cao độ</string>

@@ -506,7 +506,8 @@ class PlayerPreferences(context: Context) {
         private const val KEY_EARRAPE_WARNING = "has_seen_earrape_warning"
         private const val KEY_SAVE_POSITION = "save_position_enabled"
         private const val KEY_SOUNDCLOUD_HISTORY_SYNC = "soundcloud_history_sync_enabled"
-        private const val KEY_PINNED_AUDIO_FX = "pinned_audio_fx_list"
+        private const val KEY_LEGACY_PINNED_AUDIO_FX = "pinned_audio_fx_list"
+        private const val KEY_PINNED_AUDIO_FX = "pinned_audio_fx_list_v2"
         val DEFAULT_PINNED_AUDIO_FX = listOf("bass_boost", "earrape", "eight_d", "muffled", "reverb", "rain")
         private const val KEY_ANDROID_AUTO_SYNCED_LYRICS = "android_auto_synced_lyrics"
         const val KEY_ANIMATED_COVERS_ENABLED = "animated_covers_enabled"
@@ -2806,14 +2807,19 @@ class PlayerPreferences(context: Context) {
     }
 
     fun getPinnedAudioFx(): List<String> {
-        val json = prefs.getString(KEY_PINNED_AUDIO_FX, null) ?: return DEFAULT_PINNED_AUDIO_FX
-        return try {
-            val type = object : TypeToken<List<String>>() {}.type
-            val list: List<String>? = gson.fromJson(json, type)
-            if (list.isNullOrEmpty()) DEFAULT_PINNED_AUDIO_FX else list
-        } catch (_: Exception) {
-            DEFAULT_PINNED_AUDIO_FX
+        val stored = prefs.getString(KEY_PINNED_AUDIO_FX, null)
+        val json = stored ?: prefs.getString(KEY_LEGACY_PINNED_AUDIO_FX, null)
+        val pinned = json?.let { raw ->
+            runCatching {
+                val type = object : TypeToken<List<String?>>() {}.type
+                gson.fromJson<List<String?>>(raw, type)?.filterNotNull()?.distinct()
+            }.getOrNull()
+        } ?: DEFAULT_PINNED_AUDIO_FX
+        if (stored == null) {
+            // Previously all saved presets appeared in the grid, ahead of the pinned effects.
+            return getAudioFxPresets().keys.reversed().map { AudioFxPreset.tileId(it) } + pinned
         }
+        return pinned
     }
 
     fun setPinnedAudioFx(fxIds: List<String>) {

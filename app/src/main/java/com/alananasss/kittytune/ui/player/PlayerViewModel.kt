@@ -6996,6 +6996,7 @@ query CommentsWithReactions(
         val updated = audioFxPresets + (trimmedName to preset)
         playerPrefs.saveAudioFxPresets(updated)
         audioFxPresets = updated
+        storePinnedAudioFx(listOf(AudioFxPreset.tileId(trimmedName)) + pinnedAudioFx)
         return true
     }
 
@@ -7003,6 +7004,8 @@ query CommentsWithReactions(
         val updated = audioFxPresets - name
         playerPrefs.saveAudioFxPresets(updated)
         audioFxPresets = updated
+        val tileId = AudioFxPreset.tileId(name)
+        if (tileId in pinnedAudioFx) storePinnedAudioFx(pinnedAudioFx - tileId)
         clearModifiedAudioFxPreset()
     }
 
@@ -7104,32 +7107,28 @@ query CommentsWithReactions(
     }
 
     fun togglePinAudioFx(fxId: String): Boolean {
-        val current = pinnedAudioFx.toMutableList()
-        val isPinned = current.contains(fxId)
-        if (isPinned) {
-            current.remove(fxId)
-            disableEffect(fxId)
-        } else {
-            current.add(fxId)
-        }
-        pinnedAudioFx = current
-        playerPrefs.setPinnedAudioFx(current)
+        val pinned = pinnedAudioFx
+        updatePinnedAudioFx(if (fxId in pinned) pinned - fxId else pinned + fxId)
         return true
     }
 
     fun updatePinnedAudioFx(fxIds: List<String>) {
         val removed = pinnedAudioFx.filterNot { fxIds.contains(it) }
+        val activePreset = activeAudioFxPresetName
+        if (activePreset != null && AudioFxPreset.tileId(activePreset) in removed) {
+            if (!toggleAudioFxPreset(activePreset)) updateAudioFxPresetActivation(null)
+        }
         disableEffects(removed)
+        storePinnedAudioFx(fxIds)
+    }
+
+    private fun storePinnedAudioFx(fxIds: List<String>) {
         pinnedAudioFx = fxIds
         playerPrefs.setPinnedAudioFx(fxIds)
     }
 
     fun resetPinnedAudioFx() {
-        val defaults = PlayerPreferences.DEFAULT_PINNED_AUDIO_FX
-        val removed = pinnedAudioFx.filterNot { defaults.contains(it) }
-        disableEffects(removed)
-        pinnedAudioFx = defaults
-        playerPrefs.setPinnedAudioFx(defaults)
+        updatePinnedAudioFx(PlayerPreferences.DEFAULT_PINNED_AUDIO_FX)
     }
 
     fun isAudioFxPinned(fxId: String): Boolean = pinnedAudioFx.contains(fxId)
