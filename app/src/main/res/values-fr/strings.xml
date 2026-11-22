@@ -371,7 +371,6 @@
     <string name="ambient_cafe">Café</string>
     <string name="label_ambient_volume">Volume ambiance : %1$d%%</string>
     <string name="btn_explore_all_effects">Explorer tous les effets</string>
-    <string name="edit_tiles_title">Modifier les tuiles</string>
     <string name="edit_tiles_subtitle">Sélectionne les tuiles à épingler au dock rapide</string>
     <string name="category_power_eq">Puissance &amp; Fréquences</string>
     <string name="category_spatial">Spatialisation et 3D</string>
