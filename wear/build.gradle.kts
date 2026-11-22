@@ -6,7 +6,11 @@ plugins {
 
 android {
     namespace = "com.alananasss.kittytune.wear"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 2
+        }
+    }
 
     defaultConfig {
         // CRITICAL: applicationId must match the phone handheld application exactly ("com.alananasss.kittytune")

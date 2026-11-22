@@ -18,7 +18,11 @@ if (localPropertiesFile.exists()) {
 
 extensions.configure<ApplicationExtension> {
     namespace = "com.alananasss.kittytune"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 2
+        }
+    }
     ndkVersion = "27.1.12297006"
 
     defaultConfig {
