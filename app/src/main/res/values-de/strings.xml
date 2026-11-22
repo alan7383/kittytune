@@ -397,7 +397,6 @@
     <string name="ambient_cafe">Café</string>
     <string name="label_ambient_volume">Atmosphären-Lautstärke: %1$d%%</string>
     <string name="btn_explore_all_effects">Alle Effekte entdecken</string>
-    <string name="edit_tiles_title">Kacheln bearbeiten</string>
     <string name="edit_tiles_subtitle">Wähle Kacheln aus, die an das Schnellmenü angeheftet werden</string>
     <string name="category_power_eq">Leistung und Equalizer</string>
     <string name="category_spatial">Raumklang &amp; 3D</string>
