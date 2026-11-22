@@ -454,7 +454,6 @@
     <string name="ambient_cafe">Кафе</string>
     <string name="label_ambient_volume">Громкость фона: %1$d%%</string>
     <string name="btn_explore_all_effects">Посмотреть все эффекты</string>
-    <string name="edit_tiles_title">Редактировать плитки</string>
     <string name="edit_tiles_subtitle">Выберите эффекты для панели быстрого доступа</string>
     <string name="category_power_eq">Мощность и эквалайзер</string>
     <string name="category_spatial">Объемный звук и погружение</string>
