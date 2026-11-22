@@ -398,7 +398,6 @@
     <string name="ambient_cafe">Kafe</string>
     <string name="label_ambient_volume">Ambiyans ses düzeyi: %1$d%%</string>
     <string name="btn_explore_all_effects">Tüm efektleri keşfet</string>
-    <string name="edit_tiles_title">Kutucukları düzenle</string>
     <string name="edit_tiles_subtitle">Hızlı panele sabitlemek istediğiniz kutucukları seçin</string>
     <string name="category_power_eq">Güç ve EQ</string>
     <string name="category_spatial">Mekânsal ve 3D</string>
