@@ -1594,7 +1594,6 @@
     <string name="listening_stats_all_tracks">Tüm Parçalar</string>
     <string name="listening_stats_all_artists">Tüm Sanatçılar</string>
     <string name="listening_stats_all_plays">Tüm Çalmalar</string>
-    <string name="listening_stats_change_week">Geçen haftaya göre %1$s</string>
     <string name="listening_stats_change_month">Geçen aya göre %1$s</string>
     <string name="listening_stats_change_year">Geçen yıla göre %1$s</string>
     <string name="listening_stats_activity_days">Günlük dinleme</string>
@@ -1612,7 +1611,6 @@
     <string name="listening_stats_period_year_short">Yıl</string>
     <string name="listening_stats_previous_period">Önceki dönem</string>
     <string name="listening_stats_next_period">Sonraki dönem</string>
-    <string name="listening_stats_period_week_current">Bu Hafta</string>
     <string name="listening_stats_period_week_last">Geçen Hafta</string>
     <string name="listening_stats_period_month_current">Bu Ay</string>
     <string name="listening_stats_period_month_last">Geçen Ay</string>
