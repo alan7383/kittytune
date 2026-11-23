@@ -72,11 +72,11 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
             // exchange, so its "sync now" button could not fetch anything and sync looked one-way — which
             // it was.
             com.alananasss.kittytune.data.sync.SyncService.startIfWanted()
-            // Anything the log holds that the statistics table is missing goes back in — see
-            // [SyncApply.reconcile] for the data loss this repairs (issue #33).
-            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                runCatching { com.alananasss.kittytune.data.sync.SyncApply.reconcile() }
-            }
+        }
+        // The journal can recover listens even with the other device disconnected or unpaired.
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            runCatching { com.alananasss.kittytune.data.sync.SyncApply.reconcile() }
+                .onFailure { android.util.Log.e("SyncApply", "Could not recover listening statistics", it) }
         }
     }
 

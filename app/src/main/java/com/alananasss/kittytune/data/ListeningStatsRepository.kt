@@ -17,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -70,7 +71,7 @@ object ListeningStatsRepository {
     /** Called after anything that changes the table, from either side. */
     fun onStatsChanged() {
         synchronized(cache) { cache.clear() }
-        _revision.value = _revision.value + 1
+        _revision.update { it + 1 }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -150,10 +151,10 @@ object ListeningStatsRepository {
     }
 
     /** Every headline number for a span, in one query and cached until the table changes. */
-    suspend fun getSnapshot(since: Long): StatsSnapshot =
-        memo("snapshot:$since") {
-            val base = dao.getStatsSnapshot(since)
-            val distinctRaw = dao.getDistinctArtistNamesAfter(since)
+    suspend fun getSnapshot(since: Long, until: Long = Long.MAX_VALUE): StatsSnapshot =
+        memo("snapshot:$since:$until") {
+            val base = dao.getStatsSnapshot(since, until)
+            val distinctRaw = dao.getDistinctArtistNamesBetween(since, until)
             val calculatedUniqueArtists = distinctRaw
                 .flatMap { splitArtistNames(it) }
                 .map { it.trim().lowercase() }
@@ -323,7 +324,7 @@ object ListeningStatsRepository {
      * "All time" is a window like any other, so it has to begin where the history does rather than
      * at the epoch — otherwise the activity chart opens on years of empty months.
      */
-    suspend fun getOldestEventAt(): Long? = getSnapshot(0L).firstAtMs?.takeIf { it > 0L }
+    suspend fun getOldestEventAt(): Long? = memo("oldest") { dao.getOldestEventTimestamp() }
 
     /** Artist names (lowercased) heard before [before], so a recap can tell discoveries from favourites. */
     suspend fun getArtistNamesBefore(before: Long): Set<String> = memo("artistsBefore:$before") {

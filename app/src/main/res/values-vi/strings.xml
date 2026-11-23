@@ -1541,7 +1541,7 @@
     <string name="listening_stats_all_tracks">Tất cả bài hát</string>
     <string name="listening_stats_all_artists">Tất cả nghệ sĩ</string>
     <string name="listening_stats_all_plays">Tất cả lượt nghe</string>
-    <string name="listening_stats_change_week">%1$s so với tuần trước</string>
+    <string name="listening_stats_change_week">%1$s so với 7 ngày trước đó</string>
     <string name="listening_stats_change_month">%1$s so với tháng trước</string>
     <string name="listening_stats_change_year">%1$s so với năm trước</string>
     <string name="listening_stats_activity_days">Nghe theo ngày</string>
@@ -1559,7 +1559,7 @@
     <string name="listening_stats_period_year_short">Năm</string>
     <string name="listening_stats_previous_period">Kỳ trước</string>
     <string name="listening_stats_next_period">Kỳ tiếp theo</string>
-    <string name="listening_stats_period_week_current">Tuần này</string>
+    <string name="listening_stats_period_week_current">7 ngày qua</string>
     <string name="listening_stats_period_week_last">Tuần trước</string>
     <string name="listening_stats_period_month_current">Tháng này</string>
     <string name="listening_stats_period_month_last">Tháng trước</string>

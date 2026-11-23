@@ -593,7 +593,9 @@ private fun StatsHeader(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     val headline = if (report != null) periodHeadline(period, periodOffset, report) else ""
-                    val subtitle = if (report != null && periodOffset != 0) spanLabel(period, report) else null
+                    val subtitle = if (report != null && periodOffset == -1 && period != ReportPeriod.WEEK) {
+                        spanLabel(period, report)
+                    } else null
                     Text(
                         text = headline,
                         style = MaterialTheme.typography.titleSmall,

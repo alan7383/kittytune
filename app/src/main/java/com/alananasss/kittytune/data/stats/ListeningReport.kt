@@ -98,6 +98,12 @@ data class ListeningReport(
 
 object ListeningReports {
 
+    /** Seven local dates, including today, with adjacent windows for browsing older listens. */
+    fun recentWeek(nowMs: Long, zone: ZoneId, offset: Int = 0): ReportWindow {
+        val end = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate().plusWeeks(offset.toLong()).plusDays(1)
+        return ReportWindow(end.minusWeeks(1).startMs(zone), end.startMs(zone))
+    }
+
     /**
      * Collapses a collaboration into the people in it, so "Kai Angel & 9mice" counts as two artists.
      *

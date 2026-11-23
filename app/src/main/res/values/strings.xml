@@ -1720,7 +1720,7 @@
 <string name="listening_stats_all_tracks">All Tracks</string>
 <string name="listening_stats_all_artists">All Artists</string>
 <string name="listening_stats_all_plays">All Plays</string>
-<string name="listening_stats_change_week">%1$s on last week</string>
+<string name="listening_stats_change_week">%1$s vs. the previous 7 days</string>
 <string name="listening_stats_change_month">%1$s on last month</string>
 <string name="listening_stats_change_year">%1$s on last year</string>
 <string name="listening_stats_activity_days">Listening per day</string>
@@ -1738,7 +1738,7 @@
 <string name="listening_stats_period_year_short">Year</string>
 <string name="listening_stats_previous_period">Previous period</string>
 <string name="listening_stats_next_period">Next period</string>
-<string name="listening_stats_period_week_current">This Week</string>
+<string name="listening_stats_period_week_current">Last 7 Days</string>
 <string name="listening_stats_period_week_last">Last Week</string>
 <string name="listening_stats_period_month_current">This Month</string>
 <string name="listening_stats_period_month_last">Last Month</string>

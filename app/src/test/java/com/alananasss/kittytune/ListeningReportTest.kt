@@ -45,6 +45,25 @@ class ListeningReportTest {
     }
 
     @Test
+    fun theRecentWeekKeepsSundaysListensWhenMondaySyncs() {
+        val sunday = at(2026, 11, 22)
+        val monday = at(2026, 11, 23)
+        val twelveHours = 12 * 60 * 60_000L
+        val twentyNineMinutes = 29 * 60_000L
+        val local = listen(sunday, listenMs = twelveHours, durationMs = twelveHours)
+        val remote = listen(monday, listenMs = twentyNineMinutes, durationMs = twentyNineMinutes)
+        val before = ListeningReports.recentWeek(sunday, zone)
+        val after = ListeningReports.recentWeek(monday, zone)
+        val older = ListeningReports.recentWeek(monday, zone, offset = -1)
+
+        assertEquals(twelveHours, ListeningReports.build(ReportPeriod.WEEK, before, listOf(local), null, zone, splitter).totalListenMs)
+        assertEquals(twelveHours + twentyNineMinutes, ListeningReports.build(ReportPeriod.WEEK, after, listOf(local, remote), null, zone, splitter).totalListenMs)
+        assertEquals(at(2026, 11, 17, 0), after.startMs)
+        assertEquals(older.endMs, after.startMs)
+        assertEquals(older, ListeningReports.previousWindow(ReportPeriod.WEEK, after, zone))
+    }
+
+    @Test
     fun countsPlaysSkipsAndTheDailyBars() {
         val window = ListeningReports.windowFor(ReportPeriod.WEEK, at(2026, 9, 25), zone)
         val events = listOf(

@@ -12,11 +12,8 @@ import com.alananasss.kittytune.data.stats.ListeningReport
 import com.alananasss.kittytune.data.stats.ListeningReports
 import com.alananasss.kittytune.data.stats.ReportPeriod
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
-import java.time.DayOfWeek
 import java.time.ZoneId
-import java.util.Calendar
 
 enum class StatsPeriod { WEEK, MONTH, YEAR, ALL_TIME }
 
@@ -54,7 +51,7 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
     var canGoForward by mutableStateOf(false)
         private set
 
-    private var oldestEventMs: Long? = null
+    private var historyAnchorMs = 0L
 
     /** Everything the screen shows for the selected span. Null until the first load lands. */
     var report by mutableStateOf<ListeningReport?>(null)
@@ -80,10 +77,8 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
     }
 
     init {
-        load()
         viewModelScope.launch {
-            // drop(1): the current value is what the first load already used.
-            ListeningStatsRepository.revision.drop(1).collect { load() }
+            ListeningStatsRepository.revision.collect { load() }
         }
     }
 
@@ -96,6 +91,7 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
 
     fun previousPeriod() {
         if (selectedPeriod == StatsPeriod.ALL_TIME || !canGoBack) return
+        if (periodOffset == 0) historyAnchorMs = System.currentTimeMillis()
         periodOffset--
         load()
     }
@@ -122,27 +118,21 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
      * selected.
      */
     private fun load() {
-        val period = selectedPeriod
+        val period = selectedPeriod.toReportPeriod()
         val offset = periodOffset
         loadJob?.cancel()
         isLoading = true
         loadJob = viewModelScope.launch {
             val zone = ZoneId.systemDefault()
-            val weekStartsOn = firstDayOfWeekAsDayOfWeek()
             val now = System.currentTimeMillis()
-
-            // "All time" has to start where the history does, not at the epoch: the window is what
-            // the activity chart is measured against, and a chart that opens on years of empty
-            // months says nothing.
-            if (oldestEventMs == null) {
-                oldestEventMs = ListeningStatsRepository.getOldestEventAt()
+            val anchor = if (offset < 0) historyAnchorMs else now
+            val firstEventMs = ListeningStatsRepository.getOldestEventAt()
+            val window = if (period == ReportPeriod.WEEK) {
+                ListeningReports.recentWeek(anchor, zone, offset)
+            } else {
+                ListeningReports.windowFor(period, anchor, zone, firstEventMs, offset = offset)
             }
-            val firstEventMs = oldestEventMs
-
-            val window = ListeningReports.windowFor(
-                period.toReportPeriod(), now, zone, firstEventMs, weekStartsOn, offset
-            )
-            val previous = ListeningReports.previousWindow(period.toReportPeriod(), window, zone, weekStartsOn)
+            val previous = ListeningReports.previousWindow(period, window, zone)
 
             // One read of the rows serves the whole report. Bounded, because the report is built in
             // memory and a heavy year of listening is tens of thousands of rows.
@@ -150,7 +140,7 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
             val previousListenMs = previous?.let { ListeningStatsRepository.getTotalListenTime(it.startMs, it.endMs) }
 
             report = ListeningReports.build(
-                period = period.toReportPeriod(),
+                period = period,
                 window = window,
                 events = rows,
                 previousListenMs = previousListenMs,
@@ -159,24 +149,10 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
                 nowMs = now,
             )
             events = rows.filter { it.timestamp >= window.startMs && it.timestamp < window.endMs }
-            canGoForward = period != StatsPeriod.ALL_TIME && offset < 0
-            canGoBack = period != StatsPeriod.ALL_TIME && (firstEventMs == null || window.endMs > firstEventMs || offset > -52)
+            canGoForward = period != ReportPeriod.ALL_TIME && offset < 0
+            canGoBack = period != ReportPeriod.ALL_TIME && (firstEventMs == null || window.endMs > firstEventMs || offset > -52)
             isLoading = false
         }
-    }
-
-    /**
-     * The locale's first day of the week, so "this week" starts on Sunday in the US and Monday
-     * nearly everywhere else. Guessing Monday would shift every weekly figure for half the users.
-     */
-    private fun firstDayOfWeekAsDayOfWeek(): DayOfWeek = when (Calendar.getInstance().firstDayOfWeek) {
-        Calendar.SUNDAY -> DayOfWeek.SUNDAY
-        Calendar.MONDAY -> DayOfWeek.MONDAY
-        Calendar.TUESDAY -> DayOfWeek.TUESDAY
-        Calendar.WEDNESDAY -> DayOfWeek.WEDNESDAY
-        Calendar.THURSDAY -> DayOfWeek.THURSDAY
-        Calendar.FRIDAY -> DayOfWeek.FRIDAY
-        else -> DayOfWeek.SATURDAY
     }
 
     private companion object {

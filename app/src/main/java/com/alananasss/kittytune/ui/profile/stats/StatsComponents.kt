@@ -240,7 +240,7 @@ internal fun periodHeadline(period: ReportPeriod, offset: Int, report: Listening
             ReportPeriod.ALL_TIME -> stringResource(R.string.listening_stats_period_all)
         }
         -1 -> when (period) {
-            ReportPeriod.WEEK -> stringResource(R.string.listening_stats_period_week_last)
+            ReportPeriod.WEEK -> spanLabel(period, report)
             ReportPeriod.MONTH -> stringResource(R.string.listening_stats_period_month_last)
             ReportPeriod.YEAR -> stringResource(R.string.listening_stats_period_year_last)
             ReportPeriod.ALL_TIME -> stringResource(R.string.listening_stats_period_all)

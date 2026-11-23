@@ -302,9 +302,12 @@
               COALESCE(SUM(CASE WHEN eventType = 'REPEAT_ONE_LOOP' THEN 1 ELSE 0 END), 0) AS loops,
               MIN(timestamp) AS firstAtMs,
               MAX(timestamp) AS lastAtMs
-            FROM listening_stats WHERE timestamp >= :since
+            FROM listening_stats WHERE timestamp >= :since AND timestamp < :until
         """)
-        suspend fun getStatsSnapshot(since: Long): StatsSnapshot
+        suspend fun getStatsSnapshot(since: Long, until: Long): StatsSnapshot
+
+        @Query("SELECT MIN(timestamp) FROM listening_stats WHERE timestamp > 0")
+        suspend fun getOldestEventTimestamp(): Long?
 
         /**
          * Which months hold anything, newest first.
@@ -343,8 +346,8 @@
         @Query("SELECT artistName, MAX(artistAvatarUrl) as artworkUrl, MAX(artistId) as artistId, MAX(artistPermalink) as artistPermalink, MAX(source) as source, COUNT(*) as playCount, SUM(listenDurationMs) as totalListenMs FROM listening_stats WHERE timestamp >= :since AND timestamp < :until AND ${StatsSql.COUNTS_AS_PLAY} GROUP BY artistName")
         suspend fun getRawTopArtistsBetween(since: Long, until: Long): List<TopArtistResult>
 
-        @Query("SELECT DISTINCT artistName FROM listening_stats WHERE timestamp >= :since AND ${StatsSql.COUNTS_AS_PLAY}")
-        suspend fun getDistinctArtistNamesAfter(since: Long): List<String>
+        @Query("SELECT DISTINCT artistName FROM listening_stats WHERE timestamp >= :since AND timestamp < :until AND ${StatsSql.COUNTS_AS_PLAY}")
+        suspend fun getDistinctArtistNamesBetween(since: Long, until: Long): List<String>
 
         @Query("SELECT COALESCE(SUM(listenDurationMs), 0) FROM listening_stats WHERE timestamp >= :since")
         suspend fun getTotalListenTimeAfter(since: Long): Long

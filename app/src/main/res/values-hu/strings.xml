@@ -1358,7 +1358,7 @@
     <string name="listening_stats_all_tracks">Összes szám</string>
     <string name="listening_stats_all_artists">Összes előadó</string>
     <string name="listening_stats_all_plays">Összes lejátszás</string>
-    <string name="listening_stats_change_week">%1$s az előző héthez</string>
+    <string name="listening_stats_change_week">%1$s az előző 7 naphoz képest</string>
     <string name="listening_stats_change_month">%1$s az előző hónaphoz</string>
     <string name="listening_stats_change_year">%1$s az előző évhez</string>
     <string name="listening_stats_activity_days">Hallgatás naponta</string>
@@ -1376,7 +1376,7 @@
     <string name="listening_stats_period_year_short">Év</string>
     <string name="listening_stats_previous_period">Előző időszak</string>
     <string name="listening_stats_next_period">Következő időszak</string>
-    <string name="listening_stats_period_week_current">Ezen a héten</string>
+    <string name="listening_stats_period_week_current">Elmúlt 7 nap</string>
     <string name="listening_stats_period_week_last">Múlt héten</string>
     <string name="listening_stats_period_month_current">Ebben a hónapban</string>
     <string name="listening_stats_period_month_last">Múlt hónapban</string>

@@ -294,9 +294,7 @@ object SyncService {
      *   answers nothing.
      */
     suspend fun respondTo(request: SyncExchange, observedHost: String? = null): SyncExchange {
-        val applied = SyncLog.merge(request.events)
-        // Awaited, so the marks and the count we report describe work that has actually happened.
-        SyncApply.applyNow(applied)
+        SyncApply.mergeAndApply(request.events)
         SyncPlayback.accept(request.playback)
         ConnectManager.importRelayUrl(request.relayUrl)
         SyncLog.setPeerMarks(request.deviceId, request.marks)

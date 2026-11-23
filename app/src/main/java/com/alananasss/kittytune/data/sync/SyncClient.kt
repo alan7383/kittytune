@@ -1,12 +1,14 @@
 package com.alananasss.kittytune.data.sync
 
 import com.google.gson.Gson
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -73,12 +75,17 @@ object SyncClient {
      *   here is a normal outcome of two devices being on different networks.
      */
     suspend fun exchange(peer: PairingPayload): Result = withContext(Dispatchers.IO) {
+        val (marks, events) = try {
+            SyncLog.marks() to SyncLog.all()
+        } catch (failure: IOException) {
+            return@withContext Result.Failed(describe(failure, peer))
+        }
         val outgoing = SyncExchange(
             deviceId = SyncLog.deviceId,
             deviceName = SyncLog.deviceName,
-            marks = SyncLog.marks(),
+            marks = marks,
             events = SyncMerge.eventsToSend(
-                SyncLog.all(),
+                events,
                 SyncLog.peerMarks(peer.deviceId),
                 peer.deviceId,
             ),
@@ -141,8 +148,7 @@ object SyncClient {
                 val reply = runCatching { gson.fromJson(body, SyncExchange::class.java) }.getOrNull()
                     ?: return Result.Failed("malformed reply")
 
-                val applied = SyncLog.merge(reply.events)
-                SyncApply.applyNow(applied)
+                val applied = SyncApply.mergeAndApply(reply.events)
                 SyncPlayback.accept(reply.playback)
                 ConnectManager.importRelayUrl(reply.relayUrl)
                 // What it reported already accounts for what we just sent, so the next exchange
@@ -168,6 +174,8 @@ object SyncClient {
                     sent = outgoing.events.size,
                 )
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (t: Throwable) {
             Result.Failed(describe(t, peer.copy(host = targetHost, port = targetPort)))
         }
