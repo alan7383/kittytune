@@ -22,6 +22,9 @@ import java.net.URLDecoder
 object TogetherLinks {
 
     const val WEB_BASE_URL = "https://alan7383.github.io/kittytune-website/"
+
+    /** The invite worker (Cloudflare, free plan) that gives invite links a personal preview. */
+    const val INVITE_BASE_URL = "https://kittytune-invite.kt-net.workers.dev/"
     const val APP_SCHEME = "kittytune"
     const val APP_HOST_TOGETHER = "together"
 
@@ -44,7 +47,12 @@ object TogetherLinks {
 
     fun inviteUrl(code: String): String {
         val formatted = TogetherWire.displayCode(code)
-        return "${WEB_BASE_URL}?together=$formatted"
+        // Through the invite worker (website/invite-worker): link previews (Discord, WhatsApp…) get a card
+        // naming the host and the session, and people are sent on to the session on the website. Same
+        // `?together=` shape as before, so every version can still read the code out of a pasted link.
+        val from = runCatching { Together.displayName("") }.getOrNull()?.trim()?.take(32)?.takeIf { it.isNotBlank() }
+        val name = from?.let { "&from=" + java.net.URLEncoder.encode(it, Charsets.UTF_8.name()).replace("+", "%20") }.orEmpty()
+        return "${INVITE_BASE_URL}?together=$formatted$name"
     }
 
     fun appDeepLink(code: String): String =

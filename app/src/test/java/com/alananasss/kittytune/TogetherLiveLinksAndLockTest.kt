@@ -41,7 +41,7 @@ class TogetherLiveLinksAndLockTest {
         val code = "K7M9P3Q4"
         val url = TogetherLinks.inviteUrl(code)
         assertTrue(url.startsWith("https://"))
-        assertEquals("https://alan7383.github.io/kittytune-website/?together=K7M9-P3Q4", url)
+        assertEquals("https://kittytune-invite.kt-net.workers.dev/?together=K7M9-P3Q4", url.substringBefore("&from="))
         assertEquals(code, TogetherLinks.extractCode(url, allowRawCode = false))
     }
 
