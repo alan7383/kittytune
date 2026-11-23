@@ -1534,7 +1534,6 @@
     <string name="listening_stats_all_tracks">Alle Titel</string>
     <string name="listening_stats_all_artists">Alle Künstler</string>
     <string name="listening_stats_all_plays">Alle Wiedergaben</string>
-    <string name="listening_stats_change_week">%1$s ggü. letzter Woche</string>
     <string name="listening_stats_change_month">%1$s ggü. letztem Monat</string>
     <string name="listening_stats_change_year">%1$s ggü. letztem Jahr</string>
     <string name="listening_stats_activity_days">Hören pro Tag</string>
@@ -1552,7 +1551,6 @@
     <string name="listening_stats_period_year_short">Jahr</string>
     <string name="listening_stats_previous_period">Vorheriger Zeitraum</string>
     <string name="listening_stats_next_period">Nächster Zeitraum</string>
-    <string name="listening_stats_period_week_current">Diese Woche</string>
     <string name="listening_stats_period_week_last">Letzte Woche</string>
     <string name="listening_stats_period_month_current">Diesen Monat</string>
     <string name="listening_stats_period_month_last">Letzten Monat</string>
