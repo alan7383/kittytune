@@ -84,6 +84,25 @@ class ListeningReportTest {
     }
 
     @Test
+    fun thePlaysListMatchesTheYearlyOverview() {
+        val now = at(2026, 11, 23)
+        val window = ListeningReports.windowFor(ReportPeriod.YEAR, now, zone)
+        val play = listen(now, listenMs = 30_000L)
+        val shortTrackPlay = listen(now, trackId = 2L, listenMs = 10_000L, durationMs = 20_000L)
+        val shortListen = listen(now, trackId = 3L, listenMs = 29_999L)
+        val events = List(4_828) { play } + shortTrackPlay + List(2_504) { shortListen }
+
+        val report = ListeningReports.build(ReportPeriod.YEAR, window, events, null, zone, splitter)
+        val listedPlays = ListeningReports.countedPlays(events)
+
+        assertEquals(7_333, events.size)
+        assertEquals(4_829, report.plays)
+        assertEquals(report.plays, listedPlays.size)
+        assertEquals(shortTrackPlay, listedPlays.last())
+        assertEquals(events.sumOf { it.listenDurationMs }, report.totalListenMs)
+    }
+
+    @Test
     fun theLongestStreakCountsConsecutiveDays() {
         val window = ListeningReports.windowFor(ReportPeriod.MONTH, at(2026, 9, 25), zone)
         val days = listOf(1, 2, 3, 10, 11)

@@ -55,6 +55,7 @@ import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.ListeningStatsEvent
+import com.alananasss.kittytune.data.stats.ListeningReports
 import com.alananasss.kittytune.data.stats.ReportArtist
 import com.alananasss.kittytune.data.stats.ReportTrack
 import java.time.Instant
@@ -282,7 +283,7 @@ internal fun ArtistsListDialog(
     }
 }
 
-/** Every listen of the span, newest first, under a heading per day. */
+/** Plays counted in the selected span, newest first, grouped by day. */
 @Composable
 internal fun PlaysListDialog(
     events: List<ListeningStatsEvent>,
@@ -294,14 +295,15 @@ internal fun PlaysListDialog(
     val loc = remember { Locale.getDefault() }
     val timeFormat = remember { DateTimeFormatter.ofPattern("HH:mm") }
     val dayFormat = remember { DateTimeFormatter.ofPattern("EEEE, d MMMM", loc) }
-    val byDay = remember(events, query) {
-        events.filter { it.trackTitle.matches(query) || it.artistName.matches(query) }
+    val plays = remember(events) { ListeningReports.countedPlays(events) }
+    val byDay = remember(plays, query) {
+        plays.filter { it.trackTitle.matches(query) || it.artistName.matches(query) }
             .groupBy { Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate() }
     }
     val today = LocalDate.now(zone)
     StatsListDialog(
         title = stringResource(R.string.listening_stats_all_plays),
-        count = events.size,
+        count = plays.size,
         onDismiss = onDismiss,
         sorts = emptyList(),
         sort = null,
