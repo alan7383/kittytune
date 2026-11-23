@@ -1693,7 +1693,6 @@
     <string name="listening_stats_all_tracks">Все треки</string>
     <string name="listening_stats_all_artists">Все исполнители</string>
     <string name="listening_stats_all_plays">Все прослушивания</string>
-    <string name="listening_stats_change_week">%1$s к прошлой неделе</string>
     <string name="listening_stats_change_month">%1$s к прошлому месяцу</string>
     <string name="listening_stats_change_year">%1$s к прошлому году</string>
     <string name="listening_stats_activity_days">Прослушивание по дням</string>
@@ -1711,7 +1710,6 @@
     <string name="listening_stats_period_year_short">Год</string>
     <string name="listening_stats_previous_period">Предыдущий период</string>
     <string name="listening_stats_next_period">Следующий период</string>
-    <string name="listening_stats_period_week_current">На этой неделе</string>
     <string name="listening_stats_period_week_last">На прошлой неделе</string>
     <string name="listening_stats_period_month_current">В этом месяце</string>
     <string name="listening_stats_period_month_last">В прошлом месяце</string>
