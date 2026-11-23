@@ -41,12 +41,15 @@ class TogetherLiveLinksAndLockTest {
         val code = "K7M9P3Q4"
         val url = TogetherLinks.inviteUrl(code)
         assertTrue(url.startsWith("https://"))
-        assertEquals("https://kittytune-invite.kt-net.workers.dev/?together=K7M9-P3Q4", url.substringBefore("&from="))
+        assertEquals("https://kittytune.pages.dev/K7M9-P3Q4", url.substringBefore("?from="))
         assertEquals(code, TogetherLinks.extractCode(url, allowRawCode = false))
     }
 
     @Test
     fun extractCodeParsesAllSupportedLinkAndCodeFormats() {
+        assertEquals("K7M9P3Q4", TogetherLinks.extractCode("https://kittytune.pages.dev/k7m9p3q4/?together=ABCD-EFGH", allowRawCode = false))
+        assertEquals("K7M9P3Q4", TogetherLinks.extractCode("https://kittytune-invite.kt-net.workers.dev/?together=K7M9-P3Q4", allowRawCode = false))
+        assertNull(TogetherLinks.extractCode("https://kittytune.pages.dev/K7M9-P3Q4-extra", allowRawCode = false))
         assertEquals("K7M9P3Q4", TogetherLinks.extractCode("kittytune://together/K7M9-P3Q4", allowRawCode = false))
         assertEquals("K7M9P3Q4", TogetherLinks.extractCode("kittytune://listen/k7m9p3q4", allowRawCode = false))
         assertEquals("K7M9P3Q4", TogetherLinks.extractCode("sc://together/K7M9-P3Q4", allowRawCode = false))

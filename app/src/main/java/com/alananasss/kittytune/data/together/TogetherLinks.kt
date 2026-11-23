@@ -12,22 +12,25 @@ import java.net.URLDecoder
 /**
  * Shareable links and deep-link parsing for Live Listen Along / Together sessions.
  *
- * Uses the HTTPS KittyTune website URL (`https://alan7383.github.io/kittytune-website/?together=ABCD-EFGH`)
+ * Uses the HTTPS KittyTune invite URL (`https://kittytune.pages.dev/ABCD-EFGH`)
  * as the primary invite URL so that:
  * 1. Discord Rich Presence accepts it in `metadata.button_urls` (Discord requires `https://`).
  * 2. Every chat app (Discord, WhatsApp, Telegram, SMS) renders it as a clickable link.
- * 3. Android intercepts it via `<intent-filter>` (alongside `kittytune://together/ABCD-EFGH`),
- *    while desktop/web visitors without the app land cleanly on the KittyTune website instead of a 404.
+ * 3. The invite page offers the app deep link and the web session.
  */
 object TogetherLinks {
 
     const val WEB_BASE_URL = "https://alan7383.github.io/kittytune-website/"
 
-    /** The invite worker (Cloudflare, free plan) that gives invite links a personal preview. */
-    const val INVITE_BASE_URL = "https://kittytune-invite.kt-net.workers.dev/"
+    /** The short address that serves the personalized invite preview. */
+    const val INVITE_BASE_URL = "https://kittytune.pages.dev/"
     const val APP_SCHEME = "kittytune"
     const val APP_HOST_TOGETHER = "together"
 
+    private val SHORT_INVITE_REGEX = Regex(
+        """${Regex.escape(INVITE_BASE_URL)}([A-Za-z0-9]{4}-?[A-Za-z0-9]{4})/?(?=$|[?#\s<>)\].,!])""",
+        RegexOption.IGNORE_CASE
+    )
     private val URL_QUERY_REGEX = Regex(
         """(?:[?&](?:together|listen_along)=([A-Za-z0-9-]{8,12}))""",
         RegexOption.IGNORE_CASE
@@ -47,12 +50,9 @@ object TogetherLinks {
 
     fun inviteUrl(code: String): String {
         val formatted = TogetherWire.displayCode(code)
-        // Through the invite worker (website/invite-worker): link previews (Discord, WhatsApp…) get a card
-        // naming the host and the session, and people are sent on to the session on the website. Same
-        // `?together=` shape as before, so every version can still read the code out of a pasted link.
         val from = runCatching { Together.displayName("") }.getOrNull()?.trim()?.take(32)?.takeIf { it.isNotBlank() }
-        val name = from?.let { "&from=" + java.net.URLEncoder.encode(it, Charsets.UTF_8.name()).replace("+", "%20") }.orEmpty()
-        return "${INVITE_BASE_URL}?together=$formatted$name"
+        val name = from?.let { "?from=" + java.net.URLEncoder.encode(it, Charsets.UTF_8.name()).replace("+", "%20") }.orEmpty()
+        return "$INVITE_BASE_URL$formatted$name"
     }
 
     fun appDeepLink(code: String): String =
@@ -70,6 +70,10 @@ object TogetherLinks {
     fun extractCode(input: String?, allowRawCode: Boolean = true): String? {
         if (input.isNullOrBlank()) return null
         val decoded = runCatching { URLDecoder.decode(input.trim(), "UTF-8") }.getOrDefault(input.trim())
+
+        SHORT_INVITE_REGEX.find(decoded)?.groupValues?.getOrNull(1)?.let { candidate ->
+            return TogetherWire.normalizeCode(candidate)
+        }
 
         URL_QUERY_REGEX.find(decoded)?.groupValues?.getOrNull(1)?.let { candidate ->
             validNormalized(candidate)?.let { return it }
