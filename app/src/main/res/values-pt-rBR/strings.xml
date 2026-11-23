@@ -3372,6 +3372,14 @@
     <string name="connect_feedback_track_changed">A faixa mudou durante a transferência. Selecione o dispositivo novamente.</string>
     <string name="connect_feedback_prepare_failed">Não foi possível abrir a faixa neste dispositivo.</string>
     <string name="connect_error_connection">Erro de conexão: %1$s</string>
+<string name="connect_error_lan">Não foi possível alcançar %1$s na rede local. Os dois aparelhos precisam estar no mesmo Wi-Fi, e o firewall do computador precisa liberar o KittyTune.</string>
+<string name="connect_error_unauthorized">%1$s recusou este aparelho. Pareie os dois de novo.</string>
+<string name="connect_error_relay">Não foi possível alcançar o relay da Internet (%1$s).</string>
+<string name="connect_internet_section">Fora de casa</string>
+<string name="connect_internet_title">Controle pela Internet</string>
+<string name="connect_internet_sub">Controle seus aparelhos de qualquer lugar (4G, trabalho), não só no seu Wi-Fi. Passa por relays públicos, tudo com criptografia de ponta a ponta. Ative nos dois aparelhos.</string>
+<string name="sync_copy_diagnostics">Copiar registro de conexão</string>
+<string name="sync_diagnostics_copied">Registro de conexão copiado</string>
     <string name="connect_devices_hero">Conectar a um dispositivo</string>
     <string name="connect_listening_on">TOCANDO AGORA EM</string>
     <string name="connect_this_phone">Este celular</string>

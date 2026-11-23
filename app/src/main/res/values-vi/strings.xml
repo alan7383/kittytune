@@ -3228,6 +3228,14 @@
     <string name="connect_cant_find">Không tìm thấy thiết bị?</string>
     <string name="connect_devices_hero">Kết nối với thiết bị</string>
     <string name="connect_error_connection">Lỗi kết nối: %1$s</string>
+<string name="connect_error_lan">Không thể kết nối với %1$s trong mạng cục bộ. Cả hai thiết bị cần dùng cùng Wi-Fi và tường lửa của máy tính phải cho phép KittyTune.</string>
+<string name="connect_error_unauthorized">%1$s đã từ chối thiết bị này. Hãy ghép nối lại.</string>
+<string name="connect_error_relay">Không thể kết nối với máy chuyển tiếp Internet (%1$s).</string>
+<string name="connect_internet_section">Khi ra ngoài</string>
+<string name="connect_internet_title">Điều khiển qua Internet</string>
+<string name="connect_internet_sub">Điều khiển thiết bị từ bất cứ đâu (4G, nơi làm việc), không chỉ trong Wi-Fi. Đi qua các máy chuyển tiếp công cộng, mọi thứ được mã hóa đầu cuối. Bật trên cả hai thiết bị.</string>
+<string name="sync_copy_diagnostics">Sao chép nhật ký kết nối</string>
+<string name="sync_diagnostics_copied">Đã sao chép nhật ký kết nối</string>
     <string name="connect_feedback_auto_cancelled">Đã hủy chuyển đổi tự động.</string>
     <string name="connect_feedback_local_file">Tệp cục bộ này chỉ khả dụng trên thiết bị nguồn.</string>
     <string name="connect_feedback_offline">Thiết bị đang ngoại tuyến.</string>

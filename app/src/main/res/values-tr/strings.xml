@@ -3298,6 +3298,14 @@
     <string name="connect_feedback_track_changed">Aktarım sırasında parça değişti. Cihazı tekrar seç.</string>
     <string name="connect_feedback_prepare_failed">Parça bu cihazda açılamadı.</string>
     <string name="connect_error_connection">Bağlantı hatası: %1$s</string>
+<string name="connect_error_lan">%1$s yerel ağda bulunamıyor. İki cihaz da aynı Wi-Fi ağında olmalı ve bilgisayarın güvenlik duvarı KittyTune’a izin vermeli.</string>
+<string name="connect_error_unauthorized">%1$s bu cihazı reddetti. Onları yeniden eşleştir.</string>
+<string name="connect_error_relay">İnternet aktarıcısına ulaşılamıyor (%1$s).</string>
+<string name="connect_internet_section">Evin dışında</string>
+<string name="connect_internet_title">İnternet üzerinden kontrol</string>
+<string name="connect_internet_sub">Cihazlarını yalnızca Wi-Fi’da değil, her yerden (mobil veri, iş) kontrol et. Herkese açık aktarıcılardan geçer, her şey uçtan uca şifrelidir. İki cihazda da aç.</string>
+<string name="sync_copy_diagnostics">Bağlantı günlüğünü kopyala</string>
+<string name="sync_diagnostics_copied">Bağlantı günlüğü kopyalandı</string>
     <string name="connect_devices_hero">Bir cihaza bağlan</string>
     <string name="connect_listening_on">ŞU ANDA ŞURADA ÇALINIYOR</string>
     <string name="connect_this_phone">Bu telefon</string>

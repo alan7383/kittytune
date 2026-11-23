@@ -167,13 +167,18 @@ object SyncService {
                     listener.bind(InetSocketAddress(port))
                     SyncDiscovery.startResponder()
                     server = listener
+                    // Connect on the LAN answers here too, so the computer can reach the phone when its own
+                    // firewall keeps the phone from reaching it.
+                    runCatching { ConnectLanServer.start() }
+                        .onFailure { NetLog.w("connect", "LAN server did not start", it) }
+                    NetLog.i("sync", "Listening on port $port")
                     ready.complete(true)
                     listener
                 } catch (failure: Exception) {
                     runCatching { socket?.close() }
                     startup = null
                     ready.complete(false)
-                    android.util.Log.w("SyncService", "Listener failed to bind port $port", failure)
+                    NetLog.w("sync", "Listener failed to bind port $port", failure)
                     return@launch
                 }
             }
@@ -193,6 +198,7 @@ object SyncService {
 
     @Synchronized
     fun stop() {
+        ConnectLanServer.stop()
         runCatching { server?.close() }
         server = null
         startup?.complete(false)
@@ -247,9 +253,9 @@ object SyncService {
                 // Fingerprints, never the secrets themselves. A refused pairing is almost always a caller
                 // holding a code that was replaced since it was shown, and without this the only evidence
                 // was a 401 with nothing to compare it against.
-                android.util.Log.w(
-                    "SyncService",
-                    "Refused a caller presenting ${fingerprint(presented)}, " +
+                NetLog.w(
+                    "sync",
+                    "Refused ${socket.inetAddress?.hostAddress}: it presented ${fingerprint(presented)}, " +
                         "this device expects ${fingerprint(pairingSecret)}"
                 )
                 return respond(output, 401)
@@ -275,6 +281,7 @@ object SyncService {
                     val reply = runBlocking {
                         respondTo(request, socket.inetAddress?.hostAddress)
                     }
+                    NetLog.i("sync", "Answered ${request.deviceName.ifBlank { request.deviceId.take(8) }} at ${socket.inetAddress?.hostAddress}: ${request.events.size} in, ${reply.events.size} out")
                     respond(output, 200, gson.toJson(reply))
                 }
 
@@ -297,6 +304,7 @@ object SyncService {
         SyncApply.mergeAndApply(request.events)
         SyncPlayback.accept(request.playback)
         ConnectManager.importRelayUrl(request.relayUrl)
+        ConnectManager.importInternetControl(request.internetControl)
         SyncLog.setPeerMarks(request.deviceId, request.marks)
 
         val callback = request.callback
@@ -320,6 +328,7 @@ object SyncService {
             callback = selfPairing().takeIf { isRunning },
             playback = SyncPlayback.current(),
             relayUrl = ConnectManager.relayUrl.ifBlank { null },
+            internetControl = ConnectPlatform.internetControl,
         )
     }
 
@@ -485,6 +494,8 @@ data class SyncExchange(
     /** Latest queue/playhead, absent when talking to an older client. */
     @SerializedName("playback") val playback: PlaybackSnapshot? = null,
     @SerializedName("relayUrl") val relayUrl: String? = null,
+    /** Whether Connect over the Internet is on there; a device that never chose follows it. */
+    @SerializedName("internetControl") val internetControl: Boolean? = null,
 )
 
 /** Where the secret goes. Must match the desktop, which refuses anything else. */

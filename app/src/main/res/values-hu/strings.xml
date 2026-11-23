@@ -3232,6 +3232,14 @@
     <string name="connect_cant_find">Nem találja az eszközét?</string>
     <string name="connect_devices_hero">Csatlakozás eszközhöz</string>
     <string name="connect_error_connection">Csatlakozási hiba: %1$s</string>
+<string name="connect_error_lan">%1$s nem érhető el a helyi hálózaton. Mindkét eszköznek ugyanazon a Wi-Fi-n kell lennie, és a számítógép tűzfalának engedélyeznie kell a KittyTune-t.</string>
+<string name="connect_error_unauthorized">%1$s elutasította ezt az eszközt. Párosítsd őket újra.</string>
+<string name="connect_error_relay">Az internetes közvetítő nem érhető el (%1$s).</string>
+<string name="connect_internet_section">Otthonon kívül</string>
+<string name="connect_internet_title">Vezérlés interneten keresztül</string>
+<string name="connect_internet_sub">Vezéreld az eszközeidet bárhonnan (mobilnet, munkahely), ne csak a Wi-Fi-n. Nyilvános közvetítőkön megy át, minden végpontok között titkosított. Kapcsold be mindkét eszközön.</string>
+<string name="sync_copy_diagnostics">Kapcsolati napló másolása</string>
+<string name="sync_diagnostics_copied">Kapcsolati napló másolva</string>
     <string name="connect_feedback_auto_cancelled">Automatikus átvitel megszakítva.</string>
     <string name="connect_feedback_local_file">Ez a helyi fájl csak a forráseszközön érhető el.</string>
     <string name="connect_feedback_offline">Az eszköz offline.</string>

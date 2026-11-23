@@ -3059,6 +3059,14 @@
     <string name="connect_feedback_track_changed">Трек сменился во время переноса. Выберите устройство ещё раз.</string>
     <string name="connect_feedback_prepare_failed">Не удалось открыть трек на выбранном устройстве.</string>
     <string name="connect_error_connection">Ошибка соединения: %1$s</string>
+<string name="connect_error_lan">Не удаётся связаться с %1$s в локальной сети. Оба устройства должны быть в одной сети Wi-Fi, а брандмауэр компьютера должен пропускать KittyTune.</string>
+<string name="connect_error_unauthorized">%1$s отклонил это устройство. Выполните сопряжение заново.</string>
+<string name="connect_error_relay">Не удаётся связаться с интернет-ретранслятором (%1$s).</string>
+<string name="connect_internet_section">Вне дома</string>
+<string name="connect_internet_title">Управление через интернет</string>
+<string name="connect_internet_sub">Управляйте устройствами откуда угодно (мобильный интернет, работа), а не только в своей сети Wi-Fi. Работает через публичные ретрансляторы, всё зашифровано end-to-end. Включите на обоих устройствах.</string>
+<string name="sync_copy_diagnostics">Скопировать журнал подключения</string>
+<string name="sync_diagnostics_copied">Журнал подключения скопирован</string>
     <string name="connect_devices_hero">Подключение к устройству</string>
     <string name="connect_listening_on">СЕЙЧАС ИГРАЕТ НА</string>
     <string name="connect_this_phone">Этот телефон</string>

@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Devices
@@ -536,6 +537,22 @@ fun SyncOptionsScreen(onBackClick: () -> Unit) {
                             if (it) SyncScheduler.triggerImmediateSync("playback enabled")
                         }
                     )
+
+                    // Off by default: it reaches the other device through public brokers.
+                    val internetControl by com.alananasss.kittytune.data.sync.ConnectManager.internetControl.collectAsState()
+                    SettingsGroupTitle(stringResource(R.string.connect_internet_section))
+                    SettingsItem(
+                        title = stringResource(R.string.connect_internet_title),
+                        subtitle = stringResource(R.string.connect_internet_sub),
+                        icon = Icons.Rounded.Public,
+                        shape = getSettingsShape(1, 0),
+                        hasSwitch = true,
+                        switchState = internetControl,
+                        onSwitchChange = {
+                            com.alananasss.kittytune.data.sync.ConnectManager.setInternetControl(it)
+                            if (it) SyncScheduler.triggerImmediateSync("internet control enabled")
+                        }
+                    )
                 }
             }
         }
@@ -806,6 +823,21 @@ private fun AdvancedSection(
             TextButton(onClick = onForgetAll) {
                 Text(stringResource(R.string.sync_forget_all))
             }
+        }
+
+        // What the connection code saw, for a bug report: also in logcat under the tag KittyNet.
+        val clipboard = LocalClipboardManager.current
+        var logCopied by remember { mutableStateOf(false) }
+        OutlinedButton(
+            onClick = hapticAction(HapticKind.UI) {
+                clipboard.setText(AnnotatedString(com.alananasss.kittytune.data.sync.NetLog.dump()))
+                logCopied = true
+            },
+            shapes = ButtonDefaults.shapes(),
+        ) {
+            Icon(if (logCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy, null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(if (logCopied) R.string.sync_diagnostics_copied else R.string.sync_copy_diagnostics))
         }
     }
 }

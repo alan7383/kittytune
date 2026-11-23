@@ -159,6 +159,8 @@ dependencies {
     implementation(libs.compose.markdown)
     implementation(libs.newpipe.extractor)
     implementation(libs.paho.mqtt)
+    // The phone answers Connect on the LAN too, so a PC whose firewall drops incoming connections still links.
+    implementation(libs.java.websocket)
     implementation(libs.rhino)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":innertube"))

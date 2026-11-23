@@ -3241,6 +3241,14 @@
     <string name="connect_cant_find">Gerät nicht gefunden?</string>
     <string name="connect_devices_hero">Mit einem Gerät verbinden</string>
     <string name="connect_error_connection">Verbindungsfehler: %1$s</string>
+<string name="connect_error_lan">%1$s ist im lokalen Netzwerk nicht erreichbar. Beide Geräte müssen im selben WLAN sein, und die Firewall des Computers muss KittyTune durchlassen.</string>
+<string name="connect_error_unauthorized">%1$s hat dieses Gerät abgelehnt. Kopple sie erneut.</string>
+<string name="connect_error_relay">Das Internet-Relay ist nicht erreichbar (%1$s).</string>
+<string name="connect_internet_section">Unterwegs</string>
+<string name="connect_internet_title">Steuerung über das Internet</string>
+<string name="connect_internet_sub">Steuere deine Geräte von überall (mobile Daten, Arbeit), nicht nur im WLAN. Läuft über öffentliche Relays, alles ist Ende-zu-Ende-verschlüsselt. Auf beiden Geräten einschalten.</string>
+<string name="sync_copy_diagnostics">Verbindungsprotokoll kopieren</string>
+<string name="sync_diagnostics_copied">Verbindungsprotokoll kopiert</string>
     <string name="connect_feedback_auto_cancelled">Automatische Übertragung abgebrochen.</string>
     <string name="connect_feedback_local_file">Diese lokale Datei ist nur auf dem Quellgerät verfügbar.</string>
     <string name="connect_feedback_offline">Das Gerät ist offline.</string>

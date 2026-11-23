@@ -94,6 +94,7 @@ object SyncClient {
             callback = SyncService.selfPairing().takeIf { SyncService.isRunning },
             playback = SyncPlayback.current(),
             relayUrl = ConnectManager.relayUrl.ifBlank { null },
+            internetControl = ConnectPlatform.internetControl,
         )
 
         val candidateHosts = buildList {
@@ -138,9 +139,13 @@ object SyncClient {
             .post(gson.toJson(outgoing).toByteArray().toRequestBody(jsonType))
             .build()
 
+        val http = ConnectPlatform.lanSocketFactory()?.let { client.newBuilder().socketFactory(it).build() } ?: client
         return try {
-            client.newCall(request).execute().use { response ->
-                if (response.code == 401) return Result.Unauthorized
+            http.newCall(request).execute().use { response ->
+                if (response.code == 401) {
+                    NetLog.w("sync", "$targetHost refused our pairing secret (HTTP 401)")
+                    return Result.Unauthorized
+                }
                 if (!response.isSuccessful) {
                     return Result.Failed("HTTP ${response.code}")
                 }
@@ -151,6 +156,7 @@ object SyncClient {
                 val applied = SyncApply.mergeAndApply(reply.events)
                 SyncPlayback.accept(reply.playback)
                 ConnectManager.importRelayUrl(reply.relayUrl)
+                ConnectManager.importInternetControl(reply.internetControl)
                 // What it reported already accounts for what we just sent, so the next exchange
                 // starts from there instead of from the beginning of the log.
                 SyncLog.setPeerMarks(reply.deviceId, reply.marks)
@@ -168,6 +174,7 @@ object SyncClient {
                     )
                 )
 
+                NetLog.i("sync", "Synced with ${reply.deviceName.ifBlank { peer.deviceName }} at $targetHost: ${applied.size} in, ${outgoing.events.size} out")
                 Result.Success(
                     peerName = reply.deviceName.ifBlank { peer.deviceName },
                     received = applied.size,
@@ -227,7 +234,7 @@ object SyncClient {
         // The formatted message says what to do about it; the log says what actually happened. Without
         // this the only evidence of a failed pairing was a sentence with the exception thrown away, which
         // is not enough to tell a firewall from a bug (issue #33).
-        android.util.Log.w("SyncClient", "Exchange with ${peer.host}:${peer.port} failed", t)
+        NetLog.w("sync", "Exchange with ${peer.deviceName.ifBlank { peer.deviceId.take(8) }} at ${peer.host}:${peer.port} failed", t)
         return describeFor(t, peer)
     }
 

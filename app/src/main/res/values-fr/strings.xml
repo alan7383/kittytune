@@ -3259,6 +3259,14 @@
     <string name="connect_feedback_track_changed">Le morceau a changé pendant le transfert. Choisissez à nouveau l\'appareil.</string>
     <string name="connect_feedback_prepare_failed">Impossible de lire ce morceau sur l\'appareil sélectionné.</string>
     <string name="connect_error_connection">Erreur de connexion : %1$s</string>
+<string name="connect_error_lan">Impossible de joindre %1$s sur le réseau local. Les deux appareils doivent être sur le même Wi-Fi, et le pare-feu de l\'ordinateur doit laisser passer KittyTune.</string>
+<string name="connect_error_unauthorized">%1$s a refusé cet appareil. Associe-les à nouveau.</string>
+<string name="connect_error_relay">Impossible de joindre le relais Internet (%1$s).</string>
+<string name="connect_internet_section">Hors de chez toi</string>
+<string name="connect_internet_title">Contrôle via Internet</string>
+<string name="connect_internet_sub">Contrôle tes appareils de n\'importe où (4G, travail), pas seulement sur ton Wi-Fi. Passe par des relais publics, tout est chiffré de bout en bout. À activer sur les deux appareils.</string>
+<string name="sync_copy_diagnostics">Copier le journal de connexion</string>
+<string name="sync_diagnostics_copied">Journal de connexion copié</string>
     <string name="connect_devices_hero">Se connecter à un appareil</string>
     <string name="connect_listening_on">ÉCOUTE EN COURS SUR</string>
     <string name="connect_this_phone">Ce téléphone</string>

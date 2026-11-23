@@ -3384,6 +3384,14 @@
 <string name="connect_feedback_track_changed">Track changed during transfer. Choose the device again.</string>
 <string name="connect_feedback_prepare_failed">Could not open the track on this device.</string>
 <string name="connect_error_connection">Connection error: %1$s</string>
+<string name="connect_error_lan">Can\'t reach %1$s on your local network. Both devices need to be on the same Wi-Fi, and the computer\'s firewall has to let KittyTune in.</string>
+<string name="connect_error_unauthorized">%1$s refused this device. Pair them again.</string>
+<string name="connect_error_relay">Can\'t reach the Internet relay (%1$s).</string>
+<string name="connect_internet_section">Away from home</string>
+<string name="connect_internet_title">Control over the Internet</string>
+<string name="connect_internet_sub">Control your devices from anywhere (4G, work), not just on your Wi-Fi. Goes through public relays; everything is end-to-end encrypted. Turn it on on both devices.</string>
+<string name="sync_copy_diagnostics">Copy connection log</string>
+<string name="sync_diagnostics_copied">Connection log copied</string>
 <string name="connect_devices_hero">Connect to a device</string>
 <string name="connect_listening_on">CURRENTLY PLAYING ON</string>
 <string name="connect_this_phone">This phone</string>
