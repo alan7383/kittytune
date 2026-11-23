@@ -5317,6 +5317,7 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
     var showStudioEditSheet by remember { mutableStateOf(false) }
     var explorerFilter by remember { mutableStateOf(AudioFxFilter.ALL) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
+    var showExportSheet by remember { mutableStateOf(false) }
 
     val allEffects = getAudioFxDefinitions(
         onOpenEqualizerSheet = {
@@ -5486,7 +5487,8 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
             showSaveDialog = showSavePresetDialog,
             onDismissSaveDialog = { showSavePresetDialog = false },
         )
-        Spacer(Modifier.height(20.dp))
+        // With nothing saved the section would only hold a hint; the Save button at the bottom is enough.
+        if (viewModel.audioFxPresets.isNotEmpty()) Spacer(Modifier.height(20.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -5674,6 +5676,8 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
         }
 
         Spacer(Modifier.height(14.dp))
+        AudioFxExportCard(viewModel, allEffects, onOpen = { showExportSheet = true })
+        Spacer(Modifier.height(10.dp))
         AudioFxActionsRow(
             onSave = { showSavePresetDialog = true },
             onExplore = {
@@ -5683,6 +5687,11 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
         )
 
         Spacer(Modifier.height(32.dp))
+        }
+
+        AudioFxExportNotifier()
+        if (showExportSheet) {
+            AudioFxExportSheet(viewModel, allEffects, onDismiss = { showExportSheet = false })
         }
 
         if (showRainVolumeDialog) {
