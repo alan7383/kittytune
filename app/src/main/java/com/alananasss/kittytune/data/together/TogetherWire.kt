@@ -123,7 +123,8 @@ data class SharedTrack(
                 title = track.title,
                 artist = track.displayArtist.ifBlank { track.user?.username.orEmpty() },
                 artworkUrl = if (local) null else track.fullResArtwork,
-                durationMs = track.durationMs,
+                // Go+ tracks report the 30 s preview as their duration; the room plays (and shows) the whole song.
+                durationMs = track.fullDuration?.takeIf { it > 0L } ?: track.durationMs,
                 permalinkUrl = if (local) null else track.permalinkUrl,
                 source = if (local) "local" else track.source,
                 userId = track.user?.id ?: 0L,
