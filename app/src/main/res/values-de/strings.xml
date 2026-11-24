@@ -3371,7 +3371,6 @@
     <string name="pref_apple_controls_center_low">Mitte</string>
     <string name="pref_apple_portrait_art">Cover im Hochformat</string>
     <string name="pref_apple_portrait_art_full_bleed">Vollbild-Hintergrund</string>
-    <string name="pref_apple_portrait_art_square">Kein Cover</string>
     <string name="player_design_ipad_note">Das iPad-Layout ist nur auf Tablets im Querformat verfügbar; im Hochformat wird der vertikale Apple-Music-Player verwendet. Auf Smartphones ausgeblendet.</string>
     <string name="pref_ipad_mode_title">iPad-Layout</string>
     <string name="pref_ipad_mode_sub">Das Apple-Music-Tablet-Layout in voller Breite; ausschalten, um zum normalen Apple-Music-Player zurückzukehren</string>
