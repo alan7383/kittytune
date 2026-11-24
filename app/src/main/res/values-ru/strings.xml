@@ -3619,7 +3619,6 @@
     <string name="pref_apple_controls_center_low">По центру</string>
     <string name="pref_apple_portrait_art">Обложка в плеере</string>
     <string name="pref_apple_portrait_art_full_bleed">Фон во весь экран</string>
-    <string name="pref_apple_portrait_art_square">Без обложки</string>
     <string name="player_design_ipad_note">Макет iPad доступен только на планшете и только в горизонтальном режиме; в портрете используется вертикальный плеер Apple Music. На телефонах дизайн скрыт.</string>
     <string name="pref_ipad_mode_title">Режим iPad</string>
     <string name="pref_ipad_mode_sub">Широкий планшетный макет Apple Music; выключите, чтобы вернуться к обычному плееру Apple Music</string>
