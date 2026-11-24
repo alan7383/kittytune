@@ -3472,7 +3472,6 @@
     <string name="pref_apple_controls_center_low">Orta</string>
     <string name="pref_apple_portrait_art">Dikey modda kapak</string>
     <string name="pref_apple_portrait_art_full_bleed">Tam kenara arka plan</string>
-    <string name="pref_apple_portrait_art_square">Kapak yok</string>
     <string name="player_design_ipad_note">iPad düzeni yalnızca yatay moddaki tabletlerde kullanılabilir; dikey modda dikey Apple Music oynatıcısı kullanılır. Telefonlarda gizlidir.</string>
     <string name="pref_ipad_mode_title">iPad düzeni</string>
     <string name="pref_ipad_mode_sub">Tam genişlikli Apple Music tablet düzeni; normal Apple Music oynatıcısına dönmek için kapatın</string>
