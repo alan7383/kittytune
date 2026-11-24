@@ -3444,7 +3444,6 @@
     <string name="pref_apple_controls_center_low">Centro</string>
     <string name="pref_apple_portrait_art">Capa no modo retrato</string>
     <string name="pref_apple_portrait_art_full_bleed">Fundo de ponta a ponta</string>
-    <string name="pref_apple_portrait_art_square">Sem capa</string>
     <string name="player_design_ipad_note">O layout para iPad fica disponível apenas em tablets no modo paisagem. No modo retrato, o player do Apple Music usa o visual vertical. Em celulares, a opção fica oculta.</string>
     <string name="pref_ipad_mode_title">Layout para iPad</string>
     <string name="pref_ipad_mode_sub">Use o layout Apple Music para tablet em largura total. Desative para voltar ao player Apple Music padrão.</string>
