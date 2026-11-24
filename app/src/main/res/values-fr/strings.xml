@@ -3327,7 +3327,6 @@
     <string name="pref_apple_controls_center_low">Au centre</string>
     <string name="pref_apple_portrait_art">Pochette en portrait</string>
     <string name="pref_apple_portrait_art_full_bleed">Arrière-plan plein cadre</string>
-    <string name="pref_apple_portrait_art_square">Aucune pochette</string>
     <string name="player_design_ipad_note">La mise en page iPad n’est disponible que sur les tablettes en paysage ; en portrait, le lecteur Apple Music vertical est utilisé. Masquée sur les téléphones.</string>
     <string name="pref_ipad_mode_title">Mise en page iPad</string>
     <string name="pref_ipad_mode_sub">La mise en page tablette Apple Music pleine largeur ; désactivez-la pour revenir au lecteur Apple Music classique</string>
