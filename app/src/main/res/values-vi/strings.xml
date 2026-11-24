@@ -3449,7 +3449,6 @@
     <string name="pref_apple_controls_center_low">Giữa</string>
     <string name="pref_apple_portrait_art">Ảnh bìa ở chế độ dọc</string>
     <string name="pref_apple_portrait_art_full_bleed">Nền tràn viền</string>
-    <string name="pref_apple_portrait_art_square">Không có ảnh bìa</string>
     <string name="player_design_ipad_note">Bố cục iPad chỉ có trên máy tính bảng ở chế độ ngang; ở chế độ dọc sẽ dùng trình phát Apple Music dọc. Được ẩn trên điện thoại.</string>
     <string name="pref_ipad_mode_title">Bố cục iPad</string>
     <string name="pref_ipad_mode_sub">Bố cục máy tính bảng Apple Music toàn chiều rộng; tắt để quay về trình phát Apple Music thông thường</string>
