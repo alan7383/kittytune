@@ -22,6 +22,7 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.ColorUtils
 import androidx.graphics.shapes.RoundedPolygon
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.wear.common.R as WearResources
 import com.alananasss.kittytune.data.stats.MusicPassport
 import java.text.NumberFormat
 import java.time.Instant
@@ -60,7 +61,7 @@ object MusicPassportRender {
 
     fun render(context: Context, passport: MusicPassport, avatar: Bitmap?): Bitmap {
         val fonts = Fonts(
-            sans = runCatching { ResourcesCompat.getFont(context, R.font.google_sans_flex) }.getOrNull()
+            sans = runCatching { ResourcesCompat.getFont(context, WearResources.font.kittytune_flex) }.getOrNull()
                 ?: Typeface.DEFAULT,
             mono = Typeface.MONOSPACE,
             script = Typeface.create("cursive", Typeface.NORMAL),
