@@ -888,6 +888,10 @@
     <string name="pref_animated_covers_desc">Affiche les pochettes animées Apple Music et TIDAL sur le lecteur</string>
     <string name="pref_animated_covers_fade_ui">Fondu de la pochette en arrière-plan</string>
     <string name="pref_animated_covers_fade_ui_desc">Utilise la pochette animée verticale comme fond d\'écran dynamique</string>
+    <string name="pref_gyroscope_covers">Pochettes 3D au gyroscope</string>
+    <string name="pref_gyroscope_covers_desc">Inclinez le téléphone pour déplacer les calques de la pochette avec un effet parallaxe 3D</string>
+    <string name="pref_gyro_flat_cover">Pochette sans superposition</string>
+    <string name="pref_gyro_flat_cover_desc">Une seule pochette nette à sa taille naturelle qui s’incline en 3D, au lieu de la boîte à ombres en couches</string>
     <string name="pref_animated_artist_profiles">Profils d\'artistes animés</string>
     <string name="pref_animated_artist_profiles_desc">Affiche les vidéos animées sur les profils des artistes</string>
     <string name="pref_player_design">Design du lecteur</string>
@@ -3694,7 +3698,8 @@
     <string name="pref_apple_controls_center_low">Au centre</string>
     <string name="pref_apple_portrait_art">Pochette en portrait</string>
     <string name="pref_apple_portrait_art_full_bleed">Arrière-plan plein cadre</string>
-    <string name="pref_apple_portrait_art_square">Aucune pochette</string>
+    <string name="pref_apple_portrait_art_square">Pochette carrée</string>
+    <string name="pref_apple_portrait_art_none">Aucune pochette</string>
     <string name="player_design_ipad">iPad</string>
     <string name="player_design_ipad_note">La mise en page iPad n’est disponible que sur les tablettes en paysage ; en portrait, le lecteur Apple Music vertical est utilisé. Masquée sur les téléphones.</string>
     <string name="pref_ipad_mode_title">Mise en page iPad</string>

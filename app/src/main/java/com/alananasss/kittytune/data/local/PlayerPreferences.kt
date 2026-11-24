@@ -91,7 +91,7 @@ enum class AppleMusicControlsAlign { RIGHT, CENTER_LOW }
 
 // Apple Music player: how the artwork is presented in portrait.
 
-enum class AppleMusicPortraitArt { FULL_BLEED, SQUARE }
+enum class AppleMusicPortraitArt { FULL_BLEED, SQUARE, NO_ARTWORK }
 
 // Mini player look: the mini-style pill (modern) or the previous KittyTune strip (classic). */
 enum class MiniPlayerStyle {

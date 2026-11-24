@@ -921,6 +921,10 @@
     <string name="pref_animated_covers_desc">Mostre no player as capas animadas do Apple Music e do TIDAL</string>
     <string name="pref_animated_covers_fade_ui">Integrar capa animada ao fundo da interface</string>
     <string name="pref_animated_covers_fade_ui_desc">Usa capas animadas verticais como plano de fundo dinâmico</string>
+    <string name="pref_gyroscope_covers">Capas de álbum 3D com giroscópio</string>
+    <string name="pref_gyroscope_covers_desc">Incline o celular para mover as camadas da capa em paralaxe 3D</string>
+    <string name="pref_gyro_flat_cover">Capa sem sobreposição</string>
+    <string name="pref_gyro_flat_cover_desc">Use uma única capa no tamanho original, com inclinação 3D e sem camadas.</string>
     <string name="pref_animated_artist_profiles">Perfis de artistas animados</string>
     <string name="pref_animated_artist_profiles_desc">Exiba vídeos animados nas telas de perfil dos artistas</string>
     <string name="pref_player_design">Visual do player</string>
@@ -3730,7 +3734,8 @@
     <string name="pref_apple_controls_center_low">Centro</string>
     <string name="pref_apple_portrait_art">Capa no modo retrato</string>
     <string name="pref_apple_portrait_art_full_bleed">Fundo de ponta a ponta</string>
-    <string name="pref_apple_portrait_art_square">Sem capa</string>
+    <string name="pref_apple_portrait_art_square">Capa quadrada</string>
+    <string name="pref_apple_portrait_art_none">Sem capa</string>
     <string name="player_design_ipad">iPad</string>
     <string name="player_design_ipad_note">O layout para iPad fica disponível apenas em tablets no modo paisagem. No modo retrato, o player do Apple Music usa o visual vertical. Em celulares, a opção fica oculta.</string>
     <string name="pref_ipad_mode_title">Layout para iPad</string>

@@ -884,6 +884,10 @@
     <string name="pref_animated_covers_desc">Zeigt bewegte Cover von Apple Music und TIDAL im Player an</string>
     <string name="pref_animated_covers_fade_ui">Animiertes Cover in den Hintergrund einblenden</string>
     <string name="pref_animated_covers_fade_ui_desc">Nutzt hochformatige bewegte Cover als dynamischen Hintergrund</string>
+    <string name="pref_gyroscope_covers">3D-Gyroskop-Albumcover</string>
+    <string name="pref_gyroscope_covers_desc">Neige dein Smartphone, um die Ebenen des Albumcovers mit einem 3D-Parallax-Effekt zu bewegen</string>
+    <string name="pref_gyro_flat_cover">Cover ohne Overlay</string>
+    <string name="pref_gyro_flat_cover_desc">Ein einzelnes, sauberes Cover in natürlicher Größe, das sich in 3D neigt, statt der geschichteten Shadowbox</string>
     <string name="pref_animated_artist_profiles">Animierte Künstlerprofile</string>
     <string name="pref_animated_artist_profiles_desc">Zeigt bewegte Videocover auf Künstlerprofilseiten an</string>
     <string name="pref_player_design">Player-Design</string>
@@ -3692,7 +3696,8 @@
     <string name="pref_apple_controls_center_low">Mitte</string>
     <string name="pref_apple_portrait_art">Cover im Hochformat</string>
     <string name="pref_apple_portrait_art_full_bleed">Vollbild-Hintergrund</string>
-    <string name="pref_apple_portrait_art_square">Kein Cover</string>
+    <string name="pref_apple_portrait_art_square">Quadratisches Cover</string>
+    <string name="pref_apple_portrait_art_none">Kein Cover</string>
     <string name="player_design_ipad">iPad</string>
     <string name="player_design_ipad_note">Das iPad-Layout ist nur auf Tablets im Querformat verfügbar; im Hochformat wird der vertikale Apple-Music-Player verwendet. Auf Smartphones ausgeblendet.</string>
     <string name="pref_ipad_mode_title">iPad-Layout</string>

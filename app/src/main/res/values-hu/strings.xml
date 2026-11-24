@@ -2363,6 +2363,10 @@
     <string name="pref_account_vk_title">VKontakte (VK)</string>
     <string name="pref_android_auto_synced_lyrics">Android Auto szinkronizált dalszöveg</string>
     <string name="pref_android_auto_synced_lyrics_desc">Szinkronizált dalszöveg megjelenítése az előadó neve helyett Android Auto kapcsolaton</string>
+    <string name="pref_gyroscope_covers">3D giroszkópos albumborítók</string>
+    <string name="pref_gyroscope_covers_desc">Döntsd meg a telefont, hogy a borító rétegei 3D parallaxis hatással mozogjanak</string>
+    <string name="pref_gyro_flat_cover">Borító átfedés nélkül</string>
+    <string name="pref_gyro_flat_cover_desc">Egyetlen tiszta borítókép természetes méretben, amely 3D-ben dől, a rétegzett dobozeffekt helyett</string>
     <string name="pref_animated_artist_profiles">Animált előadói profilok</string>
     <string name="pref_animated_artist_profiles_desc">Mozgó videóborítók megjelenítése az előadói oldalakon</string>
     <string name="pref_animated_covers">Animált albumborítók</string>
@@ -3696,7 +3700,8 @@
     <string name="pref_apple_controls_center_low">Középen</string>
     <string name="pref_apple_portrait_art">Borító álló tájolásban</string>
     <string name="pref_apple_portrait_art_full_bleed">Teljes képernyős háttér</string>
-    <string name="pref_apple_portrait_art_square">Nincs borító</string>
+    <string name="pref_apple_portrait_art_square">Négyzetes borító</string>
+    <string name="pref_apple_portrait_art_none">Nincs borító</string>
     <string name="player_design_ipad">iPad</string>
     <string name="player_design_ipad_note">Az iPad elrendezés csak fekvő tájolású tableteken érhető el; álló tájolásban a függőleges Apple Music lejátszó jelenik meg. Telefonon rejtett.</string>
     <string name="pref_ipad_mode_title">iPad elrendezés</string>

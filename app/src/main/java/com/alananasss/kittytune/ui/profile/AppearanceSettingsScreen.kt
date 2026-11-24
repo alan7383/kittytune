@@ -116,6 +116,10 @@ fun AppearanceSettingsScreen(
     var lyricsUnderCover by remember { mutableStateOf(prefs.getLyricsUnderCoverEnabled()) }
     var animatedCovers by remember { mutableStateOf(prefs.getAnimatedCoversEnabled()) }
     var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
+    val gyroscopeCovers by remember(prefs) { prefs.getGyroscopeCoversFlow() }
+        .collectAsState(initial = prefs.getGyroscopeCoversEnabled())
+    val gyroFlatCover by remember(prefs) { prefs.getGyroscopeFlatCoverFlow() }
+        .collectAsState(initial = prefs.getGyroscopeFlatCover())
     var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
     var libraryCategoryLayout by remember { mutableStateOf(prefs.getLibraryCategoryLayout()) }
     var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
@@ -362,6 +366,8 @@ fun AppearanceSettingsScreen(
             "pref_app_icon" to 2,
             "pref_animated_covers" to 3,
             "pref_animated_covers_fade_ui" to 3,
+            "pref_gyroscope_covers" to 3,
+            "pref_gyro_flat_cover" to 3,
             "pref_animated_artist_profiles" to 3,
             "pref_lyrics_under_cover" to 3,
             "pref_feed_official_only" to 4,
@@ -605,6 +611,32 @@ fun AppearanceSettingsScreen(
                                         prefs.setAnimatedCoversFadeUiEnabled(it)
                                     },
                                     highlightKey = "pref_animated_covers_fade_ui"
+                                )
+                            }
+                        }
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_gyroscope_covers),
+                                subtitle = stringResource(R.string.pref_gyroscope_covers_desc),
+                                icon = Icons.Rounded.Layers,
+                                hasSwitch = true,
+                                switchState = gyroscopeCovers,
+                                onSwitchChange = prefs::setGyroscopeCoversEnabled,
+                                highlightKey = "pref_gyroscope_covers"
+                            )
+                        }
+                        if (gyroscopeCovers) {
+                            add { shape ->
+                                SettingsItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.pref_gyro_flat_cover),
+                                    subtitle = stringResource(R.string.pref_gyro_flat_cover_desc),
+                                    icon = Icons.Rounded.CropSquare,
+                                    hasSwitch = true,
+                                    switchState = gyroFlatCover,
+                                    onSwitchChange = prefs::setGyroscopeFlatCover,
+                                    highlightKey = "pref_gyro_flat_cover"
                                 )
                             }
                         }

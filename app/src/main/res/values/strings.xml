@@ -921,6 +921,10 @@
 <string name="pref_animated_covers_desc">Display motion artwork from Apple Music and TIDAL on the player</string>
 <string name="pref_animated_covers_fade_ui">Fade animated cover into UI backdrop</string>
 <string name="pref_animated_covers_fade_ui_desc">Uses tall motion artwork as a dynamic background</string>
+<string name="pref_gyroscope_covers">3D gyroscope album covers</string>
+<string name="pref_gyroscope_covers_desc">Tilt your phone to move album cover layers in 3D parallax</string>
+<string name="pref_gyro_flat_cover">Cover without overlay</string>
+<string name="pref_gyro_flat_cover_desc">One clean artwork at its natural size tilting in 3D, instead of the layered shadowbox</string>
 <string name="pref_animated_artist_profiles">Animated artist profiles</string>
 <string name="pref_animated_artist_profiles_desc">Display motion video artwork on artist profile screens</string>
 <string name="pref_player_design">Player design</string>
@@ -3743,7 +3747,8 @@
 <string name="pref_apple_controls_center_low">Centre</string>
 <string name="pref_apple_portrait_art">Portrait artwork</string>
 <string name="pref_apple_portrait_art_full_bleed">Full-bleed background</string>
-<string name="pref_apple_portrait_art_square">No artwork</string>
+<string name="pref_apple_portrait_art_square">Square cover</string>
+<string name="pref_apple_portrait_art_none">No artwork</string>
 <string name="player_design_ipad">iPad</string>
 <string name="player_design_ipad_note">The iPad layout is available on tablets in landscape only; in portrait the vertical Apple Music player is used. Hidden on phones.</string>
     <string name="pref_ipad_mode_title">iPad layout</string>

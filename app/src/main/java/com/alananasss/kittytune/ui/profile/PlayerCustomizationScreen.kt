@@ -1703,6 +1703,7 @@ fun PlayerCustomizationScreen(
         val options = listOf(
             com.alananasss.kittytune.data.local.AppleMusicPortraitArt.FULL_BLEED to R.string.pref_apple_portrait_art_full_bleed,
             com.alananasss.kittytune.data.local.AppleMusicPortraitArt.SQUARE to R.string.pref_apple_portrait_art_square,
+            com.alananasss.kittytune.data.local.AppleMusicPortraitArt.NO_ARTWORK to R.string.pref_apple_portrait_art_none,
         )
         AlertDialog(
             onDismissRequest = { showApplePortraitArtDialog = false },

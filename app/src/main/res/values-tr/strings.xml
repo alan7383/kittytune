@@ -921,6 +921,10 @@
     <string name="pref_animated_covers_desc">Oynatıcıda Apple Music ve TIDAL hareketli kapak görsellerini göster</string>
     <string name="pref_animated_covers_fade_ui">Hareketli kapağı arayüz arka planına kaynaştır</string>
     <string name="pref_animated_covers_fade_ui_desc">Dikey hareketli kapak görselini dinamik bir arka plan olarak kullanır</string>
+    <string name="pref_gyroscope_covers">3B jiroskop albüm kapakları</string>
+    <string name="pref_gyroscope_covers_desc">Derin bir 3B paralaks efekti için telefonu eğerek kapak katmanlarını hareket ettirin</string>
+    <string name="pref_gyro_flat_cover">Kaplamasız kapak</string>
+    <string name="pref_gyro_flat_cover_desc">Katmanlı gölge kutusu yerine, doğal boyutunda 3B eğilen tek bir temiz kapak görseli</string>
     <string name="pref_animated_artist_profiles">Hareketli sanatçı profilleri</string>
     <string name="pref_animated_artist_profiles_desc">Sanatçı profili ekranlarında hareketli video görsellerini göster</string>
     <string name="pref_player_design">Oynatıcı tasarımı</string>
@@ -3689,7 +3693,8 @@
     <string name="pref_apple_controls_center_low">Orta</string>
     <string name="pref_apple_portrait_art">Dikey modda kapak</string>
     <string name="pref_apple_portrait_art_full_bleed">Tam kenara arka plan</string>
-    <string name="pref_apple_portrait_art_square">Kapak yok</string>
+    <string name="pref_apple_portrait_art_square">Kare albüm kapağı</string>
+    <string name="pref_apple_portrait_art_none">Kapak yok</string>
     <string name="player_design_ipad">iPad</string>
     <string name="player_design_ipad_note">iPad düzeni yalnızca yatay moddaki tabletlerde kullanılabilir; dikey modda dikey Apple Music oynatıcısı kullanılır. Telefonlarda gizlidir.</string>
     <string name="pref_ipad_mode_title">iPad düzeni</string>

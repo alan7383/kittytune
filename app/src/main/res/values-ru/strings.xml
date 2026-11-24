@@ -2360,6 +2360,10 @@
     <string name="player_now_playing">Сейчас играет</string>
     <string name="pref_android_auto_synced_lyrics">Синхронизированный текст в Android Auto</string>
     <string name="pref_android_auto_synced_lyrics_desc">Отображать синхронизированный текст вместо имени исполнителя в Android Auto</string>
+    <string name="pref_gyroscope_covers">3D-обложки с гироскопом</string>
+    <string name="pref_gyroscope_covers_desc">Наклоняйте телефон, чтобы слои обложки двигались с глубоким 3D-эффектом параллакса</string>
+    <string name="pref_gyro_flat_cover">Обложка без наложения</string>
+    <string name="pref_gyro_flat_cover_desc">Одна чистая обложка своего размера с 3D-наклоном вместо многослойной композиции</string>
     <string name="pref_animated_artist_profiles">Анимированные профили исполнителей</string>
     <string name="pref_animated_artist_profiles_desc">Отображать анимированные видео на страницах профилей исполнителей</string>
     <string name="pref_animated_covers">Анимированные обложки альбомов</string>
@@ -3699,7 +3703,8 @@
     <string name="pref_apple_controls_center_low">По центру</string>
     <string name="pref_apple_portrait_art">Обложка в плеере</string>
     <string name="pref_apple_portrait_art_full_bleed">Фон во весь экран</string>
-    <string name="pref_apple_portrait_art_square">Без обложки</string>
+    <string name="pref_apple_portrait_art_square">Квадратная обложка</string>
+    <string name="pref_apple_portrait_art_none">Без обложки</string>
     <string name="player_design_ipad">iPad</string>
     <string name="player_design_ipad_note">Макет iPad доступен только на планшете и только в горизонтальном режиме; в портрете используется вертикальный плеер Apple Music. На телефонах дизайн скрыт.</string>
     <string name="pref_ipad_mode_title">Режим iPad</string>

@@ -870,6 +870,10 @@
     <string name="pref_animated_covers_desc">Hiển thị ảnh bìa chuyển động từ Apple Music và TIDAL trên trình phát</string>
     <string name="pref_animated_covers_fade_ui">Làm mờ ảnh bìa động vào nền giao diện</string>
     <string name="pref_animated_covers_fade_ui_desc">Sử dụng ảnh bìa chuyển động dạng dọc làm hình nền động</string>
+    <string name="pref_gyroscope_covers">Ảnh bìa 3D con quay hồi chuyển</string>
+    <string name="pref_gyroscope_covers_desc">Nghiêng điện thoại để di chuyển các lớp ảnh bìa tạo hiệu ứng thị sai 3D sâu</string>
+    <string name="pref_gyro_flat_cover">Ảnh bìa không lớp phủ</string>
+    <string name="pref_gyro_flat_cover_desc">Một ảnh bìa gọn gàng ở kích thước tự nhiên nghiêng theo 3D, thay cho hộp bóng nhiều lớp</string>
     <string name="pref_animated_artist_profiles">Hồ sơ nghệ sĩ động</string>
     <string name="pref_animated_artist_profiles_desc">Hiển thị video ảnh bìa chuyển động trên màn hình hồ sơ nghệ sĩ</string>
     <string name="pref_player_design">Thiết kế trình phát</string>
@@ -3692,7 +3696,8 @@
     <string name="pref_apple_controls_center_low">Giữa</string>
     <string name="pref_apple_portrait_art">Ảnh bìa ở chế độ dọc</string>
     <string name="pref_apple_portrait_art_full_bleed">Nền tràn viền</string>
-    <string name="pref_apple_portrait_art_square">Không có ảnh bìa</string>
+    <string name="pref_apple_portrait_art_square">Ảnh bìa vuông</string>
+    <string name="pref_apple_portrait_art_none">Không có ảnh bìa</string>
     <string name="player_design_ipad">iPad</string>
     <string name="player_design_ipad_note">Bố cục iPad chỉ có trên máy tính bảng ở chế độ ngang; ở chế độ dọc sẽ dùng trình phát Apple Music dọc. Được ẩn trên điện thoại.</string>
     <string name="pref_ipad_mode_title">Bố cục iPad</string>
