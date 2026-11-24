@@ -3444,7 +3444,6 @@
     <string name="pref_apple_controls_center_low">Középen</string>
     <string name="pref_apple_portrait_art">Borító álló tájolásban</string>
     <string name="pref_apple_portrait_art_full_bleed">Teljes képernyős háttér</string>
-    <string name="pref_apple_portrait_art_square">Nincs borító</string>
     <string name="player_design_ipad_note">Az iPad elrendezés csak fekvő tájolású tableteken érhető el; álló tájolásban a függőleges Apple Music lejátszó jelenik meg. Telefonon rejtett.</string>
     <string name="pref_ipad_mode_title">iPad elrendezés</string>
     <string name="pref_ipad_mode_sub">A teljes szélességű Apple Music táblagép-elrendezés; kapcsold ki, hogy visszatérj a hagyományos Apple Music lejátszóhoz</string>
