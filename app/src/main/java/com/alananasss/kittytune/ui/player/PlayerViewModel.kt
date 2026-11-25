@@ -101,22 +101,6 @@ enum class CommentSort(val value: String, @param:StringRes val labelResId: Int) 
 
 enum class LyricsMode { SYNCED, PLAIN }
 
-data class UnifiedLyricResult(
-    val id: String,
-    val name: String,
-    val artistName: String,
-    val albumName: String?,
-    val durationSec: Double,
-    val hasLineSync: Boolean,
-    val hasWordSync: Boolean,
-    val provider: String,
-    val rawContent: String? = null,
-    val previewText: String? = null,
-    val noLyrics: Boolean = false,
-    val instrumental: Boolean = false,
-) {
-    val key: String get() = "${PreferredLyricsProvider.fromName(provider)?.name ?: provider}/$id"
-}
 
 private const val MIX_AFTER_SEEK_MS = 2_000L
 private const val LYRICS_MIX_LEAD_MS = 2_500L
@@ -3458,6 +3442,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
         manualLyricSearchJob = viewModelScope.launch {
             PaxsenixClient.setApiKey(playerPrefs.getPaxsenixApiKey())
+            val merger = ProgressiveLyricsMerger()
             try {
                 supervisorScope {
                     sources.forEach { source ->
@@ -3466,13 +3451,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                                 ManualLyricsSearch.search(source, query, searchTrack)
                             }.orEmpty()
                             withContext(Dispatchers.Main) {
-                                if (generation != manualSearchGeneration) return@withContext
-                                val merged = ManualLyricsSearch.merge(
-                                    unifiedLyricSearchResults.toList(), found, target, currentLyricsResultKey,
-                                )
-                                unifiedLyricSearchResults.clear()
-                                unifiedLyricSearchResults.addAll(merged)
-                                pendingLyricSources.remove(source)
+                                merger.merge(found, target,
+                                    current = { unifiedLyricSearchResults.toList() },
+                                    activeKey = { currentLyricsResultKey },
+                                    isCurrent = { generation == manualSearchGeneration },
+                                ) { merged ->
+                                    unifiedLyricSearchResults.clear()
+                                    unifiedLyricSearchResults.addAll(merged)
+                                    pendingLyricSources.remove(source)
+                                }
                             }
                         }
                     }

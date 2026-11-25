@@ -246,6 +246,12 @@ object LyricsMatcher {
      * Folds a title or artist credit down to comparable words: accents removed, bracketed asides
      * and everything after a "feat."-style marker dropped, punctuation flattened to spaces.
      */
+    private val BRACKETED_ASIDES = Regex("\\[.*?\\]|\\(.*?\\)|\\{.*?\\}")
+    private val FEATURE_CREDIT = Regex("(?i)\\b(feat|ft|featuring|prod|w)\\.?\\s.*$")
+    private val DIACRITICAL_MARKS = Regex("\\p{InCombiningDiacriticalMarks}+")
+    private val NORMALIZE_PUNCTUATION = Regex("[^\\p{L}\\p{Nd}]+")
+    private val NORMALIZE_WHITESPACE = Regex("\\s+")
+
     fun normalize(raw: String): String {
         var text = raw.lowercase()
         // Every bracket escaped, including the closing ones. The JVM treats a bare `]` or `}` outside a
@@ -253,12 +259,12 @@ object LyricsMatcher {
         // `PatternSyntaxException: Syntax error in regexp pattern near index 21`, which crashed the app on
         // the first lyrics lookup. Escaping is valid on both, so the file stays identical between them
         // (issue #33).
-        text = text.replace(Regex("\\[.*?\\]|\\(.*?\\)|\\{.*?\\}"), " ")
-        text = text.replace(Regex("(?i)\\b(feat|ft|featuring|prod|w)\\.?\\s.*$"), " ")
+        text = text.replace(BRACKETED_ASIDES, " ")
+        text = text.replace(FEATURE_CREDIT, " ")
         text = Normalizer.normalize(text, Normalizer.Form.NFD)
-            .replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
-        text = text.replace(Regex("[^\\p{L}\\p{Nd}]+"), " ")
-        return text.trim().replace(Regex("\\s+"), " ")
+            .replace(DIACRITICAL_MARKS, "")
+        text = text.replace(NORMALIZE_PUNCTUATION, " ")
+        return text.trim().replace(NORMALIZE_WHITESPACE, " ")
     }
 
     // --- ArchiveTune-inspired intelligent title detection & FuzzyMatcher ---
