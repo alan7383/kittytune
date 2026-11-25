@@ -3,6 +3,12 @@ name: Lyrics performance verification
 on:
   push:
     branches: [perf/android-ui-stalls]
+    paths:
+      - 'app/src/main/java/com/alananasss/kittytune/data/LyricsMatcher.kt'
+      - 'app/src/main/java/com/alananasss/kittytune/data/lyrics/providers/LyricsProvider.kt'
+      - 'app/src/main/java/com/alananasss/kittytune/ui/player/**'
+      - 'app/src/test/java/com/alananasss/kittytune/ui/player/**'
+      - 'experiments/lyrics-performance/**'
   workflow_dispatch:
 
 permissions:
