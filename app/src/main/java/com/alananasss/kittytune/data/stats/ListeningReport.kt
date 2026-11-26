@@ -214,11 +214,12 @@ object ListeningReports {
             val names = splitter.split(row.artistName).ifEmpty { listOf(row.artistName) }
             names.mapIndexed { index, name -> Triple(name, row, index == 0) }
         }
+        val coverIndex = ArtistCoverIndex(tracks.map { it.trackId to it.artworkUrl })
         val artists = credits.groupBy { it.first.lowercase() }.map { (_, entries) ->
             val name = entries.first().first
             val own = entries.filter { it.third }.map { it.second }
             val avatar = own.firstNotNullOfOrNull { row -> row.artistAvatarUrl?.takeIf { isRealAvatar(it) } }
-            val cover = tracks.firstOrNull { track -> entries.any { it.second.trackId == track.trackId } }?.artworkUrl
+            val cover = coverIndex.coverFor(entries.map { it.second.trackId })
             ReportArtist(
                 name = name,
                 imageUrl = avatar ?: cover,
