@@ -42,6 +42,18 @@ class QueueSnapshotCodecTest {
         assertEquals(0, codec.decode<Array<Track>>("[]", Array<Track>::class.java)!!.size)
     }
 
+    @Test fun longValuesAndSurrogatesSurviveBufferBoundariesAndReuse() {
+        for (length in listOf(32740, 32767, 32768, 32769, 65536)) {
+            val text = "x".repeat(length) + '\uD800' + "🎵" + '\uDC00' + "fine"
+            val input = listOf(representativeTrack(1).copy(title = text, description = text))
+            val decoded = codec.decode<Array<Track>>(codec.encode(input), Array<Track>::class.java)!!
+            assertEquals(text, decoded.single().title)
+            assertEquals(text, decoded.single().description)
+        }
+        val next = listOf(representativeTrack(99))
+        assertEquals(gson.toJson(next), gson.toJson(codec.decode<Array<Track>>(codec.encode(next), Array<Track>::class.java)))
+    }
+
     @Test fun gzipContainsTheCompleteOriginalJsonGraph() {
         val tracks = (0 until 50).map { representativeTrack(it) }
         val encoded = codec.encode(tracks)

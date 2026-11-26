@@ -3,6 +3,8 @@ package com.alananasss.kittytune.data
 import com.google.gson.Gson
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.BufferedReader
+import java.io.BufferedWriter
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.io.StringReader
@@ -17,16 +19,22 @@ import java.util.zip.GZIPOutputStream
 internal class QueueSnapshotCodec(private val gson: Gson) {
     companion object {
         private const val PREFIX = "kittytune-queue:gzip:1:"
+        private const val STREAM_BUFFER_SIZE = 32 * 1024
     }
 
     fun encode(value: Any): String {
         val bytes = ByteArrayOutputStream()
         val base64 = Base64.getEncoder().wrap(bytes)
-        val gzip = object : GZIPOutputStream(base64) {
+        val gzip = object : GZIPOutputStream(base64, STREAM_BUFFER_SIZE) {
             init { def.setLevel(Deflater.BEST_SPEED) }
         }
         // Do not materialize the (potentially multi-megabyte) uncompressed JSON String.
-        SurrogateEscapingWriter(OutputStreamWriter(gzip, Charsets.UTF_8)).use { writer ->
+        // Gson emits individual punctuation, names and small string segments. Batch BEFORE
+        // surrogate scanning/UTF-8 conversion, rather than allocating encoder wrappers per token.
+        BufferedWriter(
+            SurrogateEscapingWriter(OutputStreamWriter(gzip, Charsets.UTF_8)),
+            STREAM_BUFFER_SIZE,
+        ).use { writer ->
             gson.toJson(value, writer)
         }
         return PREFIX + bytes.toString(Charsets.US_ASCII.name())
@@ -38,7 +46,10 @@ internal class QueueSnapshotCodec(private val gson: Gson) {
         }
         val bytes = payload.substring(PREFIX.length).toByteArray(Charsets.US_ASCII)
         val compressed = Base64.getDecoder().wrap(ByteArrayInputStream(bytes))
-        return InputStreamReader(GZIPInputStream(compressed), Charsets.UTF_8).use {
+        return BufferedReader(
+            InputStreamReader(GZIPInputStream(compressed, STREAM_BUFFER_SIZE), Charsets.UTF_8),
+            STREAM_BUFFER_SIZE,
+        ).use {
             gson.fromJson<T>(it, type)
         }
     }

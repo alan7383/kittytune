@@ -49,7 +49,8 @@ def main():
         'data/network/LongIdAdapter', 'data/network/UserBadgesAdapter']]
     sources += [ROOT / 'app/src/test/java/com/alananasss/kittytune/data/QueueSnapshotCodecTest.kt',
         ROOT / 'app/src/test/java/com/alananasss/kittytune/data/QueueHistoryWritesTest.kt',
-        ROOT / 'experiments/compact-queue/Benchmark.kt']
+        ROOT / 'experiments/compact-queue/Benchmark.kt',
+        ROOT / 'experiments/compact-queue/UnbufferedQueueSnapshotCodec.kt']
     shim = output / 'SpotifyRepositoryShim.kt'
     shim.write_text('package com.alananasss.kittytune.data.spotify; object SpotifyRepository { fun extractId(value: String): String = value.substringAfterLast(":").substringAfterLast("/") }', encoding='utf-8')
     classes = output / 'classes'
@@ -67,6 +68,7 @@ def main():
     print(result.stdout + result.stderr, flush=True)
     metadata = {'revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'exit_code': result.returncode,
+        'benchmark': {'processes': 5, 'scenarios': 5, 'rounds': 6, 'variants': ['legacy', 'unbuffered', 'buffered']},
         'sources_sha256': {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest() for p in sources},
         'scope': 'Actual codec and app models, synthetic queue metadata; JVM Java allocations exclude native workspace and are not peak Android RAM. No phone or whole-app gain measured.'}
     (output / 'result.json').write_text(json.dumps(metadata, indent=2), encoding='utf-8')
