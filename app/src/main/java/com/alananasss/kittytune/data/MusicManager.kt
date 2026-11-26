@@ -27,6 +27,7 @@ import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManager
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManagerProvider
+import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.drm.DrmSessionManager
 import androidx.media3.exoplayer.drm.DrmSessionManagerProvider
 import androidx.media3.exoplayer.drm.FrameworkMediaDrm
@@ -528,6 +529,18 @@ object MusicManager {
         _trackUpdatedFlow.tryEmit(updatedTrack)
     }
 
+    fun updateArtwork(request: MediaItem, bytes: ByteArray) {
+        for (deck in listOfNotNull(_player1, _player2)) {
+            for (index in 0 until deck.mediaItemCount) {
+                val item = deck.getMediaItemAt(index)
+                if (item !== request) continue
+                val metadata = item.mediaMetadata.buildUpon()
+                    .setArtworkData(bytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER).build()
+                deck.replaceMediaItem(index, item.buildUpon().setMediaMetadata(metadata).build())
+            }
+        }
+    }
+
     fun notifyTrackDeleted(trackId: Long) {
         _trackDeletedFlow.tryEmit(trackId)
     }
@@ -813,26 +826,28 @@ object MusicManager {
 
         val drmSessionManagerProvider = object : DrmSessionManagerProvider {
             override fun get(mediaItem: MediaItem): DrmSessionManager {
-                var finalKeySetId: ByteArray? = null
-                var finalToken: String? = null
                 val trackId = mediaItem.mediaId.toLongOrNull()
-
-                if (trackId != null) {
-                    finalToken = getDrmToken(trackId)
-
-                    try {
+                val finalToken = trackId?.let { getDrmToken(it) }
+                val configuration = mediaItem.localConfiguration
+                val finalKeySetId = PlaybackSetup.offlineKey(
+                    prepared = configuration?.tag === PlaybackSetup.Prepared,
+                    embedded = configuration?.drmConfiguration?.keySetId,
+                ) {
+                    if (trackId == null) null else try {
+                        // Unresolved media-session items still need the legacy offline lookup.
                         runBlocking(Dispatchers.IO) {
-                            val db = AppDatabase.getDatabase(context).downloadDao()
-                            val localTrack = db.getTrack(trackId)
-                            if (localTrack != null && localTrack.localAudioPath.startsWith("exo_cache://")) {
-                                val parts = localTrack.localAudioPath.removePrefix("exo_cache://").split("::", limit = 3)
-                                val tokenStr = parts.getOrNull(2)
-                                if (!tokenStr.isNullOrEmpty()) {
-                                    finalKeySetId = android.util.Base64.decode(tokenStr, android.util.Base64.NO_WRAP)
-                                }
+                            val localTrack = AppDatabase.getDatabase(context).downloadDao().getTrack(trackId)
+                            val path = localTrack?.localAudioPath
+                            val token = path?.takeIf { it.startsWith("exo_cache://") }
+                                ?.removePrefix("exo_cache://")?.split("::", limit = 3)?.getOrNull(2)
+                            token?.takeIf { it.isNotEmpty() }?.let {
+                                android.util.Base64.decode(it, android.util.Base64.NO_WRAP)
                             }
                         }
-                    } catch (e: Exception) { e.printStackTrace() }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        null
+                    }
                 }
 
                 if (finalKeySetId != null) {

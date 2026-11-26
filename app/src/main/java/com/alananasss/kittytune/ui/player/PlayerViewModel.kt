@@ -1174,6 +1174,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     private var queueChunkingJob: Job? = null
     private var trackInitJob: Job? = null
     private var playJob: Job? = null
+    private val currentArtworkLoader = DeferredPlaybackArtwork<MediaItem>()
+    private val prebufferArtworkLoader = DeferredPlaybackArtwork<MediaItem>()
     private val playbackRecoveryBudget = PlaybackRecoveryBudget()
     private var progressJob: Job? = null
 
@@ -8293,6 +8295,27 @@ query CommentsWithReactions(
         }
     }
 
+    private fun updateArtworkLater(item: MediaItem, url: String, prebuffer: Boolean = false) {
+        val loader = if (prebuffer) prebufferArtworkLoader else currentArtworkLoader
+        loader.load(viewModelScope, item, { loadBitmap(url)?.let { encodeArtwork(it) } }) { request, bytes ->
+            MusicManager.updateArtwork(request, bytes)
+        }
+    }
+
+    private fun encodeArtwork(bitmap: Bitmap): ByteArray {
+        val scaledBitmap = if (bitmap.width > 720 || bitmap.height > 720) {
+            val maxDim = maxOf(bitmap.width, bitmap.height)
+            val targetW = (bitmap.width * 720) / maxDim
+            val targetH = (bitmap.height * 720) / maxDim
+            Bitmap.createScaledBitmap(bitmap, targetW.coerceAtLeast(1), targetH.coerceAtLeast(1), true)
+        } else {
+            bitmap
+        }
+        val stream = ByteArrayOutputStream()
+        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+        return stream.toByteArray()
+    }
+
     private suspend fun loadBitmap(url: String, size: Int = 800): Bitmap? {
         return try {
             val request = ImageRequest.Builder(context)
@@ -8432,10 +8455,10 @@ query CommentsWithReactions(
                 }
 
                 if (resolvedUrl != null) {
-                    val bitmap = loadBitmap(hydratedNext.fullResArtwork)
-                    val mediaItem = buildMediaItem(hydratedNext, bitmap, resolvedUrl, offlineKeySetId, resolvedMimeType, isDrmProtected = isDrmStream)
+                    val mediaItem = buildMediaItem(hydratedNext, null, resolvedUrl, offlineKeySetId, resolvedMimeType, isDrmProtected = isDrmStream)
                     withContext(Dispatchers.Main) {
                         MusicManager.prebufferTransition(mediaItem, hydratedNext, plan)
+                        updateArtworkLater(mediaItem, hydratedNext.fullResArtwork, prebuffer = true)
                     }
                 }
             } catch (e: Exception) {
@@ -8540,7 +8563,6 @@ query CommentsWithReactions(
 
         playJob?.cancel()
         playJob = viewModelScope.launch(Dispatchers.IO) {
-            val bitmap = loadBitmap(trackToPlay.fullResArtwork)
 
             var resolvedUrl: String? = null
             var offlineKeySetId: ByteArray? = null
@@ -8620,7 +8642,7 @@ query CommentsWithReactions(
             }
 
             val isDrm = (resolvedStream?.isDrmProtected == true) || (offlineKeySetId != null)
-            val newMediaItem = buildMediaItem(trackToPlay, bitmap, resolvedUrl, offlineKeySetId, resolvedMimeType, isDrmProtected = isDrm)
+            val newMediaItem = buildMediaItem(trackToPlay, null, resolvedUrl, offlineKeySetId, resolvedMimeType, isDrmProtected = isDrm)
 
             withContext(Dispatchers.Main) {
                 if (currentQueueIndex != index || currentTrack?.playbackKey() != selectedKey) return@withContext
@@ -8708,6 +8730,7 @@ query CommentsWithReactions(
                     }
 
                     MusicManager.applyEffects(effectsState)
+                    updateArtworkLater(newMediaItem, trackToPlay.fullResArtwork)
                     preloadNextTrack()
                 } catch (cancelled: kotlinx.coroutines.CancellationException) {
                     throw cancelled
@@ -8928,20 +8951,11 @@ query CommentsWithReactions(
         }
 
         if (bitmap != null) {
-            val scaledBitmap = if (bitmap.width > 720 || bitmap.height > 720) {
-                val maxDim = maxOf(bitmap.width, bitmap.height)
-                val targetW = (bitmap.width * 720) / maxDim
-                val targetH = (bitmap.height * 720) / maxDim
-                Bitmap.createScaledBitmap(bitmap, targetW.coerceAtLeast(1), targetH.coerceAtLeast(1), true)
-            } else {
-                bitmap
-            }
-            val stream = ByteArrayOutputStream()
-            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
-            metadataBuilder.setArtworkData(stream.toByteArray(), MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+            metadataBuilder.setArtworkData(encodeArtwork(bitmap), MediaMetadata.PICTURE_TYPE_FRONT_COVER)
         }
 
         val builder = MediaItem.Builder()
+            .setTag(PlaybackSetup.Prepared.takeIf { urlOverride != null })
             .setUri(uri)
             .setMediaId(track.id.toString())
             .setMediaMetadata(metadataBuilder.build())
