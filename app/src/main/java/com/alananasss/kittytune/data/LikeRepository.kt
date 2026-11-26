@@ -60,17 +60,18 @@ object LikeRepository {
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing = _isSyncing.asStateFlow()
 
-    private fun addToBlacklist(trackId: Long) {
-        val current = getBlacklist().toMutableSet()
-        current.add(trackId)
-        prefs.edit().putStringSet(KEY_LOCALLY_UNLIKED_IDS, current.map { it.toString() }.toSet()).apply()
+    private val blacklistLock = Any()
+
+    private fun updateBlacklist(ids: Collection<Long>, liked: Boolean) = synchronized(blacklistLock) {
+        updateLikeBlacklist(ids, liked,
+            read = { prefs.getStringSet(KEY_LOCALLY_UNLIKED_IDS, emptySet()).orEmpty() },
+            write = { prefs.edit().putStringSet(KEY_LOCALLY_UNLIKED_IDS, it).apply() },
+        )
     }
 
-    private fun removeFromBlacklist(trackId: Long) {
-        val current = getBlacklist().toMutableSet()
-        current.remove(trackId)
-        prefs.edit().putStringSet(KEY_LOCALLY_UNLIKED_IDS, current.map { it.toString() }.toSet()).apply()
-    }
+    private fun addToBlacklist(trackId: Long) = updateBlacklist(listOf(trackId), liked = false)
+
+    private fun removeFromBlacklist(trackId: Long) = updateBlacklist(listOf(trackId), liked = true)
 
     private fun getBlacklist(): Set<Long> {
         return prefs.getStringSet(KEY_LOCALLY_UNLIKED_IDS, emptySet())?.mapNotNull { it.toLongOrNull() }?.toSet()
@@ -183,7 +184,7 @@ object LikeRepository {
         if (toLike.isEmpty()) return 0
 
         val now = System.currentTimeMillis()
-        toLike.forEach { removeFromBlacklist(it.id) }
+        updateBlacklist(toLike.map { it.id }, liked = true)
         updateLikedTracks { current ->
             val byId = current.associateBy { it.id }.toMutableMap()
             for (track in toLike) {
@@ -481,7 +482,7 @@ object LikeRepository {
      */
     fun applyRemoteLikesBatch(tracks: List<Pair<Track, Long>>) {
         if (tracks.isEmpty()) return
-        tracks.forEach { removeFromBlacklist(it.first.id) }
+        updateBlacklist(tracks.map { it.first.id }, liked = true)
         updateLikedTracks { current ->
             val trackMap = current.associateBy { it.id }.toMutableMap()
             val now = System.currentTimeMillis()
@@ -518,7 +519,7 @@ object LikeRepository {
      */
     fun applyRemoteUnlikesBatch(trackIds: Set<Long>) {
         if (trackIds.isEmpty()) return
-        trackIds.forEach { addToBlacklist(it) }
+        updateBlacklist(trackIds, liked = false)
         updateLikedTracks { it.filterNot { t -> t.id in trackIds } }
         saveLikedTracks()
     }
