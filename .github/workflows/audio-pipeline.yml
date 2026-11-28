@@ -1,0 +1,70 @@
+name: Player audio pipeline verification
+
+on:
+  push:
+    branches: [perf/audio-effects-pipeline]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    name: Creative DSP pipeline regressions
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python experiments/audio-pipeline/run.py --output verification/audio-pipeline
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-pipeline-results
+          path: |
+            verification/audio-pipeline/*.log
+            verification/audio-pipeline/*.json
+            verification/audio-pipeline/*.csv
+          retention-days: 7
+  android:
+    name: Full Android and Wear compilation
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    env:
+      CMAKE_BUILD_PARALLEL_LEVEL: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Android toolchain
+        shell: bash
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          "$SDKMANAGER" --licenses <<< "$(printf 'y\n%.0s' {1..100})"
+          "$SDKMANAGER" --install "platforms;android-37.2" "build-tools;37.0.0" "ndk;27.1.12297006" "cmake;3.22.1"
+      - name: Compile application and run module regressions
+        shell: bash
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug :app:testDebugUnitTest \
+            --tests 'com.alananasss.kittytune.ui.player.audio.PlayerEffectsAudioProcessorTest' \
+            --stacktrace --console=plain --no-daemon --max-workers=2 \
+            '-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8' \
+            -Pkotlin.compiler.execution.strategy=in-process 2>&1 | tee audio-pipeline-android.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audio-pipeline-android-results
+          path: |
+            audio-pipeline-android.log
+            app/build/test-results/testDebugUnitTest/*.xml
+          retention-days: 7

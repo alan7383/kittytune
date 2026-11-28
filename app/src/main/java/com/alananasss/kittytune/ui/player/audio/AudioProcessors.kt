@@ -28,6 +28,9 @@ import kotlin.math.sqrt
  */
 abstract class BypassableAudioProcessor : BaseAudioProcessor() {
 
+    /** Whether this effect needs PCM work; independent of Media3 format activation. */
+    internal abstract val effectEnabled: Boolean
+
     final override fun onConfigure(f: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         // Bit-Perfect: the DAC owns the output. Identity configuration for ANY PCM
         // encoding keeps the chain format 1:1, so the byte passthrough in queueInput
@@ -65,6 +68,9 @@ abstract class BypassableAudioProcessor : BaseAudioProcessor() {
 }
 
 class EightDAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var time: Double = 0.0
     private var rotationSpeed: Double = 0.00001
@@ -129,9 +135,10 @@ class EightDAudioProcessor : BypassableAudioProcessor() {
 }
 
 class FxAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = isMuffled || isBassBoost
 
-    private var isMuffled = false
-    private var isBassBoost = false
+    @Volatile private var isMuffled = false
+    @Volatile private var isBassBoost = false
     private var bassBoostGain = 10f
     private var muffledCutoff = 800f
 
@@ -246,7 +253,10 @@ class FxAudioProcessor : BypassableAudioProcessor() {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
-        if (!isMuffled && !isBassBoost) {
+        // Read cross-thread switches once per block, not twice per PCM sample.
+        val muffled = isMuffled
+        val bassBoost = isBassBoost
+        if (!muffled && !bassBoost) {
             val buffer = replaceOutputBuffer(remaining)
             buffer.put(inputBuffer)
             buffer.flip()
@@ -259,7 +269,7 @@ class FxAudioProcessor : BypassableAudioProcessor() {
 
             var x = inputBuffer.getShort().toFloat()
 
-            if (isMuffled) {
+            if (muffled) {
                 val y = b0_m * x + b1_m * x1_m + b2_m * x2_m - a1_m * y1_m - a2_m * y2_m
 
                 x2_m = x1_m; x1_m = x
@@ -268,7 +278,7 @@ class FxAudioProcessor : BypassableAudioProcessor() {
                 x = y
             }
 
-            if (isBassBoost) {
+            if (bassBoost) {
                 val y = b0_b * x + b1_b * x1_b + b2_b * x2_b - a1_b * y1_b - a2_b * y2_b
 
                 x2_b = x1_b; x1_b = x
@@ -285,18 +295,24 @@ class FxAudioProcessor : BypassableAudioProcessor() {
 }
 
 class ReverbAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var buffer: ShortArray = ShortArray(0)
     private var cursor = 0
+    private val resetGeneration = java.util.concurrent.atomic.AtomicInteger()
+    private var appliedResetGeneration = 0
 
     private val delayMs = 150
     private var decay = 0.5f
 
     fun setEnabled(enabled: Boolean) {
         if (this.enabled != enabled) {
+            // Delay storage belongs to the audio thread. Clearing it here used to leave an
+            // empty array on the next live enable (and could race a running audio block).
+            resetGeneration.incrementAndGet()
             this.enabled = enabled
-
-            if (!enabled) buffer = ShortArray(0)
         }
     }
 
@@ -330,6 +346,13 @@ class ReverbAudioProcessor : BypassableAudioProcessor() {
             return
         }
 
+        val generation = resetGeneration.get()
+        if (generation != appliedResetGeneration) {
+            buffer.fill(0)
+            cursor = 0
+            appliedResetGeneration = generation
+        }
+
         val outputBuffer = replaceOutputBuffer(remaining)
 
         while (inputBuffer.hasRemaining()) {
@@ -353,6 +376,9 @@ class ReverbAudioProcessor : BypassableAudioProcessor() {
 }
 
 class EarrapeAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var intensity = 1.0f
 
@@ -408,6 +434,9 @@ class EarrapeAudioProcessor : BypassableAudioProcessor() {
 }
 
 class MonoAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
 
     fun setEnabled(enabled: Boolean) {
@@ -445,6 +474,9 @@ class MonoAudioProcessor : BypassableAudioProcessor() {
 }
 
 class VintageMp3AudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var compression = 0.5f
 
@@ -550,6 +582,9 @@ class VintageMp3AudioProcessor : BypassableAudioProcessor() {
 }
 
 class VocalRemoverAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var suppressionLevel = 1.0f
 
@@ -781,6 +816,9 @@ class VocalRemoverAudioProcessor : BypassableAudioProcessor() {
 }
 
 class VocalBoostAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var intensity = 0.75f
 
@@ -939,6 +977,9 @@ class VocalBoostAudioProcessor : BypassableAudioProcessor() {
 }
 
 class FlangerAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var intensity = 0.75f
     private var speed = 0.50f
@@ -1080,6 +1121,9 @@ class FlangerAudioProcessor : BypassableAudioProcessor() {
 }
 
 class PartyNextDoorAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var isolation = 0.60f
     private var reverb = 0.50f
@@ -1344,6 +1388,9 @@ class PartyNextDoorAudioProcessor : BypassableAudioProcessor() {
 }
 
 class SuperWideAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var width = 0.70f
     private var depth = 0.50f
@@ -1550,6 +1597,9 @@ class SuperWideAudioProcessor : BypassableAudioProcessor() {
 }
 
 class VinylLoFiAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var crackles = 0.65f
     private var flutter = 0.50f
@@ -1701,6 +1751,9 @@ class VinylLoFiAudioProcessor : BypassableAudioProcessor() {
 }
 
 class PhaserAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var speed = 0.50f
     private var feedback = 0.65f
@@ -1814,6 +1867,9 @@ class PhaserAudioProcessor : BypassableAudioProcessor() {
 }
 
 class MegaphoneRadioAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var tone = 0.50f
     private var drive = 0.60f
@@ -2030,6 +2086,9 @@ class MegaphoneRadioAudioProcessor : BypassableAudioProcessor() {
 }
 
 class RobotVocoderAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var frequency = 0.40f
     private var mix = 0.75f
@@ -2106,6 +2165,9 @@ class RobotVocoderAudioProcessor : BypassableAudioProcessor() {
 }
 
 class ChorusAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var rate = 0.30f
     private var depth = 0.70f
@@ -2228,6 +2290,9 @@ class ChorusAudioProcessor : BypassableAudioProcessor() {
 }
 
 class UnderwaterAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var depth = 0.60f
     private var bubbles = 0.40f
@@ -2408,6 +2473,9 @@ class UnderwaterAudioProcessor : BypassableAudioProcessor() {
 }
 
 class TranceGateAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var speed = 0.50f
     private var pattern = 0.85f
@@ -2497,6 +2565,9 @@ class TranceGateAudioProcessor : BypassableAudioProcessor() {
 }
 
 class PingPongDelayAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var delayTime = 0.45f
     private var feedback = 0.60f
@@ -2593,6 +2664,9 @@ class PingPongDelayAudioProcessor : BypassableAudioProcessor() {
 }
 
 class ChiptuneAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var bits = 0.50f
     private var sampleRateDown = 0.55f
@@ -2683,6 +2757,9 @@ class ChiptuneAudioProcessor : BypassableAudioProcessor() {
 }
 
 class ShimmerReverbAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var size = 0.65f
     private var shimmerMix = 0.60f
@@ -2855,6 +2932,9 @@ class ShimmerReverbAudioProcessor : BypassableAudioProcessor() {
 }
 
 class RotarySpeakerAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var speed = 0.40f
     private var depth = 0.75f
@@ -2985,6 +3065,9 @@ class RotarySpeakerAudioProcessor : BypassableAudioProcessor() {
 }
 
 class TapeSaturationAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var warmth = 0.65f
     private var exciter = 0.50f
@@ -3106,6 +3189,9 @@ class TapeSaturationAudioProcessor : BypassableAudioProcessor() {
 }
 
 class SubOctaverAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var subLevel = 0.70f
     private var subCutoff = 0.50f
@@ -3248,6 +3334,9 @@ class SubOctaverAudioProcessor : BypassableAudioProcessor() {
 }
 
 class EmptyMallAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var distance = 0.65f
     private var glassReverb = 0.55f
@@ -3441,6 +3530,9 @@ class EmptyMallAudioProcessor : BypassableAudioProcessor() {
 }
 
 class GramophoneAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var shellacAge = 0.65f
     private var hornResonance = 0.60f
@@ -3637,6 +3729,9 @@ class GramophoneAudioProcessor : BypassableAudioProcessor() {
 }
 
 class ReverseEchoAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var time = 0.50f
     private var feedback = 0.55f
@@ -3745,6 +3840,9 @@ class ReverseEchoAudioProcessor : BypassableAudioProcessor() {
 }
 
 class StadiumAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var stadiumSize = 0.65f
     private var atmosphere = 0.60f
@@ -3896,6 +3994,9 @@ class StadiumAudioProcessor : BypassableAudioProcessor() {
 }
 
 class CassetteWalkmanAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var drive = 0.65f
     private var tapeHiss = 0.40f
@@ -4053,6 +4154,9 @@ class CassetteWalkmanAudioProcessor : BypassableAudioProcessor() {
 }
 
 class AsmrVocalAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var proximity = 0.70f
     private var airSheen = 0.65f
@@ -4185,6 +4289,9 @@ class AsmrVocalAudioProcessor : BypassableAudioProcessor() {
 }
 
 class NightDriveAudioProcessor : BypassableAudioProcessor() {
+    internal override val effectEnabled: Boolean get() = enabled
+
+    @Volatile
     private var enabled = false
     private var cabinWidth = 0.65f
     private var roadRumble = 0.45f

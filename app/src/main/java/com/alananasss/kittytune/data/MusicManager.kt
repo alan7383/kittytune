@@ -912,17 +912,19 @@ object MusicManager {
                             val dspList = arrayOf<androidx.media3.common.audio.AudioProcessor>(
                                 normalizerProcessors[index], silenceProc, aiDetectionProcessors[index], hapticProc,
                                 liveBeatProcessors[index], duckProc, stemProc, mixSweepProc, equalizerProcessors[index],
-                                vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index],
-                                subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index],
-                                phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index],
-                                tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index],
-                                emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index],
-                                reverseEchoProcessors[index], stadiumProcessors[index], cassetteWalkmanProcessors[index],
-                                asmrVocalProcessors[index], nightDriveProcessors[index], fxProcessors[index],
-                                reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index],
-                                earrapeProcessors[index], monoProcessors[index], vinylLoFiProcessors[index],
-                                gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index],
-                                vintageMp3Processors[index], safetyLimiterProcessors[index]
+                                com.alananasss.kittytune.ui.player.audio.PlayerEffectsAudioProcessor(arrayOf(
+                                    vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index],
+                                    subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index],
+                                    phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index],
+                                    tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index],
+                                    emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index],
+                                    reverseEchoProcessors[index], stadiumProcessors[index], cassetteWalkmanProcessors[index],
+                                    asmrVocalProcessors[index], nightDriveProcessors[index], fxProcessors[index],
+                                    reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index],
+                                    earrapeProcessors[index], monoProcessors[index], vinylLoFiProcessors[index],
+                                    gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index],
+                                    vintageMp3Processors[index]
+                                )), safetyLimiterProcessors[index]
                             )
 
                             return DefaultAudioSink.Builder(context)
