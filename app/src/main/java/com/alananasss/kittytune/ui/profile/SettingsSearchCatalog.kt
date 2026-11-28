@@ -436,6 +436,16 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
+                titleRes = R.string.pref_gyroscope_covers,
+                subtitleRes = R.string.pref_gyroscope_covers_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Layers,
+                route = "appearance_settings",
+                highlightKey = "pref_gyroscope_covers"
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
                 titleRes = R.string.pref_animated_covers_fade_ui,
                 subtitleRes = R.string.pref_animated_covers_fade_ui_desc,
                 categoryName = catInterface,

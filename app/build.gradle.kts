@@ -18,7 +18,11 @@ if (localPropertiesFile.exists()) {
 
 extensions.configure<ApplicationExtension> {
     namespace = "com.alananasss.kittytune"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 2
+        }
+    }
     ndkVersion = "27.1.12297006"
 
     defaultConfig {
@@ -31,7 +35,7 @@ extensions.configure<ApplicationExtension> {
         // data survives. The offset exceeds all legacy sequential codes (54)
         // and early beta-scheme codes, making this a one-way jump.
         versionCode = (System.currentTimeMillis() / 60000).toInt() + 10_000_000
-        versionName = "3.0.1"
+        versionName = "3.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -142,6 +146,7 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.androidx.media3.datasource.okhttp)
+    implementation(libs.androidx.media3.transformer)
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
     implementation(libs.okhttp)
@@ -154,6 +159,8 @@ dependencies {
     implementation(libs.compose.markdown)
     implementation(libs.newpipe.extractor)
     implementation(libs.paho.mqtt)
+    // The phone answers Connect on the LAN too, so a PC whose firewall drops incoming connections still links.
+    implementation(libs.java.websocket)
     implementation(libs.rhino)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":innertube"))

@@ -22,9 +22,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,9 +37,11 @@ import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.ListeningStatsRepository
 import com.alananasss.kittytune.data.local.TopArtistResult
+import com.alananasss.kittytune.data.stats.ListeningReports
 import com.alananasss.kittytune.ui.profile.stats.formatDurationShort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.ZoneId
 
 /**
  * Summary data for the home screen stats card.
@@ -61,15 +63,18 @@ fun ListeningStatsCard(
     onNavigateToStats: () -> Unit,
     onNavigateToYearlyPlayback: () -> Unit = {}
 ) {
-    val weekAgo = remember { System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000 }
-    val summary by produceState<HomeStatsSummary?>(initialValue = null, key1 = weekAgo) {
+    val repo = ListeningStatsRepository
+    val revision by repo.revision.collectAsState()
+    val summary by produceState<HomeStatsSummary?>(initialValue = null, key1 = revision) {
         value = withContext(Dispatchers.IO) {
             runCatching {
+                val window = ListeningReports.recentWeek(System.currentTimeMillis(), ZoneId.systemDefault())
+                val snapshot = repo.getSnapshot(window.startMs, window.endMs)
                 HomeStatsSummary(
-                    listenedMs = ListeningStatsRepository.getTotalListenTime(weekAgo),
-                    uniqueTracks = ListeningStatsRepository.getUniqueTracks(weekAgo),
-                    uniqueArtists = ListeningStatsRepository.getUniqueArtists(weekAgo),
-                    topArtist = ListeningStatsRepository.getTopArtists(weekAgo, limit = 1).firstOrNull(),
+                    listenedMs = snapshot.totalListenMs,
+                    uniqueTracks = snapshot.uniqueTracks,
+                    uniqueArtists = snapshot.uniqueArtists,
+                    topArtist = repo.getTopArtistsBetween(window.startMs, window.endMs).firstOrNull(),
                 )
             }.getOrNull()
         }
@@ -107,7 +112,7 @@ fun ListeningStatsCard(
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = stringResource(R.string.listening_stats_period_week),
+                    text = stringResource(R.string.listening_stats_period_week_current),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

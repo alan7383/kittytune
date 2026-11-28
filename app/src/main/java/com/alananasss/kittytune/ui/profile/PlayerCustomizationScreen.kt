@@ -1703,6 +1703,7 @@ fun PlayerCustomizationScreen(
         val options = listOf(
             com.alananasss.kittytune.data.local.AppleMusicPortraitArt.FULL_BLEED to R.string.pref_apple_portrait_art_full_bleed,
             com.alananasss.kittytune.data.local.AppleMusicPortraitArt.SQUARE to R.string.pref_apple_portrait_art_square,
+            com.alananasss.kittytune.data.local.AppleMusicPortraitArt.NO_ARTWORK to R.string.pref_apple_portrait_art_none,
         )
         AlertDialog(
             onDismissRequest = { showApplePortraitArtDialog = false },
@@ -1796,7 +1797,7 @@ private fun SliderOptionCard(
     onClick: () -> Unit
 ) {
     val containerColor by animateColorAsState(
-        if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+        if (isSelected) MaterialTheme.colorScheme.primaryContainer
         else MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.45f),
         label = "sliderOptionContainer"
     )
@@ -1826,7 +1827,7 @@ private fun SliderOptionCard(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1834,7 +1835,7 @@ private fun SliderOptionCard(
                     Icon(
                         imageVector = Icons.Rounded.CheckCircle,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -1846,10 +1847,19 @@ private fun SliderOptionCard(
                     .height(38.dp),
                 contentAlignment = Alignment.Center
             ) {
+                val sliderColors = if (isSelected) {
+                    val foreground = MaterialTheme.colorScheme.onPrimaryContainer
+                    SliderDefaults.colors(
+                        thumbColor = foreground,
+                        activeTrackColor = foreground,
+                        inactiveTrackColor = foreground.copy(alpha = 0.35f)
+                    )
+                } else SliderDefaults.colors()
                 PlayerSlider(
                     value = 0.5f,
                     onValueChange = {},
                     sliderStyle = style,
+                    colors = sliderColors,
                     isPlaying = true,
                     valueRange = 0f..1f,
                     modifier = Modifier.fillMaxWidth()
@@ -2017,7 +2027,7 @@ fun WaveformColorDialog(
                     Icon(
                         imageVector = Icons.Rounded.Palette,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(20.dp)
                     )
                 }

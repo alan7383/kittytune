@@ -119,6 +119,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.audio.ai.AiDetectionManager
 import com.alananasss.kittytune.data.local.AppleMusicControlsAlign
 import com.alananasss.kittytune.data.local.AppleMusicPortraitArt
 import com.alananasss.kittytune.data.local.AppleTabletCoverMode
@@ -129,6 +130,7 @@ import com.alananasss.kittytune.data.local.PlayerSliderStyle
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
+import com.alananasss.kittytune.ui.common.TrackSourceBadge
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticCombinedClickable
 import com.alananasss.kittytune.ui.player.AppleMusicV2Background
@@ -140,6 +142,8 @@ import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.TrackArtistText
 import com.alananasss.kittytune.ui.player.RepeatMode
 import com.alananasss.kittytune.ui.player.SleepTimerDialog
+import com.alananasss.kittytune.ui.player.ai.AiDetectionBadge
+import com.alananasss.kittytune.ui.player.cover.AnimatedArtwork
 import com.alananasss.kittytune.ui.player.playerDismissGesture
 import com.alananasss.kittytune.ui.player.lyrics.MiniImmersiveLyricsView
 import com.alananasss.kittytune.ui.player.lyrics.PlayerInlineLyrics
@@ -155,15 +159,13 @@ import kotlin.math.roundToInt
  * Portrait (phone and tablet), the "Portrait artwork" setting:
  * - Full-bleed (default): the artwork fills the entire top of the screen and
  *   smoothly fades out toward the bottom (DstIn gradient mask), controls panel below.
- * - "No artwork" (SQUARE): on a PHONE the artwork is removed from portrait on
- *   request — only the controls panel remains, centered; on a TABLET the square
- *   cover stays, centered above the controls (an empty portrait panel looked
- *   broken on the big screen). In landscape SQUARE keeps the square artwork on
- *   the left with the controls panel on the right.
+ * - Square cover keeps the artwork centered above the controls.
+ * - No artwork centers the controls and track information. In landscape, both
+ *   options use the square artwork beside the controls.
  *
  * The animated (motion) artwork follows two switches:
  * - "Animated album covers" (master): the video plays right on the artwork —
- *   the full-bleed overlay, the landscape square cover, the tablet portrait
+ *   the full-bleed overlay, the landscape and portrait square
  *   cover and the iPad "Centred cover" alike.
  * - "Fade animated cover into UI backdrop": only this switch controls the
  *   blurred background layer — with it off the backdrop stays a static blurred
@@ -512,7 +514,7 @@ fun AppleMusicPlayerScreen(
             )
 
             if (isLandscape) {
-                if (portraitArt == AppleMusicPortraitArt.SQUARE) {
+                if (portraitArt != AppleMusicPortraitArt.FULL_BLEED) {
                     // =================================================================
                     // APPLE MUSIC: LANDSCAPE MODE, SQUARE ARTWORK
                     // (phone and tablet). Artwork on the left, glass controls
@@ -551,19 +553,13 @@ fun AppleMusicPlayerScreen(
                                     .clip(RoundedCornerShape(if (isTablet) 28.dp else 20.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                AsyncImage(
-                                    model = artworkUrl,
+                                AnimatedArtwork(
+                                    artworkUrl = artworkUrl,
+                                    animatedCoverUrl = squareCanvasUrl,
+                                    isPlaying = viewModel.uiIsPlaying,
                                     contentDescription = track.title,
-                                    contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
                                 )
-                                if (squareCanvasUrl != null) {
-                                    com.alananasss.kittytune.ui.player.cover.CanvasVideo(
-                                        canvasUrl = squareCanvasUrl,
-                                        isPlaying = viewModel.uiIsPlaying,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
                             }
                         }
 
@@ -705,116 +701,68 @@ fun AppleMusicPlayerScreen(
             } else {
                 // =================================================================
                 // APPLE MUSIC: PORTRAIT MODE (phone and tablet)
-                // The "Portrait artwork" setting: Full-bleed (artwork across the
-                // whole top with a fade) or SQUARE (no artwork — controls panel only).
+                // Square artwork and the artwork-free layout share the controls.
                 // =================================================================
-                if (portraitArt == AppleMusicPortraitArt.SQUARE) {
-                    // Artwork removed from portrait on request: only the
-                    // controls panel remains, centered. In landscape the
-                    // artwork is unchanged (square on the left, panel on the right).
+                if (portraitArt != AppleMusicPortraitArt.FULL_BLEED) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .windowInsetsPadding(WindowInsets.safeDrawing)
                             .padding(horizontal = if (isTablet) 48.dp else 26.dp),
+                        verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        if (isTablet) {
-                            // ── Tablet portrait: the square (animated) cover stays.
-                            //    Same treatment as the landscape "No artwork" mode:
-                            //    a rounded square artwork, centered above the panel. ──
-                            Box(
+                        if (portraitArt == AppleMusicPortraitArt.SQUARE) {
+                            BoxWithConstraints(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxWidth(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val portraitCoverSize = minOf(
-                                    playerMaxWidth * 0.58f,
-                                    playerMaxHeight * 0.40f
-                                ).coerceAtLeast(180.dp)
-                                Box(
-                                    modifier = Modifier
-                                        .size(portraitCoverSize)
-                                        .scale(coverScale)
-                                        .shadow(
-                                            elevation = 28.dp,
-                                            shape = RoundedCornerShape(28.dp)
-                                        )
-                                        .clip(RoundedCornerShape(28.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    AsyncImage(
-                                        model = artworkUrl,
+                                val availableSide = minOf(maxWidth, maxHeight) - 16.dp
+                                val coverSide = if (isTablet) {
+                                    minOf(availableSide, playerMaxWidth * 0.58f, playerMaxHeight * 0.40f)
+                                } else {
+                                    availableSide
+                                }
+                                if (coverSide > 0.dp) {
+                                    val shape = RoundedCornerShape(if (isTablet) 28.dp else 20.dp)
+                                    AnimatedArtwork(
+                                        artworkUrl = artworkUrl,
+                                        animatedCoverUrl = squareCanvasUrl,
+                                        isPlaying = viewModel.uiIsPlaying,
                                         contentDescription = track.title,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
+                                        modifier = Modifier
+                                            .size(coverSide)
+                                            .scale(coverScale)
+                                            .shadow(28.dp, shape)
+                                            .clip(shape)
                                     )
-                                    if (squareCanvasUrl != null) {
-                                        com.alananasss.kittytune.ui.player.cover.CanvasVideo(
-                                            canvasUrl = squareCanvasUrl,
-                                            isPlaying = viewModel.uiIsPlaying,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
-                                    }
                                 }
                             }
-
-                            AppleControlsColumn(
-                                viewModel = viewModel,
-                                track = track,
-                                bottomSlots = bottomSlots,
-                                onFullscreenLyrics = {
-                                    viewModel.showInlineLyrics = true
-                                    isImmersiveLyrics = true
-                                },
-                                compactTransport = false,
-                                showVolumeSlider = !hideVolumeSlider,
-                                appleMusicInspired = appleMusicInspired,
-                                sliderStyle = sliderStyle,
-                                progressFraction = progressFraction.value,
-                                totalDuration = totalDuration,
-                                onSeek = onSeekFraction,
-                                isLyricsActive = false,
-                                onEffectsClick = { showEffectsSheet = true },
-                                modifier = Modifier
-                                    .widthIn(max = 560.dp)
-                                    .fillMaxWidth()
-                            )
-                            Spacer(Modifier.height(24.dp))
-                        } else {
-                            // ── Phone portrait: the artwork is removed on request —
-                            //    only the controls panel remains, centered. ──
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                AppleControlsColumn(
-                                    viewModel = viewModel,
-                                    track = track,
-                                    bottomSlots = bottomSlots,
-                                    onFullscreenLyrics = {
-                                        viewModel.showInlineLyrics = true
-                                        isImmersiveLyrics = true
-                                    },
-                                    compactTransport = false,
-                                    showVolumeSlider = !hideVolumeSlider,
-                                    appleMusicInspired = appleMusicInspired,
-                                    sliderStyle = sliderStyle,
-                                    progressFraction = progressFraction.value,
-                                    totalDuration = totalDuration,
-                                    onSeek = onSeekFraction,
-                                    isLyricsActive = false,
-                                    onEffectsClick = { showEffectsSheet = true },
-                                    modifier = Modifier
-                                        .widthIn(max = 480.dp)
-                                        .fillMaxWidth()
-                                )
-                            }
-                            Spacer(Modifier.height(12.dp))
                         }
+                        AppleControlsColumn(
+                            viewModel = viewModel,
+                            track = track,
+                            bottomSlots = bottomSlots,
+                            onFullscreenLyrics = {
+                                viewModel.showInlineLyrics = true
+                                isImmersiveLyrics = true
+                            },
+                            compactTransport = false,
+                            showVolumeSlider = !hideVolumeSlider,
+                            appleMusicInspired = appleMusicInspired,
+                            sliderStyle = sliderStyle,
+                            progressFraction = progressFraction.value,
+                            totalDuration = totalDuration,
+                            onSeek = onSeekFraction,
+                            isLyricsActive = false,
+                            onEffectsClick = { showEffectsSheet = true },
+                            modifier = Modifier
+                                .widthIn(max = if (isTablet) 560.dp else 480.dp)
+                                .fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(if (isTablet) 24.dp else 12.dp))
                     }
                 } else {
                     // ── Full-bleed: sharp artwork in the upper part, smooth
@@ -1330,8 +1278,7 @@ private fun AppleCapsuleSlider(
 }
 
 /**
- * Title + artist on the left and two round glass buttons (⋮ menu and ♡ like)
- * on the right — the Apple Music header from the mini-style player.
+ * Track information on the left and optional glass menu and like buttons on the right.
  */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -1358,18 +1305,13 @@ private fun AppleTitleAndGlassActions(
                 modifier = Modifier.basicMarquee()
             )
             Spacer(Modifier.height(3.dp))
-            TrackArtistText(
+            AppleArtistAndBadges(
                 track = track,
                 viewModel = viewModel,
-                color = Color.White.copy(alpha = 0.78f),
-                style = LocalTextStyle.current.copy(fontSize = 17.sp, fontWeight = FontWeight.Normal),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                artistColor = Color.White.copy(alpha = 0.78f)
             )
         }
 
-        // The glass buttons (⋮ and ♡) — an Apple styling element: with
-        // "Apple Music inspired" off only the title and artist remain.
         if (showActions) {
             Spacer(Modifier.width(14.dp))
 
@@ -1411,6 +1353,39 @@ private fun AppleTitleAndGlassActions(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AppleArtistAndBadges(
+    track: Track,
+    viewModel: PlayerViewModel,
+    artistColor: Color,
+) {
+    TrackArtistText(
+        track = track,
+        viewModel = viewModel,
+        color = artistColor,
+        style = LocalTextStyle.current.copy(fontSize = 17.sp, fontWeight = FontWeight.Normal),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
+    val aiResult by AiDetectionManager.result.collectAsState()
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        TrackSourceBadge(
+            track = track,
+            resolvedSource = viewModel.currentStreamSource,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+        AiDetectionBadge(
+            result = aiResult,
+            textColor = artistColor,
+            onClick = { viewModel.showAiDetectionSheet = true },
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
 
@@ -2159,13 +2134,10 @@ private fun AppleTabletLandscapePlayer(
                                 modifier = Modifier.basicMarquee()
                             )
                             Spacer(Modifier.height(3.dp))
-                            TrackArtistText(
+                            AppleArtistAndBadges(
                                 track = track,
                                 viewModel = viewModel,
-                                color = Color.White.copy(alpha = 0.74f),
-                                style = LocalTextStyle.current.copy(fontSize = 17.sp),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                artistColor = Color.White.copy(alpha = 0.74f)
                             )
                         }
                     }

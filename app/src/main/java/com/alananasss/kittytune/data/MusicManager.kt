@@ -75,6 +75,7 @@ import com.alananasss.kittytune.ui.player.audio.AsmrVocalAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.NightDriveAudioProcessor
 import com.alananasss.kittytune.ui.player.EqualizerState
 import com.alananasss.kittytune.ui.player.audio.EqualizerAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.FxDeck
 import com.alananasss.kittytune.audio.ai.AiDetectionAudioProcessor
 import com.alananasss.kittytune.audio.ai.AiDetectionManager
 import com.alananasss.kittytune.audio.silence.SilenceDetectorAudioProcessor
@@ -232,6 +233,10 @@ object MusicManager {
     }
 
     private var exoPlayerFactory: ((Int) -> ExoPlayer)? = null
+
+    /** What the player reads through (soundtune:// resolution, cache, Deezer), for the effects export to read the same. */
+    var exportDataSourceFactory: androidx.media3.datasource.DataSource.Factory? = null
+        private set
 
     val player: ExoPlayer
         get() = if (activePlayerIndex == 1) _player1!! else getOrInitPlayer2()
@@ -536,40 +541,42 @@ object MusicManager {
     private var preloadedTrack: Track? = null
 
     private val aiDetectionProcessors = listOf(AiDetectionAudioProcessor(), AiDetectionAudioProcessor())
-    private val eightDProcessors = listOf(EightDAudioProcessor(), EightDAudioProcessor())
-    private val fxProcessors = listOf(FxAudioProcessor(), FxAudioProcessor())
-    private val reverbProcessors = listOf(ReverbAudioProcessor(), ReverbAudioProcessor())
-    private val earrapeProcessors = listOf(EarrapeAudioProcessor(), EarrapeAudioProcessor())
-    private val monoProcessors = listOf(MonoAudioProcessor(), MonoAudioProcessor())
+    /** The creative effects of each deck, as one set the export renderer builds too. */
+    private val fxDecks = listOf(FxDeck(), FxDeck())
+    private val eightDProcessors = fxDecks.map { it.eightD }
+    private val fxProcessors = fxDecks.map { it.fx }
+    private val reverbProcessors = fxDecks.map { it.reverb }
+    private val earrapeProcessors = fxDecks.map { it.earrape }
+    private val monoProcessors = fxDecks.map { it.mono }
     private val normalizerProcessors = listOf(TrackNormalizerProcessor(), TrackNormalizerProcessor())
     private val safetyLimiterProcessors = listOf(SafetyLimiterProcessor(), SafetyLimiterProcessor())
-    private val vintageMp3Processors = listOf(VintageMp3AudioProcessor(), VintageMp3AudioProcessor())
-    private val vocalRemoverProcessors = listOf(VocalRemoverAudioProcessor(), VocalRemoverAudioProcessor())
-    private val vocalBoostProcessors = listOf(VocalBoostAudioProcessor(), VocalBoostAudioProcessor())
-    private val flangerProcessors = listOf(FlangerAudioProcessor(), FlangerAudioProcessor())
-    private val partyNextDoorProcessors = listOf(PartyNextDoorAudioProcessor(), PartyNextDoorAudioProcessor())
-    private val superWideProcessors = listOf(SuperWideAudioProcessor(), SuperWideAudioProcessor())
-    private val vinylLoFiProcessors = listOf(VinylLoFiAudioProcessor(), VinylLoFiAudioProcessor())
-    private val phaserProcessors = listOf(PhaserAudioProcessor(), PhaserAudioProcessor())
-    private val megaphoneProcessors = listOf(MegaphoneRadioAudioProcessor(), MegaphoneRadioAudioProcessor())
-    private val robotVocoderProcessors = listOf(RobotVocoderAudioProcessor(), RobotVocoderAudioProcessor())
-    private val chorusProcessors = listOf(ChorusAudioProcessor(), ChorusAudioProcessor())
-    private val underwaterProcessors = listOf(UnderwaterAudioProcessor(), UnderwaterAudioProcessor())
-    private val tranceGateProcessors = listOf(TranceGateAudioProcessor(), TranceGateAudioProcessor())
-    private val pingPongDelayProcessors = listOf(PingPongDelayAudioProcessor(), PingPongDelayAudioProcessor())
-    private val chiptuneProcessors = listOf(ChiptuneAudioProcessor(), ChiptuneAudioProcessor())
-    private val shimmerReverbProcessors = listOf(ShimmerReverbAudioProcessor(), ShimmerReverbAudioProcessor())
-    private val rotarySpeakerProcessors = listOf(RotarySpeakerAudioProcessor(), RotarySpeakerAudioProcessor())
-    private val tapeSaturationProcessors = listOf(TapeSaturationAudioProcessor(), TapeSaturationAudioProcessor())
-    private val subOctaverProcessors = listOf(SubOctaverAudioProcessor(), SubOctaverAudioProcessor())
-    private val emptyMallProcessors = listOf(EmptyMallAudioProcessor(), EmptyMallAudioProcessor())
-    private val gramophoneProcessors = listOf(GramophoneAudioProcessor(), GramophoneAudioProcessor())
-    private val reverseEchoProcessors = listOf(ReverseEchoAudioProcessor(), ReverseEchoAudioProcessor())
-    private val stadiumProcessors = listOf(StadiumAudioProcessor(), StadiumAudioProcessor())
-    private val cassetteWalkmanProcessors = listOf(CassetteWalkmanAudioProcessor(), CassetteWalkmanAudioProcessor())
-    private val asmrVocalProcessors = listOf(AsmrVocalAudioProcessor(), AsmrVocalAudioProcessor())
-    private val nightDriveProcessors = listOf(NightDriveAudioProcessor(), NightDriveAudioProcessor())
-    private val equalizerProcessors = listOf(EqualizerAudioProcessor(), EqualizerAudioProcessor())
+    private val vintageMp3Processors = fxDecks.map { it.vintageMp3 }
+    private val vocalRemoverProcessors = fxDecks.map { it.vocalRemover }
+    private val vocalBoostProcessors = fxDecks.map { it.vocalBoost }
+    private val flangerProcessors = fxDecks.map { it.flanger }
+    private val partyNextDoorProcessors = fxDecks.map { it.partyNextDoor }
+    private val superWideProcessors = fxDecks.map { it.superWide }
+    private val vinylLoFiProcessors = fxDecks.map { it.vinylLoFi }
+    private val phaserProcessors = fxDecks.map { it.phaser }
+    private val megaphoneProcessors = fxDecks.map { it.megaphone }
+    private val robotVocoderProcessors = fxDecks.map { it.robotVocoder }
+    private val chorusProcessors = fxDecks.map { it.chorus }
+    private val underwaterProcessors = fxDecks.map { it.underwater }
+    private val tranceGateProcessors = fxDecks.map { it.tranceGate }
+    private val pingPongDelayProcessors = fxDecks.map { it.pingPongDelay }
+    private val chiptuneProcessors = fxDecks.map { it.chiptune }
+    private val shimmerReverbProcessors = fxDecks.map { it.shimmerReverb }
+    private val rotarySpeakerProcessors = fxDecks.map { it.rotarySpeaker }
+    private val tapeSaturationProcessors = fxDecks.map { it.tapeSaturation }
+    private val subOctaverProcessors = fxDecks.map { it.subOctaver }
+    private val emptyMallProcessors = fxDecks.map { it.emptyMall }
+    private val gramophoneProcessors = fxDecks.map { it.gramophone }
+    private val reverseEchoProcessors = fxDecks.map { it.reverseEcho }
+    private val stadiumProcessors = fxDecks.map { it.stadium }
+    private val cassetteWalkmanProcessors = fxDecks.map { it.cassetteWalkman }
+    private val asmrVocalProcessors = fxDecks.map { it.asmrVocal }
+    private val nightDriveProcessors = fxDecks.map { it.nightDrive }
+    private val equalizerProcessors = fxDecks.map { it.equalizer }
     private val automixDuckProcessors = listOf(
         com.alananasss.kittytune.audio.automix.AutomixDuckAudioProcessor(),
         com.alananasss.kittytune.audio.automix.AutomixDuckAudioProcessor()
@@ -869,6 +876,7 @@ object MusicManager {
             .setOnAudioFocusChangeListener(audioFocusChangeListener)
             .build()
 
+        exportDataSourceFactory = resolvingDataSourceFactory
         val createExoPlayer = { index: Int ->
             ExoPlayer.Builder(context.applicationContext)
                 .setMediaSourceFactory(
@@ -1895,160 +1903,12 @@ object MusicManager {
             hapticMgr.bassBoostMultiplier = if (state.isBassBoostEnabled) (1.0f + state.bassBoostIntensity * 0.8f) else 1.0f
         }
 
-        eightDProcessors.forEach {
-            it.setEnabled(state.is8DEnabled)
-            it.setSpeed(state.eightDSpeed)
-        }
-        fxProcessors.forEach {
-            it.setEffects(state.isMuffledEnabled, state.isBassBoostEnabled)
-            it.setBassBoostGain(state.bassBoostIntensity)
-            it.setMuffledCutoff(state.muffledIntensity)
-        }
-        reverbProcessors.forEach {
-            it.setEnabled(state.isReverbEnabled)
-            it.setDecay(state.reverbIntensity)
-        }
-        earrapeProcessors.forEach {
-            it.setEnabled(state.isEarrapeEnabled)
-            it.setIntensity(state.earrapeIntensity)
-        }
-        monoProcessors.forEach {
-            it.setEnabled(state.isMonoEnabled)
-        }
+        fxDecks.forEach { it.applyEffects(state) }
         normalizerProcessors.forEach {
             it.setParameters(state.isNormalizationEnabled, state.normalizationLevel)
         }
         safetyLimiterProcessors.forEach {
             it.setEnabled(state.isNormalizationEnabled)
-        }
-        vintageMp3Processors.forEach {
-            it.setEnabled(state.isVintageMp3Enabled)
-            it.setCompression(state.vintageMp3Compression)
-        }
-        vocalRemoverProcessors.forEach {
-            it.setEnabled(state.isVocalRemoverEnabled)
-            it.setSuppressionLevel(state.vocalRemoverLevel)
-        }
-        vocalBoostProcessors.forEach {
-            it.setEnabled(state.isVocalBoostEnabled)
-            it.setIntensity(state.vocalBoostIntensity)
-        }
-        flangerProcessors.forEach {
-            it.setEnabled(state.isFlangerEnabled)
-            it.setIntensity(state.flangerIntensity)
-            it.setSpeed(state.flangerSpeed)
-        }
-        partyNextDoorProcessors.forEach {
-            it.setEnabled(state.isPartyNextDoorEnabled)
-            it.setIsolation(state.partyNextDoorIsolation)
-            it.setReverb(state.partyNextDoorReverb)
-            it.setBassRumble(state.partyNextDoorBassRumble)
-        }
-        superWideProcessors.forEach {
-            it.setEnabled(state.isSuperWideEnabled)
-            it.setWidth(state.superWideWidth)
-            it.setDepth(state.superWideDepth)
-        }
-        vinylLoFiProcessors.forEach {
-            it.setEnabled(state.isVinylLoFiEnabled)
-            it.setCrackles(state.vinylCrackles)
-            it.setFlutter(state.vinylFlutter)
-        }
-        phaserProcessors.forEach {
-            it.setEnabled(state.isPhaserEnabled)
-            it.setSpeed(state.phaserSpeed)
-            it.setFeedback(state.phaserFeedback)
-        }
-        megaphoneProcessors.forEach {
-            it.setEnabled(state.isMegaphoneEnabled)
-            it.setTone(state.megaphoneTone)
-            it.setDrive(state.megaphoneDrive)
-        }
-        robotVocoderProcessors.forEach {
-            it.setEnabled(state.isRobotVocoderEnabled)
-            it.setFrequency(state.robotFrequency)
-            it.setMix(state.robotMix)
-        }
-        chorusProcessors.forEach {
-            it.setEnabled(state.isChorusEnabled)
-            it.setRate(state.chorusRate)
-            it.setDepth(state.chorusDepth)
-        }
-        underwaterProcessors.forEach {
-            it.setEnabled(state.isUnderwaterEnabled)
-            it.setDepth(state.underwaterDepth)
-            it.setBubbles(state.underwaterBubbles)
-        }
-        tranceGateProcessors.forEach {
-            it.setEnabled(state.isTranceGateEnabled)
-            it.setSpeed(state.tranceGateSpeed)
-            it.setPattern(state.tranceGatePattern)
-            it.setMix(state.tranceGateMix)
-        }
-        pingPongDelayProcessors.forEach {
-            it.setEnabled(state.isPingPongDelayEnabled)
-            it.setDelayTime(state.pingPongDelayTime)
-            it.setFeedback(state.pingPongFeedback)
-        }
-        chiptuneProcessors.forEach {
-            it.setEnabled(state.isChiptuneEnabled)
-            it.setBits(state.chiptuneBits)
-            it.setSampleRateDown(state.chiptuneSampleRate)
-        }
-        shimmerReverbProcessors.forEach {
-            it.setEnabled(state.isShimmerReverbEnabled)
-            it.setSize(state.shimmerSize)
-            it.setShimmerMix(state.shimmerMix)
-        }
-        rotarySpeakerProcessors.forEach {
-            it.setEnabled(state.isRotarySpeakerEnabled)
-            it.setSpeed(state.rotarySpeed)
-            it.setDepth(state.rotaryDepth)
-        }
-        tapeSaturationProcessors.forEach {
-            it.setEnabled(state.isTapeSaturationEnabled)
-            it.setWarmth(state.tapeWarmth)
-            it.setExciter(state.tapeExciter)
-        }
-        subOctaverProcessors.forEach {
-            it.setEnabled(state.isSubOctaverEnabled)
-            it.setSubLevel(state.subOctaverLevel)
-            it.setSubCutoff(state.subOctaverCutoff)
-        }
-        emptyMallProcessors.forEach {
-            it.setEnabled(state.isEmptyMallEnabled)
-            it.setDistance(state.emptyMallDistance)
-            it.setGlassReverb(state.emptyMallReverb)
-        }
-        gramophoneProcessors.forEach {
-            it.setEnabled(state.isGramophoneEnabled)
-            it.setShellacAge(state.gramophoneAge)
-            it.setHornResonance(state.gramophoneHorn)
-        }
-        reverseEchoProcessors.forEach {
-            it.setEnabled(state.isReverseEchoEnabled)
-            it.setTime(state.reverseEchoTime)
-            it.setFeedback(state.reverseEchoFeedback)
-        }
-        stadiumProcessors.forEach {
-            it.setEnabled(state.isStadiumEnabled)
-            it.setStadiumSize(state.stadiumSize)
-            it.setAtmosphere(state.stadiumAtmosphere)
-        }
-        cassetteWalkmanProcessors.forEach {
-            it.setEnabled(state.isWalkmanEnabled)
-            it.setDrive(state.walkmanDrive)
-            it.setTapeHiss(state.walkmanHiss)
-        }
-        asmrVocalProcessors.forEach {
-            it.setEnabled(state.isAsmrVocalEnabled)
-            it.setProximity(state.asmrProximity)
-            it.setAirSheen(state.asmrAir)
-        }
-        nightDriveProcessors.forEach {
-            it.setEnabled(state.isNightDriveEnabled)
-            it.setCabinWidth(state.nightDriveCabin)
-            it.setRoadRumble(state.nightDriveRoad)
         }
 
         rainPlayer?.setEnabled(state.isRainEnabled)
@@ -2077,10 +1937,7 @@ object MusicManager {
     }
 
     fun applyEqualizer(state: EqualizerState) {
-        val gains = state.bandGainsDb.toFloatArray()
-        equalizerProcessors.forEach {
-            it.setParameters(state.isEnabled, state.preampDb, gains)
-        }
+        fxDecks.forEach { it.applyEqualizer(state) }
     }
 
     fun setGlobalStemLevels(vocal: Float, drum: Float, bass: Float) {

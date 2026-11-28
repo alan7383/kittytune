@@ -3,6 +3,8 @@ package com.alananasss.kittytune.data.sync
 import com.alananasss.kittytune.KittyTuneApp
 import com.google.gson.Gson
 import java.io.File
+import java.io.IOException
+import java.io.RandomAccessFile
 import java.util.UUID
 
 /**
@@ -25,6 +27,9 @@ object SyncLog {
 
     /** In memory as well as on disk: the whole log is read for every merge, and it is small. */
     private val events = mutableListOf<SyncEvent>()
+    private val eventIds = HashSet<String>()
+    private val maxSeqByDevice = HashMap<String, Long>()
+    private var receivedMarks = emptyMap<String, Long>()
     private var loaded = false
 
     /**
@@ -54,13 +59,28 @@ object SyncLog {
     @Synchronized
     private fun ensureLoaded() {
         if (loaded) return
-        loaded = true
-        if (!file.isFile) return
-        file.forEachLine { line ->
-            if (line.isBlank()) return@forEachLine
-            val event = runCatching { gson.fromJson(line, SyncEvent::class.java) }.getOrNull()
-            if (event != null && event.isWellFormed) events.add(event)
+        events.clear()
+        eventIds.clear()
+        maxSeqByDevice.clear()
+        if (file.exists()) {
+            file.forEachLine { line ->
+                val event = runCatching { gson.fromJson(line, SyncEvent::class.java) }.getOrNull()
+                if (event?.isWellFormed == true) index(event)
+            }
         }
+        // An older build could acknowledge a write that failed. Ask the peer again for any
+        // acknowledged tail that is missing from the copy on disk.
+        receivedMarks = readMarks(KEY_MARKS)
+            .mapValues { (origin, mark) -> minOf(mark, maxSeqByDevice[origin] ?: 0L) }
+            .filterValues { it > 0L }
+        loaded = true
+    }
+
+    private fun index(event: SyncEvent) {
+        if (!eventIds.add(event.id)) return
+        val known = maxSeqByDevice[event.deviceId]
+        if (known == null || event.seq > known) maxSeqByDevice[event.deviceId] = event.seq
+        events.add(event)
     }
 
     /** Everything the log holds, ours and every peer's. A copy: callers iterate while we append. */
@@ -86,7 +106,7 @@ object SyncLog {
         ensureLoaded()
         val event = SyncEvent(
             deviceId = deviceId,
-            seq = SyncMerge.nextSeq(events, deviceId),
+            seq = (maxSeqByDevice[deviceId] ?: 0L) + 1,
             timestampMs = timestampMs,
             kind = kind,
             payload = gson.toJson(payload),
@@ -101,7 +121,7 @@ object SyncLog {
     fun appendBatch(items: List<BatchItem>): List<SyncEvent> {
         if (items.isEmpty()) return emptyList()
         ensureLoaded()
-        var currentSeq = SyncMerge.nextSeq(events, deviceId)
+        var currentSeq = (maxSeqByDevice[deviceId] ?: 0L) + 1
         val created = ArrayList<SyncEvent>(items.size)
         for (item in items) {
             created.add(
@@ -127,29 +147,50 @@ object SyncLog {
     @Synchronized
     fun merge(incoming: List<SyncEvent>): List<SyncEvent> {
         ensureLoaded()
-        val fresh = SyncMerge.selectNew(incoming, marks(), deviceId)
-        if (fresh.isEmpty()) return emptyList()
-        write(fresh)
-        setMarks(SyncMerge.advance(marks(), fresh))
+        val candidates = SyncMerge.selectNew(incoming, receivedMarks, deviceId)
+        val fresh = candidates.filterNot { it.id in eventIds }
+        if (fresh.isNotEmpty()) write(fresh)
+        val next = SyncMerge.advance(receivedMarks, candidates)
+        if (next != receivedMarks) {
+            prefs.edit().putString(KEY_MARKS, gson.toJson(next)).apply()
+            receivedMarks = next
+        }
         return fresh
     }
 
     private fun write(batch: List<SyncEvent>) {
-        events.addAll(batch)
-        runCatching {
-            file.parentFile?.mkdirs()
-            // One open, one append, one line each: a crash mid-batch leaves whole lines behind it.
-            file.appendText(batch.joinToString("") { gson.toJson(it) + "\n" })
+        val bytes = batch.joinToString("\n", postfix = "\n") { gson.toJson(it) }.toByteArray()
+        file.parentFile?.mkdirs()
+        RandomAccessFile(file, "rw").use { output ->
+            val originalSize = output.length()
+            try {
+                if (originalSize > 0) {
+                    output.seek(originalSize - 1)
+                    // Keep a line interrupted by a crash separate from the new batch.
+                    if (output.read() != '\n'.code) output.write('\n'.code)
+                }
+                output.write(bytes)
+                output.fd.sync()
+            } catch (failure: IOException) {
+                // A failed append must leave the same sequence numbers available for the retry.
+                try {
+                    output.setLength(originalSize)
+                    output.fd.sync()
+                } catch (rollback: IOException) {
+                    loaded = false
+                    failure.addSuppressed(rollback)
+                }
+                throw failure
+            }
         }
+        batch.forEach(::index)
     }
 
     /** How far we have got with each device we have heard from. */
     @Synchronized
-    fun marks(): Map<String, Long> = readMarks(KEY_MARKS)
-
-    @Synchronized
-    private fun setMarks(marks: Map<String, Long>) {
-        prefs.edit().putString(KEY_MARKS, gson.toJson(marks)).apply()
+    fun marks(): Map<String, Long> {
+        ensureLoaded()
+        return receivedMarks
     }
 
     /**
@@ -186,14 +227,17 @@ object SyncLog {
      */
     @Synchronized
     fun clear() {
+        java.nio.file.Files.deleteIfExists(file.toPath())
         events.clear()
+        eventIds.clear()
+        maxSeqByDevice.clear()
+        receivedMarks = emptyMap()
         loaded = true
         val editor = prefs.edit()
         prefs.all.keys
             .filter { it == KEY_MARKS || it.startsWith("peer_marks_") }
             .forEach { editor.remove(it) }
         editor.apply()
-        runCatching { file.delete() }
     }
 
     private fun defaultDeviceName(): String =

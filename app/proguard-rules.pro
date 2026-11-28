@@ -184,3 +184,6 @@
 -keep class com.alananasss.kittytune.wear.** { *; }
 -keepclassmembers class com.alananasss.kittytune.wear.** { *; }
 -keep class * extends com.google.android.gms.wearable.WearableListenerService { *; }
+
+# Java-WebSocket (LAN Connect server) logs through SLF4J; no binding is shipped.
+-dontwarn org.slf4j.**

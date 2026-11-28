@@ -10,6 +10,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.wear.common.R as WearResources
 import com.alananasss.kittytune.data.local.LyricsFont
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -37,7 +38,7 @@ fun getDynamicTypography(
         ).map { fw ->
             val adjustedWeight = (wght + (fw.weight - 400)).coerceIn(100, 1000)
             Font(
-                resId = R.font.google_sans_flex,
+                resId = WearResources.font.kittytune_flex,
                 weight = fw,
                 variationSettings = FontVariation.Settings(
                     FontVariation.weight(adjustedWeight),
@@ -65,7 +66,7 @@ fun getDynamicTypography(
         ).map { fw ->
             val adjustedWeight = (wght + (fw.weight - 400)).coerceIn(100, 1000)
             Font(
-                resId = R.font.google_sans_flex,
+                resId = WearResources.font.kittytune_flex,
                 weight = fw,
                 variationSettings = FontVariation.Settings(
                     FontVariation.weight(adjustedWeight),
@@ -118,7 +119,7 @@ val LyricsFontFamily = FontFamily(
 @OptIn(ExperimentalTextApi::class)
 val GoogleSansRounded = FontFamily(
     Font(
-        resId = R.font.google_sans_flex,
+        resId = WearResources.font.kittytune_flex,
         weight = androidx.compose.ui.text.font.FontWeight.Normal,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(400),
@@ -126,7 +127,7 @@ val GoogleSansRounded = FontFamily(
         )
     ),
     Font(
-        resId = R.font.google_sans_flex,
+        resId = WearResources.font.kittytune_flex,
         weight = androidx.compose.ui.text.font.FontWeight.Medium,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(500),
@@ -134,7 +135,7 @@ val GoogleSansRounded = FontFamily(
         )
     ),
     Font(
-        resId = R.font.google_sans_flex,
+        resId = WearResources.font.kittytune_flex,
         weight = androidx.compose.ui.text.font.FontWeight.SemiBold,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(600),
@@ -142,7 +143,7 @@ val GoogleSansRounded = FontFamily(
         )
     ),
     Font(
-        resId = R.font.google_sans_flex,
+        resId = WearResources.font.kittytune_flex,
         weight = androidx.compose.ui.text.font.FontWeight.Bold,
         variationSettings = FontVariation.Settings(
             FontVariation.weight(700),

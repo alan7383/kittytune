@@ -80,8 +80,6 @@ import com.zionhuang.innertube.models.YouTubeLocale
         private val initialSearchQuery = _initialSearchQuery.asStateFlow()
         private val _pendingTogetherCode = MutableStateFlow<String?>(null)
         private val pendingTogetherCode = _pendingTogetherCode.asStateFlow()
-        private val _pendingTogetherAutoJoin = MutableStateFlow(false)
-        private val pendingTogetherAutoJoin = _pendingTogetherAutoJoin.asStateFlow()
         private var showPopups by mutableStateOf(false)
         private var customFontEnabledState by mutableStateOf(false)
         private var fontWghtState by mutableIntStateOf(400)
@@ -134,7 +132,8 @@ import com.zionhuang.innertube.models.YouTubeLocale
 
             refreshThemeState()
 
-            handleIntent(intent)
+            _pendingTogetherCode.value = savedInstanceState?.getString("pending_together_code")
+            handleIntent(intent, readTogetherInvite = savedInstanceState == null)
 
             val activeLocale = LocaleUtils.getLocale(this)
             YouTube.locale = YouTubeLocale(
@@ -151,7 +150,6 @@ import com.zionhuang.innertube.models.YouTubeLocale
                 val openSearchState by shouldOpenSearch.collectAsState()
                 val initialQueryState by initialSearchQuery.collectAsState()
                 val pendingTogetherState by pendingTogetherCode.collectAsState()
-                val pendingTogetherAutoJoinState by pendingTogetherAutoJoin.collectAsState()
                 val scope = rememberCoroutineScope()
                 val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -227,10 +225,8 @@ import com.zionhuang.innertube.models.YouTubeLocale
                                     _initialSearchQuery.value = null
                                 },
                                 pendingTogetherCode = pendingTogetherState,
-                                pendingTogetherAutoJoin = pendingTogetherAutoJoinState,
                                 onTogetherHandled = {
                                     _pendingTogetherCode.value = null
-                                    _pendingTogetherAutoJoin.value = false
                                 }
                             )
                             com.alananasss.kittytune.ui.common.CoverViewerOverlay()
@@ -246,7 +242,12 @@ import com.zionhuang.innertube.models.YouTubeLocale
             handleIntent(intent)
         }
 
-        private fun handleIntent(intent: Intent?) {
+        override fun onSaveInstanceState(outState: Bundle) {
+            super.onSaveInstanceState(outState)
+            outState.putString("pending_together_code", _pendingTogetherCode.value)
+        }
+
+        private fun handleIntent(intent: Intent?, readTogetherInvite: Boolean = true) {
             if (intent == null) return
 
             val action = intent.action
@@ -275,8 +276,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
             if (data != null) {
                 val togetherCode = com.alananasss.kittytune.data.together.TogetherLinks.extractCodeFromUri(data)
                 if (togetherCode != null) {
-                    _pendingTogetherAutoJoin.value = com.alananasss.kittytune.data.together.TogetherLinks.isAutoJoinUri(data)
-                    _pendingTogetherCode.value = togetherCode
+                    if (readTogetherInvite) _pendingTogetherCode.value = togetherCode
                     return
                 }
 

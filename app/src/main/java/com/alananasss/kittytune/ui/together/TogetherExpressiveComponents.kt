@@ -526,7 +526,7 @@ internal fun TogetherMemberPill(
                 Icon(
                     imageVector = Icons.Rounded.Star,
                     contentDescription = stringResource(R.string.together_host_badge),
-                    tint = cs.primary,
+                    tint = cs.onPrimaryContainer, // on the host pill's primaryContainer
                     modifier = Modifier.size(15.dp),
                 )
             }

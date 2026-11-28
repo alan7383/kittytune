@@ -104,7 +104,10 @@ object BackupManager {
             // History
             data.history.forEach { db.insertHistory(it) }
 
-            data.listeningStats?.forEach { db.insertStatsEvent(it.copy(id = 0)) }
+            val stats = data.listeningStats.orEmpty().map { it.copy(id = 0) }
+            if (stats.isNotEmpty() && db.insertStatsEvents(stats).any { it >= 0 }) {
+                ListeningStatsRepository.onStatsChanged()
+            }
 
             LikeRepository.replaceAllLikes(data.likedTracks)
 

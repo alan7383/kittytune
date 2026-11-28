@@ -45,6 +45,25 @@ class ListeningReportTest {
     }
 
     @Test
+    fun theRecentWeekKeepsSundaysListensWhenMondaySyncs() {
+        val sunday = at(2026, 11, 22)
+        val monday = at(2026, 11, 23)
+        val twelveHours = 12 * 60 * 60_000L
+        val twentyNineMinutes = 29 * 60_000L
+        val local = listen(sunday, listenMs = twelveHours, durationMs = twelveHours)
+        val remote = listen(monday, listenMs = twentyNineMinutes, durationMs = twentyNineMinutes)
+        val before = ListeningReports.recentWeek(sunday, zone)
+        val after = ListeningReports.recentWeek(monday, zone)
+        val older = ListeningReports.recentWeek(monday, zone, offset = -1)
+
+        assertEquals(twelveHours, ListeningReports.build(ReportPeriod.WEEK, before, listOf(local), null, zone, splitter).totalListenMs)
+        assertEquals(twelveHours + twentyNineMinutes, ListeningReports.build(ReportPeriod.WEEK, after, listOf(local, remote), null, zone, splitter).totalListenMs)
+        assertEquals(at(2026, 11, 17, 0), after.startMs)
+        assertEquals(older.endMs, after.startMs)
+        assertEquals(older, ListeningReports.previousWindow(ReportPeriod.WEEK, after, zone))
+    }
+
+    @Test
     fun countsPlaysSkipsAndTheDailyBars() {
         val window = ListeningReports.windowFor(ReportPeriod.WEEK, at(2026, 9, 25), zone)
         val events = listOf(
@@ -62,6 +81,25 @@ class ListeningReportTest {
         assertEquals(5_000L, report.activity[2].listenMs)
         assertEquals(22, report.peakHour)
         assertEquals(1.0277778f, report.change!!, 0.001f)
+    }
+
+    @Test
+    fun thePlaysListMatchesTheYearlyOverview() {
+        val now = at(2026, 11, 23)
+        val window = ListeningReports.windowFor(ReportPeriod.YEAR, now, zone)
+        val play = listen(now, listenMs = 30_000L)
+        val shortTrackPlay = listen(now, trackId = 2L, listenMs = 10_000L, durationMs = 20_000L)
+        val shortListen = listen(now, trackId = 3L, listenMs = 29_999L)
+        val events = List(4_828) { play } + shortTrackPlay + List(2_504) { shortListen }
+
+        val report = ListeningReports.build(ReportPeriod.YEAR, window, events, null, zone, splitter)
+        val listedPlays = ListeningReports.countedPlays(events)
+
+        assertEquals(7_333, events.size)
+        assertEquals(4_829, report.plays)
+        assertEquals(report.plays, listedPlays.size)
+        assertEquals(shortTrackPlay, listedPlays.last())
+        assertEquals(events.sumOf { it.listenDurationMs }, report.totalListenMs)
     }
 
     @Test

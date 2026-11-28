@@ -79,6 +79,24 @@ object ConnectManager {
             (uri.scheme == "wss" || uri.scheme == "ws" && uri.host in listOf("localhost", "127.0.0.1", "::1"))
     }.getOrDefault(false)
 
+    private val _internetControl = MutableStateFlow(ConnectPlatform.internetControl == true)
+    /** Connect away from home through public brokers ([ConnectCloud]). Off unless turned on. */
+    val internetControl: StateFlow<Boolean> = _internetControl
+    private fun internetControlOn() = _internetControl.value
+    fun setInternetControl(value: Boolean) {
+        ConnectPlatform.internetControl = value
+        _internetControl.value = value
+        if (!value) ConnectCloud.deactivate()
+        restart()
+    }
+    /** A paired device turned it on: follow, unless this one was explicitly set either way. */
+    fun importInternetControl(value: Boolean?) {
+        if (value == true && ConnectPlatform.internetControl == null) setInternetControl(true)
+    }
+    private const val CLOUD_URL = "cloud://connect"
+    /** How long one attempt waits for the peer to show up on the brokers; the wait is the retry delay. */
+    private const val CLOUD_WAIT_MS = 45_000L
+
     fun importRelayUrl(url: String?) {
         if (!url.isNullOrBlank() && relayUrl.isBlank()) runCatching { relayUrl = url }
     }
@@ -173,8 +191,9 @@ object ConnectManager {
         _independent.value = !SyncPlayback.enabled
         ConnectPlatform.observeHeadphones(enabled && SyncPlayback.enabled && handler != null && (foreground || playing))
         ConnectPlatform.setActive(!ConnectPlatform.mobile || foreground || playing || wearControlActive)
-        if (!active()) { closeConnections(); return }
+        if (!active()) { closeConnections(); ConnectCloud.deactivate(); return }
         ConnectPlatform.startListener()
+        if (internetControlOn()) ConnectCloud.activate() else ConnectCloud.deactivate()
         val devices = SyncPeers.all().filter { it.secret.length >= 20 }
         val ids = devices.map { it.deviceId }.toSet()
         jobs.keys.filter { it !in ids }.forEach { jobs.remove(it)?.cancel(); sockets.remove(it)?.cancel() }
@@ -209,19 +228,34 @@ object ConnectManager {
                     continue
                 }
                 var established = false
-                if (ConnectPlatform.mobile && ConnectPlatform.canUseLan() && peer.platform != "android" && peer.host.isNotBlank()) {
+                // Phones dial computers, never other phones (battery). The computer dials the phone too, so
+                // whichever direction the network lets through carries the link.
+                if (ConnectPlatform.canUseLan() && peer.platform != "android" && peer.host.isNotBlank()) {
                     established = connect(peer, "ws://${peer.host}:${ConnectLanPort}/v1/connect", "LAN")
-                    if (!established && relayUrl.isBlank()) {
-                        // One bounded discovery attempt per backoff, never a continuous LAN scan.
+                    if (!established) {
+                        // One bounded discovery attempt per backoff, never a continuous LAN scan. Done even
+                        // with a relay configured: the saved address goes stale whenever the router says so.
                         val found = runCatching { SyncDiscovery.locate(peerId).firstOrNull() }.getOrNull()
-                        if (found != null) SyncPeers.remember(peer.copy(host = found.host))
+                        if (found != null && found.host != peer.host) {
+                            NetLog.i("connect", "${peer.label} moved to ${found.host}")
+                            SyncPeers.remember(peer.copy(host = found.host))
+                            established = connect(peer.copy(host = found.host), "ws://${found.host}:${ConnectLanPort}/v1/connect", "LAN")
+                        }
                     }
+                } else if (peer.platform != "android" && !ConnectPlatform.canUseLan()) {
+                    NetLog.i("connect", "No Wi-Fi/Ethernet route; skipping LAN for ${peer.label}")
                 }
                 if (!active()) break
                 if (!established && relayUrl.isNotBlank()) {
                     established = connect(peer, ConnectPlatform.relayEndpoint() + "/v1/connect", "Internet")
                 }
-                if (established) backoff = 2_000L
+                var waitedOnCloud = false
+                if (!established && internetControlOn() && active()) {
+                    // Away from home: wait on the brokers for the peer to show up; that wait is the backoff.
+                    established = connect(peer, CLOUD_URL, "Internet")
+                    waitedOnCloud = true
+                }
+                if (established || waitedOnCloud) backoff = 2_000L
                 delay(backoff + kotlin.random.Random.nextLong(0, 500))
                 backoff = (backoff * 2).coerceAtMost(120_000L)
             }
@@ -229,7 +263,7 @@ object ConnectManager {
     }
 
     private suspend fun connect(peer: KnownDevice, url: String, transport: String): Boolean {
-        ConnectPlatform.trace("connect $transport")
+        ConnectPlatform.trace("dial ${peer.label} over $transport" + if (transport == "LAN") " (${peer.host})" else "")
         val credentials = runCatching { credentials(peer) }.getOrNull() ?: return false
         var link: Link? = null
         lateinit var listener: ConnectSocketListener
@@ -244,23 +278,35 @@ object ConnectManager {
                         listener.finish("")
                         return@received
                     }
-                    if (link == null) link = attach(peer, transport, webSocket::send) { webSocket.close(1000, "idle") }
-                    else { link?.sendMessage("hello"); link?.sendState(localState(), force = true) }
+                    if (link == null) {
+                        link = attach(peer, transport, webSocket::send, dialer = SyncLog.deviceId) { webSocket.close(1000, "idle") }
+                        if (link == null) {
+                            // The computer reached us first over the LAN; its link is the one both sides keep.
+                            webSocket.close(1000, "duplicate")
+                            listener.ready.complete(true)
+                            listener.finish("")
+                            return@received
+                        }
+                    } else { link?.sendMessage("hello"); link?.sendState(localState(), force = true) }
                     listener.ready.complete(true)
                 } else if (text == "{\"type\":\"peer_left\"}") {
                     updatePeer(peer.deviceId) { (it ?: ConnectPeerState(peer.deviceId, peer.label)).offline() }
                 } else link?.receive(text)
             }, departed = { error ->
-                ConnectPlatform.trace("departed $transport $error")
+                ConnectPlatform.trace("${peer.label} $transport ended" + if (error.isNotBlank()) ": $error" else "")
                 link?.detach()
                 if (error.isNotBlank() && links[peer.deviceId] == null) updatePeer(peer.deviceId) {
-                    (it ?: ConnectPeerState(peer.deviceId, peer.label)).offline().copy(error = error)
+                    (it ?: ConnectPeerState(peer.deviceId, peer.label)).offline().copy(error = ConnectErrors.code(transport, error))
                 }
             })
-        val socket = (if (transport == "LAN") lanClient else client).newWebSocket(Request.Builder().url(url).build(), listener)
+        val http = if (transport == "LAN") {
+            ConnectPlatform.lanSocketFactory()?.let { lanClient.newBuilder().socketFactory(it).build() } ?: lanClient
+        } else client
+        val socket = if (url == CLOUD_URL) ConnectCloud.open(peer, credentials, listener)
+            else http.newWebSocket(Request.Builder().url(url).build(), listener)
         sockets[peer.deviceId] = socket
         return try {
-            val connected = withTimeoutOrNull(if (transport == "LAN") 5_000L else 15_000L) { listener.ready.await() } == true
+            val connected = withTimeoutOrNull(when { transport == "LAN" -> 5_000L; url == CLOUD_URL -> CLOUD_WAIT_MS; else -> 15_000L }) { listener.ready.await() } == true
             if (!connected) return false
             listener.ended.await()
             true
@@ -269,9 +315,20 @@ object ConnectManager {
         }
     }
 
-    @Synchronized fun attach(peer: KnownDevice, transport: String, send: (String) -> Boolean, close: () -> Unit): Link {
+    /**
+     * Makes [send] the live link to [peer], or returns null when a live LAN link dialed by the other side
+     * already wins the tie-break (see [ConnectTransportPolicy.keepExistingLan]).
+     */
+    @Synchronized fun attach(peer: KnownDevice, transport: String, send: (String) -> Boolean,
+        dialer: String = SyncLog.deviceId, close: () -> Unit): Link? {
         val old = links[peer.deviceId]
-        val link = Link(peer, transport, send, close)
+        if (ConnectTransportPolicy.keepExistingLan(old?.transport, old?.dialer, _peers.value[peer.deviceId]?.connected == true,
+                transport, dialer, SyncLog.deviceId, peer.deviceId)) {
+            ConnectPlatform.trace("${peer.label}: keeping the existing LAN link")
+            return null
+        }
+        val link = Link(peer, transport, send, close, dialer)
+        ConnectPlatform.trace("${peer.label} linked over $transport (" + (if (dialer == SyncLog.deviceId) "we dialed" else "they dialed") + ")")
         links[peer.deviceId] = link
         old?.close?.invoke()
         updatePeer(peer.deviceId) { (it ?: ConnectPeerState(peer.deviceId, peer.label)).offline().copy(transport = transport) }
@@ -294,7 +351,7 @@ object ConnectManager {
     }
 
     class Link internal constructor(val peer: KnownDevice, val transport: String,
-        private val send: (String) -> Boolean, val close: () -> Unit) {
+        private val send: (String) -> Boolean, val close: () -> Unit, val dialer: String = SyncLog.deviceId) {
         private val credentials = credentials(peer)
         private val session = UUID.randomUUID().toString()
         private val challenge = UUID.randomUUID().toString()
@@ -336,7 +393,7 @@ object ConnectManager {
         fun receive(text: String) {
             if (links[peer.deviceId] !== this || SyncPeers.find(peer.deviceId)?.secret != peer.secret) { close(); return }
             val message = ConnectWire.open(credentials, text) ?: return
-            ConnectPlatform.trace("received $transport ${message.kind}")
+            if (message.kind !in listOf("state", "ack")) ConnectPlatform.trace("received $transport ${message.kind}")
             if (message.kind != "hello" && message.replyTo != challenge) return
             if (message.sender != peer.deviceId || !replay.accept(message)) return
             when (message.kind) {

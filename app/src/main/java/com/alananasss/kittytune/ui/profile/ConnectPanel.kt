@@ -341,7 +341,8 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
             }
 
             // Feedback / Error Messages
-            val connectionError = peers.values.firstOrNull { !it.connected && it.error.isNotBlank() }?.error
+            val failedPeer = peers.values.firstOrNull { !it.connected && it.error.isNotBlank() }
+            val connectionError = failedPeer?.let { connectErrorText(it.error, it.name) }
             if (!independent && connectionError != null) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -349,7 +350,7 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
                     color = MaterialTheme.colorScheme.errorContainer
                 ) {
                     Text(
-                        text = stringResource(R.string.connect_error_connection, connectionError),
+                        text = connectionError,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.padding(12.dp)
@@ -799,4 +800,18 @@ private fun friendlyFeedback(message: String): String = when {
     message == "Track changed; choose the device again" -> stringResource(R.string.connect_feedback_track_changed)
     message == "Unable to prepare this track" -> stringResource(R.string.connect_feedback_prepare_failed)
     else -> message
+}
+
+/** A Connect failure in words: what it most likely means and what to do, not an exception name. */
+@androidx.compose.runtime.Composable
+internal fun connectErrorText(code: String, peerName: String): String {
+    val error = com.alananasss.kittytune.data.sync.ConnectErrors.parse(code)
+    val name = peerName.ifBlank { "?" }
+    return when {
+        error.kind == com.alananasss.kittytune.data.sync.ConnectErrors.Kind.UNAUTHORIZED ->
+            androidx.compose.ui.res.stringResource(R.string.connect_error_unauthorized, name)
+        error.transport == "LAN" -> androidx.compose.ui.res.stringResource(R.string.connect_error_lan, name)
+        error.transport == "Internet" -> androidx.compose.ui.res.stringResource(R.string.connect_error_relay, error.raw)
+        else -> androidx.compose.ui.res.stringResource(R.string.connect_error_connection, error.raw)
+    }
 }

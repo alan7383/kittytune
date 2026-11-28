@@ -2326,7 +2326,7 @@ private fun UploadSuccessScreen(
                     Icons.Rounded.CheckCircle,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }

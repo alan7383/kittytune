@@ -270,7 +270,7 @@ fun VkQrLoginDialog(
                                         Icon(
                                             imageVector = Icons.Rounded.PhoneAndroid,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                             modifier = Modifier.size(20.dp)
                                         )
                                         Spacer(Modifier.width(8.dp))

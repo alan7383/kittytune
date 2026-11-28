@@ -11,6 +11,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
@@ -136,9 +138,10 @@ fun MyWaveCard(playerViewModel: PlayerViewModel, modifier: Modifier = Modifier) 
                                 SnakeGameRequest(title = waveTitle, mode = SnakeGameMode.WAVE)
                             )
                         },
+                        shapes = IconButtonDefaults.shapes(),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = scheme.primary.copy(alpha = 0.14f),
-                            contentColor = scheme.primary,
+                            containerColor = scheme.secondaryContainer,
+                            contentColor = scheme.onSecondaryContainer,
                         ),
                         modifier = Modifier.size(52.dp),
                     ) {
@@ -157,6 +160,7 @@ fun MyWaveCard(playerViewModel: PlayerViewModel, modifier: Modifier = Modifier) 
                                 else -> playerViewModel.startMyWave(playerViewModel.waveMode)
                             }
                         },
+                        shapes = IconButtonDefaults.shapes(),
                         colors = IconButtonDefaults.filledIconButtonColors(
                             containerColor = scheme.primary,
                             contentColor = scheme.onPrimary,
@@ -247,76 +251,44 @@ private fun WaveModeRow(
     selected: MyWave.WaveMode,
     onSelect: (MyWave.WaveMode) -> Unit,
 ) {
-    Row(
+    val scheme = MaterialTheme.colorScheme
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        WaveModeChip(
-            label = stringResource(R.string.wave_mode_balanced),
-            icon = Icons.Rounded.AutoAwesome,
-            selected = selected == MyWave.WaveMode.BALANCED,
-            onClick = hapticAction(HapticKind.UI) { onSelect(MyWave.WaveMode.BALANCED) },
-        )
-        WaveModeChip(
-            label = stringResource(R.string.wave_mode_favorites),
-            icon = Icons.Rounded.Favorite,
-            selected = selected == MyWave.WaveMode.FAVORITES,
-            onClick = hapticAction(HapticKind.UI) { onSelect(MyWave.WaveMode.FAVORITES) },
-        )
-        WaveModeChip(
-            label = stringResource(R.string.wave_mode_discover),
-            icon = Icons.Rounded.Explore,
-            selected = selected == MyWave.WaveMode.DISCOVER,
-            onClick = hapticAction(HapticKind.UI) { onSelect(MyWave.WaveMode.DISCOVER) },
-        )
-        WaveModeChip(
-            label = stringResource(R.string.wave_mode_popular),
-            icon = Icons.Rounded.TrendingUp,
-            selected = selected == MyWave.WaveMode.POPULAR,
-            onClick = hapticAction(HapticKind.UI) { onSelect(MyWave.WaveMode.POPULAR) },
+        ExpressiveConnectedButtonGroup(
+            options = MyWave.WaveMode.entries,
+            selectedOption = selected,
+            onOptionSelected = onSelect,
+            fillMaxWidth = false,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            checkedContainerColor = scheme.primary,
+            checkedContentColor = scheme.onPrimary,
+            uncheckedContainerColor = scheme.surfaceContainerHighest.copy(alpha = 0.7f),
+            uncheckedContentColor = scheme.onSurfaceVariant,
+            iconSpacing = 6.dp,
+            iconProvider = { mode ->
+                val (icon, _) = waveModeVisual(mode)
+                Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
+            },
+            labelProvider = { mode ->
+                val (_, label) = waveModeVisual(mode)
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (mode == selected) FontWeight.Bold else FontWeight.Medium,
+                    maxLines = 1,
+                )
+            },
         )
     }
 }
 
 @Composable
-private fun WaveModeChip(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val scheme = MaterialTheme.colorScheme
-    val container by animateColorAsState(
-        targetValue = if (selected) scheme.primaryContainer else scheme.surfaceContainerHighest.copy(alpha = 0.7f),
-        label = "waveModeContainer",
-    )
-    val content by animateColorAsState(
-        targetValue = if (selected) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
-        label = "waveModeContent",
-    )
-    Surface(
-        onClick = onClick,
-        shape = CircleShape,
-        color = container,
-        contentColor = content,
-        modifier = modifier,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                maxLines = 1,
-            )
-        }
-    }
+private fun waveModeVisual(mode: MyWave.WaveMode): Pair<androidx.compose.ui.graphics.vector.ImageVector, String> = when (mode) {
+    MyWave.WaveMode.BALANCED -> Icons.Rounded.AutoAwesome to stringResource(R.string.wave_mode_balanced)
+    MyWave.WaveMode.FAVORITES -> Icons.Rounded.Favorite to stringResource(R.string.wave_mode_favorites)
+    MyWave.WaveMode.DISCOVER -> Icons.Rounded.Explore to stringResource(R.string.wave_mode_discover)
+    MyWave.WaveMode.POPULAR -> Icons.Rounded.TrendingUp to stringResource(R.string.wave_mode_popular)
 }

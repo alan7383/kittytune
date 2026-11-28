@@ -35,7 +35,7 @@ data class SyncEvent(
 
     /** A log entry with no origin or no place in its device's order cannot be merged. */
     val isWellFormed: Boolean
-        get() = deviceId.isNotBlank() && seq > 0 && kind.isNotBlank()
+        get() = !deviceId.isNullOrBlank() && seq > 0 && !kind.isNullOrBlank() && !payload.isNullOrBlank()
 }
 
 /** The kinds in use. A device ignores kinds it does not know, so this list may differ by version. */

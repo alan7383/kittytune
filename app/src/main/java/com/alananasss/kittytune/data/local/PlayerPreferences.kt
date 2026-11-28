@@ -91,7 +91,7 @@ enum class AppleMusicControlsAlign { RIGHT, CENTER_LOW }
 
 // Apple Music player: how the artwork is presented in portrait.
 
-enum class AppleMusicPortraitArt { FULL_BLEED, SQUARE }
+enum class AppleMusicPortraitArt { FULL_BLEED, SQUARE, NO_ARTWORK }
 
 // Mini player look: the mini-style pill (modern) or the previous KittyTune strip (classic). */
 enum class MiniPlayerStyle {
@@ -644,9 +644,9 @@ class PlayerPreferences(context: Context) {
 
         private const val KEY_BOTTOM_MENU_STYLE = "bottom_menu_style"
         private const val KEY_BOTTOM_MENU_ITEMS = "bottom_menu_items_csv"
-        const val DEFAULT_BOTTOM_MENU_ITEMS = "home,feed,search,genres,library"
+        const val DEFAULT_BOTTOM_MENU_ITEMS = "home,search,genres,library"
         private const val KEY_BOTTOM_MENU_ORDER = "bottom_menu_order_csv"
-        private const val KEY_FEED_TAB_MIGRATED = "feed_tab_migrated"
+        private const val KEY_FEED_DEFAULT_OFF_CLEANUP = "feed_default_off_cleanup"
         private const val KEY_BOTTOM_MENU_FAB = "bottom_menu_fab"
         private const val KEY_BOTTOM_MENU_BLUR = "bottom_menu_blur_enabled"
         const val KEY_MINI_PLAYER_SWIPE_ACTION = "mini_player_swipe_action"
@@ -716,6 +716,7 @@ class PlayerPreferences(context: Context) {
         // ── Ported feature keys ──
         // Use a new key so choices saved before this reset fall back to FADE.
         const val KEY_LYRICS_LINE_ANIMATION = "lyrics_line_animation_v2"
+        private const val KEY_LYRICS_LINE_ANIMATION_FORCE_DISABLED = "lyrics_line_animation_force_disabled"
         const val KEY_INSTRUMENTAL_INDICATOR = "instrumental_indicator_style"
         const val KEY_TABLET_NAV_PLACEMENT = "tablet_nav_placement"
         const val KEY_TABLET_SIDE_PLAYER = "tablet_side_player"
@@ -1085,6 +1086,13 @@ class PlayerPreferences(context: Context) {
     // ── Ported feature accessors ──────────────────────────────────────────────────
 
     fun getLyricsLineAnimation(): LyricsLineAnimation {
+        if (!prefs.getBoolean(KEY_LYRICS_LINE_ANIMATION_FORCE_DISABLED, false)) {
+            prefs.edit {
+                putString(KEY_LYRICS_LINE_ANIMATION, LyricsLineAnimation.FADE.name)
+                putBoolean(KEY_LYRICS_LINE_ANIMATION_FORCE_DISABLED, true)
+            }
+            return LyricsLineAnimation.FADE
+        }
         val name = prefs.getString(KEY_LYRICS_LINE_ANIMATION, LyricsLineAnimation.FADE.name)
         return runCatching { LyricsLineAnimation.valueOf(name!!) }.getOrDefault(LyricsLineAnimation.FADE)
     }
@@ -2078,20 +2086,19 @@ class PlayerPreferences(context: Context) {
     fun getBottomMenuItems(): List<String> {
         val csv = prefs.getString(KEY_BOTTOM_MENU_ITEMS, DEFAULT_BOTTOM_MENU_ITEMS) ?: DEFAULT_BOTTOM_MENU_ITEMS
         var items = csv.split(",").filter { it.isNotBlank() }
-        // The feed tab ships enabled for everyone: a one-time insertion for existing installs, so
-        // users who never touched the bottom-bar settings still get the new tab. The flag keeps
-        // the migration from resurrecting the tab after the user deliberately hides it.
-        if (!prefs.getBoolean(KEY_FEED_TAB_MIGRATED, false)) {
-            if ("feed" !in items) {
-                items = if ("home" in items) {
-                    items.flatMap { listOf(it) + if (it == "home") listOf("feed") else emptyList() }.distinct()
-                } else {
-                    listOf("feed") + items
+        // The feed tab is disabled by default. If any previous installation received "feed"
+        // enabled automatically via the previous migration or default, clean it up once so it
+        // stays off unless explicitly enabled by the user in settings.
+        if (!prefs.getBoolean(KEY_FEED_DEFAULT_OFF_CLEANUP, false)) {
+            if ("feed" in items && (csv == "home,feed,search,genres,library" || prefs.getBoolean("feed_tab_migrated", false))) {
+                items = items.filter { it != "feed" }
+                prefs.edit {
+                    putString(KEY_BOTTOM_MENU_ITEMS, items.joinToString(","))
                 }
             }
             prefs.edit {
-                putString(KEY_BOTTOM_MENU_ITEMS, items.joinToString(","))
-                putBoolean(KEY_FEED_TAB_MIGRATED, true)
+                putBoolean(KEY_FEED_DEFAULT_OFF_CLEANUP, true)
+                remove("feed_tab_migrated")
             }
         }
         return items
@@ -2531,17 +2538,15 @@ class PlayerPreferences(context: Context) {
 
     fun getAudioFxPresets(): Map<String, AudioFxPreset> {
         val json = prefs.getString(KEY_AUDIO_FX_PRESETS, null) ?: return emptyMap()
-        return runCatching {
-            val type = object : TypeToken<Map<String, AudioFxPreset?>>() {}.type
-            gson.fromJson<Map<String, AudioFxPreset?>>(json, type).orEmpty().mapNotNull { (name, preset) ->
-                val effects = preset?.effects ?: return@mapNotNull null
-                val equalizer: EqualizerState? = preset.equalizer
-                if (name.isBlank() || equalizer == null || !effects.speed.isFinite() || effects.speed <= 0f) {
-                    return@mapNotNull null
-                }
-                name to AudioFxPreset(effects.copy(isEqualizerEnabled = equalizer.isEnabled), equalizer)
-            }.toMap()
-        }.getOrDefault(emptyMap())
+        val saved = runCatching { com.google.gson.JsonParser.parseString(json) }.getOrNull()
+            ?.takeIf { it.isJsonObject }?.asJsonObject ?: return emptyMap()
+        val presets = LinkedHashMap<String, AudioFxPreset>()
+        for ((rawName, element) in saved.entrySet()) {
+            val name = rawName.trim().take(AudioFxPreset.MAX_NAME_LENGTH)
+            if (name.isEmpty() || presets.keys.any { it.equals(name, ignoreCase = true) }) continue
+            decodeAudioFxPreset(element)?.let { presets[name] = it }
+        }
+        return presets
     }
 
     fun saveAudioFxPresets(presets: Map<String, AudioFxPreset>) {
@@ -2550,14 +2555,48 @@ class PlayerPreferences(context: Context) {
 
     internal fun getAudioFxPresetActivation(): AudioFxPresetActivation? {
         val json = prefs.getString(KEY_AUDIO_FX_PRESET_ACTIVATION, null) ?: return null
-        return runCatching { gson.fromJson(json, AudioFxPresetActivation::class.java) }.getOrNull()?.takeIf {
-            val name: String? = it.name
-            val previous: AudioFxPreset? = it.previous
-            val effects: AudioEffectsState? = previous?.effects
-            val equalizer: EqualizerState? = previous?.equalizer
-            !name.isNullOrBlank() && effects != null && equalizer != null &&
-                effects.speed.isFinite() && effects.speed > 0f
+        val saved = runCatching { com.google.gson.JsonParser.parseString(json) }.getOrNull()
+            ?.takeIf { it.isJsonObject }?.asJsonObject ?: return null
+        val name = saved.get("name")?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotBlank() } ?: return null
+        val previous = decodeAudioFxPreset(saved.get("previous")) ?: return null
+        return AudioFxPresetActivation(name, previous)
+    }
+
+    /**
+     * Reads a preset whatever version of the app wrote it. Gson fills a missing field with null or zero
+     * rather than its Kotlin default, so a preset saved before an effect existed came back with holes in
+     * it; each part is laid over a default instance instead, and numbers that cannot be right fall back.
+     */
+    private fun decodeAudioFxPreset(element: com.google.gson.JsonElement?): AudioFxPreset? {
+        val saved = element?.takeIf { it.isJsonObject }?.asJsonObject ?: return null
+        val effects = decodeWithDefaults(saved.get("effects"), AudioEffectsState(), AudioEffectsState::class.java) ?: return null
+        val equalizer = decodeWithDefaults(saved.get("equalizer"), EqualizerState(), EqualizerState::class.java) ?: EqualizerState()
+        val gains = List(16) { i ->
+            equalizer.bandGainsDb.getOrNull(i)?.takeIf { it.isFinite() }?.coerceIn(-12f, 12f) ?: 0f
         }
+        val cleanEqualizer = equalizer.copy(
+            bandGainsDb = gains,
+            preampDb = equalizer.preampDb.takeIf { it.isFinite() }?.coerceIn(-12f, 12f) ?: 0f,
+        )
+        val speed = effects.speed.takeIf { it.isFinite() && it > 0f }?.coerceIn(0.5f, 2f) ?: 1f
+        return AudioFxPreset(effects.copy(speed = speed), cleanEqualizer).portable()
+    }
+
+    /** [defaults] with every field [element] holds that still makes a valid object laid on top. */
+    private fun <T : Any> decodeWithDefaults(element: com.google.gson.JsonElement?, defaults: T, type: Class<T>): T? {
+        val saved = element?.takeIf { it.isJsonObject }?.asJsonObject ?: return null
+        fun valid(value: T?): Boolean = value != null && runCatching { value.hashCode() }.isSuccess
+        val merged = gson.toJsonTree(defaults).asJsonObject
+        saved.entrySet().forEach { (key, value) -> if (!value.isJsonNull) merged.add(key, value) }
+        runCatching { gson.fromJson(merged, type) }.getOrNull()?.takeIf(::valid)?.let { return it }
+        // Something in there does not fit (an unknown enum, a string where a number was): keep the rest.
+        val safe = gson.toJsonTree(defaults).asJsonObject
+        for ((key, value) in saved.entrySet()) {
+            if (value.isJsonNull) continue
+            val attempt = safe.deepCopy().apply { add(key, value) }
+            if (valid(runCatching { gson.fromJson(attempt, type) }.getOrNull())) safe.add(key, value)
+        }
+        return runCatching { gson.fromJson(safe, type) }.getOrNull()?.takeIf(::valid)
     }
 
     internal fun saveAudioFxPresetActivation(activation: AudioFxPresetActivation?) {
@@ -2815,11 +2854,8 @@ class PlayerPreferences(context: Context) {
                 gson.fromJson<List<String?>>(raw, type)?.filterNotNull()?.distinct()
             }.getOrNull()
         } ?: DEFAULT_PINNED_AUDIO_FX
-        if (stored == null) {
-            // Previously all saved presets appeared in the grid, ahead of the pinned effects.
-            return getAudioFxPresets().keys.reversed().map { AudioFxPreset.tileId(it) } + pinned
-        }
-        return pinned
+        // Saved presets have a row of their own now; the grid holds effects only.
+        return pinned.filterNot(AudioFxPreset::isTileId)
     }
 
     fun setPinnedAudioFx(fxIds: List<String>) {

@@ -140,14 +140,82 @@
         @SerializedName("autoProfileDeviceName") val autoProfileDeviceName: String? = null,
     )
 
+    /** The effects switched on, speed and pitch aside (they are playback settings, not effects). */
+    fun AudioEffectsState.activeEffectCount(): Int = listOf(
+        is8DEnabled,
+        isMuffledEnabled,
+        isBassBoostEnabled,
+        isReverbEnabled,
+        isRainEnabled,
+        isEarrapeEnabled,
+        isMonoEnabled,
+        isNormalizationEnabled,
+        isVintageMp3Enabled,
+        isVocalRemoverEnabled,
+        isVocalBoostEnabled,
+        isFlangerEnabled,
+        isPartyNextDoorEnabled,
+        isSuperWideEnabled,
+        isVinylLoFiEnabled,
+        isPhaserEnabled,
+        isMegaphoneEnabled,
+        isRobotVocoderEnabled,
+        isChorusEnabled,
+        isUnderwaterEnabled,
+        isTranceGateEnabled,
+        isPingPongDelayEnabled,
+        isChiptuneEnabled,
+        isShimmerReverbEnabled,
+        isRotarySpeakerEnabled,
+        isTapeSaturationEnabled,
+        isSubOctaverEnabled,
+        isEmptyMallEnabled,
+        isGramophoneEnabled,
+        isReverseEchoEnabled,
+        isStadiumEnabled,
+        isWalkmanEnabled,
+        isAsmrVocalEnabled,
+        isNightDriveEnabled,
+    ).count { it }
+
     data class AudioFxPreset(
         @SerializedName("effects") val effects: AudioEffectsState,
         @SerializedName("equalizer") val equalizer: EqualizerState
     ) {
+        /**
+         * The sound alone. An automatic headphone profile names the device it was made for, which is
+         * not part of the sound: kept, a preset would only match on that one pair of headphones.
+         */
+        fun portable(): AudioFxPreset = AudioFxPreset(
+            effects.copy(isEqualizerEnabled = equalizer.isEnabled),
+            equalizer.copy(
+                autoProfileId = null,
+                autoProfileName = null,
+                autoProfileSource = null,
+                autoProfileDeviceKey = null,
+                autoProfileDeviceName = null,
+            ),
+        )
+
+        /** How many effects the preset turns on, the equalizer included. */
+        fun activeEffectCount(): Int = effects.activeEffectCount() + if (equalizer.isEnabled) 1 else 0
+
         companion object {
-            fun tileId(name: String): String = "preset:$name"
+            const val MAX_NAME_LENGTH = 40
+            private const val TILE_PREFIX = "preset:"
+
+            fun tileId(name: String): String = "$TILE_PREFIX$name"
+            fun isTileId(id: String): Boolean = id.startsWith(TILE_PREFIX)
+
+            /** What turning a preset off falls back to when nothing was playing before it. */
+            fun neutral(current: AudioFxPreset): AudioFxPreset = AudioFxPreset(
+                AudioEffectsState(ambientType = current.effects.ambientType),
+                current.equalizer.copy(isEnabled = false),
+            ).portable()
         }
     }
+
+    enum class AudioFxPresetNameError { EMPTY, TOO_LONG, TAKEN }
 
     internal data class AudioFxPresetActivation(
         @SerializedName("name") val name: String,
