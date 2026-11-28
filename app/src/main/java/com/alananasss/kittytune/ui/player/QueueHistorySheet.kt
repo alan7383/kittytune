@@ -364,7 +364,9 @@ private fun QueueHistoryCard(
         androidx.compose.runtime.LaunchedEffect(summary.id) {
             val entity = QueueHistoryRepository.getQueueById(summary.id)
             if (entity != null) {
-                tracksInQueue = QueueHistoryRepository.deserializeTracks(entity.tracksJson)
+                tracksInQueue = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                    QueueHistoryRepository.deserializeTracks(entity.tracksJson)
+                }
             }
         }
     }
