@@ -1,0 +1,87 @@
+{
+  "revision": "cb96c584be2351561c73e0dbe0857c4aa3d57b21",
+  "baseline": "8db1db4e",
+  "pairs": 5,
+  "java": "openjdk version \"21.0.13\" 2026-10-20 LTS\nOpenJDK Runtime Environment Temurin-21.0.13+9 (build 21.0.13+9-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.13+9 (build 21.0.13+9-LTS, mixed mode, sharing)\n",
+  "sources_sha256": {
+    "app/src/main/java/com/alananasss/kittytune/data/LyricsMatcher.kt": "4e362790a4c43221e4593c591e51a7924334da92ae88e532c27e551b2d5ec6d6",
+    "app/src/main/java/com/alananasss/kittytune/data/lyrics/providers/LyricsProvider.kt": "38ba7a355ad5235d84617c3fc11312532695df8605117e3fbf7a039084101b5b",
+    "app/src/main/java/com/alananasss/kittytune/ui/player/lyrics/LyricModels.kt": "248dbecbf6d145a674cc06bebda78ba85c8aeb5d29c1fd47098d42c7b89f2744",
+    "app/src/main/java/com/alananasss/kittytune/ui/player/ManualLyricsRanking.kt": "aeb449d589c67024bd58fc91303af49189359866004662a12920032b3b98f42d",
+    "app/src/main/java/com/alananasss/kittytune/ui/player/ProgressiveLyricsMerger.kt": "9754b486ef3b265f05926b64bb61557cbfec1a6d9ca80d5081b82f473b276f2b",
+    "app/src/test/java/com/alananasss/kittytune/ui/player/LyricsRankingParityTest.kt": "9279f5022ceec945999b8adab3e32af5155cf33590fea0c44047782caae86470",
+    "app/src/test/java/com/alananasss/kittytune/ui/player/ProgressiveLyricsMergerTest.kt": "eaaef9f894889b3a18c7413fb1235f781daa5322cead065534a2f52a69caa65a",
+    "verification/lyrics/baseline/BaselineLyricsMatcher.kt": "cb0f70e6870f63db0f73a8261c5e850493bfa40402e145b2d82a724457d7c910",
+    "verification/lyrics/baseline/BaselineLyricsRanking.kt": "16bb35fe874078722a649663b61c2578980f26d0683ed12c2f7cbcba4ea9e86c",
+    "experiments/lyrics-performance/Benchmark.kt": "6a9a9fcf2f134a9d0af4c24c790665da02aedc2adbd076c8627e961933b3994a"
+  },
+  "component_results": {
+    "40": {
+      "baseline": {
+        "median_ms": 13.025049,
+        "process_medians_ms": [
+          13.0057,
+          12.483302,
+          13.025049,
+          13.266758,
+          13.490372
+        ]
+      },
+      "candidate": {
+        "median_ms": 1.533726,
+        "process_medians_ms": [
+          1.38677,
+          1.326745,
+          1.596631,
+          1.266043,
+          1.877305
+        ]
+      }
+    },
+    "150": {
+      "baseline": {
+        "median_ms": 59.74424,
+        "process_medians_ms": [
+          60.243291,
+          58.753633,
+          60.042035,
+          58.909871,
+          60.017775
+        ]
+      },
+      "candidate": {
+        "median_ms": 3.88824,
+        "process_medians_ms": [
+          3.825004,
+          3.820562,
+          4.03252,
+          3.699427,
+          4.043736
+        ]
+      }
+    },
+    "400": {
+      "baseline": {
+        "median_ms": 184.55754,
+        "process_medians_ms": [
+          188.701376,
+          182.537342,
+          185.082733,
+          182.595772,
+          184.059547
+        ]
+      },
+      "candidate": {
+        "median_ms": 9.186522,
+        "process_medians_ms": [
+          9.165095,
+          9.055852,
+          9.445666,
+          8.766428,
+          9.227835
+        ]
+      }
+    }
+  },
+  "limitations": "Component JVM measurements, not Android device frame times or whole-app gains. ViewModel and Android app are not compiled by this harness."
+}

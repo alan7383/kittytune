@@ -1,0 +1,43 @@
+name: Lyrics performance verification
+
+on:
+  push:
+    branches: [perf/android-ui-stalls]
+    paths:
+      - 'app/src/main/java/com/alananasss/kittytune/data/LyricsMatcher.kt'
+      - 'app/src/main/java/com/alananasss/kittytune/data/lyrics/providers/LyricsProvider.kt'
+      - 'app/src/main/java/com/alananasss/kittytune/ui/player/**'
+      - 'app/src/test/java/com/alananasss/kittytune/ui/player/**'
+      - 'experiments/lyrics-performance/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ranking-and-concurrency:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run production ranking parity, concurrency tests and paired measurements
+        run: python experiments/lyrics-performance/run.py --output verification/lyrics
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lyrics-verification
+          path: |
+            verification/lyrics/*.csv
+            verification/lyrics/*.json
+            verification/lyrics/*.log
+            verification/lyrics/complete.txt
+          retention-days: 7

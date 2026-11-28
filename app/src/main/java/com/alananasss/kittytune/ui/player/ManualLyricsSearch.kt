@@ -100,32 +100,9 @@ object ManualLyricsSearch {
         incoming: List<UnifiedLyricResult>,
         target: LyricsMatcher.Target,
         activeKey: String? = null,
-    ): List<UnifiedLyricResult> {
-        val targetSec = target.durationMs / 1000.0
-        return (current + incoming)
-            .distinctBy { it.key }
-            .groupBy { duplicateKey(it) }
-            .values
-            .map { copies ->
-                copies.firstOrNull { it.key == activeKey } ?: copies.minBy { lengthMiss(it, targetSec) }
-            }
-            // Word timings first, then line timings, then plain text, whoever the source is; within a kind the
-            // closest to this song. An unrelated song never outranks the right one by its timings alone.
-            .sortedWith(
-                compareByDescending<UnifiedLyricResult> { isConfidentMatch(it, target) }
-                    .thenByDescending { isConfirmedInstrumental(it, target) }
-                    .thenByDescending { isAboutThisSong(it, target) }
-                    .thenByDescending { syncTier(it) }
-                    .thenByDescending { rank(it, target) },
-            )
-    }
+    ): List<UnifiedLyricResult> = ManualLyricsRanking.merge(current, incoming, target, activeKey)
 
-    fun syncTier(result: UnifiedLyricResult): Int = when {
-        result.noLyrics -> LyricsMatcher.SYNC_TIER_NONE
-        result.hasWordSync -> LyricsMatcher.SYNC_TIER_WORD
-        result.hasLineSync -> LyricsMatcher.SYNC_TIER_LINE
-        else -> LyricsMatcher.SYNC_TIER_PLAIN
-    }
+    fun syncTier(result: UnifiedLyricResult): Int = ManualLyricsRanking.syncTier(result)
 
     fun cleanPreview(raw: String?): String? {
         if (raw.isNullOrBlank()) return null
@@ -149,32 +126,11 @@ object ManualLyricsSearch {
 
     const val ALL = "ALL"
 
-    private fun duplicateKey(result: UnifiedLyricResult): String =
-        listOf(
-            result.provider,
-            LyricsMatcher.normalize(result.name),
-            LyricsMatcher.normalize(result.artistName),
-            syncTier(result).toString(),
-            result.instrumental.toString(),
-            if (result.provider.equals("LRCLIB", ignoreCase = true)) "" else result.id,
-        ).joinToString("|")
-
-    private fun lengthMiss(result: UnifiedLyricResult, targetSec: Double): Double =
-        if (result.durationSec <= 0.0 || targetSec <= 0.0) Double.MAX_VALUE / 2
-        else kotlin.math.abs(result.durationSec - targetSec)
-
-    private fun isAboutThisSong(result: UnifiedLyricResult, target: LyricsMatcher.Target): Boolean =
-        LyricsMatcher.titleSimilarity(result.name, target) >= LyricsMatcher.CONFIDENT_MATCH
-
-    /** Sure enough to be used without asking: this song's title, and its length when both lengths are known. */
-    fun isConfidentMatch(result: UnifiedLyricResult, target: LyricsMatcher.Target): Boolean {
-        if (!isAboutThisSong(result, target)) return false
-        return LyricsMatcher.durationMatches(result.durationSec, target.durationMs)
-    }
+    fun isConfidentMatch(result: UnifiedLyricResult, target: LyricsMatcher.Target): Boolean =
+        ManualLyricsRanking.isConfidentMatch(result, target)
 
     fun isConfirmedInstrumental(result: UnifiedLyricResult, target: LyricsMatcher.Target): Boolean =
-        result.instrumental && isConfidentMatch(result, target) &&
-            LyricsMatcher.artistSimilarity(result.artistName, target) >= LyricsMatcher.CONFIDENT_MATCH
+        ManualLyricsRanking.isConfirmedInstrumental(result, target)
 
     fun isInstrumental(raw: String?, lines: List<LyricLine>): Boolean {
         val marker = if (lines.isEmpty()) raw else lines.filterNot { it.isInstrumental }
@@ -183,12 +139,6 @@ object ManualLyricsSearch {
             "instrumental", "instrumental only" -> true
             else -> false
         }
-    }
-
-    private fun rank(result: UnifiedLyricResult, target: LyricsMatcher.Target): Float {
-        val score = LyricsMatcher.score(result.name, result.artistName, result.durationSec, target)
-        val titleSimilarity = LyricsMatcher.titleSimilarity(result.name, target)
-        return LyricsMatcher.rank(syncTier(result), score, titleSimilarity)
     }
 
     /** What timings [raw] really has, read from the parsed lines rather than guessed from its characters. */
