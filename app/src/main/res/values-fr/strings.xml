@@ -2374,7 +2374,7 @@
     <string name="sync_scan_found">Code trouvé, appairage…</string>
     <string name="sync_scan_no_camera">KittyTune a besoin de la caméra pour lire le code. Tu peux aussi coller le code à la main.</string>
     <string name="sync_scan_allow_camera">Autoriser la caméra</string>
-    <string name="sync_local_network_needed">Autorise KittyTune à accéder aux appareils de ton réseau Wi-Fi pour les appairer.</string>
+    <string name="sync_local_network_needed">Autorisez KittyTune à accéder aux appareils présents sur votre réseau Wi-Fi afin de les jumeler.</string>
     <string name="sync_local_network_allow">Autoriser le réseau local</string>
     <string name="sync_devices">Appareils</string>
     <string name="sync_pair_device">Appairer un appareil</string>
